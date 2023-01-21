@@ -1,0 +1,124 @@
+object Form1: TForm1
+  Left = 0
+  Top = 0
+  Caption = 'Form1'
+  ClientHeight = 480
+  ClientWidth = 642
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop]
+  DesignerMasterStyle = 0
+  object Panel1: TPanel
+    Align = Left
+    Position.Y = 73.000000000000000000
+    Size.Width = 225.000000000000000000
+    Size.Height = 407.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 0
+    object Source: TLabel
+      Position.X = 8.000000000000000000
+      Position.Y = 8.000000000000000000
+      Text = 'Source'
+      TabOrder = 0
+    end
+    object mmSource: TMemo
+      Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+      DataDetectorTypes = []
+      StyledSettings = [Size, Style, FontColor]
+      TextSettings.Font.Family = 'Cascadia Code'
+      Anchors = [akLeft, akTop, akRight, akBottom]
+      Position.X = 8.000000000000000000
+      Position.Y = 24.000000000000000000
+      Size.Width = 209.000000000000000000
+      Size.Height = 377.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 1
+      Viewport.Width = 205.000000000000000000
+      Viewport.Height = 373.000000000000000000
+    end
+  end
+  object Panel2: TPanel
+    Align = Client
+    Size.Width = 417.000000000000000000
+    Size.Height = 407.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 1
+    object mmIL: TMemo
+      Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+      DataDetectorTypes = []
+      StyledSettings = [Size, Style, FontColor]
+      TextSettings.Font.Family = 'Cascadia Code'
+      Anchors = [akLeft, akTop, akRight, akBottom]
+      Position.X = 8.000000000000000000
+      Position.Y = 24.000000000000000000
+      Size.Width = 229.000000000000000000
+      Size.Height = 377.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 0
+      Viewport.Width = 225.000000000000000000
+      Viewport.Height = 373.000000000000000000
+    end
+    object Label3: TLabel
+      Position.X = 248.000000000000000000
+      Position.Y = 8.000000000000000000
+      Text = 'Variables'
+      TabOrder = 3
+    end
+    object mmVars: TMemo
+      Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+      DataDetectorTypes = []
+      StyledSettings = [Size, Style, FontColor]
+      TextSettings.Font.Family = 'Cascadia Code'
+      Position.X = 248.000000000000000000
+      Position.Y = 24.000000000000000000
+      Size.Width = 161.000000000000000000
+      Size.Height = 377.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 4
+      Viewport.Width = 157.000000000000000000
+      Viewport.Height = 373.000000000000000000
+    end
+    object Label1: TLabel
+      Position.X = 8.000000000000000000
+      Position.Y = 8.000000000000000000
+      Text = 'IL Code'
+      TabOrder = 5
+    end
+  end
+  object Panel3: TPanel
+    Align = MostTop
+    Size.Width = 642.000000000000000000
+    Size.Height = 73.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 2
+    object btnStatement: TButton
+      Position.X = 8.000000000000000000
+      Position.Y = 8.000000000000000000
+      TabOrder = 0
+      Text = 'Statement'
+      OnClick = btnStatementClick
+    end
+    object btnBlock: TButton
+      Position.X = 96.000000000000000000
+      Position.Y = 8.000000000000000000
+      TabOrder = 2
+      Text = 'Block'
+      OnClick = btnBlockClick
+    end
+    object Label2: TLabel
+      Position.X = 8.000000000000000000
+      Position.Y = 40.000000000000000000
+      Text = 'Error'
+      TabOrder = 3
+    end
+    object edError: TEdit
+      Touch.InteractiveGestures = [LongTap, DoubleTap]
+      TabOrder = 4
+      Position.X = 40.000000000000000000
+      Position.Y = 40.000000000000000000
+      Size.Width = 249.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+    end
+  end
+end
