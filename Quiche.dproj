@@ -379,10 +379,10 @@
             <FormType>fmx</FormType>
         </DCCReference>
         <DCCReference Include="ILData.pas"/>
-        <DCCReference Include="..\Z80Assembler\MErrors.pas"/>
-        <DCCReference Include="..\Z80Assembler\MSourceReader.pas"/>
         <DCCReference Include="QuicheParser.pas"/>
         <DCCReference Include="Variables.pas"/>
+        <DCCReference Include="Includes\MSourceReader.pas"/>
+        <DCCReference Include="Includes\MErrors.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
@@ -423,6 +423,18 @@
                 <DeployFile LocalName="Win32\Debug\Quiche.exe" Configuration="Debug" Class="ProjectOutput">
                     <Platform Name="Win32">
                         <RemoteName>Quiche.exe</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="Win64\Debug\Quiche.exe" Configuration="Debug" Class="ProjectOutput">
+                    <Platform Name="Win64">
+                        <RemoteName>Quiche.exe</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="Win64\Debug\Quiche.rsm" Configuration="Debug" Class="DebugSymbols">
+                    <Platform Name="Win64">
+                        <RemoteName>Quiche.rsm</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>

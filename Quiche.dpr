@@ -5,10 +5,10 @@ uses
   FMX.Forms,
   Main in 'Main.pas' {Form1},
   ILData in 'ILData.pas',
-  MErrors in '..\Z80Assembler\MErrors.pas',
-  MSourceReader in '..\Z80Assembler\MSourceReader.pas',
   QuicheParser in 'QuicheParser.pas',
-  Variables in 'Variables.pas';
+  Variables in 'Variables.pas',
+  MSourceReader in 'Includes\MSourceReader.pas',
+  MErrors in 'Includes\MErrors.pas';
 
 {$R *.res}
 

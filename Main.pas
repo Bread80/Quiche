@@ -44,6 +44,7 @@ begin
   ClearILList;
   ClearVars;
   LoadFromString(mmSource.Text);
+  Err := errNone;
   while (Err = errNone) and not ParserEOF do
     Err := ParseBlock(bsSingle);
 
