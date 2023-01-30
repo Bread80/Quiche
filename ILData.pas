@@ -7,6 +7,7 @@ uses Generics.Collections, Classes;
 type TILOperation = (
   opNone,
   opAssign,
+  opPhi,
   opEqual, opNotEqual, opLess, opGreater, opLessEqual, opGreaterEqual, opIn,
   opAdd, opSubtract, opOR, opXOR,
   opMultiply, opDivide, opDiv, opMod,  opAnd, opShr, opShl,
@@ -15,6 +16,7 @@ type TILOperation = (
 
 //Precedence for the operations
 const ILOpPrecedences: array[low(TILOperation)..high(TILOperation)] of Integer = (
+  -1,
   -1,
   -1,
   1,1,1,1, 1,1,1,
@@ -26,6 +28,7 @@ const ILOpPrecedences: array[low(TILOperation)..high(TILOperation)] of Integer =
 const ILOpStrings: array [low(TILOperation)..high(TILOperation)] of String = (
   '<None>',
   '',//'Assign',
+  'phi',
   'Equal','NotEqual','LessThan','GreaterThan','LessThanOrEqual','GreaterThanOrEqual','In',
   'Add','Subtract','or','xor',
   'Multiply','Divide','div','mod','and','shr','shl',
@@ -34,13 +37,14 @@ const ILOpStrings: array [low(TILOperation)..high(TILOperation)] of String = (
 //Locations where an operation will find it's data
 type TILLocation = (
     locNone,      //No parameter
+    locPhiVar,    //Parameter for a phi function for a variable.
     locImmediate, //Immediate data. Parameter is the data.
-    locLocal,     //Local variable. Parameter is an index in the variables list
+    locVar,       //Variable. Parameter is an index in the variables list
     locTemp       //Temporary (transient) data. Parameter is the temp result index
                   //(i.e. the result of a previous computation).
     );
 
-type TILType = (iltPrimitive, iltBranch);
+type TDestType = (dtData, dtBranch);
 
 //Record for an atomic IL item
 //The operation combines paramer1 and parameter2 and writes the result (if it has one) to
@@ -49,28 +53,29 @@ type
   PILItem = ^TILItem;
   TILItem = record
     BlockID: Integer;       //Contains +ve value on first line of a block, otherwise -1
-    case ILType: TILType of
-    iltPrimitive:
-      (
-      Op: TILOperation;       //The operation
-      DestLoc: TILLocation;
-      DestData: Integer;      //Destination (a temp result index). -1 if operation has no result
-      DestSub: Integer;
+    Op: TILOperation;       //The operation
 
-      Param1Loc: TILLocation; //Location of parameter 1
-      Param1Data: Integer;    //Data for parameter 1
-      Param1Sub: Integer;     //Subscript for parameter 1 (i.e. the variable write index)
+    Param1Loc: TILLocation; //Location of parameter 1
+    Param1Data: Integer;    //Data for parameter 1.
+    Param1Sub: Integer;     //Subscript for parameter 1 (i.e. the variable write index)
 
-      Param2Loc: TILLocation; //Location for parameter 2
-      Param2Data: Integer;    //Data for parameter 2
-      Param2Sub: Integer;     //Subscript for parameter 2 (i.e. the variable write index)
+    Param2Loc: TILLocation; //Location for parameter 2
+    Param2Data: Integer;    //Data for parameter 2
+    Param2Sub: Integer;     //Subscript for parameter 2 (i.e. the variable write index)
+
+    case DestType: TDestType of
+      dtData: (
+        DestLoc: TILLocation;
+        DestData: Integer;      //Destination (a temp result index). -1 if operation has no result
+        DestSub: Integer;
       );
-    iltBranch:
+      dtBranch:
       (
-      TrueBlock: Integer;     //Block number to branch to if condition is true
-      FalseBlock: Integer;    //Block number to branch to if condition is false
-      )
-    end;
+        TrueBlock: Integer;     //Block number to branch to if condition is true
+        FalseBlock: Integer;    //Block number to branch to if condition is false
+                                //If FalseBlock is -1 the branch is unconditional
+      );
+  end;
 
 //Clears the list of IL instructions and any related data
 procedure ClearILList;
@@ -83,13 +88,13 @@ function GetCurrBlockID: Integer;
 function GetNextBlockID: Integer;
 
 //Allocates a new IL item and adds it to the list
-function AllocILItem(ILType: TILType): PILItem;
+function ILAlloc(DestType: TDestType): PILItem;
 
 //Returns the current number of items in the IL list
-function GetILCount: Integer;
+function ILGetCount: Integer;
 
 //Returns the Index'th item in the IL list
-function GetILItem(Index: Integer): PILItem;
+function ILIndexToData(Index: Integer): PILItem;
 
 
 
@@ -146,7 +151,7 @@ begin
   NewBlock := True;
 end;
 
-function AllocILItem(ILType: TILType): PILItem;
+function ILAlloc(DestType: TDestType): PILItem;
 begin
   New(Result);
   ILList.Add(Result);
@@ -157,15 +162,19 @@ begin
   end
   else
     Result.BlockID := -1;
-  Result.ILType := ILType;
+  Result.DestType := DestType;
+  if Result.DestType = dtData then
+    Result.DestLoc := locNone;
+  Result.Param1Loc := locNone;
+  Result.Param2Loc := locNone;
 end;
 
-function GetILCount: Integer;
+function ILGetCount: Integer;
 begin
   Result := ILList.Count;
 end;
 
-function GetILItem(Index: Integer): PILItem;
+function ILIndexToData(Index: Integer): PILItem;
 begin
   Result := ILList[Index];
 end;
@@ -174,62 +183,74 @@ function ILItemToString(Item: PILItem): String;
 begin
   Result := '';
 
-  case Item.ILType of
-    iltPrimitive:
+  case Item.DestType of
+    dtData:
     begin
       case Item.DestLoc of
         locNone: ;
         locImmediate: ;
-        locLocal: Result := Result + '%' + VarIndexToName(Item.DestData) + '_' + IntToStr(Item.DestSub);
+        locVar: Result := Result + '%' + VarIndexToName(Item.DestData) + '_' + IntToStr(Item.DestSub);
         locTemp: Result := Result + '%' + IntToStr(Item.DestData);
       else
         Result := Result + 'Invalid DestLoc';
 //    raise Exception.Create('Invalid DestLoc');
       end;
-
-      Result := Result + ' = ' + ILOpStrings[Item.Op] + ' ';
-
-      case Item.Param1Loc of
-        locNone: ;
-        locImmediate: Result := Result + IntToStr(Item.Param1Data);
-        locLocal: Result := Result + '%' + VarIndexToName(Item.Param1Data) + '_' + IntToStr(Item.Param1Sub);
-        locTemp: Result := Result + '%' + IntToStr(Item.Param1Data);
-      else
-//    raise Exception.Create('Invalid Param1Loc');
-      end;
-
-      if Item.Op <> opAssign then
-      case Item.Param2Loc of
-        locNone: ;
-        locImmediate: Result := Result + ', ' + IntToStr(Item.Param2Data);
-        locLocal: Result := Result + ', %' + VarIndexToName(Item.Param2Data) + '_' + IntToStr(Item.Param2Sub);
-        locTemp: Result := Result + ', %' + IntToStr(Item.Param2Data);
-      else
-//    raise Exception.Create('Invalid Param2Loc');
-      end;
     end;
-    iltBranch:
+    dtBranch:
     begin
       Result := Result + 'Branch ';
       if Item.FalseBlock = -1 then
-        Result := Result + '{' + IntToStr(Item.TrueBlock) + '}'
+        Result := Result + '{' + IntToStr(Item.TrueBlock) + '} '
       else
-        Result := Result + ' T{' + IntToStr(Item.TrueBlock) + '} F{' + IntToStr(Item.FalseBlock) + '}';
-    end
+        Result := Result + '{' + IntToStr(Item.TrueBlock) + ',' + IntToStr(Item.FalseBlock) + '} ';
+    end;
     else
       raise Exception.Create('Unkown block type');
+  end;
+
+  //Ignore unconditional branches
+  if not ((Item.DestType = dtBranch) and (Item.FalseBlock = -1)) then
+  begin
+    if Item.DestType <> dtBranch then
+      Result := Result + ' = ';
+    Result := Result + ILOpStrings[Item.Op] + ' ';
+
+    case Item.Param1Loc of
+      locNone: ;
+      locImmediate: Result := Result + IntToStr(Item.Param1Data);
+      locPhiVar: Result := Result + '[%' + VarIndexToName(Item.DestData) + '_' +
+        IntToStr(Item.Param1Sub) + ' {' + IntToStr(Item.Param1Data) + '}] ';
+      locVar: Result := Result + '%' + VarIndexToName(Item.Param1Data) + '_' + IntToStr(Item.Param1Sub);
+      locTemp: Result := Result + '%' + IntToStr(Item.Param1Data);
+    else
+//    raise Exception.Create('Invalid Param1Loc');
     end;
+
+    if Item.Op <> opAssign then
+    case Item.Param2Loc of
+      locNone: ;
+      locImmediate: Result := Result + ', ' + IntToStr(Item.Param2Data);
+      locPhiVar: Result := Result + '[%' + VarIndexToName(Item.DestData) + '_' +
+        IntToStr(Item.Param2Sub) + ' {' + IntToStr(Item.Param2Data) + '}]';
+      locVar: Result := Result + ', %' + VarIndexToName(Item.Param2Data) + '_' + IntToStr(Item.Param2Sub);
+      locTemp: Result := Result + ', %' + IntToStr(Item.Param2Data);
+    else
+//    raise Exception.Create('Invalid Param2Loc');
+    end;
+  end;
 end;
 
 procedure ILToStrings(S: TStrings);
 var Item: PILItem;
+  I: Integer;
 begin
   S.Clear;
-  for Item in ILList do
+  for I := 0 to ILGetCount-1 do
   begin
+    Item := ILIndexToData(I);
     if Item.BlockID <> -1 then
       S.Add(IntToStr(Item.BlockID)+':  ');
-    S.Add(ILItemToString(Item));
+    S.Add(IntToStr(I)+'- ' + ILItemToString(Item));
   end;
 end;
 

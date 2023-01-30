@@ -1,0 +1,32 @@
+=================
+z:=4
+i:=2
+if a=1 then
+begin
+  b:=1
+  c:=2
+  i:=3
+end
+else
+begin
+  b:=2
+  if a=1 then
+    y:=100
+  x:=10
+  z:=5
+end
+d:=0
+
+===============
+a:=1
+if a=1 then
+begin
+  a:=a+1
+  a:=a-1
+end
+else
+begin
+  a:=a-1
+  a:=a+1
+end
+a:=a*2

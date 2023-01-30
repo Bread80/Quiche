@@ -127,7 +127,6 @@ begin
   else
   begin
     if not Parser.ReadChar(Ch) then
-    if Result <> errNone then
       EXIT(errIdentifierExpected);
     if Ch in csIdentFirst then
       Ident := Ch
@@ -204,7 +203,7 @@ begin
 
     //*** NOT operator ***
     V := FindOrAddVar(Ident, Data, VarSub);
-    Loc := locLocal;
+    Loc := locVar;
     Result := errNone;
   end
 
@@ -358,9 +357,7 @@ end;
 //to update the Dest info as needed
 function ParseSubExpression(Slug: PExprSlug;out ILItem: PILItem): TAssembleError;
 var RightSlug: TExprSlug;
-  Loc: TILLocation;
   DestData: Integer;
-  DestVarSub: Integer;
 begin
   while True do
   begin
@@ -388,7 +385,7 @@ begin
 
     //Add current operation to list.
     //Dest info will be added by later
-    ILItem := AllocILItem(iltPrimitive);
+    ILItem := ILAlloc(dtData);
     ILItem.Op := Slug.Op;
     ILItem.Param1Loc := Slug.Loc;
     ILItem.Param1Data := Slug.Data;
@@ -431,9 +428,6 @@ end;
 //See header section
 function ParseExpression(out ILItem: PILItem): TAssembleError;
 var Slug: TExprSlug;
-  LocVarSub: Integer;
-  Loc: TILLocation;
-  DestVarSub: Integer;
 begin
   //Read the first slug of the expression
   Result := ParseExprSlug(Slug);
@@ -446,7 +440,7 @@ begin
   if Slug.Op = opNone then
   begin
     //Add item to IL list
-    ILItem := AllocILItem(iltPrimitive);
+    ILItem := ILAlloc(dtData);
     ILItem.Op := opAssign;
     ILItem.Param1Loc := Slug.Loc;
     ILItem.Param1Data := Slug.Data;
@@ -480,29 +474,33 @@ end;
 
 function DoIF: TAssembleError;
 var
-  Condition: PILItem;
   Branch: PILItem;
   ThenBranch: PILItem;
   ElseBranch: PILItem;
   //BlockIDs
-  BranchID: Integer;
-  ThenLastID: Integer;
-  ElseLastID: Integer;
-  MergeID: Integer;
+  BranchID: Integer;    //Block ID of the conditional branch
+  ThenLastID: Integer;  //Last block of the THEN branch
+  ElseLastID: Integer;  //Last block of the ELSE branch
+//  MergeID: Integer;     //The block where both paths merge together
+  //ILItem indexes
+  BranchIndex: Integer; //Item containing the conditional branch (i.e. end of previous code)
+  ThenLastIndex: Integer; //Last item in the THEN path
+  ElseLastIndex: Integer; //Last item in the ELSE path. -1 if no ELSE path
 begin
-  Result := ParseExpression(Condition);
-  //Add Dest loc & data
-  Condition.DestLoc := locTemp;
-  Condition.DestData := GetNextTempIndex;
+  Result := ParseExpression(Branch);
+  if Result <> errNone then
+    EXIT;
+
+  //Convert item to a branch
+  Branch.DestType := dtBranch;
 
   //Test for THEN
   Parser.SkipWhiteSpace;
   if not TestForIdent('then') then
     EXIT(errTHENExpected);
 
-  //Branch (Block IDs to be added later)
-  Branch := AllocILItem(iltBranch);
   BranchID := GetCurrBlockID;
+  BranchIndex := ILGetCount-1;
 
   //THEN Block
   NewBlock := True;
@@ -511,9 +509,10 @@ begin
   if Result <> errNone then
     EXIT;
   //Branch to merge block
-  ThenBranch := AllocILItem(iltBranch);
+  ThenBranch := ILAlloc(dtBranch);
   ThenBranch.FalseBlock := -1;  //Unconditional branch
   ThenLastID := GetCurrBlockID;
+  ThenLastIndex := ILGetCount-1;
 
   //Test for ELSE
   Parser.SkipWhiteSpaceAll;
@@ -527,20 +526,22 @@ begin
     if Result <> errNone then
       EXIT;
     //Branch to merge block
-    ElseBranch := AllocILItem(iltBranch);
+    ElseBranch := ILAlloc(dtBranch);
     ElseBranch.FalseBlock := -1;  //Unconditional branch
     ElseLastID := GetCurrBlockID;
+    ElseLastIndex := ILGetCount-1;
 
     //Branch to merge block
     NewBlock := True;
     ElseBranch.TrueBlock := GetCurrBlockID + 1;
     Parser.SkipWhiteSpaceAll;
   end
-  else //No ELSE
+  else //No ELSE - if condition failed it jumps straight to the merge block
   begin
     NewBlock := True;
-    ElseBranch := nil;
+//    ElseBranch := nil;
     ElseLastID := -1;
+    ElseLastIndex := -1;
 
     Branch.FalseBlock := GetCurrBlockID + 1;
   end;
@@ -548,9 +549,17 @@ begin
   //Fixup branches at end of THEN and ELSE blocks
   NewBlock := True;
   ThenBranch.TrueBlock := GetCurrBlockID + 1;
-  MergeID := GetCurrBlockID + 1;
+//  MergeID := GetCurrBlockID + 1;
+
+  //If we have two paths then we need to fixup any variable reads
+  if ElseLastIndex >= 0 then
+    BranchFixup(BranchIndex + 1, ThenLastIndex, ThenLastIndex + 1, ElseLastIndex);
 
   //phi expression(s) - for each variable
+  if ElseLastIndex >= 0 then
+    PhiWalk(ThenLastIndex, ElseLastIndex, BranchIndex, ThenLastID, ElseLastID)
+  else
+    PhiWalk(ThenLastIndex, -1, BranchIndex, ThenLastID, BranchID);
 end;
 
 function ParseStatement(Ident: String): TAssembleError;
@@ -605,8 +614,8 @@ begin
 //          EXIT(errNone);//          EXIT(errUnexpectedChar);
 
         FindOrAddVar(Ident, VarIndex, VarSub);
-        VarSub := VarIncWriteCount(VarIndex);
-        ILItem.DestLoc := locLocal;
+        VarSub := VarIndexIncWriteCount(VarIndex);
+        ILItem.DestLoc := locVar;
         ILItem.DestData := VarIndex;
         ILItem.DestSub := VarSub;
       end
@@ -657,7 +666,7 @@ begin
           Ch := Parser.TestChar;
           if Ch = ';' then
             Parser.SkipChar;
-        until not (Ch in [#0,';']);
+        until Parser.EOF or not (Ch in [#0,';']);
 
         if BlockState = bsSingle then
           EXIT(errNone);

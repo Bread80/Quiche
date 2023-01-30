@@ -8,7 +8,8 @@ uses
   QuicheParser in 'QuicheParser.pas',
   Variables in 'Variables.pas',
   MSourceReader in 'Includes\MSourceReader.pas',
-  MErrors in 'Includes\MErrors.pas';
+  MErrors in 'Includes\MErrors.pas',
+  ILExec in 'ILExec.pas';
 
 {$R *.res}
 

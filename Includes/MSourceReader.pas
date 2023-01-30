@@ -140,7 +140,9 @@ begin
   FEOF := FLineNo > FLines.Count;
   Result := not FEOF;
   if Result then
-    FLine := FLines[FLineNo-1];
+    FLine := FLines[FLineNo-1]
+  else
+    FLine := '';
   FPos := 0;
 end;
 

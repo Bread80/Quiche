@@ -3,7 +3,7 @@ object Form1: TForm1
   Top = 0
   Caption = 'Form1'
   ClientHeight = 480
-  ClientWidth = 642
+  ClientWidth = 747
   FormFactor.Width = 320
   FormFactor.Height = 480
   FormFactor.Devices = [Desktop]
@@ -38,8 +38,10 @@ object Form1: TForm1
     end
   end
   object Panel2: TPanel
-    Align = Client
-    Size.Width = 417.000000000000000000
+    Align = Left
+    Position.X = 233.000000000000000000
+    Position.Y = 73.000000000000000000
+    Size.Width = 248.000000000000000000
     Size.Height = 407.000000000000000000
     Size.PlatformDefault = False
     TabOrder = 1
@@ -51,43 +53,23 @@ object Form1: TForm1
       Anchors = [akLeft, akTop, akRight, akBottom]
       Position.X = 8.000000000000000000
       Position.Y = 24.000000000000000000
-      Size.Width = 229.000000000000000000
+      Size.Width = 233.000000000000000000
       Size.Height = 377.000000000000000000
       Size.PlatformDefault = False
       TabOrder = 0
-      Viewport.Width = 225.000000000000000000
-      Viewport.Height = 373.000000000000000000
-    end
-    object Label3: TLabel
-      Position.X = 248.000000000000000000
-      Position.Y = 8.000000000000000000
-      Text = 'Variables'
-      TabOrder = 3
-    end
-    object mmVars: TMemo
-      Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
-      DataDetectorTypes = []
-      StyledSettings = [Size, Style, FontColor]
-      TextSettings.Font.Family = 'Cascadia Code'
-      Position.X = 248.000000000000000000
-      Position.Y = 24.000000000000000000
-      Size.Width = 161.000000000000000000
-      Size.Height = 377.000000000000000000
-      Size.PlatformDefault = False
-      TabOrder = 4
-      Viewport.Width = 157.000000000000000000
+      Viewport.Width = 229.000000000000000000
       Viewport.Height = 373.000000000000000000
     end
     object Label1: TLabel
       Position.X = 8.000000000000000000
       Position.Y = 8.000000000000000000
       Text = 'IL Code'
-      TabOrder = 5
+      TabOrder = 3
     end
   end
   object Panel3: TPanel
     Align = MostTop
-    Size.Width = 642.000000000000000000
+    Size.Width = 747.000000000000000000
     Size.Height = 73.000000000000000000
     Size.PlatformDefault = False
     TabOrder = 2
@@ -119,6 +101,61 @@ object Form1: TForm1
       Size.Width = 249.000000000000000000
       Size.Height = 22.000000000000000000
       Size.PlatformDefault = False
+    end
+    object btnRun: TButton
+      Position.X = 440.000000000000000000
+      Position.Y = 8.000000000000000000
+      TabOrder = 5
+      Text = 'Run'
+      OnClick = btnRunClick
+    end
+  end
+  object Splitter1: TSplitter
+    Align = Left
+    Cursor = crHSplit
+    MinSize = 20.000000000000000000
+    Position.X = 225.000000000000000000
+    Position.Y = 73.000000000000000000
+    Size.Width = 8.000000000000000000
+    Size.Height = 407.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object Splitter2: TSplitter
+    Align = Left
+    Cursor = crHSplit
+    MinSize = 20.000000000000000000
+    Position.X = 481.000000000000000000
+    Position.Y = 73.000000000000000000
+    Size.Width = 8.000000000000000000
+    Size.Height = 407.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object Panel4: TPanel
+    Align = Client
+    Size.Width = 258.000000000000000000
+    Size.Height = 407.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 6
+    object Label3: TLabel
+      Position.X = 10.000000000000000000
+      Position.Y = 8.000000000000000000
+      Text = 'Output'
+      TabOrder = 1
+    end
+    object mmOutput: TMemo
+      Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+      DataDetectorTypes = []
+      StyledSettings = [Size, Style, FontColor]
+      TextSettings.Font.Family = 'Cascadia Code'
+      Anchors = [akLeft, akTop, akRight, akBottom]
+      Position.X = 8.000000000000000000
+      Position.Y = 24.000000000000000000
+      Size.Width = 241.000000000000000000
+      Size.Height = 377.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 2
+      Viewport.Width = 237.000000000000000000
+      Viewport.Height = 373.000000000000000000
     end
   end
 end
