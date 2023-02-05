@@ -37,6 +37,7 @@ const ILOpStrings: array [low(TILOperation)..high(TILOperation)] of String = (
 //Locations where an operation will find it's data
 type TILLocation = (
     locNone,      //No parameter
+    locOUT,       //For testing!
     locPhiVar,    //Parameter for a phi function for a variable.
     locImmediate, //Immediate data. Parameter is the data.
     locVar,       //Variable. Parameter is an index in the variables list
@@ -87,8 +88,10 @@ var NewBlock: Boolean;
 function GetCurrBlockID: Integer;
 function GetNextBlockID: Integer;
 
-//Allocates a new IL item and adds it to the list
-function ILAlloc(DestType: TDestType): PILItem;
+//Allocates a new IL item and appends it to the list
+function ILAppend(DestType: TDestType): PILItem;
+//Allocates a new IL item and inserts it into the IL list at the given Index
+function ILInsert(Index: Integer;DestType: TDestType): PILItem;
 
 //Returns the current number of items in the IL list
 function ILGetCount: Integer;
@@ -146,15 +149,14 @@ begin
     Dispose(Item);
   ILList.Clear;
 
-  CurrTempIndex := 1;
+  CurrTempIndex := 0;
   CurrBlockID := 0;
   NewBlock := True;
 end;
 
-function ILAlloc(DestType: TDestType): PILItem;
+function ILCreate(DestType: TDestType): PILItem;
 begin
   New(Result);
-  ILList.Add(Result);
   if NewBlock then
   begin
     Result.BlockID := GetNextBlockID;
@@ -167,6 +169,18 @@ begin
     Result.DestLoc := locNone;
   Result.Param1Loc := locNone;
   Result.Param2Loc := locNone;
+end;
+
+function ILAppend(DestType: TDestType): PILItem;
+begin
+  Result := ILCreate(DestType);
+  ILList.Add(Result);
+end;
+
+function ILInsert(Index: Integer;DestType: TDestType): PILItem;
+begin
+  Result := ILCreate(DestType);
+  ILList.Insert(Index, Result);
 end;
 
 function ILGetCount: Integer;
@@ -188,6 +202,7 @@ begin
     begin
       case Item.DestLoc of
         locNone: ;
+        locOUT: Result := Result + 'OUT ';
         locImmediate: ;
         locVar: Result := Result + '%' + VarIndexToName(Item.DestData) + '_' + IntToStr(Item.DestSub);
         locTemp: Result := Result + '%' + IntToStr(Item.DestData);
@@ -249,7 +264,7 @@ begin
   begin
     Item := ILIndexToData(I);
     if Item.BlockID <> -1 then
-      S.Add(IntToStr(Item.BlockID)+':  ');
+      S.Add('   ' + IntToStr(Item.BlockID)+':  ');
     S.Add(IntToStr(I)+'- ' + ILItemToString(Item));
   end;
 end;

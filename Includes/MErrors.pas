@@ -71,6 +71,8 @@ type TAssembleError = (
   errEndExpected,
   errInvalidKeyword,
   errTHENExpected,
+  errTOExpected,
+  errDOExpected,
 
   err1  //Debugging
 
@@ -136,6 +138,8 @@ const Errors: array[TAssembleError] of String = (
   'End expected at end of block',
   'The keyword is invalid at this location',
   'THEN expected after IF expression',
+  'TO expected after loop assignment',
+  'DO expected after',
 
 
 

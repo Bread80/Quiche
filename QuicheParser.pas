@@ -47,10 +47,11 @@ begin
 end;
 
 
-type TKeyword = (keyUNKNOWN, keyIF, keyTHEN, keyELSE);
+type TKeyword = (keyUNKNOWN,
+  keyDo, keyDOWNTO, keyELSE, keyFOR, keyIF, keyTHEN, keyTO);
 const KeywordStrings: array[low(TKeyword)..high(TKeyword)] of String = (
   '',  //Placeholder for Unknown value
-  'if','then','else');
+  'do', 'downto', 'else', 'for', 'if', 'then', 'to');
 
 function IdentToKeyword(Ident: String): TKeyword;
 begin
@@ -84,6 +85,21 @@ begin
 
   if not Result then
     Parser.Undo;
+end;
+
+//Test for := assignment operator
+function TestAssignment: Boolean;
+begin
+  if Parser.TestChar = ':' then
+  begin
+    Parser.SkipChar;
+    if Parser.TestChar = '=' then
+    begin
+      Parser.SkipChar;
+      EXIT(True);
+    end;
+  end;
+  EXIT(False);
 end;
 
 //Parses and returns an integer literal
@@ -202,8 +218,9 @@ begin
       EXIT;
 
     //*** NOT operator ***
-    V := FindOrAddVar(Ident, Data, VarSub);
+    V := FindOrAddVar(Ident, vtInteger, Data);
     Loc := locVar;
+    VarSub := V.Sub;
     Result := errNone;
   end
 
@@ -385,7 +402,7 @@ begin
 
     //Add current operation to list.
     //Dest info will be added by later
-    ILItem := ILAlloc(dtData);
+    ILItem := ILAppend(dtData);
     ILItem.Op := Slug.Op;
     ILItem.Param1Loc := Slug.Loc;
     ILItem.Param1Data := Slug.Data;
@@ -440,7 +457,7 @@ begin
   if Slug.Op = opNone then
   begin
     //Add item to IL list
-    ILItem := ILAlloc(dtData);
+    ILItem := ILAppend(dtData);
     ILItem.Op := opAssign;
     ILItem.Param1Loc := Slug.Loc;
     ILItem.Param1Data := Slug.Data;
@@ -472,6 +489,197 @@ begin
   end;
 end;
 
+//Parses an expression (After the <varname> := has been parsed
+function ParseAssignment(VarIndex: Integer): TAssembleError;
+var
+  ILItem: PILItem;
+  VarSub: Integer;
+begin
+  Result := ParseExpression(ILItem);
+  if Result <> errNone then
+    EXIT;
+
+  Parser.SkipWhiteSpace;
+//        if not (Parser.TestChar in [';',#0]) then
+//          EXIT(errNone);//          EXIT(errUnexpectedChar);
+
+  VarSub := VarIndexIncWriteCount(VarIndex);
+  ILItem.DestLoc := locVar;
+  ILItem.DestData := VarIndex;
+  ILItem.DestSub := VarSub;
+end;
+
+function DoFOR: TAssembleError;
+var
+  LoopVarName: String;
+  LoopVar: PVariable;
+  LoopVarIndex: Integer;
+  ToInc: Boolean;       //TO or DOWNTO?
+  EndValue: PVariable;  //Hidden variable to contain end value for the loop
+  EndValueIndex: Integer;
+  EntryBlockID: Integer;
+  EntryLastItemIndex: Integer;
+//  ForLastID: Integer; //Block ID of FOR statement (prior to loop);
+//  ForLastIndex: Integer; //Last Item before loop (i.e. the FOR branch into the loop)
+  HeaderBlockID: Integer;
+  PhiItemIndex: Integer;
+  LoopVarPhi: PILItem;  //Phi node for the loop variable
+  LoopBodyBlockID: Integer;
+  ExitTestItem: PILItem;
+  ILItem: PILItem; //Used for various Items
+  PhiInsertCount: Integer;
+begin
+  Parser.SkipWhiteSpaceAll;
+
+  //ENTRY section - prepare for loop
+  //-------------
+  //Read loop variable name
+  Result := ParseIdentifier(#0, LoopVarName);
+  if Result <> errNone then
+    EXIT;
+
+  //Insert test here for FOR .. IN form
+
+  //Read ':=' operator
+  Parser.SkipWhiteSpace;
+  if not TestAssignment then
+    EXIT(errAssignmentExpected);
+
+  //Initialisation expression
+  Parser.SkipWhiteSpace;
+  LoopVar := FindOrAddVar(LoopVarName, vtInteger, LoopVarIndex);
+  Result := ParseAssignment(LoopVarIndex);
+  if Result <> errNone then
+    EXIT;
+
+  if TestForIdent('to') then
+    ToInc := True
+  else if TestForIdent('downto') then
+    ToInc := False
+  else
+    EXIT(errToExpected);
+
+  //Eval TO expression
+  Parser.SkipWhiteSpace;
+  EndValue := VarCreateHidden(vtInteger, EndValueIndex);
+  Result := ParseAssignment(EndValueIndex);
+  if Result <> errNone then
+    EXIT;
+
+  //Insert code here for Step value
+
+  if not TestForIdent('do') then
+    EXIT(errDOExpected);
+
+  //Insert Branch into header
+  ILItem := ILAppend(dtBranch);
+  ILItem.TrueBlock := GetCurrBlockID + 1;
+  ILItem.FalseBlock := -1;  //Unconditional branch
+  EntryBlockID := GetCurrBlockID;
+  EntryLastItemIndex := ILGetCount - 1;
+
+  //HEADER Block - start of the looping section, Phi nodes and test for end
+  //------------
+  //Insert Phi for loop variable
+  NewBlock := True;
+  LoopVarPhi := ILAppend(dtData);
+  LoopVarPhi.Op := opPhi;
+
+  LoopVarPhi.Param1Loc := locPhiVar;
+  LoopVarPhi.Param1Data := EntryBlockID;
+  LoopVarPhi.Param1Sub := LoopVar.Sub;
+  //(Fixup param2 later)
+  LoopVarPhi.Param2Loc := locPhiVar;
+
+  LoopVarPhi.DestLoc := locVar;
+  LoopVarPhi.DestData := LoopVarIndex;
+  LoopVarPhi.DestSub := VarIncWriteCount(LoopVar);
+
+  HeaderBlockID := GetCurrBlockID;
+  PhiItemIndex := ILGetCount - 1; //Needed later so we can Phi any other variables
+
+  //Test LoopVar and Branch to Body or Exit
+  ExitTestItem := ILAppend(dtBranch);
+  if ToInc then
+    ExitTestItem.Op := opLessEqual
+  else
+    ExitTestItem.Op := opGreaterEqual;
+  ExitTestItem.Param1Loc := locVar;
+  ExitTestItem.Param1Data := LoopVarIndex;
+  ExitTestItem.Param1Sub := LoopVar.Sub;
+
+  ExitTestItem.Param2Loc := locVar;
+  ExitTestItem.Param2Data := EndValueIndex;
+  ExitTestItem.Param2Sub := EndValue.Sub;
+
+  ExitTestItem.TrueBlock := GetCurrBlockID + 1; //Body BlockID
+  //FalseBlock to be fixed up at end of loop
+
+  //BODY section - the code that's being looped
+  //------------
+  NewBlock := True;
+  LoopBodyBlockID := GetCurrBlockID;
+
+  //Parse Loop block
+  Result := ParseBlock(bsSingle);
+  if Result <> errNone then
+    EXIT;
+
+  //Insert Branch into Latch section
+  ILItem := ILAppend(dtBranch);
+  ILItem.TrueBlock := GetCurrBlockID + 1;
+  ILItem.FalseBlock := -1;  //Unconditional branch
+
+  //LATCH section - next LoopVar and branch back to header
+  //-------------
+  NewBlock := True;
+  //Next loopvar
+  ILItem := ILAppend(dtData);
+  if ToInc then
+    ILItem.Op := opAdd
+  else
+    ILItem.Op := opSubtract;
+  ILItem.Param1Loc := locVar;
+  ILItem.Param1Data := LoopVarIndex;
+  ILItem.Param1Sub := LoopVar.Sub;
+
+  //(Uncomment to add Step value)
+  ILItem.Param2Loc := locImmediate; //locVar;
+  ILItem.Param2Data := 1; //StepValueIndex;
+//  ILItem.Param2Sub := StepValue.Sub;
+
+  ILItem.DestLoc := locVar;
+  ILItem.DestData := LoopVarIndex;
+  ILItem.DestSub := VarIncWriteCount(LoopVar);
+
+  //Insert Branch back to Header section
+  ILItem := ILAppend(dtBranch);
+  ILItem.TrueBlock := HeaderBlockID;
+  ILItem.FalseBlock := -1;  //Unconditional branch
+
+  //Fixup Phi for Loopvar at start of Header section
+  LoopVarPhi.Param2Loc := locPhiVar;
+  LoopVarPhi.Param2Data := GetCurrBlockID;
+  LoopVarPhi.Param2Sub := LoopVar.Sub;
+
+  //Insert Phis at start of Header (for any varaibles updated during loop)
+  VarClearAdjust; //Prep for branch adjust
+  VarClearTouches;
+  LoopVar.Touched := True;
+  PhiInsertCount := PhiWalkInt(ILGetCount-1, EntryLastItemIndex, -1, EntryLastItemIndex,
+    GetCurrBlockID, EntryBlockID, False, PhiItemIndex + 1);
+  //We also need to fixup references within the loop to any variables we have phi'd
+  BranchFixUpRight(EntryLastItemIndex + PhiInsertCount + 2, ILGetCount - 1);
+
+  //EXIT section
+  //--------------
+  //Fixup Branch in Header section
+  ExitTestItem.Falseblock := GetCurrBlockID + 1;
+
+  //Insert Phis after loop
+  NewBlock := True;
+end;
+
 function DoIF: TAssembleError;
 var
   Branch: PILItem;
@@ -481,7 +689,6 @@ var
   BranchID: Integer;    //Block ID of the conditional branch
   ThenLastID: Integer;  //Last block of the THEN branch
   ElseLastID: Integer;  //Last block of the ELSE branch
-//  MergeID: Integer;     //The block where both paths merge together
   //ILItem indexes
   BranchIndex: Integer; //Item containing the conditional branch (i.e. end of previous code)
   ThenLastIndex: Integer; //Last item in the THEN path
@@ -509,7 +716,7 @@ begin
   if Result <> errNone then
     EXIT;
   //Branch to merge block
-  ThenBranch := ILAlloc(dtBranch);
+  ThenBranch := ILAppend(dtBranch);
   ThenBranch.FalseBlock := -1;  //Unconditional branch
   ThenLastID := GetCurrBlockID;
   ThenLastIndex := ILGetCount-1;
@@ -526,7 +733,7 @@ begin
     if Result <> errNone then
       EXIT;
     //Branch to merge block
-    ElseBranch := ILAlloc(dtBranch);
+    ElseBranch := ILAppend(dtBranch);
     ElseBranch.FalseBlock := -1;  //Unconditional branch
     ElseLastID := GetCurrBlockID;
     ElseLastIndex := ILGetCount-1;
@@ -539,7 +746,6 @@ begin
   else //No ELSE - if condition failed it jumps straight to the merge block
   begin
     NewBlock := True;
-//    ElseBranch := nil;
     ElseLastID := -1;
     ElseLastIndex := -1;
 
@@ -549,7 +755,6 @@ begin
   //Fixup branches at end of THEN and ELSE blocks
   NewBlock := True;
   ThenBranch.TrueBlock := GetCurrBlockID + 1;
-//  MergeID := GetCurrBlockID + 1;
 
   //If we have two paths then we need to fixup any variable reads
   if ElseLastIndex >= 0 then
@@ -562,13 +767,22 @@ begin
     PhiWalk(ThenLastIndex, -1, BranchIndex, ThenLastID, BranchID);
 end;
 
+function DoOut: TAssembleError;
+var ILItem: PILItem;
+begin
+  Result := ParseExpression(ILItem);
+  if Result <> errNone then
+    EXIT;
+
+  ILItem.DestLoc := locOut;
+end;
+
 function ParseStatement(Ident: String): TAssembleError;
 var
   Ch: Char;
   Keyword: TKeyword;
+  Variable: PVariable;
   VarIndex: Integer;
-  VarSub: Integer;
-  ILItem: PILItem;
 begin
   if Ident = '' then
   begin
@@ -585,11 +799,16 @@ begin
       EXIT(errIdentifierExpected);
   end;
 
+
+  if CompareText(Ident, 'out') = 0 then
+    EXIT(DoOUT);
+
   //Do we have a keyword?
   Keyword := IdentToKeyword(Ident);
   if Keyword <> keyUNKNOWN then
   begin
     case Keyword of
+    keyFOR: Result := DoFOR;
     keyIF: Result := DoIF;
     else
       EXIT(errInvalidKeyword);
@@ -599,28 +818,12 @@ begin
   else
   begin
     Parser.SkipWhiteSpace;
-    if Parser.TestChar = ':' then
+    if TestAssignment then
     begin
-      Parser.SkipChar;
-      if Parser.TestChar = '=' then
-      begin
-        Parser.SkipChar;
-        Result := ParseExpression(ILItem);
-        if Result <> errNone then
-          EXIT;
-
-        Parser.SkipWhiteSpace;
-//        if not (Parser.TestChar in [';',#0]) then
-//          EXIT(errNone);//          EXIT(errUnexpectedChar);
-
-        FindOrAddVar(Ident, VarIndex, VarSub);
-        VarSub := VarIndexIncWriteCount(VarIndex);
-        ILItem.DestLoc := locVar;
-        ILItem.DestData := VarIndex;
-        ILItem.DestSub := VarSub;
-      end
-      else
-        EXIT(errAssignmentExpected);
+      Variable := FindOrAddVar(Ident, vtInteger, VarIndex);
+      Result := ParseAssignment(VarIndex);
+      if Result <> errNone then
+        EXIT;
     end
     else
       EXIT(errSyntaxError);

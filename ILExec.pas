@@ -18,6 +18,7 @@ uses Generics.Collections, SysUtils;
 
 var CurrBlock: Integer;
   CurrIL: Integer;
+  Trace: Boolean;
 
 procedure RaiseError(Msg: String);
 begin
@@ -57,19 +58,25 @@ begin
 end;
 
 function TempVarCreate(Index: Integer): PVariable;
-var V: PVariable;
 begin
-  while TempVars.Count < Index do
+  if TempVars.Count <= Index then
+    while TempVars.Count <= Index do
+    begin
+      New(Result);
+      TempVars.Add(Result);
+      Result.ValueInt := 0;
+      Result.VarType := vtUnknown;
+      Result.Sub := -1;
+    end
+  else
   begin
-    New(V);
-    TempVars.Add(V);
-    V.ValueInt := 0;
-    V.VarType := vtUnknown;
-    V.Sub := -1;
+    Result := TempVars[Index];
+    Result.ValueInt := 0;
+    Result.VarType := vtUnknown;
   end;
 end;
 
-function GetValue(ILItem: PILItem;Loc: TILLocation;Data, Sub: Integer;var ValueType: TVarType): Integer;
+function GetValue(ILItem: PILItem;Loc: TILLocation;Data, Sub: Integer;var ValueType: TVarType;out SubMismatch: Boolean): Integer;
 var Variable: PVariable;
 begin
   case Loc of
@@ -77,9 +84,10 @@ begin
     locPhiVar:
     begin
       Variable := VarIndexToData(ILItem.DestData);
-      ExecTest(Variable.Sub = Sub, 'Variable Sub doesn''t match param Sub version (Phi node)');
+//      ExecTest(Variable.Sub = Sub, 'Variable Sub doesn''t match param Sub version (Phi node)');
       Result := Variable.ValueInt;
       ValueType := Variable.VarType;
+      SubMismatch := Variable.Sub <> Sub;
     end;
     locImmediate:
     begin
@@ -105,14 +113,14 @@ begin
   end;
 end;
 
-function GetValue1(ILItem: PILItem; var ValueType: TVarType): Integer;
+function GetValue1(ILItem: PILItem; var ValueType: TVarType;out SubMismatch: Boolean): Integer;
 begin
-  Result := GetValue(ILItem, ILItem.Param1Loc, ILItem.Param1Data, ILItem.Param1Sub, ValueType);
+  Result := GetValue(ILItem, ILItem.Param1Loc, ILItem.Param1Data, ILItem.Param1Sub, ValueType, SubMismatch);
 end;
 
-function GetValue2(ILItem: PILItem; var ValueType: TVarType): Integer;
+function GetValue2(ILItem: PILItem; var ValueType: TVarType;out SubMismatch: Boolean): Integer;
 begin
-  Result := GetValue(ILItem, ILItem.Param2Loc, ILItem.Param2Data, ILItem.Param2Sub, ValueType);
+  Result := GetValue(ILItem, ILItem.Param2Loc, ILItem.Param2Data, ILItem.Param2Sub, ValueType, SubMismatch);
 end;
 
 function BlockIDToILIndex(BlockID: Integer): Integer;
@@ -130,7 +138,7 @@ end;
 
 function BoolNot(Value: Integer): Integer;
 begin
-  Result := 0-Value;
+  Result := 1-Value;
 end;
 
 function ExecILItem(Index: Integer): Integer;
@@ -140,6 +148,7 @@ var ILItem: PILItem;
   ValueType: TVarType;
   ValueType2: TVarType;
   Variable: PVariable;
+  SubMismatch: Boolean;
 begin
   ILItem := ILIndexToData(Index);
   if ILItem.BlockID >= 0 then
@@ -154,7 +163,7 @@ begin
     //Unconditional branch - don't evaluate parameters
   else
   begin
-    Value := GetValue1(ILItem, ValueType);
+    Value := GetValue1(ILItem, ValueType, SubMismatch);
 
     case ILItem.Op of
       //System operations
@@ -165,12 +174,16 @@ begin
       begin
         ExecTest(ILItem.Param1Loc in [locPhiVar], 'Param1 of a Phi node must be locPhiVar');
         if PrevBlock = ILItem.Param1Data then
+          ExecTest(not SubMismatch, 'Variable Sub doesn''t match param Sub version (Phi node)')
           //(Param1)
         else
         begin
           ExecTest(ILItem.Param2Loc in [locPhiVar], 'Param2 of a Phi node must be locPhiVar');
           if PrevBlock = ILItem.Param2Data then
-            Value := GetValue2(ILItem, ValueType)
+          begin
+            Value := GetValue2(ILItem, ValueType, SubMismatch);
+            ExecTest(not SubMismatch, 'Variable Sub doesn''t match param Sub version (Phi node)');
+          end
           else
             RaiseError('Neither block of the Phi node matches the previous Block ID');
         end;
@@ -179,7 +192,7 @@ begin
       //Conditionals
       opEqual, opNotEqual:
       begin
-        Value := BoolToValue[Value = GetValue2(ILItem, ValueType2)];
+        Value := BoolToValue[Value = GetValue2(ILItem, ValueType2, SubMismatch)];
         ExecTest(ValueType = ValueType2, 'Type mismatch');
         ValueType := vtBoolean;
         if ILItem.Op = opNotEqual then
@@ -187,7 +200,7 @@ begin
       end;
       opLess, opGreaterEqual:
       begin
-        Value := BoolToValue[Value < GetValue2(ILItem, ValueType2)];
+        Value := BoolToValue[Value < GetValue2(ILItem, ValueType2, SubMismatch)];
         ExecTest(ValueType = ValueType2, 'Type mismatch');
         ValueType := vtBoolean;
         if ILItem.Op = opGreaterEqual then
@@ -195,7 +208,7 @@ begin
       end;
       opGreater, opLessEqual:
       begin
-        Value := BoolToValue[Value > GetValue2(ILItem, ValueType2)];
+        Value := BoolToValue[Value > GetValue2(ILItem, ValueType2, SubMismatch)];
         ExecTest(ValueType = ValueType2, 'Type mismatch');
         ValueType := vtBoolean;
         if ILItem.Op = opLessEqual then
@@ -205,56 +218,56 @@ begin
       //Maths
       opAdd:
       begin
-        Value := Value + GetValue2(ILItem, ValueType2);
+        Value := Value + GetValue2(ILItem, ValueType2, SubMismatch);
         ExecTest((ValueType = ValueType2) and (ValueType = vtInteger), 'Type mismatch');
       end;
       opSubtract:
       begin
-        Value := Value - GetValue2(ILItem, ValueType2);
+        Value := Value - GetValue2(ILItem, ValueType2, SubMismatch);
         ExecTest((ValueType = ValueType2) and (ValueType = vtInteger), 'Type mismatch');
       end;
       opMultiply:
       begin
-        Value := Value * GetValue2(ILItem, ValueType2);
+        Value := Value * GetValue2(ILItem, ValueType2, SubMismatch);
         ExecTest((ValueType = ValueType2) and (ValueType = vtInteger), 'Type mismatch');
       end;
       opDivide, opDiv:
       begin
-        Value := Value div GetValue2(ILItem, ValueType2);
+        Value := Value div GetValue2(ILItem, ValueType2, SubMismatch);
         ExecTest((ValueType = ValueType2) and (ValueType = vtInteger), 'Type mismatch');
       end;
       opMod:
       begin
-        Value := Value mod GetValue2(ILItem, ValueType2);
+        Value := Value mod GetValue2(ILItem, ValueType2, SubMismatch);
         ExecTest((ValueType = ValueType2) and (ValueType = vtInteger), 'Type mismatch');
       end;
 
       //Logical/bitwise
       opOR:
       begin
-        Value := Value or GetValue2(ILItem, ValueType2);
+        Value := Value or GetValue2(ILItem, ValueType2, SubMismatch);
         ExecTest((ValueType = ValueType2) and (ValueType in [vtInteger, vtBoolean]), 'Type mismatch');
       end;
       opXOR:
       begin
-        Value := Value xor GetValue2(ILItem, ValueType2);
+        Value := Value xor GetValue2(ILItem, ValueType2, SubMismatch);
         ExecTest((ValueType = ValueType2) and (ValueType in [vtInteger, vtBoolean]), 'Type mismatch');
       end;
       opAnd:
       begin
-        Value := Value and GetValue2(ILItem, ValueType2);
+        Value := Value and GetValue2(ILItem, ValueType2, SubMismatch);
         ExecTest((ValueType = ValueType2) and (ValueType in [vtInteger, vtBoolean]), 'Type mismatch');
       end;
 
       //Misc
       opShr:
       begin
-        Value := Value shr GetValue2(ILItem, ValueType2);
+        Value := Value shr GetValue2(ILItem, ValueType2, SubMismatch);
         ExecTest((ValueType = ValueType2) and (ValueType = vtInteger), 'Type mismatch');
       end;
       opShl:
       begin
-        Value := Value shl GetValue2(ILItem, ValueType2);
+        Value := Value shl GetValue2(ILItem, ValueType2, SubMismatch);
         ExecTest((ValueType = ValueType2) and (ValueType = vtInteger), 'Type mismatch');
       end;
 
@@ -269,6 +282,7 @@ begin
     dtData:
       case ILItem.DestLoc of
         locNone: RaiseError('Dest assignment to <locNone>');
+        locOUT: ExecLog('OUT: ' + IntToStr(Value));
         locPhiVar, locVar:
         begin
           Variable := VarIndexToData(ILItem.DestData);
@@ -308,6 +322,8 @@ end;
 
 procedure Execute;
 begin
+//  Trace := True;
+
   ExecOutput.Clear;
   VarsExecClear;
   ClearTempVars;
@@ -315,7 +331,11 @@ begin
   CurrIL := 0;
 
   while (CurrIL >= 0) and (CurrIL < ILGetCount) do
+  begin
+    if Trace then
+      ExecLog(IntToStr(CurrIL));
     CurrIL := ExecILItem(CurrIL);
+  end;
 
   //After execution tests
   if CurrIL < 0 then
@@ -327,4 +347,5 @@ end;
 initialization
   ExecOutput := TStringList.Create;
   TempVars := TList<PVariable>.Create;
+  Trace := False;
 end.

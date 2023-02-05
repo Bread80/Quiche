@@ -1,4 +1,8 @@
 =================
+b:=6
+a:=(b-1)*(b+1)-4
+
+=================
 z:=4
 i:=2
 if a=1 then
@@ -30,3 +34,29 @@ begin
   a:=a+1
 end
 a:=a*2
+
+================
+x:=1
+for i:=1 to 10 do
+  x:=x+1
+x:=x+1
+
+================
+x:=1
+for i:=1 to 10 do
+  if i < 5 then
+    x:=x+1
+x:=x+1
+
+================FizzBuzz
+for i:=1 to 30 do
+  if (i mod 3) = 0 then
+    if (i mod 5) = 0 then
+      out 1035
+    else
+      out 103
+  else if (i mod 5) = 0 then
+    out 105
+  else
+    out i
+out 0

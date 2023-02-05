@@ -385,6 +385,7 @@
         <DCCReference Include="Includes\MErrors.pas"/>
         <DCCReference Include="ILExec.pas"/>
         <None Include="Tests.txt"/>
+        <None Include="Assembly.txt"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
@@ -443,6 +444,12 @@
                 <DeployFile LocalName="Win64\Debug\Quiche.exe" Configuration="Debug" Class="ProjectOutput">
                     <Platform Name="Win64">
                         <RemoteName>Quiche.exe</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="New1.txt" Configuration="Debug" Class="ProjectFile">
+                    <Platform Name="Win64">
+                        <RemoteDir>.\</RemoteDir>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
