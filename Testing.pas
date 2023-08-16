@@ -200,8 +200,8 @@ begin
   if not Assigned(V) then
     TestLog('ERROR: No such variable: ' + Fields[1])
   else
-    DoTest(CompareText(VarTypeNames[V.VarType], Fields[2]) = 0, 'VarType mismatch on ' + V.Name +
-      ', wanted ' + Fields[2] + ' got ' + VarTypeNames[V.VarType]);
+    DoTest(CompareText(VarTypeToName(V.VarType), Fields[2]) = 0, 'VarType mismatch on ' + V.Name +
+      ', wanted ' + Fields[2] + ' got ' + VarTypeToName(V.VarType));
   Result := True;
 end;
 
@@ -225,7 +225,7 @@ begin
     TestLog('ERROR: No such variable: ' + Fields[1])
   else
   case V.VarType of
-    vtInteger, vtInt16, vtInt8, vtWord, vtByte, vtPointer:
+    vtInteger, vtInt8, vtWord, vtByte, vtPointer:
     begin
       if not TryStrToInt(Fields[2], I) then
         EXIT(False);

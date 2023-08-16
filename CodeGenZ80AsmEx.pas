@@ -942,7 +942,7 @@ begin
       else
       begin
         Variable := ILParamToVariable(Param);
-        case TypeSize[Variable.VarType] of
+        case GetTypeSize(Variable.VarType) of
         1:
         begin
           GenLibraryProc(Prefix + 'r16lowoffsetlow', ILItem);
@@ -1033,7 +1033,7 @@ begin
   end;
 
   //Validation for type conversions, if needed. No conversion needed if operator has fixed result type
-  if (OpType <> ILItem.ResultType) and (OpIndexToData(ILItem.OpIndex).ResultType = vtUnknown) then
+  if (OpType <> ILItem.ResultType) and (OpIndexToData(ILItem.OpIndex).ResultType = teUnknown) then
     if cgOverflowCheck in ILItem.CodeGenFlags then
     begin
       ValProcName := '';

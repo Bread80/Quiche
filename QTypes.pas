@@ -1,21 +1,30 @@
+//Types used by the Quiche compiler. Not to be confused with types used by the
+//Delphi/Pascal compiler itself!
 unit QTypes;
 
 interface
 
+const iCPUWordSize = 2;  //For OG Z80
 
-{
+//This is the type system as seen by the langauge parser
+type TQType = Byte;
+
+const
   //Simple types
-  //For values < 8, bit 0 is set for 1 byte types, clear for two byte (system word) types
-  vtUnknown = $00;  //Unspecified (bug) or don't care/any type
-  vtByte    = $01;
-  vtWord    = $02;
-  vtInt8    = $03;
-  vtInteger = $04;
-  vtChar    = $05;
-  vtPointer = $06;
-  vtBoolean = $07;
-//  vtString      //Length?
-//  vtFloat
+  //ORDERING IS SIGNIFICANT - allows code optimisation
+  vtUnknown = $ff;  //Unspecified (bug) or don't care/any type
+
+  vtWord    = 0;
+  vtByte    = 1;
+  vtPointer = 2;
+  vtInt8    = 3;
+  vtInteger = 4;
+  //Unused    5
+  vtReal    = 6;  //For future use. Pointer to actual data
+  vtChar    = 7;
+  //Unused  = 8
+  vtBoolean = 9;
+  vtString  = 10;  //For future use. Pointer to actual data. Length?
 //  vtEnumeration //Index to declaration
 //  vtSet         //Index to declaration
 
@@ -23,34 +32,39 @@ interface
 //  vtArray       //Bounds plus Element type or index to custom type
 //  vtRecord      //Index to declaration
   vtPointerTo = $80;  //Bitwise value. Pointer to the type specified in the other bits
-}
 
-//-------------Types
-type TVarType =
-    (vtUnknown, //Special
-    vtBoolean, vtByte, vtWord, vtInt8, vtInt16, vtInteger, vtPointer, vtChar, //Simple types
-    vtReal, vtString  //Stored as pointers
-    //Complex types (also stored as pointer)
-    );
-  TVarTypeSet = set of TVarType;
-const TypeSize: array[low(TVarType) .. high(TVarType)] of Integer =
-  (0,
-  1,1,2,1,2,2,2,1,
-  2,2 //Values stored as pointer = sizeof(Pointer)
-  );
-  VarTypeNames: array[low(TVarType) .. high(TVarType)] of String =
-    ('<Unknown>', //Special
-    'Boolean','Byte','Word','Int8','Int16','Integer','Pointer','Char',  //Simple
-    'Real','String' //Stored as pointers
-    );
-const
-  NumericTypes: TVarTypeSet = [vtByte, vtWord, vtInt8, vtInt16, vtInteger, vtPointer, vtReal];
-  IntegerTypes = [vtByte, vtWord, vtInt8, vtInt16, vtInteger, vtPointer];
-  SignedTypes = [vtInt8, vtInt16, vtInteger];
-  ByteTypes = [vtBoolean, vtByte, vtInt8, vtChar];
+
+function VarTypeToName(VarType: TVarType): String;
+
+//Returns the number of bytes used to store the type.
+//NOT the same as sizeof(): For types which use pointers (real, string etc)
+//returns the size of the pointer data, not the stored data.
+function GetTypeSize(VarType: TVarType): Integer;
+
+//Any numeric type. Not typed pointers - these can't be used in expressions
+function IsNumericType(VarType: TVarType): Boolean;
+
+//Any integer type. Not typed pointers - these can't be used in expressions
+function IsIntegerType(VarType: TVarType): Boolean;
+
+//Any signed type (real or integer)
+function IsSignedType(VarType: TVarType): Boolean;
+
+//Any type which only occupies a single byte
+function IsByteType(VarType: TVarType): Boolean;
+
+//Any numeric type which only occupies two bytes
+function IsWordType(VarType: TVarType): Boolean;
+
+//Any type which can be used in logical/boolean operations
+function IsLogicalType(VarType: TVarType): Boolean;
+
 
 //--------------Internal types
-//Data type to be used for an operation.
+//These are the types used for internal operations. Thus, for example, an Word
+//and a Pointer all act as unsigned 16-bit. Bytes and Chars all act as unsigned 8-bits
+//Used to specify both data storage and operations. Some values are only valid
+//for one or the other
 type TOpType = (
     rtUnknown,  //Should never happen!
     rtU8,       //Unsigned 8 bit: Byte, Char
@@ -67,59 +81,124 @@ type TOpType = (
 type TOpTypeSet= set of TOpType;
 
 const OpTypeSize: array[low(TOpType) .. high(TOpType)] of Integer =
-  (0, 1, 2, 1, 2, 2, 2, 2, 1,2, 1);
-//const lutRawTypeToVarType: array[low(TRawType) .. high(TRawType)] of TVarType =
-//    (vtUnknown, vtByte, vtWord, vtInt8, vtInteger, vtReal, vtBoolean);
-const lutVarTypeToOpType: array[low(TVarType)..high(TVarType)] of TOpType =
-  (rtUnknown,
-  rtBoolean, rtU8, rtU16, rtS8, rtS16,rtS16, rtU16, rtU8,
-  rtUnknown, rtUnknown);
-const RawTypeNames: array[low(TOpType) .. high(TOpType)] of String =
+  (0, 1, 2, 1, 2, 2, 2, 2, 1, 2, 1);
+
+const OpTypeNames: array[low(TOpType) .. high(TOpType)] of String =
   ('Unknown', 'U8','U16','S8','S16','M16S16','M16U16','X8','X16','Real','Boolean');
+
+function VarTypeToOpType(VarType: TVarType): TOpType;
 
 function StringToOpType(S: String): TOpType;
 
 function StringToOpTypeSet(S: String): TOpTypeSet;
 
-function StringToVarType(S: String): TVarType;
 
-function StringToVarTypeSet(S: String): TVarTypeSet;
+//-------------Type enumerations. Used within Operator definitions
+type TTypeEnum =
+    (teUnknown, //Special
+    teBoolean, teByte, teWord, teInt8, teInteger, tePointer, teChar, //Simple types
+    teReal, teString  //Stored as pointers
+//    teRecord, teArray, teEnumeration, teSet
+    //Complex types (also stored as pointer)
+    );
+  TTypeEnumSet = set of TTypeEnum;
+
+const TypeEnumNames: array[low(TTypeEnum)..high(TTypeEnum)] of String =
+    ('Unknown',
+    'Boolean','Byte','Word','Int8','Integer','Pointer','Char',
+    'Real','String'
+//    'Record','Array','Enumeration','Set'
+    );
+
+const TypeEnumToVarType: array[low(TTypeEnum)..high(TTypeEnum)] of TVarType =
+    (vtUnknown,
+    vtBoolean,vtByte, vtWord, vtInt8, vtInteger, vtPointer, vtChar,
+    vtReal, vtString
+//    'Record','Array','Enumeration','Set'
+    );
+{const TypeEnumToOpType: array[low(TTypeEnum)..high(TTypeEnum)] of TOpType =
+    (rtUnknown,
+    rtBoolean,rtU8,rtU16,rtS8,rtS16,rtU16,rtU8,
+    rtReal,rtU16{String}
+//    'Record','Array','Enumeration','Set'
+{    );
+}
+function StringToTypeEnum(S: String): TTypeEnum;
+
+function StringToTypeEnumSet(S: String): TTypeEnumSet;
 
 implementation
 uses SysUtils;
 
-function StringToVarType(S: String): TVarType;
+const VarTypeNames : array[vtWord..vtString] of String = (
+  'Word','Byte','Pointer','Int8','Integer','<INVALID>','Real','Char','<INVALID>','Boolean','String');
+
+function VarTypeToName(VarType: TVarType): String;
 begin
-  S := S.ToLower;
-//  if (S = 'same') or (S = 'left op') or (S = 'n/a') then
-//    EXIT(rtUnknown);
-  for Result := low(TVarType) to High(TVarType) do
-    if CompareText(S, VarTypeNames[Result]) = 0 then
-      EXIT;
-  raise Exception.Create('Unknown var type name');
+  if VarType = $ff then
+    EXIT('<Unknown>');
+  if VarType >= $80 then
+    EXIT('^' + VarTypeToName(VarType and $7f));
+  if VarType <= vtString then
+    EXIT(VarTypeNames[VarType]);
+  EXIT('<INVALID>');
 end;
 
-function StringToVarTypeSet(S: String): TVarTypeSet;
-var
-  RT: TVarType;
+function GetTypeSize(VarType: TVarType): Integer;
 begin
-  S := S.ToLower;
-  Result := [];
-  if S = 'n/a' then
-    EXIT;
-  if S = 'any' then
-  begin
-    for RT := low(TVarType) to high(TVarType) do
-      Result := Result + [RT];
-    EXIT;
-  end;
-  if S = 'numeric' then
-    EXIT(NumericTypes);//[rtU8, rtU16, rtS8, rtS16, rtReal]);
-  if S = 'integer' then
-    EXIT(IntegerTypes);//[rtU8, rtU16, rtS8, rtS16]);
-  if S = 'logical' then
-    EXIT(IntegerTypes + [vtBoolean]);
-  Result := [StringToVarType(S)];
+  if VarType = vtUnknown then
+    //Unknown/invalid
+    EXIT(0);
+  if VarType >= $80 then
+    //Pointer to type
+    EXIT(iCPUWordSize);
+  if VarType <= vtString then
+    //Bit zero specifies byte size
+    EXIT(iCPUWordSize - (VarType and $01));
+
+  //Add code for complex types here
+  raise Exception.Create('Unknown type');
+end;
+
+function IsNumericType(VarType: TVarType): Boolean;
+begin
+  Result := VarType <= vtReal;
+end;
+
+function IsIntegerType(VarType: TVarType): Boolean;
+begin
+  Result := VarType < vtReal;
+end;
+
+function IsSignedType(VarType: TVarType): Boolean;
+begin
+  Result := (VarType >= vtInt8) and (VarType <= vtReal);
+end;
+
+function IsByteType(VarType: TVarType): Boolean;
+begin
+  Result := (VarType <= vtBoolean) and ((VarType and $01) = $01);
+end;
+
+function IsWordType(VarType: TVarType): Boolean;
+begin
+  Result := (VarType <= vtBoolean) and ((VarType and $01) = $00);
+end;
+
+function IsLogicalType(VarType: TVarType): Boolean;
+begin
+  Result := (VarType <= vtInteger) or (VarType = vtBoolean);
+end;
+
+function VarTypeToOpType(VarType: TVarType): TOpType;
+const lutVarTypeToOpType : array[vtWord..vtString] of TOpType =
+  (rtU16, rtU8, rtU16, rtS8, rtS16, rtUnknown, rtReal, rtU8, rtUnknown, rtBoolean, rtU16);
+begin
+  if VarType <= vtString then
+    EXIT(lutVarTypeToOpType[VarType]);
+  if VarType >= $80 then
+    EXIT(rtU16);
+  raise Exception.Create('Unknown type');
 end;
 
 function StringToOpType(S: String): TOpType;
@@ -128,7 +207,7 @@ begin
   if (S = 'same') or (S = 'left op') or (S = 'n/a') then
     EXIT(rtUnknown);
   for Result := low(TOpType) to High(TOpType) do
-    if CompareText(S, RawTypeNames[Result]) = 0 then
+    if CompareText(S, OpTypeNames[Result]) = 0 then
       EXIT;
   raise Exception.Create('Unknown raw type name: ' + S);
 end;
@@ -159,6 +238,55 @@ begin
     else
       Result := Result + [StringToOpType(Item)];
   end;
+end;
+
+{function StringToVarType(S: String): TVarType;
+const VarTypeNames: array[vtWord..vtString] of String =
+    ('Word','Byte','Pointer','Int8','Integer',#0,'Real','Char',#0,'Boolean','String');
+begin
+  S := S.ToLower;
+//  if (S = 'same') or (S = 'left op') or (S = 'n/a') then
+//    EXIT(rtUnknown);
+  for Result := low(TVarType) to High(TVarType) do
+    if CompareText(S, VarTypeNames[Result]) = 0 then
+      EXIT;
+  raise Exception.Create('Unknown var type name');
+end;
+}
+
+function StringToTypeEnum(S: String): TTypeEnum;
+begin
+  S := S.ToLower;
+//  if (S = 'same') or (S = 'left op') or (S = 'n/a') then
+//    EXIT(rtUnknown);
+  for Result := low(TTypeEnum) to High(TTypeEnum) do
+    if CompareText(S, TypeEnumNames[Result]) = 0 then
+      EXIT;
+  raise Exception.Create('Unknown type enum name: ' + S);
+end;
+
+
+function StringToTypeEnumSet(S: String): TTypeEnumSet;
+var
+  RT: TTypeEnum;
+begin
+  S := S.ToLower;
+  Result := [];
+  if S = 'n/a' then
+    EXIT;
+  if S = 'any' then
+  begin
+    for RT := low(TTypeEnum) to high(TTypeEnum) do
+      Result := Result + [RT];
+    EXIT;
+  end;
+  if S = 'numeric' then
+    EXIT([teByte, teWord, teInt8, teInteger, tePointer, teReal]);
+  if S = 'integer' then
+    EXIT([teByte, teWord, teInt8, teInteger, tePointer]);
+  if S = 'logical' then
+    EXIT([teBoolean, teByte, teWord, teInt8, teInteger, tePointer]);
+  Result := [StringToTypeEnum(S)];
 end;
 
 end.

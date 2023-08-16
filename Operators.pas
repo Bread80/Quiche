@@ -12,13 +12,13 @@ type
     Logical: Boolean;     //If true the operator is a boolean logical one (AND, OR, XOR, NOT)
                           //Used for special processing of parameters.
     Precedence: Integer;  //In expressions. Higher equal higher
-    LTypes: TVarTypeSet;  //List of applicable types for the left operand
-    RTypes: TVarTypeSet;  //List of applicable types for the right operand
+    LTypes: TTypeEnumSet;  //List of applicable types for the left operand
+    RTypes: TTypeEnumSet;  //List of applicable types for the right operand
     Swappable: Boolean;   //Can operators be swapped?
     MatchOperands: Boolean; //Extend numeric operators to match each other
     ResultSame: Boolean;    //If true the result will be the same type as the operands
                             //(Left operand, if only one operand)
-    ResultType: TVarType;   //The output type. vtUnknown specifies same as input (left operand)
+    ResultType: TTypeEnum;   //The output type. vtUnknown specifies same as input (left operand)
   end;
 
 var
@@ -141,20 +141,20 @@ begin
       Op.OpTypes := StringToOpTypeSet(Fields[fOpTypes]);
       Op.Precedence := StrToInt(Fields[fPrecedence]);
       Op.Logical := CompareText(Fields[fLeftOp], 'logical') = 0;
-      Op.LTypes := StringToVarTypeSet(Fields[fLeftOp]);
-      Op.RTypes := StringToVarTypeSet(Fields[fRightOp]);
+      Op.LTypes := StringToTypeEnumSet(Fields[fLeftOp]);
+      Op.RTypes := StringToTypeEnumSet(Fields[fRightOp]);
       Op.Swappable := Fields[fSwappable].Chars[0] in ['Y','y'];
       Op.MatchOperands := (Length(Fields[fMatchOperands]) > 0) and (Fields[fMatchOperands].Chars[0] in ['Y','y']);
       if (CompareText(Fields[fResultType], 'same') = 0) or
         (CompareText(Fields[fResultType], 'left op') = 0) then
       begin
         Op.ResultSame := True;
-        Op.ResultType := vtUnknown;
+        Op.ResultType := teUnknown;
       end
       else
       begin
         Op.ResultSame := False;
-        Op.ResultType := StringToVarType(Fields[fResultType]);
+        Op.ResultType := StringToTypeEnum(Fields[fResultType]);
       end;
     end;
 

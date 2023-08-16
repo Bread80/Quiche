@@ -36,6 +36,7 @@ type
 
 function ParseExpressionToSlug(Slug: PExprSlug;var ExprType: TVarType): TAssembleError;
 
+(*
 //Parses an expression (or sub-expression) until we run out of operators
 //Returns the IL list item of the final operation. The caller will need to
 //add the Dest info as needed (i.e to assign the result to a variable, or temp
@@ -52,7 +53,7 @@ function ParseExpressionToSlug(Slug: PExprSlug;var ExprType: TVarType): TAssembl
 //no matter the context.
 function ParseExpression(out ILItem: PILItem;var ExprType: TVarType;
   out ImplicitType: TVarType): TAssembleError;
-
+*)
 implementation
 uses SysUtils, Variables, ParserBase, Eval;
 
@@ -91,7 +92,7 @@ begin
       if Slug.ParamOrigin = poExplicit then
         EXIT(Slug.Operand.ImmType);
 
-      if Slug.Operand.ImmType in SignedTypes then
+      if IsSignedType(Slug.Operand.ImmType) then
         EXIT(Slug.Operand.ImmType);
 
       if Slug.Operand.ImmValue >= 32768 then
@@ -135,12 +136,12 @@ begin
     EXIT(Imm.Operand.ImmType);
 
   //Signed types (we ignore ParamOrgin if unsigned)
-  if Imm.Operand.ImmType in SignedTypes then
+  if IsSignedType(Imm.Operand.ImmType) then
   begin
     if Imm.Operand.ImmValue >= $10000-128 then
       EXIT(vtInt8)
     else if Imm.Operand.ImmValue >= 32768 then
-      EXIT(vtInt16)
+      EXIT(vtInteger)
     else if Imm.Operand.ImmValue <= 255 then
       EXIT(vtByte)
     else
@@ -180,14 +181,14 @@ begin
   //If VType is an Int16 and the immediate is 0..32767 the common type is an Int16
   //I.e. We can ignore the type of the immediate value. But Explicit type???
 
-  if (VType in NumericTypes) and (ImmType in NumericTypes) then
+  if IsNumericType(VType) and IsNumericType(ImmType) then
   begin
     Result := True;
      if (VType = vtReal) or (ImmType = vtReal) then
       SetSlugTypes(Left, vtReal, rtReal)
     else if (VType = vtPointer) or (ImmType = vtPointer) then
     begin
-      if (VType in SignedTypes) or (ImmType in SignedTypes) then
+      if IsSignedType(VType) or IsSignedType(ImmType) then
         //One type is a pointer so we need a U16 result
         SetSlugTypes(Left, vtPointer, rtM16U16)
       else
@@ -198,27 +199,27 @@ begin
       vtByte:
         if ImmValue <= 255 then
           SetSlugTypes(Left, vtByte, rtU8)
-        else if ImmType in SignedTypes then
+        else if IsSignedType(ImmType) then
           SetSlugTypes(left, vtByte, rtS16)
         else
           SetSlugTypes(Left, vtByte, rtU16);
       vtWord, vtPointer:
-        if (ImmType in SignedTypes) and (ImmValue >= 32768) then
+        if IsSignedType(ImmType) and (ImmValue >= 32768) then
           SetSlugTypes(Left, vtWord, rtM16U16)
         else
           SetSlugTypes(Left, vtWord, rtU16);
       vtInt8:
-        if ((ImmType in SignedTypes) and (ImmValue >= $10000-128)) or (ImmValue <= 127) then
+        if (IsSignedType(ImmType) and (ImmValue >= $10000-128)) or (ImmValue <= 127) then
           SetSlugTypes(Left, vtInt8, rtS8)
-        else if ImmType in SignedTypes then
+        else if IsSignedType(ImmType) then
           SetSlugTypes(Left, vtInt8, rtS16)
         else
           SetSlugTypes(Left, vtInt8, rtM16S16);
-      vtInt16, vtInteger:
-        if (ImmType in SignedTypes) or (ImmValue <= 32767) then
-          SetSlugTypes(Left, vtInt16, rtS16)
+      vtInteger:
+        if IsSignedType(ImmType) or (ImmValue <= 32767) then
+          SetSlugTypes(Left, vtInteger, rtS16)
         else
-          SetSlugTypes(Left, vtInt16, rtM16S16);
+          SetSlugTypes(Left, vtInteger, rtM16S16);
     else
       raise Exception.Create('Invalid numeric type in SetMinCommonVarImmediateType');
     end;
@@ -227,7 +228,7 @@ begin
   begin
     Result := VType = ImmType;
     if Result then
-      SetSlugTypes(Left, VType, lutVarTypeToOpType[VType]);
+      SetSlugTypes(Left, VType, VarTypeToOpType(VType));
   end;
 end;
 
@@ -245,14 +246,14 @@ end;
 //Returns False if there is no valid combination of types, otherwise True.
 function SetMinCommonType(var Slug: PExprSlug; LType, RType: TVarType): Boolean;
 begin
-  if (LType in NumericTypes) and (RType in NumericTypes) then
+  if IsNumericType(LType) and IsNumericType(RType) then
   begin
     Result := True;
      if (LType = vtReal) or (RType = vtReal) then
       SetSlugTypes(Slug, vtReal, rtReal)
     else if (LType = vtPointer) or (RType = vtPointer) then
     begin
-      if (LType in SignedTypes) or (RType in SignedTypes) then
+      if IsSignedType(LType) or IsSignedType(RType) then
         //One type is a pointer so we need a U16 result
         SetSlugTypes(Slug, vtPointer, rtM16U16)
       else
@@ -263,20 +264,20 @@ begin
     else if (LType = vtInt8) and (RType = vtInt8) then
       SetSlugTypes(Slug, vtInt8, rtS8)
     else if (LType in [vtInt8, vtByte]) and (RType in [vtInt8, vtByte]) then
-      SetSlugTypes(Slug, vtInt16, rtS16)
+      SetSlugTypes(Slug, vtInteger, rtS16)
     else if (LType in [vtByte, vtWord]) and (RType in [vtByte, vtWord]) then
       SetSlugTypes(Slug, vtWord, rtU16)
-    else if (LType in [vtByte, vtInteger, vtInt16, vtInt8]) and (RType in [vtByte, vtInteger, vtInt8, vtInt16]) then
+    else if (LType in [vtByte, vtInteger, vtInteger, vtInt8]) and (RType in [vtByte, vtInteger, vtInt8, vtInteger]) then
       SetSlugTypes(Slug, vtInteger, rtS16)
     else
       //One type is signed, the other unsigned but not a pointer so we need an S16 result
-      SetSlugTypes(Slug, vtInt16, rtM16S16);
+      SetSlugTypes(Slug, vtInteger, rtM16S16);
   end
   else
   begin
     Result := LType = RType;
     if Result then
-      SetSlugTypes(Slug, LType, lutVarTypeToOpType[LType]);
+      SetSlugTypes(Slug, LType, VarTypeToOpType(LType));
   end;
 end;
 
@@ -314,12 +315,12 @@ begin
   LType := ILParamToVarType(@Left.Operand);
   RType := ILParamToVarType(@Right.Operand);
 
-  if (LType in NumericTypes) and (RType in NumericTypes) then
+  if IsNumericType(LType) and IsNumericType(RType) then
   begin
     Result := True;
     if (LType = vtReal) or (RType = vtReal) then
       EXIT(False)
-    else if (TypeSize[LType] = 2) or (TypeSize[RType] = 2) then
+    else if IsWordType(LType) or IsWordType(RType) then
       SetSlugTypes(Left, vtWord, rtX16)
     else  //Both are single byte
       SetSlugTypes(Left, vtByte, rtX8);
@@ -341,8 +342,8 @@ end;
 function AssignSlugTypes(var Slug: PExprSlug; RightSlug: PExprSlug): Boolean;
 begin
   //Operation has a fixed result type
-  if Slug.OpData.ResultType <> vtUnknown then
-    Slug.ResultType := Slug.OpData.ResultType
+  if Slug.OpData.ResultType <> teUnknown then
+    Slug.ResultType := TypeEnumToVarType[Slug.OpData.ResultType]
   else
     Slug.ResultType := vtUnknown;
   Slug.OpType := rtUnknown;
@@ -374,10 +375,10 @@ begin
     if Slug.OpData.ResultSame then
     begin
       Slug.ResultType := ILParamToVarType(@Slug.Operand);
-      Slug.OpType := lutVarTypeToOpType[Slug.ResultType];
+      Slug.OpType := VarTypeToOpType(Slug.ResultType);
     end
     else
-      Slug.OpType := lutVarTypeToOpType[ILParamToVarType(@Slug.Operand)];
+      Slug.OpType := VarTypeToOpType(ILParamToVarType(@Slug.Operand));
   end;
 
   //Failure if we haven't found suitable types yet
@@ -403,7 +404,7 @@ end;
 function ValidateAssignmentTypes(AssignType, ExprType: TVarType): Boolean;
 begin
   //Numeric types
-  if (AssignType in NumericTypes) and (ExprType in NumericTypes) then
+  if IsNumericType(AssignType) and IsNumericType(ExprType) then
     EXIT(ExprType <> vtReal);
   if AssignType = vtBoolean then
     EXIT(ExprType = vtBoolean);
@@ -427,13 +428,13 @@ begin
     if Slug.Operand.Loc = locImmediate then
     begin
       Negative := ((Slug.Operand.ImmType = vtInt8) and (Slug.Operand.ImmValue and $80 <> 0)) or
-        ((Slug.Operand.ImmType in [vtInt16, vtInteger]) and (Slug.Operand.ImmValue >= $8000));
+        ((Slug.Operand.ImmType = vtInteger) and (Slug.Operand.ImmValue >= $8000));
       case ExprType of
         vtByte: Valid := not Negative and (Slug.Operand.ImmValue < 256);
         vtWord, vtPointer: Valid := not Negative;
         vtInt8: Valid := (Negative and (Slug.Operand.ImmValue >= $10000-128)) or
           (Slug.Operand.ImmValue < $80);
-        vtInt16, vtInteger: Valid := Negative or (Slug.Operand.ImmValue < $8000);
+        vtInteger: Valid := Negative or (Slug.Operand.ImmValue < $8000);
       else
         Valid := ValidateAssignmentTypes(ExprType, Slug.ResultType);
       end;
@@ -728,8 +729,8 @@ end;
 
 function DoUnaryOp(UnaryOp: TUnaryOperator;var Slug: PExprSlug): TAssembleError;
 begin
-  if ((UnaryOp = uoNegate) and (Slug.ImplicitType in NumericTypes)) or
-    ((UnaryOP = uoInvert) and (Slug.ImplicitType in (IntegerTypes + [vtBoolean]))) then
+  if ((UnaryOp = uoNegate) and IsNumericType(Slug.ImplicitType)) or
+    ((UnaryOP = uoInvert) and IsLogicalType(Slug.ImplicitType)) then
     Result := errNone
   else //Unary operator with invalid operand type
     EXIT(errInvalidExpression);
@@ -762,7 +763,7 @@ begin
         Slug.ILItem.OpType := rtS16;
         Slug.OpType := rtS16;
       end;
-      Slug.ResultType := vtInt16;
+      Slug.ResultType := vtInteger;
       Slug.ILItem.ResultType := rtU16;
     end;
     uoInvert:
@@ -1061,7 +1062,7 @@ begin
       begin
         Slug.Operand.ImmValue := EvalResult;
         Slug.Operand.ImmType := EvalType;
-        Slug.OpType := lutVarTypeToOpType[EvalType];
+        Slug.OpType := VarTypeToOpType(EvalType);
         Slug.ResultType := EvalType;
         Slug.ImplicitType := EvalType;
         Slug.OpIndex := RightSlug.OpIndex;
@@ -1086,7 +1087,7 @@ begin
 //        EXIT(errInvalidOperands);
       ILItem.OpType := Slug.OpType;
       ILItem.OpIndex := Slug.OpIndex;
-      ILItem.ResultType := lutVarTypeToOpType[Slug.ResultType];
+      ILItem.ResultType := VarTypeToOpType(Slug.ResultType);
       ILItem.Param1 := Slug.Operand;
       ILItem.Param2 := RightSlug.Operand;
 
@@ -1144,14 +1145,14 @@ begin
       Slug.ResultType := ILParamToVarType(@Slug.Operand);
     if Slug.OpType = rtUnknown then
       if Slug.Operand.Loc = locImmediate then
-        case TypeSize[Slug.ResultType] of
+        case GetTypeSize(Slug.ResultType) of
           1: Slug.OpType := rtX8;
           2: Slug.OpType := rtX16;
         else
           raise Exception.Create('Unknown Assignment type size');
         end
       else
-        Slug.OpType := lutVarTypeToOpType[Slug.ResultType];
+        Slug.OpType := VarTypeToOpType(Slug.ResultType);
     if ExprType <> vtUnknown then
     begin
       Result := ValidateExprType(ExprType, Slug);
@@ -1220,16 +1221,16 @@ begin
       begin
         Slug.ILItem := ILItem;
         if ExprType <> vtUnknown then
-          ILItem.ResultType := lutVarTypeToOpType[ExprType]
+          ILItem.ResultType := VarTypeToOpType(ExprType)
         else
-          ILItem.ResultType := lutVarTypeToOpType[Slug.ImplicitType];
+          ILItem.ResultType := VarTypeToOpType(Slug.ImplicitType);
       end;
 
       EXIT(errNone);
     end;
   end;
 end;
-
+(*
 //See header section
 function ParseExpression(out ILItem: PILItem;var ExprType: TVarType;out ImplicitType: TVarType): TAssembleError;
 var Slug: TExprSlug;
@@ -1250,14 +1251,14 @@ begin
       Slug.ResultType := ILParamToVarType(@Slug);
     if Slug.OpType = rtUnknown then
       if ILItem.Param1.Loc = locImmediate then
-        case TypeSize[Slug.ResultType] of
+        case GetTypeSize(Slug.ResultType) of
           1: ILItem.OpType := rtX8;
           2: ILItem.OpType := rtX16;
         else
           raise Exception.Create('Unknown Assignment type size');
         end
       else
-        ILItem.OpType := lutVarTypeToOpType[ILParamToVarType(@ILItem.Param1)];
+        ILItem.OpType := VarTypeToOpType(ILParamToVarType(@ILItem.Param1));
 //      Slug.OpType := lutVarTypeToOpType[Slug.ResultType];
     if ExprType <> vtUnknown then
     begin
@@ -1278,14 +1279,14 @@ begin
       ILItem := ILAppend(dtData);
       ILItem.OpIndex := OpIndexAssign;
       if ILItem.Param1.Loc = locImmediate then
-        case TypeSize[Slug.ResultType] of
+        case GetTypeSize(Slug.ResultType) of
           1: ILItem.OpType := rtX8;
           2: ILItem.OpType := rtX16;
         else
           raise Exception.Create('Unknown Assignment type size');
         end
       else
-        ILItem.OpType := lutVarTypeToOpType[ILParamToVarType(@ILItem.Param1)];
+        ILItem.OpType := VarTypeToOpType(ILParamToVarType(@ILItem.Param1));
       //(Don't need ResultType for an assign)
       ILItem.Param1 := Slug.Operand;
       ILItem.Param2.Loc := locNone;
@@ -1333,7 +1334,7 @@ begin
       begin
         //Add item to IL list
         ILItem := ILAppend(dtData);
-        ILItem.OpType := lutVarTypeToOpType[ExprType];
+        ILItem.OpType := VarTypeToOpType(ExprType);
         ILItem.OpIndex := OpIndexNone;
         //No ResultType needed here??
         ILItem.Param1 := Slug.Operand;
@@ -1344,5 +1345,5 @@ begin
     end;
   end;
 end;
-
+*)
 end.

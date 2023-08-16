@@ -197,7 +197,7 @@ begin
   if Vars.Count = 0 then
     Result := 0
   else  //Stack frame! We only need current vars
-    Result := Vars[Vars.Count-1].Offset + TypeSize[Vars[Vars.Count-1].VarType];
+    Result := Vars[Vars.Count-1].Offset + GetTypeSize(Vars[Vars.Count-1].VarType);
 end;
 
 //Doesn't check whether a variable with that name already exists!
@@ -211,7 +211,7 @@ begin
   if Vars.Count = 0 then
     Result.Offset := 0
   else  //Adding to current Scope
-    Result.Offset := Vars[Vars.Count-1].Offset + TypeSize[Vars[Vars.Count-1].VarType];
+    Result.Offset := Vars[Vars.Count-1].Offset + GetTypeSize(Vars[Vars.Count-1].VarType);
 
   Index := VarsFirstIndex + Vars.Add(Result);
 end;
@@ -396,7 +396,7 @@ begin
   Offset := 0;
   for V in Vars do
   begin
-    Offset := Offset - TypeSize[V.VarType];
+    Offset := Offset - GetTypeSize(V.VarType);
     //If local var and requires storage
     V.Offset := Offset;
 //    Offset := Offset + TypeSize[V.VarType];
@@ -417,7 +417,7 @@ begin
     //if <suitable var>
     begin
       case V.VarType of
-        vtInteger, vtInt16: V.ValueInt := Int16(Mem[Base+V.Offset] + (Mem[Base+V.Offset+1] shl 8));
+        vtInteger: V.ValueInt := Int16(Mem[Base+V.Offset] + (Mem[Base+V.Offset+1] shl 8));
         vtInt8: V.ValueInt := Int8(Mem[Base+V.Offset]);
         vtWord, vtPointer: V.ValueInt := Mem[Base+V.Offset] + (Mem[Base+V.Offset+1] shl 8);
         vtByte, vtBoolean, vtChar:  V.ValueInt := Mem[Base+V.Offset];
@@ -442,13 +442,13 @@ begin
     Result := '-' + IntToHex(0-V.Offset, 2) + ' '
   else
     Result := '+' + IntToHex(V.Offset, 2) + ' ';
-  Result := Result + V.Name + ': ' + VarTypeNames[V.VarType];
+  Result := Result + V.Name + ': ' + VarTypeToName(V.VarType);
   if not TypeSummary then
   begin
     Result := Result + ' = ';
     case V.VarType of
       vtUnknown: ;
-      vtInteger, vtInt16, vtInt8: Result := Result + IntToStr(V.ValueInt);
+      vtInteger, vtInt8: Result := Result + IntToStr(V.ValueInt);
       vtWord, vtByte, vtPointer: Result := Result + IntToStr(Word(V.ValueInt));
       vtBoolean:
         case V.ValueInt of

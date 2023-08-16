@@ -121,7 +121,7 @@ begin
     ILItem.Param2.Loc := locNone;
     ILItem.OpIndex := OpIndexAssign;
     ILItem.OpType := Slug.OpType;
-    ILItem.ResultType := lutVarTypeToOpType[Variable.VarType];
+    ILItem.ResultType := VarTypeToOpType(Variable.VarType);
   end;
 
   ILItem.Dest.Loc := locVar;
@@ -136,14 +136,14 @@ begin
 
   if (ILItem.OpIndex = OpIndexAssign) and (ILItem.OpType = rtUnknown) then
     if Slug.Operand.Loc = locImmediate then
-      case TypeSize[Slug.ResultType] of
+      case GetTypeSize(Slug.ResultType) of
         1: Slug.OpType := rtX8;
         2: Slug.OpType := rtX16;
       else
         raise Exception.Create('Unknown Assignment type size');
       end
     else
-      Slug.OpType := lutVarTypeToOpType[Slug.ResultType];
+      Slug.OpType := VarTypeToOpType(Slug.ResultType);
 
   //Overflows for an immediate assignment must be validated by the parser
   if (ILItem.OpIndex = OpIndexAssign) and (ILItem.Param1.Loc = locImmediate) then
@@ -441,7 +441,7 @@ begin
 
   //Test LoopVar and Branch to Body or Exit
   ExitTestItem := ILAppend(dtCondBranch);
-  ExitTestItem.OpType := lutVarTypeToOpType[LoopVar.VarType];
+  ExitTestItem.OpType := VarTypeToOpType(LoopVar.VarType);
   ExitTestItem.ResultType := rtBoolean;
   if ToInc then
     ExitTestItem.OpIndex := OpIndexLessEqual
@@ -478,7 +478,7 @@ begin
   NewBlock := True;
   //Next loopvar
   ILItem := ILAppend(dtData);
-  ILItem.OpType := lutVarTypeToOpType[LoopVar.VarType];
+  ILItem.OpType := VarTypeToOpType(LoopVar.VarType);
   ILItem.ResultType := ILItem.OpType;
   if ToInc then
     ILItem.OpIndex := OpIndexAdd
@@ -494,7 +494,7 @@ begin
   ILItem.Param2.ImmType := vtByte;
 
   ILItem.Dest.Loc := locVar;
-  ILItem.OpType := lutVarTypeToOpType[LoopVar.VarType];
+  ILItem.OpType := VarTypeToOpType(LoopVar.VarType);
   ILItem.Dest.VarIndex := LoopVarIndex;
   ILItem.Dest.VarSub := VarIncWriteCount(LoopVar);
 
@@ -955,13 +955,16 @@ begin
     if ffForward in Func.Flags then
     begin
       if (Func.Params[P].Reg <> Reg) or
-        (Func.Params[P].VarTypes <> [VarType]) then
+        //TODO: AreTypesCompatible()
+        (Func.Params[P].VarType <> VarType) then
+//        (Func.Params[P].VarTypes <> [VarType]) then
         EXIT(errFuncDecDoesntMatch);
     end
     else
     begin
       Func.Params[P].Reg := Reg;
-      Func.Params[P].VarTypes := [VarType];
+      Func.Params[P].VarType := VarType;
+//      Func.Params[P].VarTypes := [VarType];
     end;
   end;
 end;

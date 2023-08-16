@@ -57,7 +57,8 @@ type
 
     Reg: TParamReg;       //If the parameter is passed via a register, otherwise prNone
                           //Ignored for Intrinsics
-    VarTypes: TVarTypeSet;   //The type of this this parameter.
+    VarType: TVarType;    //Parameter type
+//    VarTypes: TTypeEnumSet;   //The type of this this parameter.
                           //NOTE: Only intrinsics can handle multiple types
 
 //    DefaultValue: Word;   //If the parameter is optional
@@ -185,7 +186,8 @@ begin
   begin
     Result.Params[I].Name := '';
     Result.Params[I].Reg := prNone;
-    Result.Params[I].VarTypes := [];
+    Result.Params[I].VarType := vtUnknown;
+//    Result.Params[I].VarTypes := [];
     Result.Params[I].Specifier := psVal;
 //    Result.Params[I].DefaultValue := 0;
   end;
@@ -204,7 +206,7 @@ begin
 end;
 
 function ParamToString(Param: TParameter): String;
-var VT: TVarType;
+//var VT: TTypeEnum;
 begin
   case Param.Specifier of
     psVal, psResult: Result := '';
@@ -226,8 +228,9 @@ begin
     Result := Result + ' as';
   end;
 
-  for VT in Param.VarTypes do
-    Result := Result + ' ' + VarTypeNames[VT];
+  Result := VarTypeToName(Param.VarType);
+//  for VT in Param.VarTypes do
+//    Result := Result + ' ' + TypeEnumNames[VT];
 end;
 
 function FuncToString(Func: PFunction): String;

@@ -42,15 +42,15 @@
 ;,,,,,,,,,,,
 ;,Unary operators,,,,,,,,,,
 ;,unary plus,,,,,,,,,,Ignored by parser
-,unary minus,negate,negate,u8 u16 s16,4,Numeric,N/A,N/A,N/A,Int16,Negate
+,unary minus,negate,negate,u8 u16 s16,4,Numeric,N/A,N/A,N/A,Integer,Negate
 ,NOT,not,not,u8 s8 u16 s16 boolean,4,Logical,N/A,N/A,N/A,Same,Bitwise complement
 ;,address (of),@,at,,4,Any variable,N/A,N/A,N/A,Pointer,
 ;,,,,,,,,,,,
 ;,Typecasts,,,,,,,,,,
-;,Integer,integer,integer,,0,Any Simple,,,,int16,
-;,,%,integer,,0,Any Simple,,,,int16,
-;,Int16,int16,int16,,0,Any Simple,,,,int16,
-;,,%,int16,,0,Any Simple,,,,int16,
+;,Integer,integer,integer,,0,Any Simple,,,,Integer,
+;,,%,integer,,0,Any Simple,,,,Integer,
+;,Int16,int16,int16,,0,Any Simple,,,,Integer,
+;,,%,int16,,0,Any Simple,,,,Integer,
 ;,Int8,int8,int8,,0,Any Simple,,,,int8,
 ;,,%%,int8,,0,Any Simple,,,,int8,
 ;,Word,word,word,,0,Any Simple,,,,word,

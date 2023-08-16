@@ -26,7 +26,7 @@ begin
   P2Type := Param2.ImmType;
   RType := vtUnknown;
 
-  if (P1Type in NumericTypes) and (P2Type in NumericTypes) then
+  if IsNumericType(P1Type) and IsNumericType(P2Type) then
   begin
     P1 := ILParamValueToInteger(Param1);
     P2 := ILParamValueToInteger(Param2);
@@ -99,7 +99,7 @@ begin
       if Value < -32768 then
         EXIT(errConstantExpressionOverflow)
       else if Value < -128 then
-        RType := vtInt16
+        RType := vtInteger
       else if Value < 0 then
         RType := vtInt8
       else if Value < 256 then

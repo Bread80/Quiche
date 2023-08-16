@@ -226,7 +226,7 @@ begin
   Assert(Param.Loc = locImmediate);
 
   Result := Param.ImmValue;
-  if (Param.ImmType in SignedTypes) and (Result >= $8000) then
+  if IsSignedType(Param.ImmType) and (Result >= $8000) then
     Result := Result or (-1 xor $ffff);
 end;
 
@@ -377,7 +377,7 @@ end;
 
 function ILParamToRawType(Param: PILParam): TOpType;
 begin
-  Result := lutVarTypeToOpType[ILParamToVarType(Param)];
+  Result := VarTypeToOpType(ILParamToVarType(Param));
 end;
 
 function ILDestToOpType(Dest: PILDest): TOpType;
@@ -393,7 +393,7 @@ begin
   if Variable = nil then
     EXIT(rtUnknown);
 
-  Result := lutVarTypeToOpType[Variable.VarType];
+  Result := VarTypeToOpType(Variable.VarType);
 end;
 
 
@@ -402,7 +402,7 @@ var Variable: PVariable;
 begin
   case Param.Loc of
     locNone: ;
-    locImmediate: Result := IntToStr(Param.ImmValue) + ':' + VarTypeNames[Param.ImmType];
+    locImmediate: Result := IntToStr(Param.ImmValue) + ':' + VarTypeToName(Param.ImmType);
     locPhiVar:
      Result := '[%' + VarIndexToName(ILItem.Dest.PhiVarIndex) + '_' +
       IntToStr(Param.PhiSub) + ' {' + IntToStr(Param.PhiBlockID) + '}] ';
@@ -410,12 +410,12 @@ begin
     begin
       Variable := VarIndexToData(Param.VarIndex);
       Result := '%' + Variable.Name + '_' + IntToStr(Param.VarSub) +
-        ':' + VarTypeNames[Variable.VarType];
+        ':' + VarTypeToName(Variable.VarType);
     end;
     locTemp:
     begin
       Variable := VarTempToData(Param.TempIndex);
-       Result := '%' + IntToStr(Param.TempIndex) + ':' + VarTypeNames[Variable.VarType];
+       Result := '%' + IntToStr(Param.TempIndex) + ':' + VarTypeToName(Variable.VarType);
     end;
   else
     Result := '<INVALID PARAM>';
@@ -440,7 +440,7 @@ begin
 //    raise Exception.Create('Invalid DestLoc');
       end;
       if not (Item.Dest.Loc in [locNone, locPhiVar]) then
-        Result := Result + ':' + RawTypeNames[Item.ResultType];
+        Result := Result + ':' + OpTypeNames[Item.ResultType];
     end;
     dtCondBranch:
     begin
@@ -449,7 +449,7 @@ begin
         Result := Result + '{' + IntToStr(Item.TrueBlockID) + '} '
       else
         Result := Result + '{' + IntToStr(Item.TrueBlockID) + ',' + IntToStr(Item.FalseBlockID) + '} ';
-      Result := Result + ':' + RawTypeNames[Item.ResultType] + ' ';
+      Result := Result + ':' + OpTypeNames[Item.ResultType] + ' ';
     end;
     dtBranch:
       Result := Result + 'Branch ' + '{' + IntToStr(Item.BranchBlockID) + '} ';
@@ -466,7 +466,7 @@ begin
       Result := Result + OpIndexToData(Item.OpIndex).Name;
     if ((Item.DestType = dtData) and not (Item.Dest.Loc in [locNone, locPhiVar])) or
       (Item.DestType = dtCondBranch) then
-      Result := Result + ':' + RawTypeNames[Item.OpType];
+      Result := Result + ':' + OpTypeNames[Item.OpType];
     Result := Result + ' ';
 
     //First operand
