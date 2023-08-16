@@ -18,12 +18,14 @@ type TSourceReader = class
 
     FMarkLineNo: Integer;
     FMarkPos: Integer;
+    function GetSource(Index: Integer): String;
   public
     destructor Destroy;override;
     function OpenFile(AFilename: String): TAssembleError;
     //Closes any open file, sets AString as the source data and Resets
     procedure LoadFromString(AString: String);
     //Reset to the start of the current file or string
+    procedure LoadFromStrings(SL: TStrings);
     procedure Reset;
 
     //Skips to the start of the next line.
@@ -60,6 +62,9 @@ type TSourceReader = class
     property Pos: Integer read FPos;
     property LineNo: Integer read FLineNo;
     property Line: String read FLine;
+    property MarkLineNo: Integer read FMarkLineNo;
+    property MarkPos: Integer read FMarkPos;
+    property Source[Index: Integer]: String read GetSource;
   end;
 
   TAssemSourceReader = class(TSourceReader)
@@ -99,22 +104,30 @@ begin
   inherited;
 end;
 
+function TSourceReader.GetSource(Index: Integer): String;
+begin
+  if Index <= FLines.Count then
+    Result := FLines[Index-1]
+  else
+    Result := ';<No such line>';
+end;
+
 procedure TSourceReader.LoadFromString(AString: String);
 begin
   if FLines = nil then
     FLines := TStringList.Create;
-{  if FLines <> nil then
-  begin
-    FLines.Free;
-    FLines := nil;
-  end;
-}  FFilename := '';
+  FFilename := '';
   FLines.Text := AString;
   Reset;
-//  FLine := AString;
-//  FPos := 0;
-//  FLineNo := 1;
-  FLine := FLines[0];
+end;
+
+procedure TSourceReader.LoadFromStrings(SL: TStrings);
+begin
+  if FLines = nil then
+    FLines := TStringList.Create;
+  FLines.Assign(SL);
+  FFilename := '';
+  Reset;
 end;
 
 procedure TSourceReader.Mark;
@@ -136,14 +149,15 @@ function TSourceReader.NextLine: Boolean;
 begin
   if FLines = nil then
     EXIT(False);
-  FLineNo := FLineNo + 1;
-  FEOF := FLineNo > FLines.Count;
-  Result := not FEOF;
-  if Result then
-    FLine := FLines[FLineNo-1]
+  if FLineNo < FLines.Count then
+  begin
+    FLineNo := FLineNo + 1;
+    FLine := FLines[FLineNo-1];
+    FPos := 0;
+  end
   else
-    FLine := '';
-  FPos := 0;
+    FEOF := True;
+  Result := not FEOF;
 end;
 
 function TSourceReader.OpenFile(AFilename: String): TAssembleError;
@@ -154,7 +168,8 @@ begin
   FLines := TStringList.Create;
   FLines.LoadFromFile(Filename);
   FFilename := Filename;
-  FLineNo := 1;
+  Reset;
+  Result := errNone;
 end;
 
 function TSourceReader.ReadChar(out Ch: Char): Boolean;
@@ -176,10 +191,14 @@ begin
   if FLines <> nil then
   begin
     FLineNo := 1;
-    FLine := '';
+    FLine := FLines[0];
   end
   else
-    FLineNo := 1;
+  begin
+    FEOF := True;
+    FLineNo := -1;
+  end;
+  FMarkLineNo := -1;
 end;
 
 function TSourceReader.SkipChar: Boolean;
@@ -197,7 +216,6 @@ begin
 end;
 
 procedure TSourceReader.SkipWhiteSpaceAll;
-var LineEnd: Boolean;
 begin
   while True do
   begin
@@ -224,6 +242,7 @@ begin
   FPos := FMarkPos;
   if FLines <> nil then
     FLine := FLines[FLineNo-1];
+  FMarkLineNo := -1;
 end;
 
 { TAssemSourceReader }
@@ -258,11 +277,10 @@ begin
     else
       inc(FPos);
   end;
+  Result := errNone;
 end;
 
 function TAssemSourceReader.ReadIdentifier(out Identifier: String): TAssembleError;
-var
-  Ch: Char;
 begin
   Identifier := '';
   if (FPos < Length(FLine)) and CharInSet(FLine.Chars[FPos], csIdentFirst) then

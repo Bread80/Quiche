@@ -3,18 +3,15 @@ unit ILExec;
 interface
 uses ILData, Variables, Classes;
 
-const
-  valFalse = 0;
-  valTrue = 1;
-  BoolToValue: array[False..True] of Integer = (valFalse, valTrue);
-  ValueToBool: array[valFalse..valTrue] of Boolean = (False, True);
-
 procedure Execute;
 
 var ExecOutput: TStringList;
 
 implementation
-uses Generics.Collections, SysUtils;
+uses Generics.Collections, SysUtils, QTypes, Operators;
+
+const
+  ValueToBool: array[valueTrue..valueFalse] of Boolean = (True, False);
 
 var CurrBlock: Integer;
   CurrIL: Integer;
@@ -59,6 +56,7 @@ end;
 
 function TempVarCreate(Index: Integer): PVariable;
 begin
+  Result := nil;
   if TempVars.Count <= Index then
     while TempVars.Count <= Index do
     begin
@@ -76,34 +74,35 @@ begin
   end;
 end;
 
-function GetValue(ILItem: PILItem;Loc: TILLocation;Data, Sub: Integer;var ValueType: TVarType;out SubMismatch: Boolean): Integer;
+function GetValue(ILItem: PILItem;Param: PILParam;var ValueType: TVarType;out SubMismatch: Boolean): Integer;
 var Variable: PVariable;
 begin
-  case Loc of
+  Result := -1;
+  case Param.Loc of
     locNone: RaiseError('Attempt to read a param which is locNone');
     locPhiVar:
     begin
-      Variable := VarIndexToData(ILItem.DestData);
+      Variable := VarIndexToData(ILItem.Dest.PhiVarIndex);
 //      ExecTest(Variable.Sub = Sub, 'Variable Sub doesn''t match param Sub version (Phi node)');
       Result := Variable.ValueInt;
       ValueType := Variable.VarType;
-      SubMismatch := Variable.Sub <> Sub;
+      SubMismatch := Variable.Sub <> Param.VarSub;
     end;
     locImmediate:
     begin
-      Result := Data;
-      ValueType := vtInteger;
+      Result := Param.ImmValue;
+      ValueType := Param.ImmType;
     end;
     locVar:
     begin
-      Variable := VarIndexToData(Data);
-      ExecTest(Variable.Sub = Sub, 'Variable Sub doesn''t match param Sub version (normal node)');
+      Variable := VarIndexToData(Param.VarIndex);
+      ExecTest(Variable.Sub = Param.VarSub, 'Variable Sub doesn''t match param Sub version (normal node)');
       Result := Variable.ValueInt;
       ValueType := Variable.VarType;
     end;
     locTemp:
     begin
-      Variable := TempVarIndexToData(Data);
+      Variable := TempVarIndexToData(Param.TempIndex);
       ExecTest(Assigned(Variable), 'Temp variable not assigned yet');
       Result := Variable.ValueInt;
       ValueType := Variable.VarType;
@@ -113,7 +112,7 @@ begin
   end;
 end;
 
-function GetValue1(ILItem: PILItem; var ValueType: TVarType;out SubMismatch: Boolean): Integer;
+{function GetValue1(ILItem: PILItem; var ValueType: TVarType;out SubMismatch: Boolean): Integer;
 begin
   Result := GetValue(ILItem, ILItem.Param1Loc, ILItem.Param1Data, ILItem.Param1Sub, ValueType, SubMismatch);
 end;
@@ -122,7 +121,7 @@ function GetValue2(ILItem: PILItem; var ValueType: TVarType;out SubMismatch: Boo
 begin
   Result := GetValue(ILItem, ILItem.Param2Loc, ILItem.Param2Data, ILItem.Param2Sub, ValueType, SubMismatch);
 end;
-
+}
 function BlockIDToILIndex(BlockID: Integer): Integer;
 var ILItem: PILItem;
 begin
@@ -149,6 +148,7 @@ var ILItem: PILItem;
   ValueType2: TVarType;
   Variable: PVariable;
   SubMismatch: Boolean;
+  Op: POperator;
 begin
   ILItem := ILIndexToData(Index);
   if ILItem.BlockID >= 0 then
@@ -159,29 +159,30 @@ begin
 
   Result := Index + 1;
 
-  if (ILItem.DestType = dtBranch) and (ILItem.FalseBlock = -1) then
+  Op := OpIndexToData(ILItem.OpIndex);
+  if ILItem.DestType = dtBranch then
     //Unconditional branch - don't evaluate parameters
   else
   begin
-    Value := GetValue1(ILItem, ValueType, SubMismatch);
+    Value := GetValue(ILItem, @ILItem.Param1, ValueType, SubMismatch);
 
-    case ILItem.Op of
+(*    case Op.Op of
       //System operations
       opNone: ; //Nothing
       opAssign:
-        ExecTest(ILItem.Param2Loc = locNone, 'Assign op but Param2 is not locNone');
+        ExecTest(ILItem.Param2.Loc = locNone, 'Assign op but Param2 is not locNone');
       opPhi:
       begin
-        ExecTest(ILItem.Param1Loc in [locPhiVar], 'Param1 of a Phi node must be locPhiVar');
-        if PrevBlock = ILItem.Param1Data then
+        ExecTest(ILItem.Param1.Loc in [locPhiVar], 'Param1 of a Phi node must be locPhiVar');
+        if PrevBlock = ILItem.Param1.PhiBlockID then
           ExecTest(not SubMismatch, 'Variable Sub doesn''t match param Sub version (Phi node)')
           //(Param1)
         else
         begin
-          ExecTest(ILItem.Param2Loc in [locPhiVar], 'Param2 of a Phi node must be locPhiVar');
-          if PrevBlock = ILItem.Param2Data then
+          ExecTest(ILItem.Param2.Loc in [locPhiVar], 'Param2 of a Phi node must be locPhiVar');
+          if PrevBlock = ILItem.Param2.PhiBlockID then
           begin
-            Value := GetValue2(ILItem, ValueType, SubMismatch);
+            Value := GetValue(ILItem, @ILItem.Param2, ValueType, SubMismatch);
             ExecTest(not SubMismatch, 'Variable Sub doesn''t match param Sub version (Phi node)');
           end
           else
@@ -192,82 +193,82 @@ begin
       //Conditionals
       opEqual, opNotEqual:
       begin
-        Value := BoolToValue[Value = GetValue2(ILItem, ValueType2, SubMismatch)];
+        Value := BoolToValue[Value = GetValue(ILItem, @ILItem.Param2, ValueType2, SubMismatch)];
         ExecTest(ValueType = ValueType2, 'Type mismatch');
         ValueType := vtBoolean;
-        if ILItem.Op = opNotEqual then
+        if Op.Op = opNotEqual then
           Value := BoolNot(Value);
       end;
       opLess, opGreaterEqual:
       begin
-        Value := BoolToValue[Value < GetValue2(ILItem, ValueType2, SubMismatch)];
+        Value := BoolToValue[Value < GetValue(ILItem, @ILItem.Param2, ValueType2, SubMismatch)];
         ExecTest(ValueType = ValueType2, 'Type mismatch');
         ValueType := vtBoolean;
-        if ILItem.Op = opGreaterEqual then
+        if Op.Op = opGreaterEqual then
           Value := BoolNot(Value);
       end;
       opGreater, opLessEqual:
       begin
-        Value := BoolToValue[Value > GetValue2(ILItem, ValueType2, SubMismatch)];
+        Value := BoolToValue[Value > GetValue(ILItem, @ILItem.Param2, ValueType2, SubMismatch)];
         ExecTest(ValueType = ValueType2, 'Type mismatch');
         ValueType := vtBoolean;
-        if ILItem.Op = opLessEqual then
+        if Op.Op = opLessEqual then
           Value := BoolNot(Value);
       end;
 
       //Maths
       opAdd:
       begin
-        Value := Value + GetValue2(ILItem, ValueType2, SubMismatch);
+        Value := Value + GetValue(ILItem, @ILItem.Param2, ValueType2, SubMismatch);
         ExecTest((ValueType = ValueType2) and (ValueType = vtInteger), 'Type mismatch');
       end;
       opSubtract:
       begin
-        Value := Value - GetValue2(ILItem, ValueType2, SubMismatch);
+        Value := Value - GetValue(ILItem, @ILItem.Param2, ValueType2, SubMismatch);
         ExecTest((ValueType = ValueType2) and (ValueType = vtInteger), 'Type mismatch');
       end;
       opMultiply:
       begin
-        Value := Value * GetValue2(ILItem, ValueType2, SubMismatch);
+        Value := Value * GetValue(ILItem, @ILItem.Param2, ValueType2, SubMismatch);
         ExecTest((ValueType = ValueType2) and (ValueType = vtInteger), 'Type mismatch');
       end;
-      opDivide, opDiv:
+      {opDivide, }opDiv:
       begin
-        Value := Value div GetValue2(ILItem, ValueType2, SubMismatch);
+        Value := Value div GetValue(ILItem, @ILItem.Param2, ValueType2, SubMismatch);
         ExecTest((ValueType = ValueType2) and (ValueType = vtInteger), 'Type mismatch');
       end;
       opMod:
       begin
-        Value := Value mod GetValue2(ILItem, ValueType2, SubMismatch);
+        Value := Value mod GetValue(ILItem, @ILItem.Param2, ValueType2, SubMismatch);
         ExecTest((ValueType = ValueType2) and (ValueType = vtInteger), 'Type mismatch');
       end;
 
       //Logical/bitwise
       opOR:
       begin
-        Value := Value or GetValue2(ILItem, ValueType2, SubMismatch);
+        Value := Value or GetValue(ILItem, @ILItem.Param2, ValueType2, SubMismatch);
         ExecTest((ValueType = ValueType2) and (ValueType in [vtInteger, vtBoolean]), 'Type mismatch');
       end;
       opXOR:
       begin
-        Value := Value xor GetValue2(ILItem, ValueType2, SubMismatch);
+        Value := Value xor GetValue(ILItem, @ILItem.Param2, ValueType2, SubMismatch);
         ExecTest((ValueType = ValueType2) and (ValueType in [vtInteger, vtBoolean]), 'Type mismatch');
       end;
       opAnd:
       begin
-        Value := Value and GetValue2(ILItem, ValueType2, SubMismatch);
+        Value := Value and GetValue(ILItem, @ILItem.Param2, ValueType2, SubMismatch);
         ExecTest((ValueType = ValueType2) and (ValueType in [vtInteger, vtBoolean]), 'Type mismatch');
       end;
 
       //Misc
       opShr:
       begin
-        Value := Value shr GetValue2(ILItem, ValueType2, SubMismatch);
+        Value := Value shr GetValue(ILItem, @ILItem.Param2, ValueType2, SubMismatch);
         ExecTest((ValueType = ValueType2) and (ValueType = vtInteger), 'Type mismatch');
       end;
       opShl:
       begin
-        Value := Value shl GetValue2(ILItem, ValueType2, SubMismatch);
+        Value := Value shl GetValue(ILItem, @ILItem.Param2, ValueType2, SubMismatch);
         ExecTest((ValueType = ValueType2) and (ValueType = vtInteger), 'Type mismatch');
       end;
 
@@ -275,43 +276,49 @@ begin
     else
       RaiseError('Unkown Operation');
     end;
-  end;
+*)  end;
 
   //Assign result to Dest/Do branch
   case ILItem.DestType of
     dtData:
-      case ILItem.DestLoc of
+      case ILItem.Dest.Loc of
         locNone: RaiseError('Dest assignment to <locNone>');
-        locOUT: ExecLog('OUT: ' + IntToStr(Value));
-        locPhiVar, locVar:
+        locPhiVar:
         begin
-          Variable := VarIndexToData(ILItem.DestData);
+          Variable := VarIndexToData(ILItem.Dest.VarIndex);
           Variable.ValueInt := Value;
           Variable.VarType := ValueType;
-          Variable.Sub := ILItem.DestSub;
+          Variable.Sub := ILItem.Dest.VarSub;
+        end;
+        locVar:
+        begin
+          Variable := VarIndexToData(ILItem.Dest.PhiVarIndex);
+          Variable.ValueInt := Value;
+          Variable.VarType := ValueType;
+          Variable.Sub := ILItem.Dest.PhiSub;
         end;
         locImmediate: RaiseError('Dest assignment to <locImmediate>');
         locTemp:
         begin
-          Variable := TempVarCreate(ILItem.DestData);
+          Variable := TempVarCreate(ILItem.Dest.TempIndex);
           Variable.ValueInt := Value;
           Variable.VarType := ValueType;
         end;
       else
         RaiseError('Unknown Dest type');
       end;
-    dtBranch:
+    dtCondBranch:
     begin
-      if ILItem.FalseBlock < 0 then
+      if ILItem.FalseBlockID < 0 then
         //Unconditional jump
-        Result := BlockIDToILIndex(ILItem.TrueBlock)
+        Result := BlockIDToILIndex(ILItem.TrueBlockID)
       else if ValueType <> vtBoolean then
         RaiseError('Attempting conditional branch but Value is not vtBoolean')
       else
-        if Value = valTrue then
-          Result := BlockIDToILIndex(ILItem.TrueBlock)
+        if Value = valueTrue then
+          Result := BlockIDToILIndex(ILItem.TrueBlockID)
         else
-          Result := BlockIDToILIndex(ILItem.FalseBlock);
+          Result := BlockIDToILIndex(ILItem.FalseBlockID);
     end;
   else
     RaiseError('Unknown DestType');

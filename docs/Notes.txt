@@ -1,0 +1,37 @@
+﻿Typing and Operators
+------
+
++ operator (for example)
+if left and right are U8, op is U8 and result is U8
+if left and right are U16, op is U16 and result is U16
+Otherwise, op is S16 and result is S16
+
++# (result size specifier)
+This specifies that the result with be U16
+The operation will depend on operand types
+
+
+
+Types When Parsing Constant Expressions
+100 - Byte
+1000 - Word
+-100 - Int8
+-1000 - Int16
+type will be 'Implicit' until either:
+A negative value is read, or a negative intermediate product, in which case the
+type will become explicitly signed
+A hex of binary value is read, in which can the value will become expicitly unsigned
+An explicitly signed value will become an implictly unsigned value again if any intermediate 
+value is positive
+
+procedure a
+var x#
+begin
+  x:=1
+end
+
+var y#
+begin
+  y:=10
+end.
+

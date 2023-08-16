@@ -1,0 +1,401 @@
+;Code snippets used by the code generator to build primitives
+
+;Prefix indicates
+;d.		Destination
+;p1.	First parameter
+;p2.	Second parameter
+
+;Suffix indicates
+;immbyte	- immediate value as a byte
+;immword	- immediate value as a word
+;r8			- an 8 bit register
+;r16		- a 16 bit register pair
+;r16low		- the low register of a register pair
+;r16high	- the high register of a register pair
+;offset		- the offset to a stack variable
+;offsetlow	- offset to the low byte of a stack variable
+;offsethigh	- offset to the high byte of a stack variable
+
+;Validation
+;===============================================
+;Validate the result of an operation, or that a type conversion
+;will fit into the destination type.
+
+=c_overflow
+  jp c,raise_overflow
+
+=nc_overflow
+  jp nc,raise_overflow
+  
+=nz_overflow
+  jp nz,raise_overflow
+  
+=p_overflow
+  jp p,raise_overflow
+  
+=m_overflow
+  jp m,raise_overflow
+  
+=pe_overflow
+  jp pe,raise_overflow
+
+;Raise overflow unless all 9 of the high bits are equal.
+;I.e all set or all clear. Used to validate conversion from an 
+;signed 16 bit to signed 8 bit where we can only accept values -$80 to +$7f
+;Corrupts: a,f
+=h9neov
+  ld a,<d.r16low>
+  rla				;Bit 7 of low byte into carry flag
+  ld a,<d.r16high>
+  adc a,0			;$ff + carry set gives $00, $00 + carry clear gives $00
+  jp nz,raise_overflow	;All others overflow
+  
+;Raise an overflow error unless all of the highest nine bits of the
+;destination register pair are zero
+;Invalid if negative or > $7f (1)
+;of > $7f (2)
+;I.e top nine bits must be clear
+;Corrupts: a,f
+=h9nzov
+  ld a,<d.r16low>
+  and $80			;Mask all but top bit of low byte
+  or <d.r16high>	
+  jp nz,raise_overflow
+  
+;Test if the high byte of the dest is non-zero. If so raise an overflow error
+;Corrupts: a,f 
+=hnzov
+  ld a,<d.r16high>
+  and a
+  jp nz,raise_overflow
+  
+;Raise oveflow if the H register is non-zero
+;Corrupts a,f
+=hreg_nz_overflow
+  ld a,h
+  and a
+  jp nz,raise_overflow
+  
+;Loads  
+;====================================================
+
+=ldp1r8imm
+  ld <p1.r8>,<p1.immbyte>
+  
+=ldp1r8offset
+  ld <p1.r8>,(ix<p1.offset>)
+  
+=ldp1r16imm
+  ld <p1.r16>,<p1.immword>
+ 
+=ldp1r16offset
+  ld <p1.r16low>,(ix<p1.offsetlow>)  
+  ld <p1.r16high>,(ix<p1.offsethigh>)
+
+=ldp1r16lowoffsetlow
+  ld <p1.r16low>,(ix<p1.offsetlow>)
+  
+=ldp1r16highzero
+  ld <p1.r16high>,$00
+  
+  
+=ldp2r8imm
+  ld <p2.r8>,<p2.immbyte>
+
+=ldp2r8offset
+  ld <p2.r8>,(ix<p2.offset>)
+
+=ldp2r16imm
+  ld <p2.r16>,<p2.immword>
+
+=ldp2r16offset
+  ld <p2.r16low>,(ix<p2.offsetlow>)  
+  ld <p2.r16high>,(ix<p2.offsethigh>)
+
+=ldp2r16lowoffsetlow
+  ld <p2.r16low>,(ix<p2.offsetlow>)
+  
+=ldp2r16highzero
+  ld <p2.r16high>,$00
+
+;Assigns
+;===================================================
+;An assignment copies one register, or an immediate value, to
+;another
+
+=assignoffset8imm8
+  ld (ix<d.offset>),<p1.immbyte>
+  
+=assignoffset16imm8
+  ld (ix<d.offsetlow>),<p1.immbyte>
+  ld (ix<d.offsethigh>),$00
+
+=assignoffset16imm8neg
+  ld (ix<d.offsetlow>),<p1.immbyte>
+  ld (ix<d.offsethigh>),$ff
+
+=assignoffset16imm16
+  ld (ix<d.offsetlow>),<p1.immwordlow>
+  ld (ix<d.offsethigh>),<p1.immwordhigh>
+  
+=assignoffset8r8
+  ld (ix<d.offset>),<p1.r8>
+
+=assignoffset8r8
+  ld (ix<d.offset>),<p1.r8> 
+  
+;Stores
+;====================================================
+;A store copies the result of a primitive into a variable
+
+=storeoffset8a
+  ld (ix<d.offset>),a
+  
+=storeoffset8r8
+  ld (ix<d.offset>),<d.r8>
+  
+=storeoffset16r8
+  ld (ix<d.offsethigh>),$00
+  ld (ix<d.offsetlow>),<d.r8>
+  
+;For use before a sign extend
+=storeoffset16lowr8
+  ld (ix<d.offsetlow>),<d.r8>
+
+;For use after a sign extend
+=storeoffset16higha
+  ld (ix<d.offsethigh>),a
+  
+;For use after a sign extend
+=storeoffset16highr8
+  ld (ix<d.offsethigh>),<d.r8>
+
+=storeoffset16r16
+  ld (ix<d.offsetlow>),<d.r16low>
+  ld (ix<d.offsethigh>),<d.r16high>
+
+=storeoffset8r16low
+  ld (ix<d.offsetlow>),<d.r16low>
+    
+;ALU operations
+;=========================================================
+
+;----Addition
+
+;8 bit add to immediate
+=add8ri
+  add a,<p2.immbyte>
+
+;8 bit add to register
+=add8rr
+  add a,<p2.r8>
+
+;16 bit add. Can only test for unsigned overflow due to ADD HL,ss opcode
+=addx16n
+  add hl,<p2.r16>	
+  
+;16 bit add. Affects all needed flags for validation and 16 bit conversion
+=addx16y
+  or a				;Clear carry
+  adc hl,<p2.r16>
+
+;----Subtraction
+
+;8 bit immediate subtract
+=sub8ri
+  sub a,<p2.immbyte>
+
+;8 bit register subtract
+=sub8rr
+  sub a,<p2.r8>
+
+;16 bit subtract
+=subx16
+  and a
+  sbc hl,<p2.r16>	
+  
+;----Negation
+
+=negs8
+  neg				;Parity flag set if A was $80
+
+=negu16
+  ld h,0
+  ld l,h
+  and a
+  sbc hl,de
+
+;----Comparisons
+;Note: We need to set A for assignments, flags for branches
+
+=compare8i
+  cp <p2.immbyte>
+
+;Swapped parameter ordering
+=compare8i_swap
+  cp <p1.immbyte>
+
+=compare8r
+  cp <p2.r8>
+  
+;Swapped parameter ordering
+=compare8r_swap
+  cp <p1.r8>  
+  
+;Compare and set A to zero if equal
+=equalx16
+  and a				;Clear carry
+  sbc hl,<p2.r16>
+  ld a,h			;Set to zero if result was equal
+  or l
+
+;p1 < p2 for boolean operands. Equivalent to !p1 AND p2
+=bool_less8i
+  cpl
+  and <p2.immbyte>
+  
+;p1 < p2 for boolean operands. Equivalent to !p1 AND p2
+=bool_less8r
+  cpl
+  and <p2.r8>
+
+;p1 > p2 for boolean operands. Equivalent to p1 AND !p2
+;NOTE: To generate this we need to reverse the order of the operands!
+=bool_greater8i
+  cpl
+  and <p1.immbyte>
+  
+;p1 > p2 for boolean operands. Equivalent to p1 AND !p2
+;NOTE: To generate this we need to reverse the order of the operands!
+=bool_greater8r
+  cpl
+  and <p1.r8>
+
+;p1 <= p2 for boolean operands. Equivalent to !p1 OR p2
+=bool_lessequal8i
+  cpl
+  or <p2.immbyte>
+  
+;p1 <= p2 for boolean operands. Equivalent to !p1 OR p2
+=bool_lessequal8r
+  cpl
+  or <p2.r8>
+  
+;p1 >= p2 for boolean operands. Equivalent to p1 OR !p2
+;NOTE: To generate this we need to reverse the order of the operands!
+=bool_greaterequal8i
+  cpl
+  or <p1.immbyte>
+  
+;p1 >= p2 for boolean operands. Equivalent to p1 OR !p2
+;NOTE: To generate this we need to reverse the order of the operands!
+=bool_greaterequal8r
+  cpl
+  or <p1.r8>
+  
+;====Conversions to Boolean
+
+;If A is non-zero outputs A=$ff, otherwise A=$00 (unchanged)
+=atoboolean
+  neg				;Set carry if A not equal 0
+  sbc a,a			;Set A to -1 or 0
+  
+;If A is non-zero, outputs A=$00, otherwise A=$ff
+=notatoboolean
+  neg				;Set carry if A not equal 0
+  sbc a,a			;Set A to -1 or 0
+  cpl				;Invert bits of A
+  
+;If Zero flag set, outputs A=$ff, otherwise A=$00
+=zftoboolean
+  ld a,0
+  jr nz,$+3
+  dec a
+
+;If zero flag is clear, outputs A=$00, otherwise A=$ff
+=nzftoboolean
+  ld a,0
+  jr z,$+3
+  dec a
+  
+;If carry set, outputs A=$ff, otherwise A=$00
+=cftoboolean
+  sbc a,a
+  
+;If carry set, outputs A=$ff, otherwise A=$ff
+=ncftoboolean
+  sbc a,a
+  cpl
+  
+;====Logic (and other boolean stuff)
+
+;Complement the A register (i.e. bitwise invert)
+=cpla
+  cpl
+
+=or8ri
+  or <p2.immbyte>
+  
+=or8rr
+  or <p2.r8>
+  
+=or16ri
+  ld a,<p1.r16low>
+  or <p2.immwordlow>
+  ld <p1.r16low>,a
+  ld a,<p1.r16high>
+  or <p2.immwordhigh>
+  ld <p1.r16high>,a
+  
+=or16rr
+  ld a,<p1.r16low>
+  or <p2.r16low>
+  ld <p1.r16low>,a
+  ld a,<p1.r16high>
+  or <p2.r16high>
+  ld <p1.r16high>,a
+
+=and8ri
+  and <p2.immbyte>
+  
+=and8rr
+  and <p2.r8>
+  
+=and16ri
+  ld a,<p1.r16low>
+  and <p2.immwordlow>
+  ld <p1.r16low>,a
+  ld a,<p1.r16high>
+  and <p2.immwordhigh>
+  ld <p1.r16high>,a
+  
+=and16rr
+  ld a,<p1.r16low>
+  and <p2.r16low>
+  ld <p1.r16low>,a
+  ld a,<p1.r16high>
+  and <p2.r16high>
+  ld <p1.r16high>,a
+  
+=xor8ri
+  xor <p2.immbyte>
+
+=xor8rr
+  xor <p2.r8>
+  
+=xor16ri
+  ld a,<p1.r16low>
+  xor <p2.immwordlow>
+  ld <p1.r16low>,a
+  ld a,<p1.r16high>
+  xor <p2.immwordhigh>
+  ld <p1.r16high>,a
+  
+=xor16rr
+  ld a,<p1.r16low>
+  xor <p2.r16low>
+  ld <p1.r16low>,a
+  ld a,<p1.r16high>
+  xor <p2.r16high>
+  ld <p1.r16high>,a
+  

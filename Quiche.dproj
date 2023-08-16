@@ -379,11 +379,25 @@
             <FormType>fmx</FormType>
         </DCCReference>
         <DCCReference Include="ILData.pas"/>
-        <DCCReference Include="QuicheParser.pas"/>
+        <DCCReference Include="Parse.pas"/>
         <DCCReference Include="Variables.pas"/>
         <DCCReference Include="Includes\MSourceReader.pas"/>
         <DCCReference Include="Includes\MErrors.pas"/>
         <DCCReference Include="ILExec.pas"/>
+        <DCCReference Include="CodeLibrary.pas"/>
+        <DCCReference Include="Operators.pas"/>
+        <DCCReference Include="Shell.pas"/>
+        <DCCReference Include="Compiler.pas"/>
+        <DCCReference Include="Testing.pas"/>
+        <DCCReference Include="Functions.pas"/>
+        <DCCReference Include="ParseExpr.pas"/>
+        <DCCReference Include="ParserBase.pas"/>
+        <DCCReference Include="Scopes.pas"/>
+        <DCCReference Include="ParserFixups.pas"/>
+        <DCCReference Include="PrimitivesEx.pas"/>
+        <DCCReference Include="CodeGenZ80AsmEx.pas"/>
+        <DCCReference Include="Eval.pas"/>
+        <DCCReference Include="QTypes.pas"/>
         <None Include="Tests.txt"/>
         <None Include="Assembly.txt"/>
         <BuildConfiguration Include="Release">
@@ -408,6 +422,12 @@
                 </Source>
             </Delphi.Personality>
             <Deployment Version="3">
+                <DeployFile LocalName="Assembly.txt" Configuration="Debug" Class="ProjectFile">
+                    <Platform Name="Win64">
+                        <RemoteDir>.\</RemoteDir>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
                 <DeployFile LocalName="$(BDS)\Redist\osx32\libcgunwind.1.0.dylib" Class="DependencyModule">
                     <Platform Name="OSX32">
                         <Overwrite>true</Overwrite>
@@ -444,12 +464,6 @@
                 <DeployFile LocalName="Win64\Debug\Quiche.exe" Configuration="Debug" Class="ProjectOutput">
                     <Platform Name="Win64">
                         <RemoteName>Quiche.exe</RemoteName>
-                        <Overwrite>true</Overwrite>
-                    </Platform>
-                </DeployFile>
-                <DeployFile LocalName="New1.txt" Configuration="Debug" Class="ProjectFile">
-                    <Platform Name="Win64">
-                        <RemoteDir>.\</RemoteDir>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>

@@ -5,7 +5,8 @@ interface
 uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
   FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs,
-  FMX.Controls.Presentation, FMX.StdCtrls, FMX.ScrollBox, FMX.Memo, FMX.Edit;
+  FMX.Controls.Presentation, FMX.StdCtrls, FMX.ScrollBox, FMX.Memo, FMX.Edit,
+  System.Actions, FMX.ActnList, FMX.ListBox, Compiler, FMX.TabControl;
 
 type
   TForm1 = class(TForm)
@@ -13,24 +14,58 @@ type
     Source: TLabel;
     mmSource: TMemo;
     Panel2: TPanel;
-    Label1: TLabel;
     mmIL: TMemo;
     Panel3: TPanel;
-    btnStatement: TButton;
+    btnParse: TButton;
     Label2: TLabel;
     edError: TEdit;
-    Label3: TLabel;
     mmOutput: TMemo;
-    btnBlock: TButton;
     Splitter1: TSplitter;
-    Splitter2: TSplitter;
     Panel4: TPanel;
+    btnInterpret: TButton;
+    btnCodeGen: TButton;
+    btnAssemble: TButton;
+    btnEmulate: TButton;
+    StyleBook1: TStyleBook;
+    ActionList1: TActionList;
+    Run: TAction;
     btnRun: TButton;
-    procedure btnStatementClick(Sender: TObject);
-    procedure btnBlockClick(Sender: TObject);
-    procedure btnRunClick(Sender: TObject);
+    btnTest: TButton;
+    cbTests: TComboBox;
+    Label4: TLabel;
+    rbStatement: TRadioButton;
+    rbBlock: TRadioButton;
+    rbGlobal: TRadioButton;
+    TabControl1: TTabControl;
+    tbILCode: TTabItem;
+    tbVariables: TTabItem;
+    tbFunctions: TTabItem;
+    tbOutput: TTabItem;
+    tbTests: TTabItem;
+    pnlVariables: TPanel;
+    mmVariables: TMemo;
+    Panel5: TPanel;
+    mmFunctions: TMemo;
+    Panel6: TPanel;
+    mmTests: TMemo;
+    Panel7: TPanel;
+    Panel8: TPanel;
+    Label1: TLabel;
+    cbScope: TComboBox;
+    cbStopOnError: TCheckBox;
+    cbOverflowChecks: TCheckBox;
+    procedure btnParseClick(Sender: TObject);
+    procedure btnInterpretClick(Sender: TObject);
+    procedure btnCodeGenClick(Sender: TObject);
+    procedure btnAssembleClick(Sender: TObject);
+    procedure btnEmulateClick(Sender: TObject);
+    procedure RunExecute(Sender: TObject);
+    procedure btnTestClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure cbScopeChange(Sender: TObject);
   private
-    { Private declarations }
+    procedure LoadTestList;
+    function GetCompileScope: TCompileScope;
   public
     { Public declarations }
   end;
@@ -39,47 +74,168 @@ var
   Form1: TForm1;
 
 implementation
-uses ILData, Variables, QuicheParser, MErrors, ILExec;
+uses IOUtils, Testing;
 
 {$R *.fmx}
 
-procedure TForm1.btnBlockClick(Sender: TObject);
-var Err: TAssembleError;
+procedure TForm1.RunExecute(Sender: TObject);
 begin
-  ClearILList;
-  ClearVars;
-  LoadFromString(mmSource.Text);
-  Err := errNone;
-  while (Err = errNone) and not ParserEOF do
-    Err := ParseBlock(bsSingle);
-
-  ILToStrings(mmIL.Lines);
-  edError.Text := Integer(Err).ToString + ': ' + Errors[Err];
-
-  Focused := mmSource;
+  btnParseClick(nil);
+  if Compiler.LastErrorNo <> 0 then
+    EXIT;
+  btnCodeGenClick(nil);
+  if Compiler.LastErrorNo <> 0 then
+    EXIT;
+  btnAssembleClick(nil);
+  if Compiler.LastErrorNo <> 0 then
+    EXIT;
+  btnEmulateClick(nil);
+  if Compiler.LastErrorNo <> 0 then
+    EXIT;
+  SetFocused(mmSource);
 end;
 
-procedure TForm1.btnRunClick(Sender: TObject);
+procedure TForm1.btnAssembleClick(Sender: TObject);
 begin
-  Execute;
-
-  mmOutput.Lines.Assign(ExecOutput);
-  VarsToStrings(mmOutput.Lines);
-
+  if not Compiler.Assemble(Compiler.AssemblerFileName) then
+    ShowMessage('Error: ' + Compiler.AssemblerLog);
+  TabControl1.ActiveTab := tbOutput;
 end;
 
-procedure TForm1.btnStatementClick(Sender: TObject);
-var Err: TAssembleError;
+procedure TForm1.btnCodeGenClick(Sender: TObject);
 begin
-  ClearILList;
-  ClearVars;
-  LoadFromString(mmSource.Text);
-  Err := ParseStatement('');
+  Compiler.LoadCodeGenLibrary(TPath.Combine(Compiler.QuicheFolder, 'Z80Code/Assembly.txt'));
 
-  ILToStrings(mmIL.Lines);
-  edError.Text := Integer(Err).ToString + ': ' + Errors[Err];
+  if not Compiler.DoCodeGen then
+    edError.Text := LastErrorString;
+
+  Compiler.GetObjectCode(mmOutput.Lines);
+
+  Compiler.SaveObjectCode(TPath.Combine(Compiler.OutputFolder, 'quicheoutput.asm'));
+  TabControl1.ActiveTab := tbOutput;
+end;
+
+procedure TForm1.btnEmulateClick(Sender: TObject);
+begin
+  Compiler.Emulate(Compiler.BinaryFileName);
+
+  mmIL.Lines.Add('');
+  Compiler.GetVarsText(mmVariables.Lines, False);
+  TabControl1.ActiveTab := tbVariables;
+end;
+
+procedure TForm1.btnInterpretClick(Sender: TObject);
+begin
+  Compiler.RunInterpreter;
+
+  Compiler.GetInterpreterOutput(mmOutput.Lines);
+
+  Compiler.GetVarsText(mmVariables.Lines, False);
+  TabControl1.ActiveTab := tbVariables;
+end;
+
+procedure TForm1.btnParseClick(Sender: TObject);
+var Good: Boolean;
+begin
+  Compiler.Initialise(True);
+
+  Compiler.SetOverflowChecks(cbOverflowChecks.IsChecked);
+
+  Compiler.LoadSourceString(mmSource.Text);
+
+  Good := Compiler.Parse(GetCompileScope);
+  btnRun.Enabled := Good;
+  btnCodeGen.Enabled := Good;
+
+  Compiler.GetScopeList(cbScope.Items);
+  if cbScope.Items.Count > 0 then
+    cbScope.ItemIndex := 0;
+
+  Compiler.GetILText(mmIL.Lines);
+  Compiler.GetVarsText(mmVariables.Lines, True);
+  Compiler.GetFunctionsText(mmFunctions.Lines);
+
+  if Good then
+  begin
+    edError.Text := '';
+//    mmIL.Lines.Add('');
+//    Compiler.GetVarsText(mmVariables.Lines, True);
+  end
+  else
+  begin
+    edError.Text := Compiler.LastErrorString;
+    mmIL.Lines.Add(mmSource.Lines[LastErrorLine-1]);
+    mmIL.Lines.Add(StringOfChar(' ',LastErrorPos)+'^');
+    mmIL.Lines.Add('ERROR ' + edError.Text);
+  end;
 
   Focused := mmSource;
+  TabControl1.ActiveTab := tbILCode;
+end;
+
+procedure TForm1.btnTestClick(Sender: TObject);
+begin
+  Testing.Initialise;
+  if cbTests.ItemIndex = 0 then
+    Testing.RunAllTests(TPath.Combine(Compiler.QuicheFolder, 'Tests\'), cbStopOnError.IsChecked)
+  else
+    Testing.RunTestFile(TPath.Combine(QuicheFolder, 'Tests\' + cbTests.Items[cbTests.ItemIndex] + '.tst'),
+      cbStopOnError.IsChecked);
+
+  mmTests.Lines.Clear;
+  Testing.TestLogToStrings(mmTests.Lines);
+  TabControl1.ActiveTab := tbTests;
+end;
+
+procedure TForm1.cbScopeChange(Sender: TObject);
+begin
+  if cbScope.ItemIndex >= 0 then
+  begin
+    if not Compiler.SelectScope(cbScope.Items[cbScope.ItemIndex]) then
+      raise Exception.Create('Scope not found :(');
+
+    Compiler.GetILText(mmIL.Lines);
+
+    Compiler.GetObjectCode(mmOutput.Lines);
+
+    Compiler.GetVarsText(mmVariables.Lines, False);
+  end;
+end;
+
+procedure TForm1.FormCreate(Sender: TObject);
+begin
+  Compiler.QuicheFolder := TPath.GetFullPath(TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), '..\..\'));
+  Compiler.OutputFolder := 'C:\RetroTools\Quiche';
+  Compiler.PlatformFilename := 'Z80Code\TestCase.asm';
+
+  LoadTestList;
+end;
+
+function TForm1.GetCompileScope: TCompileScope;
+begin
+  if rbBlock.isChecked then
+    Result := csBlock
+  else if rbGlobal.IsChecked then
+    Result := csGlobal
+  else
+    raise Exception.Create('Invalid compile scope selection');
+end;
+
+procedure TForm1.LoadTestList;
+var FullFolder: String;
+  Files: TArray<String>;
+  Filename: STring;
+begin
+  FullFolder := TPath.GetFullPath(TPath.Combine(Compiler.QuicheFolder, 'Tests\'));
+
+  Files := TDirectory.GetFiles(FullFolder, '*.tst');
+
+  cbTests.Items.Clear;
+  cbTests.Items.Add('<All Tests>');
+  for FileName in Files do
+    cbTests.Items.Add(TPath.GetFilenameWithoutExtension(Filename));
+
+  cbTests.ItemIndex := 0;
 end;
 
 end.

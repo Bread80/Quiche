@@ -1,0 +1,1 @@
+code Basic For Loop  var tot%:=0  var x%  for x:=1 to 10 do    tot:=tot+xendcodevarvalue tot 55

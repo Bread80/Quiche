@@ -46,17 +46,34 @@ x:=1
 for i:=1 to 10 do
   if i < 5 then
     x:=x+1
-x:=x+1
+write16 x
+writeln 0
 
 ================FizzBuzz
 for i:=1 to 30 do
+begin
   if (i mod 3) = 0 then
     if (i mod 5) = 0 then
-      out 1035
+      write16 1035
     else
-      out 103
+      write16 103
   else if (i mod 5) = 0 then
-    out 105
+    write16 105
   else
-    out i
-out 0
+    write16 i
+  writechar 32
+end
+writeln 0
+
+===========Variable declarations
+var i := 1
+var c := 'x'
+var b := true
+var b1: byte = $ff
+var b2 := b1
+var b3 := b1 + 2
+var i2 := i + b1
+var i3 := b1 + i
+var wh := $fff
+var bb := %11000111
+var bh := $ff

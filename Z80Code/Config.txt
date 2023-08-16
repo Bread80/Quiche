@@ -1,0 +1,1 @@
+;Sample config file for Z80 emulatorCreateMemoryDevice=RAMLoadBinary=c:\dropbox\delphi\quiche\z80code\TestCase.bin,$8000SetPC=$8000RunToHALTDumpMemory=RAM,c:\dropbox\delphi\quiche\z80code\RAMDump.binDumpCPUState=c:\dropbox\delphi\quiche\z80code\CPUState.txtDie
