@@ -1,10 +1,16 @@
 unit PrimitivesEx;
 
 interface
-uses QTypes,  ILData;
+uses QTypes, ILData;
 
 type
   TPrimValidation = (pvYes, pvNo, pvEither);
+
+  TPrimFlag = (
+    pfLoadRPLow,    //Load only the high byte of the (16-bit) parameter
+    pfLoadRPHigh    //Load only high byte of the (16-bit) parameter
+    );
+  TPrimFlagSet = set of TPrimFlag;
 
   PPrimitive = ^TPrimitive;
   TCodeGenProc = procedure(ILItem: PILItem);
@@ -21,7 +27,7 @@ type
     IsBranch: Boolean;        //If true we're testing for a Branch, not an assignment
     DestType: TOpType;        //The type of the destination
     Validation: TPrimValidation;  //What validation can this routine handle?
-
+    Flags: TPrimFlagSet;        //Assorted flags
     Param1Loc: TAllocLocSet;  //Valid sources for the first parameter
     Param2Loc: TAllocLocSet;  //Valid sources for the second parameter
     DestLoc: TAllocLoc;       //Where the destination (Output data will be found)
@@ -121,8 +127,8 @@ begin
         if OpOrderMatch(Result.FirstParamType, ILItem) then
           if ValidationMatch(Result.Validation, ILItem.CodeGenFlags) then
             if ParamLocMatch(Result.Param1Loc, ILItem.Param1) and ParamLocMatch(Result.Param2Loc, ILItem.Param2) then
-              if Result.IsBranch = (ILItem.DestType = dtCondBranch) then
-              EXIT;
+              if (Result.IsBranch and (ILItem.DestType = dtCondBranch)) or not Result.IsBranch then
+                  EXIT;
 
   Result := nil;
 end;
@@ -157,6 +163,19 @@ begin
 
   if not Found then
     raise Exception.Create('Validation primitive not found: ' + Name);
+end;
+
+function StrToPrimFlagSet(S: String): TPrimFlagSet;
+var X: String;
+begin
+  Result := [];
+  for X in S.Split([';']) do
+    if CompareText(X, 'loadrplow') = 0 then
+      Result := Result + [pfLoadRPLow]
+    else if CompareText(X, 'loadrphigh') = 0 then
+      Result := Result + [pfLoadRPHigh]
+    else
+      raise Exception.Create('Unknown prim flag: ' + X);
 end;
 
 const lutCharToParamLoc8: array['a'..'z'] of TAllocLoc = (
@@ -231,7 +250,7 @@ const
   fDestType       = 4;
   fValidation     = 5;
   fProcName       = 6;
-  //Column 7 empty
+  fFlags          = 7;
   fParam1Loc      = 8;
   fParam2Loc      = 9;
   fDestLoc        = 10;
@@ -275,7 +294,6 @@ begin
           raise Exception.Create('Operation not found in ' + Line);
       end;
 
-
       if Fields[fOpType] = '' then
         Prim.OpType := rtUnknown
       else
@@ -309,6 +327,7 @@ begin
 
       Prim.ProcName := Fields[fProcName];
       Prim.ValProcName := Fields[fValProcName];
+      Prim.Flags := StrToPrimFlagSet(Fields[fFlags]);
 
       Prim.Param1Loc := StrToParamLocSet(Fields[fParam1Loc], False);
       Prim.Param2Loc := StrToParamLocSet(Fields[fParam2Loc], False);

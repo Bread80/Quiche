@@ -99,7 +99,9 @@ procedure SetCurrentFuncList(AFuncList: TFuncList);
 function IdentToParamReg(Ident: String): TParamReg;
 
 //Find the given function
-function FuncFind(Name: String): PFunction;
+function FuncFindAllScopes(Name: String): PFunction;
+
+function FuncFindInScope(Name: String): PFunction;
 
 //Create a new function and return it
 function FuncCreate(NameSpace, Name: String): PFunction;
@@ -149,20 +151,25 @@ begin
   FuncList := AFuncList;
 end;
 
-function FuncFind(Name: String): PFunction;
-var Scope: PScope;
+function FuncFindAllScopes(Name: String): PFunction;
+var IdentType: TIdentType;
+  Scope: PScope;
+  Item: Pointer;
+  Index: Integer; //Dummy
 begin
-  Scope := GetCurrentScope;
-  repeat
-    for Result in FuncList do
-      if CompareText(Result.Name, Name) = 0 then
-      begin
-        SetCurrentScope(Scope);
-        EXIT;
-      end;
-  until not SetParentScope;
+  if SearchScopes(Name,IdentType,Scope,Item,Index) then
+    if IdentType = itFunction then
+      EXIT(PFunction(Item));
 
-  SetCurrentScope(Scope);
+  Result := nil;
+end;
+
+function FuncFindInScope(Name: String): PFunction;
+begin
+  for Result in FuncList do
+    if CompareText(Result.Name, Name) = 0 then
+      EXIT;
+
   Result := nil;
 end;
 

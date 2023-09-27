@@ -19,7 +19,7 @@ type
     btnParse: TButton;
     Label2: TLabel;
     edError: TEdit;
-    mmOutput: TMemo;
+    mmAssembly: TMemo;
     Splitter1: TSplitter;
     Panel4: TPanel;
     btnInterpret: TButton;
@@ -40,7 +40,7 @@ type
     tbILCode: TTabItem;
     tbVariables: TTabItem;
     tbFunctions: TTabItem;
-    tbOutput: TTabItem;
+    tbAssembly: TTabItem;
     tbTests: TTabItem;
     pnlVariables: TPanel;
     mmVariables: TMemo;
@@ -54,6 +54,8 @@ type
     cbScope: TComboBox;
     cbStopOnError: TCheckBox;
     cbOverflowChecks: TCheckBox;
+    tbEmulate: TTabItem;
+    mmEmulate: TMemo;
     procedure btnParseClick(Sender: TObject);
     procedure btnInterpretClick(Sender: TObject);
     procedure btnCodeGenClick(Sender: TObject);
@@ -63,9 +65,12 @@ type
     procedure btnTestClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure cbScopeChange(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
   private
+    FEditorFileName: String;
     procedure LoadTestList;
     function GetCompileScope: TCompileScope;
+    procedure SaveState;
   public
     { Public declarations }
   end;
@@ -95,11 +100,16 @@ begin
   SetFocused(mmSource);
 end;
 
+procedure TForm1.SaveState;
+begin
+  mmSource.Lines.SaveToFile(FEditorFileName);
+end;
+
 procedure TForm1.btnAssembleClick(Sender: TObject);
 begin
   if not Compiler.Assemble(Compiler.AssemblerFileName) then
     ShowMessage('Error: ' + Compiler.AssemblerLog);
-  TabControl1.ActiveTab := tbOutput;
+  TabControl1.ActiveTab := tbAssembly;
 end;
 
 procedure TForm1.btnCodeGenClick(Sender: TObject);
@@ -109,10 +119,10 @@ begin
   if not Compiler.DoCodeGen then
     edError.Text := LastErrorString;
 
-  Compiler.GetObjectCode(mmOutput.Lines);
+  Compiler.GetObjectCode(mmAssembly.Lines);
 
   Compiler.SaveObjectCode(TPath.Combine(Compiler.OutputFolder, 'quicheoutput.asm'));
-  TabControl1.ActiveTab := tbOutput;
+  TabControl1.ActiveTab := tbAssembly;
 end;
 
 procedure TForm1.btnEmulateClick(Sender: TObject);
@@ -120,15 +130,17 @@ begin
   Compiler.Emulate(Compiler.BinaryFileName);
 
   mmIL.Lines.Add('');
-  Compiler.GetVarsText(mmVariables.Lines, False);
-  TabControl1.ActiveTab := tbVariables;
+  Compiler.GetVarsText(mmEmulate.Lines, False);
+  mmEmulate.Lines.Add(#13'Write Buffer:');
+  mmEmulate.Lines.Add(Compiler.WriteBuffer);
+  TabControl1.ActiveTab := tbEmulate;
 end;
 
 procedure TForm1.btnInterpretClick(Sender: TObject);
 begin
   Compiler.RunInterpreter;
 
-  Compiler.GetInterpreterOutput(mmOutput.Lines);
+  Compiler.GetInterpreterOutput(mmAssembly.Lines);
 
   Compiler.GetVarsText(mmVariables.Lines, False);
   TabControl1.ActiveTab := tbVariables;
@@ -137,6 +149,7 @@ end;
 procedure TForm1.btnParseClick(Sender: TObject);
 var Good: Boolean;
 begin
+  SaveState;
   Compiler.Initialise(True);
 
   Compiler.SetOverflowChecks(cbOverflowChecks.IsChecked);
@@ -166,7 +179,7 @@ begin
     edError.Text := Compiler.LastErrorString;
     mmIL.Lines.Add(mmSource.Lines[LastErrorLine-1]);
     mmIL.Lines.Add(StringOfChar(' ',LastErrorPos)+'^');
-    mmIL.Lines.Add('ERROR ' + edError.Text);
+    mmIL.Lines.Add(edError.Text);
   end;
 
   Focused := mmSource;
@@ -196,10 +209,15 @@ begin
 
     Compiler.GetILText(mmIL.Lines);
 
-    Compiler.GetObjectCode(mmOutput.Lines);
+    Compiler.GetObjectCode(mmAssembly.Lines);
 
     Compiler.GetVarsText(mmVariables.Lines, False);
   end;
+end;
+
+procedure TForm1.FormClose(Sender: TObject; var Action: TCloseAction);
+begin
+  SaveState;
 end;
 
 procedure TForm1.FormCreate(Sender: TObject);
@@ -209,6 +227,9 @@ begin
   Compiler.PlatformFilename := 'Z80Code\TestCase.asm';
 
   LoadTestList;
+  FEditorFileName := TPath.Combine(Compiler.QuicheFolder, 'state\uifile.qch');
+  if TFile.Exists(FEditorFileName) then
+    mmSource.Lines.LoadFromFile(FEditorFileName);
 end;
 
 function TForm1.GetCompileScope: TCompileScope;

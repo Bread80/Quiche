@@ -7,8 +7,6 @@ uses
   ILData in 'ILData.pas',
   Parse in 'Parse.pas',
   Variables in 'Variables.pas',
-  MSourceReader in 'Includes\MSourceReader.pas',
-  MErrors in 'Includes\MErrors.pas',
   ILExec in 'ILExec.pas',
   CodeLibrary in 'CodeLibrary.pas',
   Operators in 'Operators.pas',
@@ -23,7 +21,11 @@ uses
   PrimitivesEx in 'PrimitivesEx.pas',
   CodeGenZ80AsmEx in 'CodeGenZ80AsmEx.pas',
   Eval in 'Eval.pas',
-  QTypes in 'QTypes.pas';
+  QTypes in 'QTypes.pas',
+  Globals in 'Globals.pas',
+  ParseErrors in 'ParseErrors.pas',
+  SourceReader in 'SourceReader.pas',
+  ParseIntrinsics in 'ParseIntrinsics.pas';
 
 {$R *.res}
 

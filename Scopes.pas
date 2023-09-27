@@ -25,6 +25,8 @@ interface
 uses Classes, Functions, Variables, ILData;
 
 type
+  TIdentType = (itVar, itFunction, itConst, itType);
+
   PScope= ^TScope;
   TScope = record
     Parent: PScope;   //The next higher Scope, or nil in none
@@ -75,8 +77,19 @@ procedure EndCurrentScope;
 //current scope
 procedure InitialiseScopes;
 
+//Search the current scope and it's parents for an item with the given identifier (name)
+//Returns true if an item was found, false if not.
+//IdentType identifies if the found item is a variable, function, const or type etc.
+//Return values:
+//Scope is the scope in which the item was found.
+//Item is a pointer to the data for the found item. This can be cast to the appropriate
+//type: PVariable, PFunction, etc.
+//Index returns an index value which is dependant on the item type
+function SearchScopes(Ident: String;out IdentType: TIdentType;out Scope: PScope;
+  out Item: Pointer; out Index: Integer): Boolean;
 
-//-----GUI ulitilies
+
+//-----GUI utlilities
 procedure ScopesToStrings(S: TStrings);
 
 //Find a scope and set it as the CurrentScope.
@@ -187,6 +200,45 @@ begin
   MainScope := nil;
   CreateCurrentScope('_Global');
 end;
+
+function SearchScopes(Ident: String;out IdentType: TIdentType;
+  out Scope: PScope;out Item: Pointer; out Index: Integer): Boolean;
+var
+  V: PVariable;
+  Func: PFunction;
+begin
+  Scope := GetCurrentScope;
+
+  repeat
+    //Search scope
+
+    //Variables
+    V := VarFindByNameInScope(Ident, Index);
+    if V <> nil then
+    begin
+      IdentType := itVar;
+      Item := V;
+      SetCurrentScope(Scope);
+      EXIT(True);
+    end;
+
+    Func := FuncFindInScope(Ident);
+    if Func <> nil then
+    begin
+      IdentType := itFunction;
+      Item := Func;
+      SetCurrentScope(Scope);
+      EXIT(True);
+    end;
+
+
+  until not SetParentScope;
+
+  SetCurrentScope(Scope);
+  Result := False;
+end;
+
+
 
 
 //---------------GUI

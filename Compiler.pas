@@ -1,13 +1,13 @@
 unit Compiler;
 
 interface
-uses Classes, MErrors;
-
-
+uses Classes, ParseErrors;
 
 var LastErrorNo: Integer;
 var LastErrorLine: Integer;
 var LastErrorPos: Integer;
+var WriteBuffer: String;    //Text written to output
+
 //Output log of the assembler
 var AssemblerLog: String;
 
@@ -84,32 +84,35 @@ function Emulate(Filename: String): Boolean;
 implementation
 uses SysUtils, IOUtils,
   Operators, PrimitivesEx, ILData, Variables, Parse, CodeGenZ80AsmEx,
-  CodeLibrary, ILExec, Shell, ParserBase, Functions, Scopes;
+  CodeLibrary, ILExec, Shell, ParserBase, Functions, Scopes, Globals;
 
-var LastError: TAssembleError;
+//var LastError: TQuicheError;
 
 const scQuicheLibrary = 'Z80Code\quichecore.asm';
 const scRAMDump = 'RAMDump.bin';  //In output folder
 
 function LastErrorString: String;
 begin
-  if LastError = errCodeGen then
+  if LastError <> qeNone then
+    Result := 'ERROR: ' + LastErrorNo.ToString + ': ' + LastErrorMessage +
+      ' at line ' + LastErrorLine.ToString + ' ' + LastErrorPos.ToString
+  else if CodeGenErrorString <> '' then
     Result := 'ERROR in CodeGen: ' + CodeGenErrorString
   else
-    Result := 'ERROR: ' + LastErrorNo.ToString + ': ' + Errors[LastError] +
-      ' at line ' + LastErrorLine.ToString + ' ' + LastErrorPos.ToString;
+    Result := '';
 end;
 
 procedure InitialiseDirectives;
 begin
   optAllowAutoCreation := False;
   optOverflowChecks := True;
+  optDefaultVarStorage := vsOffset;
 end;
 
 procedure Initialise(InitDirectives: Boolean);
 begin
   LastErrorNo := 0;
-  LastError := errNone;
+  LastError := qeNone;
   if InitDirectives then
     InitialiseDirectives;
 
@@ -118,6 +121,8 @@ begin
   InitialiseScopes;
   InitialiseOperatorList;
   InitialisePrimitiveList;
+  LoadCodeGenLibrary(TPath.Combine(QuicheFolder, 'Z80Code/Assembly.txt'));
+
   InitialiseCodeGen(TPath.Combine(QuicheFolder, PlatformFileName),
     TPath.Combine(QuicheFolder, scQuicheLibrary));
 end;
@@ -142,20 +147,20 @@ begin
   LoadFromString(Source);
 end;
 
-procedure CodeGenCallback;
+function CodeGenCallback: Boolean;
 begin
-  CodeGen(GetCurrentScope.Name, GetCurrentScope.Assembly);
+  Result := CodeGen(GetCurrentScope.Name, GetCurrentScope.Assembly);
 end;
 
 function Parse(Scope: TCompileScope): Boolean;
 begin
-  LastError := errNone;
+  LastError := qeNone;
   OnScopeDone := CodeGenCallback;
 
   if Scope = csGlobal then
     LastError := ParseGlobals(True)
   else
-    while (LastError = errNone) and not ParserEOF do
+    while (LastError = qeNone) and not ParserEOF do
       case Scope of
         csBlock: LastError := ParseBlock(bsSingle);
       else
@@ -164,7 +169,7 @@ begin
   LastErrorNo := Integer(LastError);
   LastErrorLine := ErrorLineNo;
   LastErrorPos := ErrorPos;
-  Result := LastError = errNone;
+  Result := LastError = qeNone;
 end;
 
 procedure GetILText(S: TStrings);
@@ -217,9 +222,8 @@ end;
 
 function DoCodeGen: Boolean;
 begin
-  LastError := CodeGen(GetCurrentScope.Name, GetCurrentScope.Assembly);
-  Result := LastError = errNone;
-  LastErrorNo := Integer(LastError);
+  Result := CodeGen(GetCurrentScope.Name, GetCurrentScope.Assembly);
+//  LastErrorNo := Integer(LastError);
 end;
 
 procedure GetObjectCode(S: TStrings);
@@ -281,10 +285,11 @@ begin
 end;
 
 function Emulate(Filename: String): Boolean;
+const StackBase = $b000;
 begin
   Shell.Emulate(Filename);
 
-  Variables.LoadVarsFromMemoryDump(TPath.Combine(OutputFolder, scRAMDump), {IX}$b000,
+  WriteBuffer :=  Variables.LoadVarsFromMemoryDump(TPath.Combine(OutputFolder, scRAMDump), StackBase,
     RunTimeError, RunTimeErrorAddress);
   Result := RuntimeError = rerrNone;
 end;

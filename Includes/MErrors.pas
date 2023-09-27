@@ -104,11 +104,17 @@ type TAssembleError = (
   errInvalidRegisterParam,
   errColonExpected,
   errSemicolonOrCloseParensExpected,
+  errCommaOrCloseParensExpected,
   errImproperRegParamMix,
   errDirectiveOrFunctionBodyExpected,
   errExternFunctionsCantBeForward,
   errMultipleCallingConventions,
   errFunctionBodyExpected,
+  errConstNameNotValidHere,
+  errTypeNameNotValidHere,
+  errInvalidParameterType,
+  errCantAssignProcedure, //Procedure doesn't have a result; can't be assigned
+  errWrongParameterCount,
 
 
   errAttributeError,  //General error in attribute
@@ -210,11 +216,17 @@ const Errors: array[TAssembleError] of String = (
   'Invalid register parameter',
   ': expected after parameter name',
   '; or ) expected after parameter',
+  ', or ) expected after parameter',
   'Either all parameters must be register parameters, or none',
   'Directive or function body expected',
   'Extern functions can''t be forward declared',
   'Only one calling convention allowed',
   'CONST, TYPE, VAR or BEGIN expected',
+  'Const names are not valid here',
+  'Type names are not valid here',
+  'Parameter type not valid here',
+  'Can''t assign a procedure. It has no result',
+  'Incorrect number of parameters',
 
   'Error in attribute',
   'Unknown attribute',

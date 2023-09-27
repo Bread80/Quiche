@@ -2,11 +2,11 @@ unit CodeGenZ80AsmEx;
 
 
 interface
-uses Classes, MErrors;
+uses Classes;
 
 procedure InitialiseCodeGen(PlatformFile, QuicheLibrary: String);
 
-function CodeGen(ScopeName: String;AnAsmScope: TStringlist): TAssembleError;
+function CodeGen(ScopeName: String;AnAsmScope: TStringlist): Boolean;
 
 procedure SaveAssemblyFile(FileName: String);
 
@@ -130,7 +130,7 @@ begin
   begin
     Code := CodeLibrary.CodeSub(ProcName, ILItem);
     if Code = '' then
-      raise Exception.Create('Validation library coed not found: ' + ProcName);
+      raise Exception.Create('Validation library code not found: ' + ProcName);
     Lines(Code);
   end;
 end;
@@ -184,10 +184,19 @@ end;
 //If ZeroFlag is true, the jump uses the Zero flag, otherwise the Carry flag
 //If Reverse is True the condition is inverted (i.e. Zero becomes Not Zero,
 //Carry Set becomse Carry Clear).
-procedure GenCondJump(Flags: TAllocLoc;Reverse: Boolean;BlockID: Integer);
+procedure GenCondJump(ILItem: PILItem;Reverse: Boolean;BlockID: Integer);
 var F: String;
 begin
-  case Flags of
+  case ILItem.DestAlloc of
+    plA:
+    begin
+      if ILItem.OpType <> rtBoolean then
+        GenLibraryProc('atozf', ILItem);
+      if Reverse then
+        F := 'z'
+      else
+        F := 'nz';
+    end;
     plZF, plZFA:
       if Reverse then
         F := 'nz'
@@ -214,33 +223,6 @@ begin
 
   Opcode('jp', F, CurrProcName + IntToStr(BlockID));
 end;
-
-(*
-//Generates a conditional jump for the ILItem. The ILItem must have already been
-//validated as being a conditional jump (DestType).
-//If either destination Block immediately follows the current code location,
-//that code-path will 'fall-through' without any code being generated. The jump
-//condition for the remaining code will be inverted as necessary.
-//Other parameters are as per GenCondJump
-procedure GenCondBranch(ILItem: PILItem; ZeroFlag: Boolean;Invert: Boolean);
-begin
-  if ILItem.TrueBlockID = CurrBlockID + 1 then
-    GenCondJump(ZeroFlag, not Invert, ILItem.FalseBlockID)
-  else
-  begin
-    GenCondJump(ZeroFlag, Invert, ILItem.TrueBlockID);
-    if ILItem.FalseBlockID <> CurrBlockID + 1 then
-      GenUncondJump(ILItem.FalseBlockID);
-  end;
-end;
-
-procedure GenCondBranch8(ILItem: PILItem);
-begin
-  GenLoadParam8('a', @ILItem.Param1);
-  Instr('and a');
-  GenCondBranch(ILItem, True, True);
-end;
-*)
 
 //Code generators
 
@@ -318,21 +300,71 @@ begin
 end;
 
 
-
-(*
-//---------------------------------Branching
-procedure ProcBranch(ILItem: PILItem;Prim: PPrimitive);
-begin
-  if ILItem.DestType = dtBranch then
-    GenUncondJump(ILItem.BranchBlockID)
-  else if ILItem.DestType = dtCondBranch then
-    //A conditional jump with a single boolean value (I.e. no operation)
-    GenCondBranch8(ILItem)
-  else
-    Error('Invalid DestType for a branch Op')
-end;
-*)
 //=====================================Maths
+
+procedure ProcDec8r(ILItem: PILItem);
+var Count: Integer;
+  I: Integer;
+begin
+  if ILItem.Param2.Loc = locNone then
+    Count := 1
+  else
+    Count := ILParamValueToInteger(@ILItem.Param2);
+
+  for I := 1 to abs(Count) do
+    if Count > 0 then
+      GenLibraryProc('dec8r', ILItem)
+    else
+      GenLibraryProc('inc8r', ILItem);
+end;
+
+procedure ProcDec16r(ILItem: PILItem);
+var Count: Integer;
+  I: Integer;
+begin
+  if ILItem.Param2.Loc = locNone then
+    Count := 1
+  else
+    Count := ILParamValueToInteger(@ILItem.Param2);
+
+  for I := 1 to abs(Count) do
+    if Count > 0 then
+      GenLibraryProc('dec16r', ILItem)
+    else
+      GenLibraryProc('inc16r', ILItem);
+end;
+
+procedure ProcInc8r(ILItem: PILItem);
+var Count: Integer;
+  I: Integer;
+begin
+  if ILItem.Param2.Loc = locNone then
+    Count := 1
+  else
+    Count := ILParamValueToInteger(@ILItem.Param2);
+
+  for I := 1 to abs(Count) do
+    if Count > 0 then
+      GenLibraryProc('inc8r', ILItem)
+    else
+      GenLibraryProc('dec8r', ILItem);
+end;
+
+procedure ProcInc16r(ILItem: PILItem);
+var Count: Integer;
+  I: Integer;
+begin
+  if ILItem.Param2.Loc = locNone then
+    Count := 1
+  else
+    Count := ILParamValueToInteger(@ILItem.Param2);
+
+  for I := 1 to abs(Count) do
+    if Count > 0 then
+      GenLibraryProc('inc16r', ILItem)
+    else
+      GenLibraryProc('dec16r', ILItem);
+end;
 
 (*
 procedure ProcNegateU8(ILItem: PILItem;Prim: PPrimitive);
@@ -456,373 +488,11 @@ begin
   GenStoreDest16(@ILItem.Dest, 'h','l');
 end;
 
-//------------------------------Comparisons
-{Comparisons
-Test Actual         Load    Assign  Jump (beyond code!)
-A= B A-B=zero       Either  z=1     jp nz
-A<>B A-B=not zero   Either  z=0     jp z
-A< B A-B=carry      Normal  c=0     jp nc              1<2  t 1-2 c    1<1  1-1 nc
-A>=B A-B=not carry  Normal  c=1     jp c               1>=2 f 1-2 c    1<=1 1-1 nc
-A> B B-A=carry      Reverse c=1     jp c               1>2  f 2-1 nc   1>1  1-1 nc
-A<=B B-A=not carry  Reverse c=0     jp nc              1<=2 t 2-1 nc   1<=1 1-1 nc
-}
-//The Dest part of an equality operation
-//Either a store or conditional jump
-//If Invert is True the test will be inverted
-//The code at this point has:
-//  For a store: A=0 or non zero (False or True)
-//  For a branch: Result in Zero flag
-procedure GenEqualDest8(ILItem: PILItem;Invert: Boolean);
-begin
-  case ILItem.DestType of
-  dtData:
-    begin
-      GenAToBool(not Invert);       //Convert A to a boolean (0,1)
-      GenStoreILItem8(ILItem, 'a');
-    end;
-  dtCondBranch:
-    GenCondBranch(ILItem, True, Invert);
-  else
-    Line('Unsupported DestType for Equal');
-  end;
-end;
-
-//If Invert the test result will be inverted
-procedure GenEqual8(ILItem: PILItem;Invert: Boolean);
-var Op: String;
-  Variable: PVariable;
-const opCP= 'cp';
-  opSUB= 'sub';
-begin
-  //Store result or conditional branch?
-  //If we're storing the result we'll use SUB to give A=0 or A<>0
-  //for a jump we'll use a CP so we can use the Z flag without trashing A
-  if ILItem.DestType = dtData then
-    Op := opSUB
-  else
-    Op := opCP;
-
-  GenLoadParam8('a', @ILItem.Param1);
-  if ILItem.Param2.Loc = locImmediate then
-    Opcode(Op, ImmByte(@ILItem.Param2), '')
-  else
-  begin
-    Variable := ILParamToVariable(@ILItem.Param2);
-    case ILItem.Param2.Loc of
-      locVar, locTemp:
-        Opcode(Op, IXOffset(VarToOffset(Variable)), '');
-    else
-      raise exception.Create('Equal8 ToDo');
-    end;
-  end;
-
-  GenEqualDest8(ILItem, Invert);
-end;
-
-procedure ProcEqual8(ILItem: PILItem;Prim: PPrimitive);
-begin
-  GenEqual8(ILItem, False);
-end;
-
-procedure ProcNotEqual8(ILItem: PILItem;Prim: PPrimitive);
-begin
-  GenEqual8(ILItem, True);
-end;
-
-//Convert ZF to a boolean (0,1), to conditional jump
-//On entry if converting to a bool A must be zero
-procedure GenEqualDest16(ILItem: PILItem;Invert: Boolean);
-var Lab: String;
-begin
-  case ILItem.DestType of
-  dtData:
-    begin
-      Lab := GetUniqueLabel;
-      if Invert then
-        Opcode('jr','z',Lab)
-      else
-        Opcode('jr','nz',Lab);
-      Instr('inc a');
-      GenLabel(Lab);
-      GenStoreILItem8(ILItem, 'a');
-    end;
-  dtCondBranch:
-    GenCondBranch(ILItem, True, Invert);
-  else
-    Line('Unsupported DestType for Equal');
-  end;
-end;
-
-//If Invert the test result will be inverted
-procedure GenEqual16(ILItem: PILItem;Invert: Boolean);
-begin
-  GenLoadParam16('h','l', @ILItem.Param1);
-  GenLoadParam16('d','e',@ILItem.Param2);
-
-  //Operation
-  if ILItem.DestType = dtData then
-    Instr('xor a')    //A=0; clear carry
-  else
-    Instr('and a');   //Clear carry
-  Instr('sbc hl,de');
-
-  GenEqualDest16(ILItem, Invert);
-end;
-
-procedure ProcEqual16(ILItem: PILItem;Prim: PPrimitive);
-begin
-  GenEqual16(ILItem, False);
-end;
-
-procedure ProcNotEqual16(ILItem: PILItem;Prim: PPrimitive);
-begin
-  GenEqual16(ILItem, True);
-end;
-
-//Convert ZF to a boolean (0,1)
-procedure GenEqualDestM16(ILItem: PILItem;Invert: Boolean);
-begin
-  if ILItem.DestType = dtData then
-    Instr('ld a,0');
-
-  GenEqualDest16(ILItem, Invert);
-end;
-
-procedure GenEqualM16(ILItem: PILItem;Invert: Boolean);
-var LType, RType: TVarType;
-  LParam, RParam: PILParam;
-begin
-  //We MUST have one signed and one unsigned parameter
-  //Assign parameters so the signed one is on the 'left' (HL)
-  LType := ILParamToVarType(@ILItem.Param1);
-  RType := ILParamToVarType(@ILItem.Param2);
-  if LType in SignedTypes then
-  begin
-    Assert(not (RType in SignedTypes));
-    LParam := @ILItem.Param1;
-    RParam := @ILItem.Param2;
-  end
-  else
-  begin
-    Assert(RType in SignedTypes);
-    LParam := @ILItem.Param2;
-    RParam := @ILItem.Param1;
-  end;
-
-  GenLoadParam16('h','l', LParam);
-  GenLoadParam16('d','e', RParam);
-  Instr('call equal_m16');
-  GenEqualDestM16(ILItem, Invert);
-end;
-
-procedure ProcEqualM16(ILItem: PILItem;Prim: PPrimitive);
-begin
-  GenEqualM16(ILItem, False);
-end;
-
-procedure ProcNotEqualM16(ILItem: PILItem;Prim: PPrimitive);
-begin
-  GenEqualM16(ILItem, True);
-end;
 
 
-//The Dest part of a comparison operation
-//Either a store or conditional jump
-//If Invert is True the test will be inverted
-//The code at this point has the Result in the Carry flag
-procedure GenCompDest(ILItem: PILItem;Invert: Boolean);
-begin
-  case ILItem.DestType of
-  dtData:
-    begin
-      if not Invert then
-        Line('  ccf');
-      Line('  sbc a,a');
-      Line('  inc a');
 
-      GenStoreILItem8(ILItem, 'a');
-    end;
-  dtCondBranch:
-    GenCondBranch(ILItem, False, Invert);
-  else
-    Line('Unsupported DestType for Comparison');
-  end;
-end;
-
-//Swap = swap order of parameters
-//Invert = invert (logical NOT) result
-procedure GenComp8(ILItem: PILItem;Swap, Invert: Boolean);
-var
-  Left: PILParam;
-  Right: PILParam;
-  Variable: PVariable;
-begin
-  if Swap then
-  begin
-    Left := @ILItem.Param2;
-    Right := @ILItem.Param1;
-  end
-  else
-  begin
-    Left := @ILItem.Param1;
-    Right := @ILItem.Param2;
-  end;
-
-  GenLoadParam8('a', Left);
-  if Right.Loc = locImmediate then
-    Opcode('cp', ImmByte(Right), '')
-  else
-  begin
-    Variable := ILParamToVariable(Right);
-    case Right.Loc of
-      locVar, locTemp:
-        Opcode('cp', IXOffset(VarToOffset(Variable)), '');
-    else
-      raise exception.Create('Comp8 ToDo');
-    end;
-  end;
-
-  GenCompDest(ILItem, Invert);
-end;
-
-
-procedure ProcLessU8(ILItem: PILItem;Prim: PPrimitive);
-begin
-  GenComp8(ILItem, False, False);
-end;
-
-procedure ProcGreaterEqualU8(ILItem: PILItem;Prim: PPrimitive);
-begin
-  GenComp8(ILItem, False, True);
-end;
-
-procedure ProcGreaterU8(ILItem: PILItem;Prim: PPrimitive);
-begin
-  GenComp8(ILItem, True, False);
-end;
-
-procedure ProcLessEqualU8(ILItem: PILItem;Prim: PPrimitive);
-begin
-  GenComp8(ILItem, True, True);
-end;
-
-//Swap = swap order of parameters
-//Invert = invert (logical NOT) result
-procedure GenComp16(ILItem: PILItem;Swap, Invert: Boolean);
-var
-  Left: PILParam;
-  Right: PILParam;
-  LType: TVarType;
-  RType: TVarType;
-begin
-  if Swap then
-  begin
-    Left := @ILItem.Param2;
-    Right := @ILItem.Param1;
-  end
-  else
-  begin
-    Left := @ILItem.Param1;
-    Right := @ILItem.Param2;
-  end;
-
-  GenLoadParam16('h','l', Left);
-  GenLoadParam16('d','e', Right);
-
-  //Operation
-  case ILItem.OpType of
-    rtU16:
-    begin
-      Instr('and a');   //Clear carry
-      Instr('sbc hl,de');
-    end;
-    rtS16:
-        Instr('call comp_s16');
-    rtM16:
-    begin
-      LType := ILParamToVarType(Left);
-      RType := ILParamToVarType(Right);
-      Assert(((LType in [vtInt8, vtInt16, vtInteger]) and (RType in [vtByte, vtWord])) or
-        ((LType in [vtByte, vtWord]) and (RType in [vtInt8, vtInt16, vtInteger])), 'Invalid types for GenCompM16');
-
-      if LType in [vtByte, vtWord] then
-        Instr('call comp_u16_s16')
-      else
-        Instr('call comp_s16_u16');
-    end;
-  else
-    raise Exception.Create('Invalid OpTYype for GenComp16');
-  end;
-
-  GenCompDest(ILItem, Invert);
-end;
-
-procedure ProcLess16(ILItem: PILItem;Prim: PPrimitive);
-begin
-  GenComp16(ILItem, False, False);
-end;
-
-procedure ProcGreaterEqual16(ILItem: PILItem;Prim: PPrimitive);
-begin
-  GenComp16(ILItem, False, True);
-end;
-
-procedure ProcGreater16(ILItem: PILItem;Prim: PPrimitive);
-begin
-  GenComp16(ILItem, True, False);
-end;
-
-procedure ProcLessEqual16(ILItem: PILItem;Prim: PPrimitive);
-begin
-  GenComp16(ILItem, True, True);
-end;
 
 //------------------------Boolean bitwise and logical
-procedure ProcBool8(ILItem: PILItem;Prim: PPrimitive);
-var
-  Variable: PVariable;
-  Op: POperator;
-begin
-  Op := OpIndexToData(ILItem.OpIndex);
-
-  GenLoadParam8('a', @ILItem.Param1);
-  if ILItem.Param2.Loc = locImmediate then
-    Opcode(Op.Symbol, ImmByte(@ILItem.Param2), '')
-  else
-  begin
-    Variable := ILParamToVariable(@ILItem.Param2);
-    case ILItem.Param2.Loc of
-      locVar, locTemp:
-        Opcode(Op.Symbol, IXOffset(VarToOffset(Variable)), '');
-    else
-      raise exception.Create('Comp8 ToDo');
-    end;
-  end;
-
-  GenStoreILItem8(ILItem, 'a');
-end;
-
-procedure ProcBool16(ILItem: PILItem;Prim: PPrimitive);
-var
-  Op: POperator;
-begin
-  Op := OpIndexToData(ILItem.OpIndex);
-
-  GenLoadParam16('h','l', @ILItem.Param1);
-  GenLoadParam16('d','e',@ILItem.Param2);
-
-  //Lazy code. Doing this properly is tooo complex!
-  //(At least until I have register allocation working)
-  Instr('ld a,l');
-  Opcode(Op.Symbol, 'e', '');
-  Instr('  ld l,a');
-  Instr('  ld a,h');
-  Opcode(Op.Symbol, 'd', '');
-  Instr('ld h,a');
-
-  GenStoreDest16(@ILItem.Dest, 'h','l');
-end;
-
 procedure ProcNot8(ILItem: PILItem;Prim: PPrimitive);
 begin
   GenLoadParam8('a', @ILItem.Param1);
@@ -870,7 +540,9 @@ var Loc: TAllocLoc;
 begin
   //If we have an immediate value and the primitive can handle an immediate
   //then we're done...
-  if (ILItem.Param1.Loc = locImmediate) and (plImm in Prim.Param1Loc) then
+  if Prim.Param1Loc = [] then
+    ILItem.Param1Alloc := plNone
+  else if (ILItem.Param1.Loc = locImmediate) and (plImm in Prim.Param1Loc) then
     ILItem.Param1Alloc := plImm
   else  //...otherwise we'll need to load the param into a register
   begin
@@ -910,7 +582,7 @@ begin
   end;
 end;
 
-procedure LoadParam(ILItem: PILItem;ParamNo: Integer);
+procedure LoadParam(ILItem: PILItem;ParamNo: Integer;Prim: PPrimitive);
 var
   Param: PILParam;
   AllocLoc: TAllocLoc;
@@ -935,7 +607,12 @@ begin
       if Param.Loc = locImmediate then
         GenLibraryProc(Prefix + 'r8imm', ILItem)
       else
-        GenLibraryProc(Prefix + 'r8offset', ILItem);
+        if pfLoadRPHigh in Prim.Flags then
+          GenLibraryProc(Prefix + 'r8offsethigh', ILItem)
+        else if pfLoadRPLow in Prim.Flags then
+          GenLibraryProc(Prefix + 'r8offsetlow', ILItem)
+        else
+          GenLibraryProc(Prefix + 'r8offset', ILItem);
     plHL..plBC:
       if Param.Loc = locImmediate then
         GenLibraryProc(Prefix + 'r16imm', ILItem)
@@ -966,10 +643,10 @@ end;
 //Data is loaded from the locations specified by the ILItem parameters into the
 //registers specified by ILItem.Param1Alloc and ILItem.Param2Alloc, if any registers
 //are specified there.
-procedure LoadBeforePrim(ILItem: PILItem);
+procedure LoadBeforePrim(ILItem: PILItem; Prim: PPrimitive);
 begin
-  LoadParam(ILItem, 1);
-  LoadParam(ILItem, 2);
+  LoadParam(ILItem, 1, Prim);
+  LoadParam(ILItem, 2, Prim);
 end;
 
 
@@ -1130,10 +807,10 @@ procedure CondBranchAfterPrim(ILItem: PILItem;Prim: PPrimitive);
 begin
   //If True block is following block then generate conditional jump for False
   if ILItem.TrueBlockID = CurrBlockID + 1 then
-    GenCondJump(ILItem.DestAlloc, True, ILItem.FalseBlockID)
+    GenCondJump(ILItem, True, ILItem.FalseBlockID)
   else
   begin //Otherwise generate condition jump for True...
-    GenCondJump(ILItem.DestAlloc, False, ILItem.TrueBlockID);
+    GenCondJump(ILItem, False, ILItem.TrueBlockID);
     //...and False doesn't 'fall though' then an unconditional jump for it.
     if ILItem.FalseBlockID <> CurrBlockID + 1 then
       GenUncondJump(ILItem.FalseBlockID);
@@ -1172,14 +849,15 @@ begin
     begin
       //Temp
       TEMPRegAlloc(ILItem, Prim);
-      LoadBeforePrim(ILItem);
-      Line(';Gen: '+Prim.ProcName);
+      LoadBeforePrim(ILItem, Prim);
+      Line('                     ;Prim: '+Prim.ProcName);
       if Assigned(Prim.Proc) then
         Prim.Proc(ILItem)
       else
         GenLibraryProc(Prim.ProcName, ILItem);
       ValidateAfterPrim(ILItem, Prim);
       case ILItem.DestType of
+        dtNone: ;
         dtData: StoreAfterPrim(ILItem, Prim);
         dtCondBranch: CondBranchAfterPrim(ILItem, Prim);
       else
@@ -1198,7 +876,7 @@ begin
     DoCodeGenItem(I);
 end;
 
-function CodeGen(ScopeName: String;AnAsmScope: TStringlist): TAssembleError;
+function CodeGen(ScopeName: String;AnAsmScope: TStringlist): Boolean;
 begin
   try
     CodeGenErrorString := '';
@@ -1228,13 +906,13 @@ begin
     Line(';----------'+ScopeName);
     Line('');
 
-    Result := errNone;
+    Result := True;
   except
     on E:Exception do
     begin
       CodeGenErrorString := E.Message;
       Line('CODEGEN ERROR: ' + E.Message);
-      Result := errCodeGen;
+      Result := False;
     end;
   end;
 end;
@@ -1247,18 +925,18 @@ begin
 
   PrimSetProc('procassignS8S16NI',ProcAssignS8S16NI);
 
-
   PrimSetProc('b7sov',ProcDestB7SetOverflow);
   PrimSetProc('b15sov',ProcDestB15SetOverflow);
 
+  PrimSetProc('procdec8r',ProcDec8r);
+  PrimSetProc('procdec16r',ProcDec16r);
+  PrimSetProc('procinc8r',ProcInc8r);
+  PrimSetProc('procinc16r',ProcInc16r);
 
-//  PrimSetProc('branch',ProcBranch);
-//  PrimSetProc('phi',ProcPhi);
-
+//  PrimSetProc('proctypecastX8X16R',ProcTypecastX8X16R);
 
   //Maths
 (*
-
   PrimSetProc('shl',rtU8,ProcSHL8);
   PrimSetProc('shl',rtS8,ProcSHL8);
   PrimSetProc('shl',rtU16,ProcSHL16);
@@ -1268,50 +946,11 @@ begin
   PrimSetProc('shr',rtU16,ProcSHR16);
   PrimSetProc('shr',rtS16,ProcSHR16);
 
-  //Comparisons
-  PrimSetProc('equal',rtU8,ProcEqual8);
-  PrimSetProc('equal',rtBoolean,ProcEqual8);
-  PrimSetProc('equal',rtU16,ProcEqual16);
-  PrimSetProc('equal',rtS16,ProcEqual16);
-  PrimSetProc('equal',rtM16,ProcEqualM16);
-  PrimSetProc('notequal',rtU8,ProcNotEqual8);
-  PrimSetProc('notequal',rtBoolean,ProcNotEqual8);
-  PrimSetProc('notequal',rtU16,ProcNotEqual16);
-  PrimSetProc('notequal',rtS16,ProcNotEqual16);
-  PrimSetProc('notequal',rtM16,ProcNotEqualM16);
-
-  PrimSetProc('less',rtU8,ProcLessU8);
-  PrimSetProc('less',rtBoolean,ProcLessU8);
-  PrimSetProc('less',rtU16,ProcLess16);
-  PrimSetProc('less',rtS16,ProcLess16);
-  PrimSetProc('less',rtM16,ProcLess16);
-  PrimSetProc('greaterequal',rtU8,ProcGreaterEqualU8);
-  PrimSetProc('greaterequal',rtBoolean,ProcGreaterEqualU8);
-  PrimSetProc('greaterequal',rtU16,ProcGreaterEqual16);
-  PrimSetProc('greaterequal',rtS16,ProcGreaterEqual16);
-  PrimSetProc('greaterequal',rtM16,ProcGreaterEqual16);
-  PrimSetProc('greater',rtU8,ProcGreaterU8);
-  PrimSetProc('greater',rtBoolean,ProcGreaterU8);
-  PrimSetProc('greater',rtU16,ProcGreater16);
-  PrimSetProc('greater',rtS16,ProcGreater16);
-  PrimSetProc('greater',rtM16,ProcGreater16);
-  PrimSetProc('lessequal',rtU8,ProcLessEqualU8);
-  PrimSetProc('lessequal',rtBoolean,ProcLessEqualU8);
-  PrimSetProc('lessequal',rtU16,ProcLessEqual16);
-  PrimSetProc('lessequal',rtS16,ProcLessEqual16);
-  PrimSetProc('lessequal',rtM16,ProcLessEqual16);
-
   //Boolean
-  PrimSetProc('bool',rtX8,ProcBool8);
-  PrimSetProc('bool',rtX16,ProcBool16);
-//  PrimSetProc('bool',rtBoolean,ProcBool8);
   PrimSetProc('not', rtX8,ProcNot8);
   PrimSetProc('not', rtX16,ProcNot16);
   PrimSetProc('not', rtBoolean,ProcNotBoolean);
 *)
-
-
-//  PrimSetProc('',rtUnknown,Proc);
 end;
 
 procedure InsertPreamble(PlatformFile, QuicheLibrary: String);

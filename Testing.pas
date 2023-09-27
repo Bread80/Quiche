@@ -24,7 +24,7 @@ procedure RunAllTests(Folder: String;StopOnError: Boolean);
 procedure TestLogToStrings(SL: TStrings);
 
 implementation
-uses SysUtils, IOUtils, Compiler, Variables, QTypes;
+uses SysUtils, IOUtils, Compiler, Variables, QTypes, Globals;
 
 var
   TestName: String;
@@ -196,7 +196,7 @@ begin
 
   if Length(Fields) <> 3 then
     EXIT(False);
-  V := VarFindByName(Fields[1], Index);
+  V := VarFindByNameAllScopes(Fields[1], Index);
   if not Assigned(V) then
     TestLog('ERROR: No such variable: ' + Fields[1])
   else
@@ -219,7 +219,7 @@ begin
 
   if Length(Fields) <> 3 then
     EXIT(False);
-  V := VarFindByName(Fields[1], Index);
+  V := VarFindByNameAllScopes(Fields[1], Index);
   Result := True;
   if not Assigned(V) then
     TestLog('ERROR: No such variable: ' + Fields[1])
@@ -369,7 +369,7 @@ begin
       if (Line.Trim.Length > 1) and (Line.Trim.Chars[0] <> ';') then
       begin
         Okay := True;
-        Fields := Line.Split([' ']);
+        Fields := Line.Trim.Split([' ']);
         if CompareText(Fields[0], 'code') = 0 then
         begin
           ShowTestStats;

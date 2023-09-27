@@ -1,3 +1,16 @@
+var y: Integer
+
+procedure test
+var x: Integer
+begin
+  x:=y*2
+  y:=10
+end
+
+begin
+  y:=1
+  test
+end
 =================
 b:=6
 a:=(b-1)*(b+1)-4
@@ -50,20 +63,19 @@ write16 x
 writeln 0
 
 ================FizzBuzz
-for i:=1 to 30 do
+for var i: Byte = 1 to 30 do
 begin
   if (i mod 3) = 0 then
     if (i mod 5) = 0 then
-      write16 1035
+      writeln('F','i','z','z','b','u','z','z')
     else
-      write16 103
+      writeln('F','i','z','z')
   else if (i mod 5) = 0 then
-    write16 105
+    writeln('B','u','z','z')
   else
     write16 i
-  writechar 32
 end
-writeln 0
+writeln
 
 ===========Variable declarations
 var i := 1

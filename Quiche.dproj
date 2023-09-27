@@ -381,8 +381,6 @@
         <DCCReference Include="ILData.pas"/>
         <DCCReference Include="Parse.pas"/>
         <DCCReference Include="Variables.pas"/>
-        <DCCReference Include="Includes\MSourceReader.pas"/>
-        <DCCReference Include="Includes\MErrors.pas"/>
         <DCCReference Include="ILExec.pas"/>
         <DCCReference Include="CodeLibrary.pas"/>
         <DCCReference Include="Operators.pas"/>
@@ -398,6 +396,10 @@
         <DCCReference Include="CodeGenZ80AsmEx.pas"/>
         <DCCReference Include="Eval.pas"/>
         <DCCReference Include="QTypes.pas"/>
+        <DCCReference Include="Globals.pas"/>
+        <DCCReference Include="ParseErrors.pas"/>
+        <DCCReference Include="SourceReader.pas"/>
+        <DCCReference Include="ParseIntrinsics.pas"/>
         <None Include="Tests.txt"/>
         <None Include="Assembly.txt"/>
         <BuildConfiguration Include="Release">

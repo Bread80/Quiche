@@ -8,7 +8,7 @@ procedure Execute;
 var ExecOutput: TStringList;
 
 implementation
-uses Generics.Collections, SysUtils, QTypes, Operators;
+uses Generics.Collections, SysUtils, QTypes, Operators, Globals;
 
 const
   ValueToBool: array[valueTrue..valueFalse] of Boolean = (True, False);

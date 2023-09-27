@@ -1,7 +1,14 @@
-unit MSourceReader;
+unit SourceReader;
 
 interface
-  uses Classes, MErrors;
+uses Classes;
+
+const
+  csWhiteSpace = [#0..' '];
+  csIdentFirst = ['A'..'Z','a'..'z',{'.',}'_'];
+  csIdentOther = ['0'..'9','A'..'Z','a'..'z',{'.',}'_'];
+  csDecimalFirst = ['0'..'9'];
+  csHexChars = ['0'..'9','a'..'f','A'..'F'];
 
 //Line oriented source code reader
 //Can read data from a file or string
@@ -21,7 +28,7 @@ type TSourceReader = class
     function GetSource(Index: Integer): String;
   public
     destructor Destroy;override;
-    function OpenFile(AFilename: String): TAssembleError;
+    function OpenFile(AFilename: String): Boolean;
     //Closes any open file, sets AString as the source data and Resets
     procedure LoadFromString(AString: String);
     //Reset to the start of the current file or string
@@ -65,32 +72,6 @@ type TSourceReader = class
     property MarkLineNo: Integer read FMarkLineNo;
     property MarkPos: Integer read FMarkPos;
     property Source[Index: Integer]: String read GetSource;
-  end;
-
-  TAssemSourceReader = class(TSourceReader)
-  public
-    //Skips to the next instruction ignoring whitespace, comments and newlines.
-    //Leaves the current pointer at the first non-whitespace char.
-    //Can skip multiple lines if empty or only containing comments.
-    function NextInstruction: TAssembleError;
-    //Skip the current instruction (etc.) to the next. Terminates at either:
-    //A colon (next instruction), a semicolon (comment), end of line, or end of file
-    //Intelligently skips comments and strings.
-    //Note: an EX AF,AF' results in the rest of the line being skipped!
-    function SkipInstruction: TAssembleError;
-    function ReadIdentifier(out Identifier: String): TAssembleError;
-    //Reads a parameter ending at any of EOF, EOLN, a comma, semicolon (comment)
-    //or colon (next instruction)
-    //Strips any spaces before and after brackets ( ) to enable easy comparisons
-    //to register etc references
-    //Comma returns true if the parameter ended with a comma, indicating another parameter
-    function ReadParameter(out Value: String;out Comma: Boolean): TAssembleError;
-    //Reads a string, returning it without the delimeters (ie. quote characters)
-    //Delimiter can be ' or " or any (other character). String ends at the matching delimeter
-    //The string cannot contain the delimiter
-    //On entry the reader should be positioned after the opening delimeter,
-    //on exit the reader is positioned after the closing delimiter
-    function ReadString(var Value: String;Delimiter: Char): TAssembleError;
   end;
 
   TQuicheSourceReader= class(TSourceReader)
@@ -186,7 +167,7 @@ begin
   Result := not FEOF;
 end;
 
-function TSourceReader.OpenFile(AFilename: String): TAssembleError;
+function TSourceReader.OpenFile(AFilename: String): Boolean;
 begin
   if FLines <> nil then
     raise Exception.Create('File already open');
@@ -195,7 +176,7 @@ begin
   FLines.LoadFromFile(Filename);
   FFilename := Filename;
   Reset;
-  Result := errNone;
+  Result := True;
 end;
 
 function TSourceReader.ReadChar(out Ch: Char): Boolean;
@@ -275,134 +256,6 @@ begin
   if FLines <> nil then
     FLine := FLines[FLineNo-1];
   FMarkLineNo := -1;
-end;
-
-{ TAssemSourceReader }
-
-function TAssemSourceReader.ReadString(var Value: String;
-  Delimiter: Char): TAssembleError;
-begin
-  Value := '';
-  while (FPos < Length(FLine)) and (FLine.Chars[FPos] <> Delimiter) do
-  begin
-    Value := Value + FLine.Chars[FPos];
-    inc(FPos);
-  end;
-
-  if FPos >= Length(FLine) then
-      EXIT(errUnterminatedString);
-  inc(FPos);
-  Result := errNone;
-end;
-
-function TAssemSourceReader.SkipInstruction: TAssembleError;
-var Dummy: String;
-begin
-  while not EOF do
-  begin
-    SkipWhiteSpace;
-
-    if (FPos >= Length(FLine)) or (CharInSet(FLine.Chars[FPos], [':',';'])) then
-      EXIT(errNone)
-    else if CharInSet(FLine.Chars[FPos], ['''', '"']) then
-      ReadString(Dummy, FLine.Chars[FPos])
-    else
-      inc(FPos);
-  end;
-  Result := errNone;
-end;
-
-function TAssemSourceReader.ReadIdentifier(out Identifier: String): TAssembleError;
-begin
-  Identifier := '';
-  if (FPos < Length(FLine)) and CharInSet(FLine.Chars[FPos], csIdentFirst) then
-    Identifier := FLine.Chars[FPos]
-  else
-    EXIT(errIdentifierExpected);
-
-  FPos := FPos + 1;
-
-  while (FPos < Length(FLine)) and CharInSet(FLine.Chars[FPos], csIdentOther) do
-  begin
-    Identifier := Identifier + FLine.Chars[FPos];
-    FPos := FPos + 1;
-  end;
-  Result := errNone;
-end;
-
-function TAssemSourceReader.ReadParameter(out Value: String;
-  out Comma: Boolean): TAssembleError;
-var
-  Ch: Char;
-  Sub: String;
-  SkipSpace: Boolean;
-  DoneWhiteSpace: Boolean;
-begin
-  DoneWhiteSpace := False;
-  SkipSpace := True;
-  Value := '';
-  Comma := False;
-  while FPos < Length(FLine) do
-  begin
-    Ch := FLine.Chars[FPos];
-    case Ch of
-    ',':
-      begin
-        Comma := True;
-        BREAK;
-      end;
-    ';',':':
-      BREAK;
-    '"','''':
-      if (Ch = '''') and (CompareText(Value, 'af') = 0) then
-        Value := Value + ''''
-      else
-      begin
-        inc(FPos);
-        Result := ReadString(Sub, Ch);
-        if Result <> errNone then
-          EXIT;
-        Value := Value + Ch + Sub + Ch;
-        dec(FPos);
-      end;
-    #0..' ':
-      DoneWhiteSpace := True;
-    '(',')':
-    begin
-      DoneWhiteSpace := False;
-      SkipSpace := True;
-      Value := Value + Ch;
-    end
-    else
-      if DoneWhiteSpace and not SkipSpace then
-        Value := Value + ' ';
-      DoneWhiteSpace := False;
-      SkipSpace := False;
-      Value := Value + Ch;
-    end;
-
-    inc(FPos);
-  end;
-
-  Result := errNone;
-end;
-
-function TAssemSourceReader.NextInstruction: TAssembleError;
-begin
-  while True do
-  begin
-    SkipWhiteSpace;
-
-    if (FPos >= Length(FLine)) or (FLine.Chars[FPos] = ';') then
-    begin
-      if not NextLine then
-        EXIT(errNone)
-    end
-    else if (FLine.Chars[FPos] = ':') then
-      SkipChar
-    else
-      EXIT(errNone);
-  end;
 end;
 
 { TQuicheSourceReader }

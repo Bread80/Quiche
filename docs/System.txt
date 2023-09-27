@@ -3,125 +3,129 @@ Delphi System Unit
 
 Subset of routines in the Delphi system unit which may be useful to implement in Quiche.
 
---'Builtins'/Intrisics(?)
-Abs	Returns an absolute value.
-Chr	Returns the character for a specified ASCII value.
-Hi	Returns the high-order byte of X as an unsigned value.
-High	Returns the highest value in the range of an argument.
-Length	Returns the number of characters in a string or of elements in an array.
-Lo	Returns the low-order Byte of argument X.
-Low	Returns the lowest value in a range.
-Odd	Returns True if argument is an odd number.
-Ord	Returns the ordinal value of an ordinal-type expression.
-Pred	Returns the predecessor of the argument.
-Round	Returns the value of X rounded to the integer number.
-SizeOf	Returns the number of bytes occupied by a variable or type.
-Succ	Returns the successor of an argument.
-Swap	Exchanges the high-order byte with the low-order byte of a 16-bit integral value (word).
-Trunc	Truncates a real number to an integer.
++ - Usable in constant expressions (i.e. can be evaluated at runtime)
+= - Best implemented as an intrinsic
 
 --Maths
-ArcTan	Calculates the arctangent of a given number.
-Cos	Calculates the cosine of an angle.
-Dec	Decrements a variable by 1 or N.
-Exp	Returns the exponential of X.
-Frac	Returns the fractional part of a real number.
-Inc	Increments an ordinal value by 1 or N.
-Int	Returns the integer part of a real number.
-Ln	Returns the natural logarithm of a real expression.
-Pi	Returns 3.1415926535897932385.
-Power10	Returns the value of given floating-point value scaled by a power of 10.
-Random	Generates random numbers within a specified range.
-Randomize	Initializes the random number generator with a random value.
-Sin	Returns the sine of the angle, in radians.
-SineCosine	Returns sin(X) and cos(X).
-Sqr	Returns the square of a number.
-Sqrt	Returns the square root of X.
-Tangent	Returns tan(X).
-UpCase	Converts a character to uppercase.
+=+	Abs		Returns an absolute value.
+	ArcTan	Calculates the arctangent of a given number.
+	Cos		Calculates the cosine of an angle.
+	Dec		Decrements a variable by 1 or N.
+	Exp		Returns the exponential of X.
+	Frac	Returns the fractional part of a real number.
+=	Inc		Increments an ordinal value by 1 or N.
+	Int		Returns the integer part of a real number.
+	Ln		Returns the natural logarithm of a real expression.
+=+	Odd		Returns True if argument is an odd number.
+=	Pi		Returns 3.1415926535897932385.
+	Power10	Returns the value of given floating-point value scaled by a power of 10.
+	Random	Generates random numbers within a specified range.
+	Randomize	Initializes the random number generator with a random value.
++	Round	Returns the value of X rounded to the integer number.
+	Sin		Returns the sine of the angle, in radians.
+	SineCosine	Returns sin(X) and cos(X).
+	Sqr	Returns the square of a number.
+	Sqrt	Returns the square root of X.
+	Tangent	Returns tan(X).
++	Trunc	Truncates a real number to an integer.
 
 --Primitives/System
-Addr	Returns a pointer to a specified object. aka @
-Assert	Tests whether a Boolean expression is true.
-Assigned	Tests for a nil (unassigned) pointer or procedural variable.
-Break	Causes the flow of control to exit a for, while, or repeat statement.
-Continue	Allows the flow of control to proceed to the next iteration of for, while, or repeat statements.
-Error	Error is used to generate a run-time exception.
-Exit	Exits from the current procedure.
-Halt	Initiates the abnormal termination of a program.
-Ptr	Converts a specified address to a pointer.
-Read	Reads data from a file.
-Readln	Reads a line of text from a file.
-RunError	Stops execution and generates a run-time error.
-Write	Writes to either a typed file or a text file.
-Writeln	Writes to a text file and adds an end-of-line marker.
+=	Addr	Returns a pointer to a specified object. aka @
+=	Assert	Tests whether a Boolean expression is true.
+=	Assigned	Tests for a nil (unassigned) pointer or procedural variable.
+=	Break	Causes the flow of control to exit a for, while, or repeat statement.
+=	Continue	Allows the flow of control to proceed to the next iteration of for, while, or repeat statements.
+=	Error	Error is used to generate a run-time exception.
+=	Exit	Exits from the current procedure.
+=	Halt	Initiates the abnormal termination of a program.
+=+	Hi		Returns the high-order byte of X as an unsigned value.
+=+	High	Returns the highest value in the range of an argument.
+=	Inp		Quiche
+=+	Lo		Returns the low-order Byte of argument X.
+=+	Low		Returns the lowest value in a range.
+=+	Ord		Returns the ordinal value of an ordinal-type expression.
+=	Out		Quiche
+=	Peek	Quiche
+=	Poke	Quiche
+=+	Pred	Returns the predecessor of the argument.
+=	Ptr		Converts a specified address to a pointer.
+=+	SizeOf	Returns the number of bytes occupied by a variable or type.
+=+	Succ	Returns the successor of an argument.
+=+	Swap	Exchanges the high-order byte with the low-order byte of a 16-bit integral value (word).
+=	Read	Reads data from a file.
+=	Readln	Reads a line of text from a file.
+=	RunError	Stops execution and generates a run-time error.
+=	Write	Writes to either a typed file or a text file.
+=	Writeln	Writes to a text file and adds an end-of-line marker.
 
 --Heap/Memory
-AllocMem	AllocMem allocates a memory block and initializes each byte to zero.
-Dispose	Releases the memory allocated for a dynamic variable.
-FillChar	Fills contiguous bytes with a specified value.
-FreeMem	FreeMem frees a memory block previously allocated with GetMem.
-GetMem	GetMem allocates a memory block.
-Mark (deprecated)	Mark is no longer used.
-Move	Copies bytes from a source to a destination.
-MoveChars	Copies bytes from a source to a destination.
-New	Creates a new dynamic variable and sets P to point to it.
-ReallocMem	ReallocMem reallocates a memory block.
-Release (deprecated)	Release is no longer used.
+	AllocMem	AllocMem allocates a memory block and initializes each byte to zero.
+	Dispose	Releases the memory allocated for a dynamic variable.
+	FillChar	Fills contiguous bytes with a specified value.
+	FreeMem	FreeMem frees a memory block previously allocated with GetMem.
+	GetMem	GetMem allocates a memory block.
+	Mark (deprecated)	Mark is no longer used.
+	Move	Copies bytes from a source to a destination.
+	MoveChars	Copies bytes from a source to a destination.
+	New		Creates a new dynamic variable and sets P to point to it.
+	ReallocMem	ReallocMem reallocates a memory block.
+	Release (deprecated)	Release is no longer used.
 
 --Files/IO
-Append	Prepares an existing file for adding text to its end.
-Assign	Associates the name of an external file with a file variable.
-AssignFile	Associates the name of an external file with a file variable.
-BlockRead	Reads one or more records from an open file into a variable.
-BlockWrite	Writes one or more records from a variable to an open file.
-ChDir	Changes the current directory.
-Close	Terminates the association between a file variable and an external file.
-CloseFile	Terminates the association between a file variable and an external disk file.
-Concat	Concatenates two or more strings into one string, or two or more dynamic arrays into one dynamic array.
-Eof	Tests whether the file position is at the end of a file.
-Eoln	Tests whether the file pointer is at the end of a line.
-Erase	Deletes an external file.
-FilePos	Returns the current file position.
-FileSize	Returns the number of records in a file.
-Flush	Empties the buffer of a text file opened for output.
-GetDir	Returns the current directory.
-GetLastError	Returns the last error reported by an operating system API call.
-IOResult	Returns the status of the last I/O operation performed.
-MkDir	Creates a new subdirectory.
-Rename	Changes the name of an external file.
-Reset	Opens an existing file.
-Rewrite	Creates a new file and opens it.
-RmDir	Deletes an empty subdirectory.
-Seek	Moves the current position of a file to a specified component.
-SeekEof	Returns the end-of-file status of a file, ignoring whitespace.
-SeekEoln	Returns the end-of-line status of a file, ignoring whitespace.
-SetLastError	SetLastError sets the last API error code.
-SetTextBuf	Assigns an I/O buffer to a text file.
-Truncate	Deletes all the records after the current file position.
-TypeOf	TypeOf is deprecated.
+	Append	Prepares an existing file for adding text to its end.
+	Assign	Associates the name of an external file with a file variable.
+	AssignFile	Associates the name of an external file with a file variable.
+	BlockRead	Reads one or more records from an open file into a variable.
+	BlockWrite	Writes one or more records from a variable to an open file.
+	ChDir	Changes the current directory.
+	Close	Terminates the association between a file variable and an external file.
+	CloseFile	Terminates the association between a file variable and an external disk file.
+	Concat	Concatenates two or more strings into one string, or two or more dynamic arrays into one dynamic array.
+	Eof	Tests whether the file position is at the end of a file.
+	Eoln	Tests whether the file pointer is at the end of a line.
+	Erase	Deletes an external file.
+	FilePos	Returns the current file position.
+	FileSize	Returns the number of records in a file.
+	Flush	Empties the buffer of a text file opened for output.
+	GetDir	Returns the current directory.
+	GetLastError	Returns the last error reported by an operating system API call.
+	IOResult	Returns the status of the last I/O operation performed.
+	MkDir	Creates a new subdirectory.
+	Rename	Changes the name of an external file.
+	Reset	Opens an existing file.
+	Rewrite	Creates a new file and opens it.
+	RmDir	Deletes an empty subdirectory.
+	Seek	Moves the current position of a file to a specified component.
+	SeekEof	Returns the end-of-file status of a file, ignoring whitespace.
+	SeekEoln	Returns the end-of-line status of a file, ignoring whitespace.
+	SetLastError	SetLastError sets the last API error code.
+	SetTextBuf	Assigns an I/O buffer to a text file.
+	Truncate	Deletes all the records after the current file position.
+	TypeOf	TypeOf is deprecated.
 
---Strings/Arrays
-Copy	Returns a substring of a string or a segment of a dynamic array.
-CopyArray	Copies an array whose elements' type is specified by the TypeInfo variable.
-Delete	Removes a substring from a string, or removes elements from a dynamic array and returns the modified array.
-Insert	Inserts a substring into a string (or inserts a dynamic array into a dynamic array), beginning at a specified position.
-IntToStr	Converts an integer to a string.
-MoveArray	Moves Count items in Array.
-Pos	Locates a substring in a given string.
-SetLength	Sets the length of a string or dynamic array variable.
-SetString	Sets the contents and length of the given string.
-Slice	Returns a subsection of an array.
-Str	Formats a string and returns it to a variable.
-StringOfChar	Returns a string with a specified number of repeating characters.
-Val	Converts a string that represents an integer (decimal or hex notation) into a number.
+--Strings/Chars/Arrays
+=+	Chr	Returns the character for a specified ASCII value.
+	Copy	Returns a substring of a string or a segment of a dynamic array.
+	CopyArray	Copies an array whose elements' type is specified by the TypeInfo variable.
+	Delete	Removes a substring from a string, or removes elements from a dynamic array and returns the modified array.
+=	DownCase	Converts a character to lowercase. (Quiche)
+	Insert	Inserts a substring into a string (or inserts a dynamic array into a dynamic array), beginning at a specified position.
+	IntToStr	Converts an integer to a string.
+=+	Length	Returns the number of characters in a string or of elements in an array.
+	MoveArray	Moves Count items in Array.
+	Pos		Locates a substring in a given string.
+	SetLength	Sets the length of a string or dynamic array variable.
+	SetString	Sets the contents and length of the given string.
+	Slice	Returns a subsection of an array.
+	Str	Formats a string and returns it to a variable.
+	StringOfChar	Returns a string with a specified number of repeating characters.
+=	UpCase	Converts a character to uppercase.
+	Val	Converts a string that represents an integer (decimal or hex notation) into a number.
 
 --Other
-CopyRecord	Copies fields in Record.
-Exclude	Removes an element from a Delphi set.
-Include	Adds an element to a Delphi set.
-MoveRecord	Moves fields in Record.
-ParamCount	Returns the number of parameters passed on the command line.
-ParamStr	Returns a specified parameter from the command line.
-
-
+	CopyRecord	Copies fields in Record.
+	Exclude	Removes an element from a Delphi set.
+	Include	Adds an element to a Delphi set.
+	MoveRecord	Moves fields in Record.
+	ParamCount	Returns the number of parameters passed on the command line.
+	ParamStr	Returns a specified parameter from the command line.

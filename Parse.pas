@@ -20,35 +20,35 @@ word(1000) + $42 results in an unsigned expression
 }
 
 interface
-uses MErrors;
+uses ParseErrors, ParseExpr;
 
-var OnScopeDone: procedure;
+type TAssembleCallback = function: Boolean;
+var OnScopeDone: TAssembleCallback;
 
 function ErrorLineNo: Integer;
 function ErrorPos: Integer;
 function ErrorLine: String;
 
-
 //Parses a single statement
 //If the first identifier has been parsed, it should be passed in in Ident,
 //otherwise Ident must be an empty string
-function ParseStatement(Ident: String): TAssembleError;
+function ParseStatement(Ident: String): TQuicheError;
 
 type TBlockState = (bsSingle, bsBeginRead);
 //Parse a code block. BlockState specifies whether the initial BEGIN keyword
 //has already been parsed (If so, nothing following it should have been parsed
-function ParseBlock(BlockState: TBlockState): TAssembleError;
+function ParseBlock(BlockState: TBlockState): TQuicheError;
 
 //Parse the declaration part, including Types, Consts, and Vars.
 //If AllowFuncs is True then Functions and Procedure declarations are also allowed.
 //This enables the distinction between program level decarations and function/procedure
 //level declarations (which Quiche doesn't allow)
-function ParseGlobals(AllowFuncs: Boolean): TAssembleError;
+function ParseGlobals(AllowFuncs: Boolean): TQuicheError;
 
 implementation
 uses SysUtils, Classes,
-  MSourceReader, ILData, QTypes, Variables, Functions, Scopes, Operators,
-  ParseExpr, ParserBase, ParserFixups;
+  SourceReader, Globals, ILData, QTypes, Variables, Functions, Scopes, Operators,
+  ParserBase, ParserFixups, ParseIntrinsics;
 //===============================================
 //Utilities
 
@@ -88,7 +88,7 @@ end;
 //*after* the expression has been evaluated. If the variable is created before
 //then it will be possible to reference the variable within the expression which
 //would, of course, be an bug.
-function ParseAssignmentExpr(var Variable: PVariable;var VarIndex: Integer;VType: TVarType): TAssembleError;
+function ParseAssignmentExpr(var Variable: PVariable;var VarIndex: Integer;VType: TVarType): TQuicheError;
 var
   ILItem: PILItem;
   VarSub: Integer;
@@ -97,14 +97,14 @@ var
 begin
   ExprType := VType;
   Result := ParseExpressionToSlug(@Slug, ExprType);
-  if Result <> errNone then
+  if Result <> qeNone then
     EXIT;
 
   if Variable = nil then
     if VType = vtUnknown then
-      Variable := VarCreateHidden(Slug.ImplicitType, VarIndex)
+      Variable := VarCreateHidden(Slug.ImplicitType, optDefaultVarStorage, VarIndex)
     else
-      Variable := VarCreateHidden(VType, VarIndex);
+      Variable := VarCreateHidden(VType, optDefaultVarStorage, VarIndex);
 
   VarSub := VarIndexIncWriteCount(VarIndex);
 
@@ -157,14 +157,14 @@ end;
 //otherwise
 //  Returns last ILItem of the expression in ILItem and ConstExprValue as junk
 //  ILItem will have a CondBranch destination.
-function ParseBranchExpr(out ILItem: PILItem;out ConstExprValue: Boolean): TAssembleError;
+function ParseBranchExpr(out ILItem: PILItem;out ConstExprValue: Boolean): TQuicheError;
 var ExprType: TVarType;
 //  ImplicitType: TVarType; //Dummy
   Slug: TExprSlug;
 begin
   ExprType := vtBoolean;
   Result := ParseExpressionToSlug(@Slug, ExprType);
-  if Result <> errNone then
+  if Result <> qeNone then
     EXIT;
   Assert(ExprType = vtBoolean);
 
@@ -209,7 +209,7 @@ end;
 //Also inspects the optAllowAutoCreation option to determine if a declaration
 //requires an explicit 'var' or can be implied by the first assignment to a variable
 function ParseAssignment(VarRead, AllowVar: Boolean;VarName: String;
-  out Variable: PVariable;var VarIndex: Integer): TAssembleError;
+  out Variable: PVariable;var VarIndex: Integer): TQuicheError;
 var Ch: Char;
   VarType: TVarType;  //vtUnknown if we're using type inference
   DoAssign: Boolean;  //True if we're assigning a value
@@ -218,7 +218,7 @@ begin
   if VarName = '' then
   begin
     Result := ParseIdentifier(#0,VarName);
-    if Result <> errNone then
+    if Result <> qeNone then
       EXIT;
   end;
 
@@ -228,7 +228,7 @@ begin
     if VarRead then
     begin
       Result := ParseIdentifier(#0,VarName);
-      if Result <> errNone then
+      if Result <> qeNone then
         EXIT;
     end;
   end;
@@ -238,7 +238,7 @@ begin
   if optAllowAutoCreation or VarRead then
   begin
     Result := TestForTypeSymbol(VarType);
-    if Result <> errNone then
+    if Result <> qeNone then
       EXIT;
 
     if VarType <> vtUnknown then
@@ -252,16 +252,16 @@ begin
       Parser.SkipWhitespaceAll;
       Ch := Parser.TestChar;
       if Ch <> ':' then
-        EXIT(errInvalidVariableDeclaration);
+        EXIT(ErrSyntax(synVariableDeclaration));
       Parser.NextChar(Ch);
 
       Result := ParseVarType(VarType);
-      if Result <> errNone then
+      if Result <> qeNone then
         EXIT;
       if VarType = vtUnknown then
-        EXIT(errTypeNotFound);
+        EXIT(Err(qeUnknownType));
       if VarType in [vtReal, vtString] then
-        EXIT(errTypeNotYetSupported);
+        EXIT(ErrMsg(qeTODO, 'Type not yet supported: ' + VarTypeToName(VarType)));
 
       Parser.SkipWhiteSpaceAll;
       Ch := Parser.TestChar;
@@ -270,10 +270,14 @@ begin
         Parser.SkipChar;
     end;
 
-    Variable := VarFindByName(VarName, VarIndex);
     if VarRead then
+    begin
+      Variable := VarFindByNameInScope(VarName, VarIndex);
       if Variable <> nil then
-        EXIT(errVariableAlreadyDeclared);
+        EXIT(ErrSub(qeVariableRedeclared, VarName));
+    end
+    else
+      Variable := VarFindByNameAllScopes(VarName, VarIndex);
 {      Variable := nil;
       VarIndex := -1;
     end
@@ -283,10 +287,10 @@ begin
   begin
     DoAssign := TestAssignment;
     if not DoAssign then
-      EXIT(errAssignmentExpected);
-    Variable := VarFindByName(VarName, VarIndex);
+      EXIT(ErrSyntax(synAssignmentExpected));
+    Variable := VarFindByNameAllScopes(VarName, VarIndex);
     if Variable = nil then
-      EXIT(errVariableNotDeclared);
+      EXIT(ErrSub(qeVariableNotFound, VarName));
     VarType := Variable.VarType;
   end;
 
@@ -299,7 +303,7 @@ begin
 //      Result := ParseAssignmentExpr(Variable, VarIndex, Variable.VarType)
 //    else
       Result := ParseAssignmentExpr(Variable, VarIndex, VarType);
-    if Result <> errNone then
+    if Result <> qeNone then
       EXIT;
 
     if Creating and (VarType <> vtUnknown) then
@@ -323,10 +327,10 @@ begin
   end
   else
   begin //Otherwise just create it. Meh. Boring
-    Variable := VarCreate(VarName, VarType, VarIndex);
+    Variable := VarCreate(VarName, VarType, optDefaultVarStorage, VarIndex);
     if Variable = nil then
-      EXIT(errVariableAlreadyDeclared);
-    Result := errNone;
+      EXIT(ErrSub(qeVariableRedeclared, VarName));
+    Result := qeNone;
   end;
 end;
 
@@ -338,7 +342,7 @@ end;
 //                        |  VAR <identifier><type-symbol> [:= <expr>]
 //                           (no space allowed between <identifier> and <type-symbol>)
 //                           VAR <identifier> := <expr>
-function DoVAR: TAssembleError;
+function DoVAR: TQuicheError;
 var Variable: PVariable;
   VarIndex: Integer;
 begin
@@ -347,7 +351,7 @@ end;
 
 // <for-statement> := FOR <identifier> := <expr> TO <expr> DO
 //                      <block>
-function DoFOR: TAssembleError;
+function DoFOR: TQuicheError;
 var
   VarRead: Boolean;
   LoopVarName: String;
@@ -372,14 +376,14 @@ begin
   //-------------
   //Read loop variable name
   Result := ParseIdentifier(#0, LoopVarName);
-  if Result <> errNone then
+  if Result <> qeNone then
     EXIT;
 
   VarRead := CompareText(LoopVarName, 'var') = 0;
   if VarRead then
   begin
     Result := ParseIdentifier(#0, LoopVarName);
-    if Result <> errNone then
+    if Result <> qeNone then
       EXIT;
   end;
 
@@ -389,7 +393,7 @@ begin
 
   //(Create and) assign the loop variable
   Result := ParseAssignment(VarRead, false, LoopVarName, LoopVar, LoopVarIndex);
-  if Result <> errNone then
+  if Result <> qeNone then
     EXIT;
 
   if TestForIdent('to') then
@@ -397,20 +401,20 @@ begin
   else if TestForIdent('downto') then
     ToInc := False
   else
-    EXIT(errToExpected);
+    EXIT(ErrSyntaxMsg(synFOR, 'TO expected'));
 
   //Eval TO expression
   EndValue := nil;
   EndValueIndex := -1;
   //Parse and create EndValue
-  Result := ParseAssignmentExpr(EndValue, EndValueIndex, vtUnknown);
-  if Result <> errNone then
+  Result := ParseAssignmentExpr(EndValue, EndValueIndex, LoopVar.VarType);//vtUnknown);
+  if Result <> qeNone then
     EXIT;
 
   //Insert code here for Step value
 
   if not TestForIdent('do') then
-    EXIT(errDOExpected);
+    EXIT(ErrSyntaxMsg(synFOR, 'DO expected'));
 
   //Insert Branch into header
   ILItem := ILAppend(dtBranch);
@@ -465,7 +469,7 @@ begin
 
   //Parse Loop block
   Result := ParseBlock(bsSingle);
-  if Result <> errNone then
+  if Result <> qeNone then
     EXIT;
 
   //Insert Branch into Latch section
@@ -530,7 +534,7 @@ end;
 //                     <block>
 //                   [ ELSE
 //                     <block> ]
-function DoIF: TAssembleError;
+function DoIF: TQuicheError;
 var
   Branch: PILItem;      //The Branch condition. Nil if expression is a constant
   ConstExprValue: Boolean;  //If branch condition is s constant
@@ -550,12 +554,12 @@ begin
   //We'll use that fact to not generating code which will never be executed
   //We do, however, still need to parse that code!
   Result := ParseBranchExpr(Branch, ConstExprValue);
-  if Result <> errNone then
+  if Result <> qeNone then
     EXIT;
 
   //Test for THEN
   if not TestForIdent('then') then
-    EXIT(errTHENExpected);
+    EXIT(ErrSyntaxMsg(synIF, 'THEN expected'));
 
   if Branch <> nil then
   begin
@@ -570,7 +574,7 @@ begin
   //Parse block
   PrevSkipMode := SkipModeStart((Branch = nil) and not ConstExprValue);
   Result := ParseBlock(bsSingle);
-  if Result <> errNone then
+  if Result <> qeNone then
     EXIT;
   SkipModeEnd(PrevSkipMode);
 
@@ -595,7 +599,7 @@ begin
     //Parse block
     PrevSkipMode := SkipModeStart((Branch = nil) and ConstExprValue);
     Result := ParseBlock(bsSingle);
-    if Result <> errNone then
+    if Result <> qeNone then
       EXIT;
     SkipModeEnd(PrevSkipMode);
 
@@ -644,12 +648,12 @@ end;
 
 //===============================================================
 
-function DoParseFunctionCall(Func: PFunction;AsProc: Boolean): TAssembleError;
+function DoParseFunctionCall(Func: PFunction;AsProc: Boolean): TQuicheError;
 begin
   case Func.CallingConvention of
-    ccIntrinsic: Result := errBug;  //Special cases :)
-    ccExtern: Result := errBug; //Calls to assembly
-    ccStackFrame: Result := errBug; //IX bases
+    ccIntrinsic: Result := ErrMsg(qeBUG, 'Instrinic dispatch shouldn''t end up here');  //Special cases :)
+    ccExtern: Result := ErrMsg(qeTODO, 'Extern function dispatch not yet implemented'); //Calls to assembly
+    ccStackFrame: Result := ErrMsg(qeTODO, 'StackFrame funciton dispatch not yet implemented'); //IX bases
   else
     raise Exception.Create('Unknown calling convention in function despatch :(');
   end;
@@ -664,13 +668,20 @@ end;
 //             |  <for-statement>
 //             |  <while-statement>
 //             |  <until-statement>
-function ParseStatement(Ident: String): TAssembleError;
+function ParseStatement(Ident: String): TQuicheError;
 var
   Ch: Char;
   Keyword: TKeyword;
   Variable: PVariable;
   VarIndex: Integer;
+  Scope: PScope;
+  IdentType: TIdentType;
+  Item: Pointer;
+  Index: Integer;
   Func: PFunction;
+  OpIndex: Integer;
+  Slug: TExprSlug;  //Dummy
+  PSlug: PExprSlug;
 begin
   if Ident = '' then
   begin
@@ -678,11 +689,11 @@ begin
     if Ch in csIdentFirst then
     begin
       Result := ParseIdentifier(#0, Ident);
-      if Result <> errNone then
+      if Result <> qeNone then
         EXIT;
     end
     else
-      EXIT(errIdentifierExpected);
+      EXIT(ErrSyntax(synStatementExpected));
   end;
 
   //Do we have a keyword?
@@ -694,25 +705,54 @@ begin
     keyFOR: Result := DoFOR;
     keyIF: Result := DoIF;
     else
-      EXIT(errInvalidKeyword);
+      EXIT(ErrSub(qeInvalidKeyword, Ident));
     end;
     EXIT;
   end
-  else
+  else if SearchScopes(Ident, IdentType, Scope, Item, Index) then
   begin
-    //Test for function or precoedure call (without assignment)
-    Func := FuncFind(Ident);
-    if Func <> nil then
+    case IdentType of
+      itVar:
+      begin
+        Result := ParseAssignment(false, false, Ident, PVariable(Item), Index);
+        if Result <> qeNone then
+          EXIT;
+      end;
+      itFunction:
+      begin
+        Result := DoParseFunctionCall(PFunction(Item), True);
+        if Result <> qeNone then
+          EXIT;
+      end;
+      itConst: EXIT(ErrSub(qeConstNameNotValidHere, Ident));
+      itType: EXIT(ErrSub(qeTypeNameNotValidHere, Ident));
+    else
+      EXIT(ErrMsg(qeBug, 'Invalid/unknown IdentType'));
+    end;
+  end
+  else
+  begin //Search for intrinsics
+    OpIndex := OpProcedureToIndex(Ident);
+    if OpIndex <> -1 then
     begin
-      Result := DoParseFunctionCall(Func, True);
-      if Result <> errNone then
-        EXIT;
+      PSlug := @Slug;
+      Result := ParseIntrinsic(OpIndex, False, PSlug);
     end
     else
-    begin //Otherwise it's an assignment
-      Result := ParseAssignment(false, false, Ident, Variable, VarIndex);
-      if Result <> errNone then
-        EXIT;
+    begin
+      //TODO: Search builtin function library
+
+      //If followed by := raise variable not found
+      Parser.Mark;
+      Parser.SkipWhiteSpace;
+      if TestAssignment then
+      begin
+        Parser.Undo;
+        EXIT(ErrSub(qeVariableNotFound, Ident));
+      end;
+
+      //Raise identifier not found
+      EXIT(ErrSub(qeUndefinedIdentifier, Ident));
     end;
   end;
 end;
@@ -720,7 +760,7 @@ end;
 // <block> := BEGIN [ <statement-list> ] END
 //         |  <statement>
 // <statement-list> := <statement> [ <statement> ]
-function ParseBlock(BlockState: TBlockState): TAssembleError;
+function ParseBlock(BlockState: TBlockState): TQuicheError;
 var
   Ch: Char;
   Ident: String;
@@ -732,24 +772,24 @@ begin
     if Ch in csIdentFirst then
     begin
       Result := ParseIdentifier(#0, Ident);
-      if Result <> errNone then
+      if Result <> qeNone then
         EXIT;
 
       if (BlockState = bsBeginRead) and (CompareText(Ident, 'end') = 0) then
-        EXIT(errNone);
+        EXIT(qeNone);
 
       if CompareText(Ident, 'begin') = 0 then
       begin
         Result := ParseBlock(bsBeginRead);
-        if Result <> errNone then
+        if Result <> qeNone then
           EXIT;
         if BlockState = bsSingle then
-          EXIT(errNone);
+          EXIT(qeNone);
       end
       else
       begin
         Result := ParseStatement(Ident);
-        if Result <> errNone then
+        if Result <> qeNone then
           EXIT;
 
         repeat
@@ -760,13 +800,13 @@ begin
         until Parser.EOF or not (Ch in [#0,';']);
 
         if BlockState = bsSingle then
-          EXIT(errNone);
+          EXIT(qeNone);
         if Parser.EOF then
-          EXIT(errEndExpected);
+          EXIT(Err(qeENDExpected));
       end;
     end
     else
-      EXIT(errIdentifierExpected);
+      EXIT(Err(qeIdentifierExpected));
   end;
 end;
 
@@ -777,7 +817,7 @@ end;
 //Parse the declarations and body of a function declaration
 //Inputs: Func is the function being declared
 //        Keyword is the first keyword after the function header
-function ParseFunctionCode(Func: PFunction; Keyword: TKeyword): TAssembleError;
+function ParseFunctionCode(Func: PFunction; Keyword: TKeyword): TQuicheError;
 begin
   //Setup scope for function
   CreateCurrentScope(Func.Name);
@@ -791,23 +831,25 @@ begin
       keyBEGIN:
       begin
         Result := ParseBlock(bsBeginRead);
-        if Result <> errNone then
+        if Result <> qeNone then
           EXIT;
 
         if Assigned(OnScopeDone) then
-          OnScopeDone;
+          if not OnScopeDone then
+            EXIT(ErrSub(qeAssemblyError, Func.Name));
+
         //Result to previous scope
         EndCurrentScope;
-        EXIT(errNone);
+        EXIT(qeNone);
       end;
     else
-      EXIT(errFunctionBodyExpected);
+      EXIT(Err(qeFunctionBodyExpected));
     end;
-    if Result <> errNone then
+    if Result <> qeNone then
       EXIT;
 
     Result := ParseKeyword(Keyword);
-    if Result <> errNone then
+    if Result <> qeNone then
       EXIT;
   end;
 end;
@@ -828,35 +870,35 @@ end;
 //        Ident was not a parameter specifier and passed it on to us as a name
 //  Func: The function definition being read
 //  ParamIndex: The index of the parameter currently being parsed.
-function ParseParamName(Ident: String;Func: PFunction;ParamIndex: Integer): TAssembleError;
+function ParseParamName(Ident: String;Func: PFunction;ParamIndex: Integer): TQuicheError;
 var Keyword: TKeyword;
 begin
   //No name passed in, so read one
   if Ident = '' then
   begin
     Result := ParseIdentifier(#0, Ident);
-    if Result <> errNone then
+    if Result <> qeNone then
       EXIT;
     Keyword := IdentToKeyword(Ident);
     if Keyword <> keyUnknown then
-      EXIT(errReservedWord);
+      EXIT(ErrSub(qeReservedWord, Ident));
   end;
 
   //Have we already read a parameter with that name?
   if ParamIndex > 0 then
     if FuncFindParam(Func, Ident, ParamIndex-1) <> nil then
-      EXIT(errParamRedeclared);
+      EXIT(ErrMsg(qeFunctionDeclaration, 'Parameter name redeclared: ' + Ident));
 
   //Does current match any forward declaration?
   if ffForward in Func.Flags then
   begin
     if CompareText(Ident, Func.Params[ParamIndex].Name) <> 0 then
-      EXIT(errFuncDecDoesntMatch)
+      EXIT(Err(qeFuncDecDoesntMatch))
   end
   else //No forward declaration, set data
     Func.Params[ParamIndex].Name := Ident;
 
-  Result := errNone;
+  Result := qeNone;
 end;
 
 //Validate that a register type declaration is valid:
@@ -908,7 +950,7 @@ end;
 //If any parameter is a register type definition then all must be, including the result.
 //Register type definitions may only use the following parameter specifiers:
 //value (default), out, and result
-function ParseParamType(Func: PFunction;FirstParam, ParamIndex: Integer): TAssembleError;
+function ParseParamType(Func: PFunction;FirstParam, ParamIndex: Integer): TQuicheError;
 var Ident: String;
   Reg: TParamReg;
   VarType: TVarType;
@@ -917,7 +959,7 @@ begin
   Parser.SkipWhiteSpaceAll;
   //Read type name or register name
   Result := ParseIdentifier(#0, Ident);
-  if Result <> errNone then
+  if Result <> qeNone then
     EXIT;
 
   Parser.SkipWhiteSpaceAll;
@@ -927,26 +969,26 @@ begin
   begin
     //Registers have to be unique. So list parameters are an error
     if FirstParam <> ParamIndex then
-      EXIT(errRegisterParamRedeclared);
+      EXIT(ErrMsg(qeFunctionDeclaration, 'Register parameter redeclared: ' + Ident));
     if not ValidateRegParam(Func, ParamIndex, Reg) then
-      EXIT(errInvalidRegisterParam);
+      EXIT(ErrMsg(qeFunctionDeclaration, 'Invalid register parameter name'));
     //TODO: Validate all params are reg params ?At end of definition?
     if TestForIdent('as') then
     begin //Type specified
       Result := ParseVarType(VarType);
-      if Result <> errNone then
+      if Result <> qeNone then
         EXIT;
       if VarType = vtUnknown then
-        EXIT(errTypeNotFound);
+        EXIT(ErrSub(qeUnknownType, Ident));
     end
     else //Default types: Reg to Byte, Pair to Word, Flag to Boolean
       VarType := ParamRegToVarType[Reg]
   end
   else
   begin //Not a Reg definition
-    VarType := IdentToVarType(Ident);
+    VarType := StringToVarType(Ident);
     if VarType = vtUnknown then
-      EXIT(errTypeNotFound);
+      EXIT(ErrSub(qeUnknownType, Ident));
   end;
 
   //Set (or check) the parameter(s) data
@@ -958,7 +1000,7 @@ begin
         //TODO: AreTypesCompatible()
         (Func.Params[P].VarType <> VarType) then
 //        (Func.Params[P].VarTypes <> [VarType]) then
-        EXIT(errFuncDecDoesntMatch);
+        EXIT(Err(qeFuncDecDoesntMatch));
     end
     else
     begin
@@ -974,7 +1016,7 @@ end;
 //Returns having consumed the trailing ')' after the parameter list
 // <param-def-list> := ( <Param-def> [ ; <Param-def> ] )
 // <Param-def> := <Param-name> [ , <Param-name>] <Param-type>
-function ParseParamDefs(Func: PFunction): TAssembleError;
+function ParseParamDefs(Func: PFunction): TQuicheError;
 var
   ParamIndex: Integer;
   ListStart: Integer; //If we have a comma separated list of parameters, this
@@ -989,12 +1031,12 @@ begin
   //Loop until we hit the trailing brace or an error
   repeat
     if ParamIndex > MaxParams then
-      EXIT(errDecTooManyParams);
+      EXIT(Err(qeDecTooManyParams));
 
     //Parameter specifier
     Parser.SkipWhiteSpaceAll;
     Result := ParseIdentifier(#0, Ident);
-    if Result <> errNone then
+    if Result <> qeNone then
       EXIT;
 
     //Read parameter specifier (or name)
@@ -1006,7 +1048,7 @@ begin
 //      keyIN: Specifier := psIn; //Isn't this the same as Val?
       keyOUT: Specifier := psOut;
     else  //Any other keywords are an error
-      EXIT(errReservedWord);
+      EXIT(ErrSub(qeReservedWord, Ident));
     end;
     //If we had a specifier then we haven't read the name yet
     if Keyword <> keyUnknown then
@@ -1017,13 +1059,13 @@ begin
     repeat
       //Hard coded maximum parameter count (eek!)
       if ParamIndex > MaxParams then
-        EXIT(errDecTooManyParams);
+        EXIT(Err(qeDecTooManyParams));
 
       //Validate or set the specifier (applies to all params in the list)
       if ffForward in Func.Flags then
       begin
         if Specifier <> Func.Params[ParamIndex].Specifier then
-          EXIT(errFuncDecDoesntMatch);
+          EXIT(Err(qeFuncDecDoesntMatch));
       end
       else
         Func.Params[ParamIndex].Specifier := Specifier;
@@ -1031,7 +1073,7 @@ begin
       //Process (and parse if Ident is '') the parameter name and add it to the definition
       Parser.SkipWhiteSpaceAll;
       Result := ParseParamName(Ident, Func, ParamIndex);
-      if Result <> errNone then
+      if Result <> qeNone then
         EXIT;
       Parser.SkipWhiteSpaceAll;
 
@@ -1049,13 +1091,13 @@ begin
 
     //Type definition marker
     if Ch <> ':' then
-      EXIT(errColonExpected);
+      EXIT(ErrSyntaxMsg(synFunctionParameterDeclaration, ': expected after parameter name'));
 
     //Parse and process the type definition, and apply it to the list of parameters
     //we've just read.
     Parser.SkipChar;
     Result := ParseParamType(Func, ListStart, ParamIndex);
-    if Result <> errNone then
+    if Result <> qeNone then
       EXIT;
 
     Parser.SkipWhiteSpaceAll;
@@ -1065,14 +1107,14 @@ begin
     Ch := Parser.TestChar;
     Parser.SkipChar;
     if not (Ch in [';',')']) then
-      EXIT(errSemicolonOrCloseParensExpected);
+      EXIT(ErrSyntaxMsg(synFunctionParameterDeclaration, ''';'' or '')'' expected'));
     inc (ParamIndex);
   until Ch = ')';
 
   dec(ParamIndex);
   //Store the parameter count in the function definition
   Func.ParamCount := ParamIndex+1;
-  Result := errNone;
+  Result := qeNone;
 end;
 
 //Parse an extern directive and add it to the function definition
@@ -1080,7 +1122,7 @@ end;
 //Assumes the 'extern' keyword has already been consumed
 //Note: The functions calling convention value is set (and validated) by the caller
 //We only parse, validate, and set the address and other data
-function ParseExternDef(Func: PFunction): TAssembleError;
+function ParseExternDef(Func: PFunction): TQuicheError;
 var IsReg: Boolean;
   P: Integer;
   Slug: TExprSlug;
@@ -1092,17 +1134,17 @@ begin
     IsReg := Func.Params[0].Reg <> prNone;
     for P := 1 to Func.ParamCount + Func.ResultCount-1 do
       if IsReg <> (Func.Params[P].Reg <> prNone) then
-        EXIT(errImproperRegParamMix);
+        EXIT(ErrMsg(qeFunctionDeclaration, 'Either all parameters must be register parameters, or none'));
   end;
 
   ExprType := vtPointer;
   Result := ParseExpressionToSlug(@Slug, ExprType);
-  if Result <> errNone then
+  if Result <> qeNone then
     EXIT;
   if (Slug.ILItem <> nil) or (Slug.Operand.Loc <> locImmediate) then
-    EXIT(errConstantExpressionExpected);
+    EXIT(Err(qeConstantExpressionExpected));
   Func.CodeAddress := Slug.Operand.immValue;
-  Result := errNone;
+  Result := qeNone;
 end;
 
 //Parses the directives section of a function declaration.
@@ -1112,9 +1154,9 @@ end;
 //2) If the function has no body (external, forward) stops returns with NextKeyword
 //   containing the first keyword after the function declaration.
 //Note: Any identifiers which are not keywords will return an error.
-function ParseDirectives(Func: PFunction;out NextKeyword: TKeyword): TAssembleError;
+function ParseDirectives(Func: PFunction;out NoCode: Boolean;out NextKeyword: TKeyword): TQuicheError;
 var IsForward: Boolean; //This declaration is a Forward
-  NoCode: Boolean;  //True if the function has no code section after it (extern, forward)
+//  NoCode: Boolean;  //True if the function has no code section after it (extern, forward)
   Convention: TCallingConvention; //If current directive is a calling convention
 begin
   Isforward := False;
@@ -1134,29 +1176,29 @@ begin
 
     //Do we have a any directives? E.g. calling convention
     Result := ParseKeyword(NextKeyword);
-    if Result <> errNone then
+    if Result <> qeNone then
       EXIT;
     if NextKeyword = keyUnknown then
-      EXIT(errDirectiveOrFunctionBodyExpected);
+      EXIT(ErrSyntaxMsg(synFunctionDeclaration, 'Directive or function body expected'));
     case NextKeyword of
       keyFORWARD:
       begin
         if IsForward or (Func.CallingConvention = ccExtern) then
           //Extern and forward are incompatible
-          EXIT(errExternFunctionsCantBeForward);
+          EXIT(ErrMsg(qeFunctionDeclaration, 'Extern functions can''t be forward declared'));
         NoCode := True;
         IsForward := True;
         if ffForward in Func.Flags then
-          EXIT(errDuplicateFunction);
+          EXIT(ErrMsg(qeFunctionDeclaration, 'Function has already been declared as FORWARD'));
       end;
       keyEXTERN:
       begin
         if IsForward then //Extern and forward are incompatible
-          EXIT(errExternFunctionsCantBeForward);
+          EXIT(ErrMsg(qeFunctionDeclaration, 'Extern functions can''t be forward declared'));
         Convention := ccExtern;
         NoCode := True;
         Result := ParseExternDef(Func);
-        if Result <> errNone then
+        if Result <> qeNone then
           EXIT;
       end;
 //      keySTACK: Convention := ccStackFrame;
@@ -1178,8 +1220,9 @@ begin
       if Func.CallingConvention = ccUnknown then
         Func.CallingConvention := DefaultCallingConvention;
 
-      if not NoCode then
-      begin
+//      if not NoCode then
+        EXIT(qeNone);
+{      begin
       //If it's a forward declaraion then anything else will be more global stuff.
       //If not forward then it's the start of the routine's code.
         Result := ParseFunctionCode(Func, NextKeyword);
@@ -1188,18 +1231,18 @@ begin
         NextKeyword := keyUnknown;
       end;
       EXIT(errNone);
-    end;
+}    end;
 
     //We have a calling convention
     if Convention <> ccUnknown then
       if ffForward in Func.Flags then
       begin //Forward must match previous
         if Func.CallingConvention <> Convention then
-          EXIT(errFuncDecDoesntMatch)
+          EXIT(Err(qeFuncDecDoesntMatch))
       end
       else if Func.CallingConvention <> ccUnknown then
         //Can't have muliple calling conventions
-        EXIT(errMultipleCallingConventions)
+        EXIT(ErrMsg(qeFunctionDeclaration, 'Only one calling conventioned allowed'))
       else
         Func.CallingConvention := Convention;
   end;
@@ -1214,27 +1257,29 @@ end;
 //Assumes that the 'function' or 'procedure' keyword has already been consumed
 //Inputs:
 //  Proc is True if we're parsing a Procedure definition, false for a Function
-function ParseFunctionDef(Proc: Boolean;out NextKeyword: TKeyword): TAssembleError;
+function ParseFunctionDef(Proc: Boolean;out NextKeyword: TKeyword): TQuicheError;
 var Func: PFunction;
   Ident: String;
+  NoCode: Boolean;  //Returned by ParseDirectives. If True the declaration has no body
+                    //(forward, extern etc).
 begin
   //Function name...
   Parser.SkipWhiteSpace;
   Result := ParseIdentifier(#0, Ident);
-  if Result <> errNone then
+  if Result <> qeNone then
     EXIT;
   //...error if it's a keyword or already defined (unless a forward)
   if IdentToKeyword(Ident) <> keyUnknown then
-    EXIT(errReservedWord);
-  Func := FuncFind(Ident);
+    EXIT(ErrSub(qeReservedWord, Ident));
+  Func := FuncFindInScope(Ident);
   if Func = nil then
     Func := FuncCreate(NameSpace, Ident)
   else
   begin
     if not (ffForward in Func.Flags) then
-      EXIT(errDuplicateFunction)
+      EXIT(ErrSub(qeFunctionRedeclared, Ident))
     else if Proc <> (Func.ResultCount = 0) then
-      EXIT(errFuncDecDoesntMatch);
+      EXIT(Err(qeFuncDecDoesntMatch));
   end;
   //Corrupts attribute - TODO
   //Probably better to have a preserves list instead?
@@ -1250,7 +1295,7 @@ begin
   begin
     Parser.SkipChar;
     Result := ParseParamDefs(Func);
-    if Result <> errNone then
+    if Result <> qeNone then
       EXIT;
   end;
 
@@ -1264,36 +1309,52 @@ begin
       if ffForward in Func.Flags then
       begin
         if Func.Params[Func.ParamCount].Specifier <> psResult then
-          EXIT(errFuncDecDoesntMatch)
+          EXIT(Err(qeFuncDecDoesntMatch))
       end
       else
         Func.Params[Func.ParamCount].Specifier := psResult;
       Result := ParseParamType(Func, Func.ParamCount, Func.ParamCount);
-      if Result <> errNone then
+      if Result <> qeNone then
         EXIT;
       Func.ResultCount := 1;
     end
     else
-      EXIT(errFunctionResultExpected);
+      EXIT(ErrMsg(qeFunctionDeclaration, 'Function must have a result'));
 
-  Result := ParseDirectives(Func, NextKeyword);
-end;
+  Result := ParseDirectives(Func, NoCode, NextKeyword);
+  if Result <> qeNone then
+    EXIT;
+
+  if not NoCode then
+  begin
+    //If it's a forward declaraion then anything else will be more global stuff.
+    //If not forward then it's the start of the routine's code.
+    Result := ParseFunctionCode(Func, NextKeyword);
+    if Result <> qeNone then
+      EXIT;
+    NextKeyword := keyUnknown;
+  end;
+
+{  if (ffForward in Func.Flags) or (Func.CallingConvention = ccExtern) then
+  else
+    Result := ParseFunctionCode(Func, NextKeyword);
+}end;
 
 //---------------------------
 //The main BEGIN ... END. block
-function ParseMainBlock: TAssembleError;
+function ParseMainBlock: TQuicheError;
 begin
   Result := ParseBlock(bsBeginRead);
-  if Result <> errNone then
+  if Result <> qeNone then
     EXIT;
   if Parser.TestChar <> '.' then
-    EXIT(errEndDotExpected);
+    EXIT(Err(qeEndDotExpected));
   Parser.SkipChar;
 
   Parser.SkipWhiteSpaceAll;
   if not Parser.EOF then
-    EXIT(errCodeAfterEndDot);
-  Result := errNone;
+    EXIT(Err(qeCodeAfterEndDot));
+  Result := qeNone;
 end;
 
 // <globals> := [ <global-defs> ] [ <global-defs> ]
@@ -1304,7 +1365,7 @@ end;
 //               | <constant-def>
 // <main-block> := <block> . <end-of-file>
 //              (no space between <block> and the period).
-function ParseGlobals(AllowFuncs: Boolean): TAssembleError;
+function ParseGlobals(AllowFuncs: Boolean): TQuicheError;
 var
   Ch: Char;
   Keyword: TKeyword;
@@ -1325,18 +1386,20 @@ begin
       begin
         Parser.SkipChar;
         Result := ParseAttribute;
-        if Result <> errNone then
+        if Result <> qeNone then
           EXIT;
         Keyword := keyUnknown;
       end
       else if Ch in csIdentFirst then
       begin //Identifier
         Result := ParseKeyword(Keyword);
-        if Result <> errNone then
+        if Result <> qeNone then
           EXIT;
         if Keyword = keyUnknown then
-          EXIT(errDeclarationExpected);
-      end;
+          EXIT(Err(qeInvalidTopLevel));
+      end
+      else
+        EXIT(Err(qeInvalidTopLevel));
     end;
 
     NextKeyword := keyUnknown;
@@ -1355,13 +1418,13 @@ begin
         end;
 
       else
-        EXIT(errDeclarationExpected)
+        EXIT(Err(qeInvalidTopLevel))
       end;
 //TESTING ONLY - TO BE REMOVED
-If Result = errIdentifierExpected then
-  EXIT(errNone);
+//If Result = errIdentifierExpected then
+//  EXIT(errNone);
 //--END
-      if Result <> errNone then
+      if Result <> qeNone then
         EXIT;
 
     end;

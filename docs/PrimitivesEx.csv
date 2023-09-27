@@ -6,7 +6,7 @@
 ;,,,,,,Smaller types must be listed before larger types,,,,,,,,,,,
 ;,,,,,,,,,,,,,,,,,
 ;,,,,,,Procedures,,Locations,,,,,Special validations on type conversion,,,,
-;,Name,OpType,FirstParamType,DestType,Validation,Exec,,Param1,Param2,Dest,Corrupts,Validate,s8,u8,s16,u16,Notes
+;,Name,OpType,FirstParamType,DestType,Validation,Exec,Flags,Param1,Param2,Dest,Corrupts,Validate,s8,u8,s16,u16,Notes
 ;,Misc,,,,,,,,,,,,,,,,
 ,none,,,,x,error,,,,none,,,,,,,Raises an error if encountered by the code generator
 ,phi,,,,x,empty,,,,,,,,,,,Dummy which does nothing
@@ -31,6 +31,7 @@
 ;,assign,boolean,,,x,assignoffset8imm8,,i,,none,,,,,,,Assigning from boolean
 ;,,,,,,,,,,,,,,,,,
 ;,branch,,,,,branch,,,,,,,,,,,Conditional or unconditional
+,condbranch,boolean,,branch,x,atozf,,a,,zf,f,,,,,,Conditional branch
 ;,phi,,,,,phi,,,,,,,,,,,Ignored
 ;,,,,,,,,,,,,,,,,,
 ;,Maths,,,,,,,,,,,,,,,,
@@ -246,6 +247,59 @@
 ,xor,boolean,,,x,xor8ri,,a,i,a,f,empty,,,,,
 ,xor,boolean,,,x,xor8rr,,a,a;b;c;d;e;h;l,a,f,empty,,,,,
 ;,,,,,,,,,,,,,,,,,
-;,not,x8,,,x,not8,,,,,,,,,,,
-;,not,x16,,,x,not16,,,,,,,,,,,
-;,not,boolean,,,x,not8,,,,,,,,,,,
+,not,u8,,,x,cpla,,a,,a,f,empty,,,,,The way we're storing Booleans means we use the same code for bitwise and logical operations
+,not,s8,,,x,cpla,,a,,a,f,empty,,,,,The way we're storing Booleans means we use the same code for bitwise and logical operations
+,not,u16,,,x,not16rr,,hl;de;bc,,p1,a;f,empty,,,,,
+,not,s16,,,x,not16rr,,hl;de;bc,,p1,a;f,empty,,,,,
+,not,boolean,,,x,cpla,,a,,a,f,empty,,,,,
+;,,,,,,,,,,,,,,,,,
+;,Name,OpType,FirstParamType,DestType,Validation,Exec,,Param1,Param2,Dest,Corrupts,Validate,s8,u8,s16,u16,Notes
+,writechar,u8,,,x,:s_writechar,,a,,,,empty,,,,,Write character to output
+,writeinteger,u8,,,x,:write_byte,,l,,,a;f;h;l,empty,,,,,Write byte to the output
+,writeinteger,u16,,,x,:write_word,,hl,,,a;f;h;l,empty,,,,,Write word to the output
+,writeinteger,s16,,,x,:write_integer,,hl,,,a;f;h;l,empty,,,,,Write signed integer to the output
+,writeboolean,boolean,,,x,:write_bool,,a,,,a;f;h;l,empty,,,,,
+;,writeasciiz,u16,,,x,:write_asciiz,,hl,,,a;f;h;l,empty,,,,,Write ASCIIZ string
+;,writeascii7,u16,,,x,:write_ascii7,,hl,,,a;f;h;l,empty,,,,,Write ASCII7 string (bit 7 of final char set)
+,writenewline,,,,x,:s_newline,,,,,,empty,,,,,Write end of line marker
+;,,,,,,,,,,,,,,,,,
+;,Typecasts,,,,,,,,,,,,,,,,
+;,,,,,,,,,,,,,,,,,
+,integer,x8,,x16,x,assignoffset16r8,,a;b;c;d;e;h;l,,none,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
+,integer,x16,,x16,x,empty,,hl;de;bc,,p1,,empty,empty,empty,empty,empty,
+,integer,boolean,,x16,x,assignoffset16r8,,a;b;c;d;e;h;l,,none,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
+,word,x8,,x16,x,assignoffset16r8,,a;b;c;d;e;h;l,,none,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
+,word,x16,,x16,x,empty,,hl;de;bc,,p1,,empty,empty,empty,empty,empty,
+,word,boolean,,x16,x,assignoffset16r8,,a;b;c;d;e;h;l,,none,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
+,pointer,x8,,x16,x,assignoffset16r8,,a;b;c;d;e;h;l,,none,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
+,pointer,x16,,x16,x,empty,,hl;de;bc,,p1,,empty,empty,empty,empty,empty,
+,pointer,boolean,,x16,x,assignoffset16r8,,a;b;c;d;e;h;l,,none,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
+,int8,x8,,x8,x,empty,,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,
+,int8,x16,,x8,x,empty,loadrplow,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,Typecast 16 bit to 8 bit. High byte will be ignored
+,int8,boolean,,x8,x,empty,,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,
+,byte,x8,,x8,x,empty,,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,
+,byte,x16,,x8,x,empty,loadrplow,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,Typecast 16 bit to 8 bit. High byte will be ignored
+,byte,boolean,,x8,x,empty,,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,
+,boolean,x8,,boolean,x,empty,,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,
+,boolean,x16,,boolean,x,empty,loadrplow,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,Typecast 16 bit to 8 bit. High byte will be ignored
+,boolean,boolean,,boolean,x,empty,,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,
+,char,x8,,x8,x,empty,,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,
+,char,x16,,x8,x,empty,loadrplow,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,Typecast 16 bit to 8 bit. High byte will be ignored
+,char,boolean,,x8,x,empty,,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,
+;,,,,,,,,,,,,,,,,,
+;,Intrinsics (I.e. small operations mostly enacted via CPU instructions),,,,,,,,,,,,,,,,
+;,,,,,,,,,,,,,,,,,
+,abs,x16,,s16,x,:abs_hl_with_overflow,,hl,,hl,a;f;h;l,nc_overflow,,,,,
+,dec,u8,,u8,x,procdec8r,,a;b;c;d;e;h;l,,p1,f,empty,,,,,
+,dec,s8,,s8,x,procdec8r,,a;b;c;d;e;h;l,,p1,f,empty,,,,,
+,dec,u16,,u16,x,procdec16r,,hl;de;bc,,p1,,empty,,,,,
+,dec,s16,,s16,x,procdec16r,,hl;de;bc,,p1,,empty,,,,,
+,inc,u8,,u8,x,procinc8r,,a;b;c;d;e;h;l,,p1,f,empty,,,,,
+,inc,s8,,s8,x,procinc8r,,a;b;c;d;e;h;l,,p1,f,empty,,,,,
+,inc,u16,,u16,x,procinc16r,,hl;de;bc,,p1,,empty,,,,,
+,inc,s16,,s16,x,procinc16r,,hl;de;bc,,p1,,empty,,,,,
+,odd,x8,,branch,x,odd8r_branch,,a,,cf,a;f,,,,,,
+,odd,x16,,branch,x,odd8r_branch,loadrplow,a,,cf,a;f,,,,,,
+,odd,x8,,boolean,x,odd8r,,a,,a,a;f,,,,,,
+,odd,x16,,boolean,x,odd8r,loadrplow,a,,a,a;f,,,,,,
+,hi,x16,,u8,x,empty,loadrphigh,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,

@@ -95,22 +95,24 @@ begin
     Result := '+' + ByteToStr(Offset);
 end;
 
-function CodeOffset(Param: PILParam): String;
+function CodeOffset(Param: PILParam;out Comment: String): String;
 var Variable: PVariable;
 begin
   Variable := ILParamToVariable(Param);
 //  if Variable. <> Offset var then
 //    raise Exeption.Create('Variable is not an offset var in CodeOffset');
   Result := OffsetToStr(Variable.Offset);
+  Comment := Variable.Name;
 end;
 
-function CodeOffsetHigh(Param: PILParam): String;
+function CodeOffsetHigh(Param: PILParam;out Comment: String): String;
 var Variable: PVariable;
 begin
   Variable := ILParamToVariable(Param);
 //  if Variable. <> Offset var then
 //    raise Exeption.Create('Variable is not an offset var in CodeOffset');
   Result := OffsetToStr(Variable.Offset+1);
+  Comment := Variable.Name;
 end;
 
 function DoSubs(S: String;ILItem: PILItem): String;
@@ -119,10 +121,12 @@ var
   En: Integer;  //End of param
   PName: String;  //Parameter name (to be substituted)
   Sub: String;  //Substitution string
+  Comment: String;
 begin
   Result := S;
   while True do
   begin
+    Comment := '';
     St := Result.IndexOf('<');
     En := Result.IndexOf('>');
     Sub := '';
@@ -184,31 +188,33 @@ begin
 
       //Offsets (stack variables)
       else if CompareText(PName, 'd.offset') = 0 then
-        Sub := CodeOffset(@ILItem.Dest)
+        Sub := CodeOffset(@ILItem.Dest, Comment)
       else if CompareText(PName, 'd.offsetlow') = 0 then
-        Sub := CodeOffset(@ILItem.Dest)
+        Sub := CodeOffset(@ILItem.Dest, Comment)
       else if CompareText(PName, 'd.offsethigh') = 0 then
-        Sub := CodeOffsetHigh(@ILItem.Dest)
+        Sub := CodeOffsetHigh(@ILItem.Dest, Comment)
 
       else if CompareText(PName, 'p1.offset') = 0 then
-        Sub := CodeOffset(@ILItem.Param1)
+        Sub := CodeOffset(@ILItem.Param1, Comment)
       else if CompareText(PName, 'p1.offsetlow') = 0 then
-        Sub := CodeOffset(@ILItem.Param1)
+        Sub := CodeOffset(@ILItem.Param1, Comment)
       else if CompareText(PName, 'p1.offsethigh') = 0 then
-        Sub := CodeOffsetHigh(@ILItem.Param1)
+        Sub := CodeOffsetHigh(@ILItem.Param1, Comment)
 
       else if CompareText(PName, 'p2.offset') = 0 then
-        Sub := CodeOffset(@ILItem.Param2)
+        Sub := CodeOffset(@ILItem.Param2, Comment)
       else if CompareText(PName, 'p2.offsetlow') = 0 then
-        Sub := CodeOffset(@ILItem.Param2)
+        Sub := CodeOffset(@ILItem.Param2, Comment)
       else if CompareText(PName, 'p2.offsethigh') = 0 then
-        Sub := CodeOffsetHigh(@ILItem.Param2);
+        Sub := CodeOffsetHigh(@ILItem.Param2, Comment);
 
 
       if Sub = '' then
         raise Exception.Create('Library substitution not found: ' + PName);
 
       Result := Result.Substring(0,St) + Sub + Result.Substring(En+1);
+      if Comment <> '' then
+        Result := Result.Replace('$$',Comment);
     end
     else
       raise Exception.Create('Unmatched braces in code snippet: ' + S);

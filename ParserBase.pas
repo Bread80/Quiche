@@ -1,7 +1,7 @@
 unit ParserBase;
 
 interface
-uses Classes, MSourceReader, MErrors, QTypes, Functions, ILData, Variables;
+uses Classes, SourceReader, ParseErrors, QTypes, Functions, ILData, Variables;
 
 //NameSpace of the code we are currently parsing. I.e. the file name
 var NameSpace: String;
@@ -14,24 +14,24 @@ procedure LoadFromString(Source: String);
 
 function ParserEOF: Boolean;
 
-var Parser: TSourceReader;
+var Parser: TQuicheSourceReader;
 
 
 //Keywords listed in alphabetical order (for convenience)
 type TKeyword = (keyUNKNOWN,
-  keyAND, keyBEGIN, keyBOOLEAN, keyBYTE,
-  keyCHAR, keyCONST, keyDIV, keyDO, keyDOWNTO,
-  keyELSE, keyEND, keyEXTERN, keyFALSE, keyFOR, keyFORWARD, keyFUNCTION,
-  keyIF, keyIN, keyINTEGER, keyINT16, keyINT8,
-  keyMOD, keyNOT, keyOR, keyOUT, keyPOINTER, keyPROCEDURE,
-  keyREAL, keySHL, keySHR, keySTRING,
-  keyTHEN, keyTO, keyTrue, keyVAR, keyWORD_, keyXOR);
+  keyAND, keyBEGIN,
+  keyCONST, keyDIV, keyDO, keyDOWNTO,
+  keyELSE, keyEND, keyEXTERN,keyFOR, keyFORWARD, keyFUNCTION,
+  keyIF, keyIN,
+  keyMOD, keyNOT, keyOR, keyOUT, keyPROCEDURE,
+  keySHL, keySHR,
+  keyTHEN, keyTO, keyVAR, keyXOR,
+  keyFALSE, keyTRUE, keyMAXINT, keyMININT //These are Consts and shouldn't be here!
+  );
 
 //Converts an identifier to it's keyXXX constant.
 //If no match found, returns keyUnknown.
 function IdentToKeyword(Ident: String): TKeyword;
-
-function IdentToVarType(VarTypeName: String): TVarType;
 
 //Test for := assignment operator
 //If found, the parser consumes the characters,
@@ -46,21 +46,21 @@ function TestForIdent(Ident: String): Boolean;
 //Test for a Type Suffix Symbol.
 //If found returns the type and consumes the characters,
 //if not returns vtUnknown and leaves the Parser unchanged
-function TestForTypeSymbol(out VarType: TVarType): TAssembleError;
+function TestForTypeSymbol(out VarType: TVarType): TQuicheError;
 
 //Parses and returns an identifier.
 //If First is anything other than #0 this will be used as the first character
 //of the Identifier. This is useful where the character has already been consumed,
 //from the Parser, for analysis.
-function ParseIdentifier(First: Char;out Ident: String): TAssembleError;
+function ParseIdentifier(First: Char;out Ident: String): TQuicheError;
 
 //Parses the next item as a keyword.
 //If the next item is not a keyword returns Keyword = keyUnknown
-function ParseKeyword(out Keyword: TKeyword): TAssembleError;
+function ParseKeyword(out Keyword: TKeyword): TQuicheError;
 
 //Parses the next item as a variable type.
 //If the next item is not a known type returns VT = vtUnknown
-function ParseVarType(out VT: TVarType): TAssembleError;
+function ParseVarType(out VT: TVarType): TQuicheError;
 
 //Attribute data
 var AttrCorrupts: TUsedRegSet;
@@ -73,7 +73,7 @@ var AttrCorrupts: TUsedRegSet;
 //Specifies a list of registers which are corrupted by the following code
 //[PreservesAll]
 //Specifies that the following code does not corrupt any registers
-function ParseAttribute: TAssembleError;
+function ParseAttribute: TQuicheError;
 
 
 //=====
@@ -131,12 +131,13 @@ end;
 
 const KeywordStrings: array[low(TKeyword)..high(TKeyword)] of String = (
   '',  //Placeholder for Unknown value
-  'and', 'begin', 'boolean', 'byte', 'char', 'const', 'div', 'do', 'downto',
-  'else', 'end', 'extern', 'false', 'for', 'forward', 'function',
-  'if', 'in', 'integer', 'int16', 'int8',
-  'mod', 'not', 'or', 'out', 'pointer', 'procedure',
-  'real', 'shl', 'shr', 'string',
-  'then', 'to', 'true', 'var', 'word', 'xor');
+  'and', 'begin', 'const', 'div', 'do', 'downto',
+  'else', 'end', 'extern', 'for', 'forward', 'function',
+  'if', 'in',
+  'mod', 'not', 'or', 'out', 'procedure',
+  'shl', 'shr',
+  'then', 'to', 'var', 'xor',
+  'false','true','maxint','minint');
 
 function IdentToKeyword(Ident: String): TKeyword;
 begin
@@ -145,26 +146,6 @@ begin
       EXIT;
 
   Result := keyUnknown;
-end;
-
-function IdentToVarType(VarTypeName: String): TVarType;
-var Keyword: TKeyword;
-begin
-  Keyword := IdentToKeyword(VarTypeName);
-  case Keyword of
-    keyBYTE: Result := vtByte;
-    keyWORD_: Result := vtWord;
-    keyINTEGER: Result := vtInteger;
-    keyINT16: Result := vtInteger;
-    keyINT8: Result := vtInt8;
-    keyREAL: Result := vtReal;
-    keyBOOLEAN: Result := vtBoolean;
-    keySTRING: Result := vtString;
-    keyCHAR: Result := vtChar;
-    keyPOINTER: Result := vtPointer;
-  else
-    Result := vtUnknown;
-  end;
 end;
 
 function TestForIdent(Ident: String): Boolean;
@@ -210,7 +191,7 @@ begin
   EXIT(False);
 end;
 
-function ParseIdentifier(First: Char;out Ident: String): TAssembleError;
+function ParseIdentifier(First: Char;out Ident: String): TQuicheError;
 var Ch: Char;
 begin
   if First <> #0 then
@@ -221,11 +202,11 @@ begin
     Parser.Mark;
 
     if not Parser.ReadChar(Ch) then
-      EXIT(errIdentifierExpected);
+      EXIT(Err(qeIdentifierExpected));
     if Ch in csIdentFirst then
       Ident := Ch
     else
-      EXIT(errIdentifierExpected);
+      EXIT(Err(qeIdentifierExpected));
   end;
 
   while True do
@@ -234,28 +215,32 @@ begin
     if Ch in csIdentOther then
       Ident := Ident + Ch
     else
-      EXIT(errNone);
+      EXIT(qeNone);
     Parser.SkipChar;
   end;
 end;
 
-function ParseKeyword(out Keyword: TKeyword): TAssembleError;
+function ParseKeyword(out Keyword: TKeyword): TQuicheError;
 var Ident: String;
 begin
   Result := ParseIdentifier(#0, Ident);
-  if Result = errNone then
+  if Result = qeNone then
     Keyword := IdentToKeyword(Ident);
 end;
 
-function ParseVarType(out VT: TVarType): TAssembleError;
+function ParseVarType(out VT: TVarType): TQuicheError;
 var Ident: String;
 begin
   Result := ParseIdentifier(#0, Ident);
-  if Result = errNone then
-    VT := IdentToVarType(Ident);
+  if Result = qeNone then
+  begin
+    VT := StringToVarType(Ident);
+    if VT = vtUnknown then
+      EXIT(ErrSub(qeUnknownType, Ident));
+  end;
 end;
 
-function TestForTypeSymbol(out VarType: TVarType): TAssembleError;
+function TestForTypeSymbol(out VarType: TVarType): TQuicheError;
 var Ch: Char;
 begin
   Ch := Parser.TestChar;
@@ -287,18 +272,19 @@ begin
     end;
 
     if VarType in [vtReal, vtString] then
-      EXIT(errTypeNotYetSupported);
+      EXIT(ErrMsg(qeTodo, 'Type not yet supported: ' + VarTypeToName(VarType)));
   end;
 
-  Result := errNone;
+  Result := qeNone;
 end;
 
-function ParseAttribute: TAssembleError;
+function ParseAttribute: TQuicheError;
 var Ident: String;
   Ch: Char;
   InIXIY: Boolean;
   WhiteSpace: Boolean;
   Reg: TUsedReg;
+const strCorruptsAttrError = 'Invalid corrupts attribute: ''%s''. Valid values are A,B,C,D,E,F,H,L,IX,IY,L,X,Y. Whitespace and comma separators are allowed.';
 begin
   ParseIdentifier(#0, Ident);
   if CompareText(Ident, 'corrupts') = 0 then
@@ -313,7 +299,7 @@ begin
         Ch := UpCase(Ch);
         case Ch of
           #0..#32,',': WhiteSpace := True;  //Whitespace and separators
-          ']': EXIT(errNone);
+          ']': EXIT(qeNone);
           'A': Reg := urA;
           'B': Reg := urB;
           'C': Reg := urC;
@@ -323,14 +309,14 @@ begin
           'H': Reg := urH;
           'I':
             if InIXIY then
-              EXIT(errCorruptsAttributeError)
+              EXIT(ErrMsg(qeAttributeError, Format(strCorruptsAttrError, ['I'])))
             else
               InIXIY := True;
           'L': Reg := urL;
           'X': Reg := urIX;
           'Y': Reg := urIY;
         else
-          EXIT(errCorruptsAttributeError)
+          EXIT(ErrMsg(qeAttributeError, Format(strCorruptsAttrError, [Ch])));
         end;
 
         if not WhiteSpace then
@@ -340,28 +326,28 @@ begin
               AttrCorrupts := AttrCorrupts + [Reg]
             else
             if Ch <> 'I' then
-              EXIT(errCorruptsAttributeError);
+              EXIT(ErrMsg(qeAttributeError, Format(strCorruptsAttrError, [Ch])));
             InIXIY := False;
           end
           else
             AttrCorrupts := AttrCorrupts + [Reg];
       end
       else
-        EXIT(errAttributeError)
+        EXIT(Err(qeAttributeError))
   end
   else if CompareText(Ident, 'preservesall') = 0 then
   begin
     Parser.SkipWhiteSpace;
     Result := ParseIdentifier(#0, Ident);
-    if Result <> errNone then
+    if Result <> qeNone then
       EXIT;
     Parser.SkipWhiteSpace;
     if Parser.TestChar <> ']' then
-      EXIT(errAttributeError);
+      EXIT(ErrMsg(qeAttributeError, '''['' expected at end of attribute'));
     Parser.SkipChar;
   end
   else
-    EXIT(errUnknownAttribute);
+    EXIT(ErrMsg(qeAttributeError, 'Unknown attribute: ' + Ident));
 end;
 
 var CurrSkipMode: Boolean;
@@ -406,7 +392,7 @@ end;
 
 
 initialization
-  Parser := TSourceReader.Create;
+  Parser := TQuicheSourceReader.Create;
   InitialiseSkipMode;
 finalization
   Parser.Free;

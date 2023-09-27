@@ -3,30 +3,6 @@ unit ILData;
 interface
 uses Generics.Collections, Classes, QTypes;
 
-const
-  //Lanuage constants
-  valueFalse = 0;
-  valueTrue = -1;
-  BooleanToBinary: array[False..True] of Integer = (valueFalse, valueTrue);
-
-  //Runtime errors
-  rerrNone = 0;
-  rerrOverflow = 1;
-  rerrDivByZero = 2;
-
-//CompilerOptions
-var
-  //If true, variables can be auto-created by any assignment to an un-declared
-  //variable. Explicit type declarations are allowed when this option is used.
-  //If not type inference will be used. Note that type declarations are ONLY
-  //allowed the first time the variable is assigned.
-  optAllowAutoCreation: Boolean;
-
-  //If enable certain maths operations will be checked for overflow
-  //Use the {$Q} compiler directive
-  optOverflowChecks: Boolean;
-
-
   //Code register allocation and code generation
   //These types specify where a parameter must (can) be placed before a primitive can
   //generate code. Also specifies where the result of a primitive must be placed
@@ -118,7 +94,7 @@ type
         TempIndex: Integer ); //Inded of temp variable (should be updated to be a standard variable index)
     end;
 
-  TDestType = (dtData, dtBranch, dtCondBranch);
+  TDestType = (dtNone, dtData, dtBranch, dtCondBranch);
 
   PILDest = ^TILDest;
   TILDest = record
@@ -159,6 +135,7 @@ type
     DestAlloc: TAllocLoc;   //And the register or other location to place/move the result into
 
     case DestType: TDestType of
+      dtNone: ();
       dtData: (
         Dest: TILDest;      //Data for the destination
         );
@@ -219,7 +196,7 @@ procedure ILToStrings(S: TStrings);
 var NewSourceLine: Boolean;
 
 implementation
-uses SysUtils, Variables, MSourceReader, ParserBase, Operators;
+uses SysUtils, Variables, SourceReader, ParserBase, Operators, Globals;
 
 function ILParamValueToInteger(Param: PILParam): Integer;
 begin
@@ -427,6 +404,7 @@ begin
   Result := '';
 
   case Item.DestType of
+    dtNone: Result := Result + '_ ';
     dtData:
     begin
       case Item.Dest.Loc of
@@ -458,7 +436,7 @@ begin
   end;
 
   //Ignore unconditional branches
-  if Item.DestType <> dtBranch then
+  if not (Item.DestType in [dtBranch]) then
   begin
     if Item.DestType = dtData then
       Result := Result + '=';

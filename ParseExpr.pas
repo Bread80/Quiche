@@ -1,7 +1,7 @@
 unit ParseExpr;
 
 interface
-uses MErrors, ILData, QTypes, Operators;
+uses ParseErrors, ILData, QTypes, Operators;
 
 //Unary prefix operators
 type
@@ -17,6 +17,10 @@ type
 type
   PExprSlug = ^TExprSlug;
   TExprSlug = record
+    //NOTE: If ILItem is non-nil then Operand will be ignored
+    ILItem: PILItem;  //Returns the ILItem of a sub-expression or unary operators
+                      //(Otherwise, nil);
+
     Operand: TILParam;  //The operand
     ParamOrigin: TParamOrigin;
 
@@ -30,11 +34,18 @@ type
     ResultType: TVarType; //Type for the result
     ImplicitType: TVarType;//?? Type for type inference
 
-    ILItem: PILItem;  //Returns the ILItem of a sub-expression or unary operators
-                      //(Otherwise, nil);
   end;
 
-function ParseExpressionToSlug(Slug: PExprSlug;var ExprType: TVarType): TAssembleError;
+//Where the Slug has an ILItem, this routine creates a temp var and sets the
+//ILItem's Dest data to point to it.
+procedure SlugAssignToTempVar(Slug: PExprSlug);
+
+function ParseExpressionToSlug(Slug: PExprSlug;var ExprType: TVarType): TQuicheError;
+
+//Parses an expression to an ILItem with a single parameter and no operation
+//Dest and Operation data *must* be assigned by the caller
+function ParseExprToILItem(out ILItem: PILItem;out VType: TVarType): TQuicheError;
+
 
 (*
 //Parses an expression (or sub-expression) until we run out of operators
@@ -55,7 +66,7 @@ function ParseExpression(out ILItem: PILItem;var ExprType: TVarType;
   out ImplicitType: TVarType): TAssembleError;
 *)
 implementation
-uses SysUtils, Variables, ParserBase, Eval;
+uses SysUtils, Variables, ParserBase, Eval, Globals, Scopes, ParseIntrinsics;
 
 //===============================================
 //Expressions
@@ -68,7 +79,7 @@ begin
 
   Slug.ILItem.Dest.Loc := locTemp;
   Slug.ILItem.Dest.TempIndex := GetNextTempIndex;
-  VarCreateTemp(Slug.ILItem.Dest.TempIndex, Slug.ResultType);
+  VarCreateTemp(Slug.ILItem.Dest.TempIndex, Slug.ResultType, optDefaultVarStorage);
   Slug.Operand.Loc := locTemp;
   Slug.Operand.TempIndex := Slug.ILItem.Dest.TempIndex;
 end;
@@ -343,7 +354,10 @@ function AssignSlugTypes(var Slug: PExprSlug; RightSlug: PExprSlug): Boolean;
 begin
   //Operation has a fixed result type
   if Slug.OpData.ResultType <> teUnknown then
-    Slug.ResultType := TypeEnumToVarType[Slug.OpData.ResultType]
+  begin
+    Slug.ResultType := TypeEnumToVarType[Slug.OpData.ResultType];
+    Slug.ImplicitType := Slug.ResultType;
+  end
   else
     Slug.ResultType := vtUnknown;
   Slug.OpType := rtUnknown;
@@ -400,26 +414,10 @@ begin
   end;
 end;
 
-//Validates whether the ExprType can be assigned to the variable (etc) with AssignType
-function ValidateAssignmentTypes(AssignType, ExprType: TVarType): Boolean;
-begin
-  //Numeric types
-  if IsNumericType(AssignType) and IsNumericType(ExprType) then
-    EXIT(ExprType <> vtReal);
-  if AssignType = vtBoolean then
-    EXIT(ExprType = vtBoolean);
-
-  if AssignType = vtString then
-    EXIT(ExprType in [vtChar, vtString]);
-  if AssignType = vtChar then
-    EXIT(ExprType = vtChar);
-
-  Result := False;
-end;
 
 //Tests whether the expression returned by Slug is compatible with the type
 //given in ExprType. If it is returns errNone, otherwise returns a suitable error code
-function ValidateExprType(ExprType: TVarType; Slug: PExprSlug): TAssembleError;
+function ValidateExprType(ExprType: TVarType; Slug: PExprSlug): TQuicheError;
 var Negative: Boolean;
   Valid: Boolean;
 begin
@@ -436,27 +434,28 @@ begin
           (Slug.Operand.ImmValue < $80);
         vtInteger: Valid := Negative or (Slug.Operand.ImmValue < $8000);
       else
-        Valid := ValidateAssignmentTypes(ExprType, Slug.ResultType);
+        Valid := ValidateAssignmentType(ExprType, Slug.ResultType);
       end;
     end
     else
-      Valid := ValidateAssignmentTypes(ExprType, Slug.ResultType);
+      Valid := ValidateAssignmentType(ExprType, Slug.ResultType);
   end
   else
     //Expression
-    Valid := ValidateAssignmentTypes(ExprType, Slug.ResultType);
+    Valid := ValidateAssignmentType(ExprType, Slug.ResultType);
 
   if not Valid then
-    Result := errIncompatibleTypes
+    Result := ErrMsg(qeTypeMismatch, 'Incompatible types: ' + VarTypeToName(Slug.ResultType) +
+      ' and ' + VarTypeToName(ExprType))
   else
-    Result := errNone;
+    Result := qeNone;
 end;
 
 
 //======================================Parsing literals
 
 //Parses and returns an integer literal
-function ParseInteger(Slug: PExprSlug): TAssembleError;
+function ParseInteger(Slug: PExprSlug): TQuicheError;
 var
   Ch: Char;
   Value: Integer;
@@ -471,8 +470,8 @@ begin
         if (Value < 6553) or ((Value = 6553) and (Ch < '6')) then
           Value := Value * 10 + (ord(Ch) - ord('0'))
         else
-          EXIT(errInvalidDecimalNumber);
-      '.','e','E': EXIT(errTypeNotYetSupported);
+          EXIT(Err(qeInvalidDecimalNumber));
+      '.','e','E': EXIT(ErrMsg(qeTODO, 'Floating point numbers are not yet supported :('));
       '_': ; //Ignore
     else
       Slug.Operand.Loc := locImmediate;
@@ -483,7 +482,7 @@ begin
         Slug.Operand.ImmType := vtWord;
       Slug.ParamOrigin := poImplicit;
       Slug.ImplicitType := vtInteger;
-      EXIT(errNone);
+      EXIT(qeNone);
     end;
 
     Parser.SkipChar;
@@ -491,10 +490,10 @@ begin
 end;
 
 //Where the '-' sign has already been parsed
-function ParseNegativeInteger(Slug: PExprSlug): TAssembleError;
+function ParseNegativeInteger(Slug: PExprSlug): TQuicheError;
 begin
   Result := ParseInteger(Slug);
-  if Result <> errNone then
+  if Result <> qeNone then
     EXIT;
 
   if Slug.Operand.ImmValue <= 32768 then
@@ -505,13 +504,13 @@ begin
     Slug.ImplicitType := vtInteger;
   end
   else
-    EXIT(errInvalidDecimalNumber);
+    EXIT(Err(qeInvalidDecimalNumber));
 end;
 
 
 //Parses and returns a hex literal
 //Parser must be pointing to
-function ParseHex(Slug: PExprSlug): TAssembleError;
+function ParseHex(Slug: PExprSlug): TQuicheError;
 var
   Ch: Char;
   Ignore: Boolean;
@@ -544,14 +543,14 @@ begin
           Slug.Operand.ImmType := vtPointer;
         Slug.ParamOrigin := poExplicit;
         Slug.ImplicitType := Slug.Operand.ImmType;
-        EXIT(errNone);
+        EXIT(qeNone);
       end;
 
       inc(Digits);
       if Value < $1000 then
         Value := Value * 16 + Digit
       else
-        EXIT(errInvalidHexNumber);
+        EXIT(Err(qeInvalidHexNumber));
     end;
 
     Parser.SkipChar;
@@ -559,7 +558,7 @@ begin
 end;
 
 //Parses and returns a binary literal
-function ParseBinary(Slug: PExprSlug): TAssembleError;
+function ParseBinary(Slug: PExprSlug): TQuicheError;
 var
   Ch: Char;
   Digits: Integer;
@@ -580,7 +579,7 @@ begin
       if Value < 32768 then
         Value := (Value shl 1) + (ord(Ch)-ord('0'))
       else
-        EXIT(errInvalidBinaryNumber);
+        EXIT(Err(qeInvalidBinaryNumber));
     end
     else if Ch <> '_' then
     begin
@@ -592,7 +591,7 @@ begin
         Slug.Operand.ImmType := vtWord;
       Slug.ParamOrigin := poExplicit;
       Slug.ImplicitType := Slug.Operand.ImmType;
-      EXIT(errNone);
+      EXIT(qeNone);
     end;
 
     Parser.SkipChar;
@@ -601,7 +600,7 @@ end;
 
 //Parses and returns a quoted string or character
 //Currently only handles single character strings (i.e. chars)
-function ParseString(Slug: PExprSlug): TAssembleError;
+function ParseString(Slug: PExprSlug): TQuicheError;
 var
   Ch: Char;
   S: String;
@@ -615,7 +614,7 @@ begin
   begin
     Ch := Parser.TestChar;
     if Ch = #0 then
-      EXIT(errUnterminatedString);
+      EXIT(Err(qeUnterminatedString));
     if Ch = '''' then
     begin
       Parser.SkipChar;
@@ -636,9 +635,9 @@ begin
         end
         else
         begin
-          EXIT(errTypeNotYetSupported);
+          EXIT(ErrMsg(qeTODO, 'Strings are not yet supported :('));
         end;
-        EXIT(errNone);
+        EXIT(qeNone);
       end;
     end
     else
@@ -653,7 +652,7 @@ end;
 //Syntax: #<constant>
 //where <constant> can be a decimal, hex or binary value (with the appropriate
 //prefixes).
-function ParseCharLiteral(Slug: PExprSlug): TAssembleError;
+function ParseCharLiteral(Slug: PExprSlug): TQuicheError;
 var
   Ch: Char;
 begin
@@ -667,9 +666,9 @@ begin
     '$': Result := ParseHex(@Slug.Operand);
     '%': Result := ParseBinary(@Slug.Operand);
   else
-    EXIT(errInvalidCharLiteral);
+    EXIT(Err(qeInvalidCharLiteral));
   end;
-  if Result <> errNone then
+  if Result <> qeNone then
     EXIT;
 
   Slug.Operand.Loc := locImmediate;
@@ -679,24 +678,32 @@ begin
     Slug.ParamOrigin := poExplicit;
     Slug.ImplicitType := vtChar;
 
-    Result := errNone;
+    Result := qeNone;
   end
   else
-    Result := errInvalidCharLiteral;
+    Result := Err(qeInvalidCharLiteral);
 end;
 
 
 //=================================Complex operands, and operators
 
-function ParseOperand(Slug: PExprSlug;UnaryOp: TUnaryOperator): TAssembleError; forward;
+function ParseOperand(Slug: PExprSlug;UnaryOp: TUnaryOperator): TQuicheError; forward;
 
 //Parses identifiers as expression parameters. Identifiers can be constants,
 //variables or functions
-function ParseOperandIdentifier(Slug: PExprSlug;Ident: String): TAssembleError;
+function ParseOperandIdentifier(var Slug: PExprSlug;Ident: String): TQuicheError;
 var Keyword: TKeyword;
+  IdentType: TIdentType;
+  Scope: PScope;
+  Item: Pointer;
+  Index: Integer;
   V: PVariable;
+  OpIndex: Integer;
 begin
   Keyword := IdentToKeyword(Ident);
+
+  //Constants - TODO - this needs to be somewhere else!
+  if Keyword <> keyUNKNOWN then
   case Keyword of
     keyFalse, keyTrue:
       begin
@@ -708,32 +715,98 @@ begin
           Slug.Operand.ImmValue := valueTrue and $ffff;
         Slug.Operand.ImmType := vtBoolean;
         Slug.ImplicitType := vtBoolean;
-        Result := errNone;
+        Slug.ResultType := vtBoolean;
+        EXIT(qeNone);
       end;
-      //*** NOT operator handled elsewhere***
-  else //Variable or function
-    V := VarFindByName(Ident, Slug.Operand.VarIndex);
-    if V <> nil then
-    begin //Variable;
-      Slug.Operand.Loc := locVar;
-      Slug.Operand.VarSub := V.Sub;
-      Slug.ParamOrigin := poExplicit;
-      Slug.ResultType := V.VarType;
-      Slug.ImplicitType := V.VarType;
-      Result := errNone;
-    end
-    else //function?
-      EXIT(errBug);
+    keyMAXINT, keyMININT:
+      begin
+        Slug.Operand.Loc := locImmediate;
+        Slug.ParamOrigin := poExplicit;
+        if Keyword = keyMININT then
+          Slug.Operand.ImmValue := GetMinValue(vtInteger)
+        else
+          Slug.Operand.ImmValue := GetMaxValue(vtInteger);
+        Slug.Operand.ImmType := vtInteger;
+        Slug.ImplicitType := vtInteger;
+        Slug.ResultType := vtInteger;
+        EXIT(qeNone);
+      end;
+  else
+    EXIT(ErrSub(qeInvalidKeyword, Ident));
+  end;
+
+  //Variable or function or const
+  //Search everything we can see
+  if SearchScopes(Ident, IdentType, Scope, Item, Index) then
+  begin
+    case IdentType of
+      itVar:
+      begin
+        V := PVariable(Item);
+        Slug.Operand.Loc := locVar;
+        Slug.Operand.VarIndex := Index;
+        Slug.Operand.VarSub := V.Sub;
+        Slug.ParamOrigin := poExplicit;
+        Slug.ResultType := V.VarType;
+        Slug.ImplicitType := V.VarType;
+        EXIT(qeNone);
+      end;
+      itFunction: EXIT(ErrMsg(qeTODO, 'Function dispatch (in expressions) not yet implemeneted'));
+      itConst: EXIT(ErrMsg(qeTODO, 'Constant lookup (in expressions) not yet implemented'));
+      itType: EXIT(ErrMsg(qeTODO, 'Typecasts for user types not yet implemented. Type names not allowed in expressions'));
+    else
+      EXIT(ErrMsg(qeBUG, 'Invalid/unknown IdentType in ParseOperandIentifier'));
+    end;
+  end
+  else
+  begin
+    OpIndex := OpFunctionToIndex(Ident);
+    if OpIndex <> -1 then
+      if OpIndexToData(OpIndex).OpGroup = ogProc then
+        EXIT(ErrOpUsage(ermCantAssignProcedure, OpIndex))
+      else
+        Result := ParseIntrinsic(OpIndex, True, Slug)
+    else
+      //TODO: Search builtin function library
+      EXIT(ErrMsg(qeTODO, 'Library function lookup not yet implemented'));
   end;
 end;
 
-function DoUnaryOp(UnaryOp: TUnaryOperator;var Slug: PExprSlug): TAssembleError;
+function DoUnaryOp(UnaryOp: TUnaryOperator;var Slug: PExprSlug): TQuicheError;
+var EvalResult: Integer;
+  EvalType: TVarType;
 begin
+  case UnaryOp of
+    uoNegate:
+      Slug.OpIndex := OpIndexNegate;
+    uoInvert:
+      Slug.OpIndex := OpIndexNOT;
+  else
+    raise Exception.Create('Unknown unary operator');
+  end;
+
   if ((UnaryOp = uoNegate) and IsNumericType(Slug.ImplicitType)) or
     ((UnaryOP = uoInvert) and IsLogicalType(Slug.ImplicitType)) then
-    Result := errNone
+    Result := qeNone
   else //Unary operator with invalid operand type
-    EXIT(errInvalidExpression);
+    EXIT(ErrOpUsage('Incorrect parameter type: ' + VarTypeToName(Slug.ImplicitType), Slug.OpIndex));
+
+
+  Slug.OpData := OpIndexToData(Slug.OpIndex);
+
+  if (Slug.ILItem = nil) and (Slug.Operand.Loc = locImmediate) then
+  begin
+    Result := EvalUnary(Slug.OpIndex, @Slug.Operand, EvalResult, EvalType);
+    if Result <> qeNone then
+      EXIT;
+    Slug.Operand.ImmValue := EvalResult;
+    Slug.Operand.ImmType := EvalType;
+    Slug.ResultType := EvalType;
+    Slug.OpIndex := OpIndexNone;
+    Slug.OpData := nil;
+    Slug.ImplicitType := EvalType;
+    EXIT;
+  end;
 
   if Slug.ILItem <> nil then
     //We already have an ILItem created. If so, we need to set the Dest to
@@ -741,57 +814,14 @@ begin
     SlugAssignToTempVar(Slug);
 
   Slug.ILItem := ILAppend(dtData);
+  Slug.ILItem.OpIndex := Slug.OpIndex;
   Slug.ILItem.Param1 := Slug.Operand;
   Slug.ILItem.Param2.Loc := locNone;
+  Slug.ILItem.OpType := VarTypeToOpType(Slug.ResultType);
+  Slug.ILItem.ResultType := Slug.ILItem.OpType;
 
-  case UnaryOp of
-    uoNegate:
-    begin
-      OpSymbolToData('negate', Slug.ILItem.OpIndex, Slug.OpData);
-      case ILParamToVarType(@Slug.Operand) of
-        vtByte:
-        begin
-          Slug.ILItem.OpType := rtU8;
-          Slug.OpType := rtU8;
-        end;
-        vtWord:
-        begin
-          Slug.ILItem.OpType := rtU16;
-          Slug.OpType := rtU16;
-        end;
-      else
-        Slug.ILItem.OpType := rtS16;
-        Slug.OpType := rtS16;
-      end;
-      Slug.ResultType := vtInteger;
-      Slug.ILItem.ResultType := rtU16;
-    end;
-    uoInvert:
-    begin
-      OpSymbolToData('not', Slug.ILItem.OpIndex, Slug.OpData);
-      case ILParamToVarType(@Slug.Operand) of
-        vtInt8, vtByte:
-        begin
-          Slug.ILItem.OpType := rtX8;
-          Slug.OpType := rtX8;
-          Slug.ResultType := vtByte;
-          Slug.ILItem.ResultType := rtU8;
-        end;
-        vtBoolean:
-        begin
-          Slug.ILItem.OpType := rtBoolean;
-          Slug.OpType := rtBoolean;
-          Slug.ResultType := vtBoolean;
-          Slug.ILItem.ResultType := rtBoolean;
-        end;
-      else
-        Slug.ILItem.OpType := rtX16;
-        Slug.OpType := rtX16;
-        Slug.ResultType := vtWord;
-        Slug.ILItem.ResultType := rtU16;
-      end;
-    end;
-  end;
+//  Slug.ResultType := ILParamToVarType(@Slug.Operand);
+//  Slug.OpType := VarTypeToOpType(Slug.ResultType);
 end;
 
 
@@ -803,7 +833,7 @@ end;
 //will be cancelled out by the recursive call returning the UnaryOp to uoNone.
 //The unary operator will be inserted into the IL when we reach the end of the chain of
 //(identical) unary operators, with tail recursion adding any previous unary operators
-function ParseOperand(Slug: PExprSlug;UnaryOp: TUnaryOperator): TAssembleError;
+function ParseOperand(Slug: PExprSlug;UnaryOp: TUnaryOperator): TQuicheError;
 var
   Ch: Char;
   Ident: String;
@@ -818,7 +848,7 @@ begin
       Parser.SkipChar;
 
       Result := ParseExpressionToSlug(Slug, Slug.ResultType{, Slug.ImplicitType});
-      if Result <> errNone then
+      if Result <> qeNone then
         EXIT;
 
       //If the expression parser generated any IL code
@@ -826,15 +856,15 @@ begin
         SlugAssignToTempVar(Slug);
 
       if Parser.TestChar <> ')' then
-        EXIT(errUnmatchedBrackets);
+        EXIT(Err(qeUnmatchedBrackets));
       Parser.SkipChar;
-      Result := errNone;
+      Result := qeNone;
     end;
 //  csIdentFirst
   'a'..'z','A'..'Z','_': //Identifiers - variables, functions or keyword values
   begin
     Result := ParseIdentifier(#0, Ident);
-    if Result <> errNone then
+    if Result <> qeNone then
       EXIT;
 
     if CompareText(Ident, 'not') = 0 then
@@ -844,7 +874,7 @@ begin
         uoNegate: Result := ParseOperand(Slug, uoInvert);
         uoInvert: Result := ParseOperand(Slug, uoNone);
       else
-        EXIT(errBug);
+        EXIT(ErrMsg(qeBUG, 'Unknown/invalid unary operator'));
       end;
       if UnaryOp = uoInvert then
         UnaryOp := uoNone;
@@ -852,7 +882,7 @@ begin
     else
       Result := ParseOperandIdentifier(Slug, Ident);
 
-    if Result <> errNone then
+    if Result <> qeNone then
       EXIT;
   end;
 //  csDecimalFirst
@@ -869,13 +899,13 @@ begin
   '%': //Binary constant
     Result := ParseBinary(Slug);
   '.': //Real constant
-    EXIT(errTypeNotYetSupported);
+    EXIT(ErrMsg(qeTODO, 'Floating point numbers not yet supported'));
   '''': //Char or string
     Result := ParseString(Slug);
   '#': //Character literal
     Result := ParseCharLiteral(Slug);
   '@': //Address prefix
-    EXIT(errBug);
+    EXIT(ErrMsg(qeTODO, '''@'' operator not yet supported'));
   '+': //Unary plus
   begin
     Parser.SkipChar;
@@ -889,15 +919,15 @@ begin
       uoNegate: Result := ParseOperand(Slug, uoNone);
       uoInvert: Result := ParseOperand(Slug, uoNegate);
     else
-      EXIT(errBug);
+      EXIT(errMsg(qeBUG, 'Unknown/invalid unary operator'));
     end;
-    if Result <> errNone then
+    if Result <> qeNone then
       EXIT;
     if UnaryOp = uoNegate then
       UnaryOp := uoNone;
   end;
   else
-    EXIT(errInvalidExpression);
+    EXIT(Err(qeOperandExpected));
   end;
 
   //If Negate or Invert: Do that here
@@ -910,7 +940,7 @@ end;
 
 //Parse and returns a *binary* operator (i.e. not unary ones) and it's precedence
 //If at the end of an expression returns opNone.
-function ParseOperator(Slug: PExprSlug): TAssembleError;
+function ParseOperator(Slug: PExprSlug): TQuicheError;
 var
   Ch: Char;
   Ident: String;
@@ -922,12 +952,12 @@ begin
   Slug.OpData := nil;
 
   //End of (sub)-expression
-  if Parser.TestChar in [')',';',#0] then
-    EXIT(errNone);
+  if Parser.TestChar in [')',';',',',#0] then
+    EXIT(qeNone);
 
   Parser.Mark;
   if not Parser.ReadChar(Ch) then
-    EXIT(errOperatorExpected);
+    EXIT(Err(qeOperatorExpected));
 
   case Ch of
 //    '@': op := ilAt;
@@ -968,27 +998,27 @@ begin
     'a'..'z','A'..'Z':
       begin
         Result := ParseIdentifier(Ch, Ident);
-        if Result <> errNone then
+        if Result <> qeNone then
           EXIT;
         if not OpSymbolToData(Ident, Slug.OpIndex, Slug.OpData) then
         //Caller determines if what follows the expression is acceptable
           Parser.Undo;
       end;
   else
-    EXIT(errUnknownOperator);
+    EXIT(Err(qeUnknownOperator));
   end;
-  Result := errNone;
+  Result := qeNone;
 end;
 
 //Parse out and returns a single 'slug' - an operand and the operator following
 //it (or opNone)
-function ParseExprSlug(Slug: PExprSlug): TAssembleError;
+function ParseExprSlug(Slug: PExprSlug): TQuicheError;
 begin
   Slug.ResultType := vtUnknown;
   Slug.OpType := rtUnknown;
   Slug.ILItem := nil;
-  Result := ParseOperand(@Slug.Operand, uoNone);
-  if Result <> errNone then
+  Result := ParseOperand(Slug, uoNone);
+  if Result <> qeNone then
     EXIT;
 
   Result := ParseOperator(Slug);
@@ -1008,7 +1038,7 @@ end;
 //deeper operations.
 //ILItem returns the final operation of the expression. The caller will need
 //to update the Dest info as needed
-function ParseSubExpression(Slug: PExprSlug;out ILItem: PILItem): TAssembleError;
+function ParseSubExpression(Slug: PExprSlug;out ILItem: PILItem): TQuicheError;
 var RightSlug: TExprSlug;
   TempIndex: Integer;
   EvalResult: Integer;
@@ -1018,7 +1048,7 @@ begin
   begin
     //Next slug
     Result := ParseExprSlug(@RightSlug);
-    if Result <> errNone then
+    if Result <> qeNone then
       EXIT;
 
     //If the rightslug returned an ILItem then we need to set it's Dest to a temp var
@@ -1031,18 +1061,20 @@ begin
     while (RightSlug.OpIndex <> OpIndexNone) and (Slug.OpData.Precedence < RightSlug.OpData.Precedence) do
     begin
       Result := ParseSubExpression(@RightSlug, ILItem);
-      if Result <> errNone then
+      if Result <> qeNone then
         EXIT;
 
       if not AssignSlugTypes(Slug, @RightSlug) then
-        EXIT(errInvalidOperands);
+        EXIT(ErrOpUsage('No operator available for operand types ' +
+          VarTypeToName(ILParamToVarType(@Slug.Operand)) + ' and ' +
+          VarTypeToName(ILParamToVarType(@RightSlug.Operand)), Slug.OpIndex));
 
       if ILItem <> nil then
       begin
         //Add sub-expression to IL list
         //with dest as temp data
         TempIndex := GetNextTempIndex;
-        VarCreateTemp(TempIndex, Slug.ResultType);
+        VarCreateTemp(TempIndex, Slug.ResultType, optDefaultVarStorage);
         ILItem.Dest.Loc := locTemp;
         ILItem.Dest.TempIndex := TempIndex;
         //Update right slug for next iteration
@@ -1056,7 +1088,7 @@ begin
     begin
       //If possible, evaluate and replace Slug.Operand
       Result := EvalBi(Slug.OpIndex, @Slug.Operand, @RightSlug.Operand, EvalResult, EvalType);
-      if Result <> errNone then
+      if Result <> qeNone then
         EXIT;
       if EvalType <> vtUnknown then
       begin
@@ -1070,7 +1102,7 @@ begin
         if RightSlug.OpIndex = OpIndexNone then
         begin
           ILItem := nil;
-          EXIT(errNone);
+          EXIT(qeNone);
         end;
       end;
     end;
@@ -1078,7 +1110,9 @@ begin
     if EvalType = vtUnknown then
     begin //not Evaluated
       if not AssignSlugTypes(Slug, @RightSlug) then
-          EXIT(errInvalidOperands);
+        EXIT(ErrOpUsage('No operator available for operand types ' +
+          VarTypeToName(ILParamToVarType(@Slug.Operand)) + ' and ' +
+          VarTypeToName(ILParamToVarType(@RightSlug.Operand)), Slug.OpIndex));
 
       //Add current operation to list.
       //Dest info will be added by later
@@ -1102,14 +1136,14 @@ begin
         Slug.OpType := RightSlug.OpType;
 
         //...and return
-        EXIT(errNone);
+        EXIT(qeNone);
       end;
 
       //Same precedence
       //Add item to IL list
       //with dest as temp data
       TempIndex := GetNextTempIndex;
-      VarCreateTemp(TempIndex, Slug.ResultType);
+      VarCreateTemp(TempIndex, Slug.ResultType, optDefaultVarStorage);
 
       ILItem.Dest.Loc := locTemp;
       ILItem.Dest.TempIndex := TempIndex;
@@ -1125,49 +1159,53 @@ begin
   end;
 end;
 
+//For cases where the expression is a single item with no operation, either a
+//literal value or a variable/identifier
+//Updates the Slug's data as appropriate
+function FixupSlugNoOperation(var Slug: PExprSlug;var ExprType: TVarType): TQuicheError;
+begin
+  if Slug.ResultType = vtUnknown then
+    Slug.ResultType := ILParamToVarType(@Slug.Operand);
+  if Slug.OpType = rtUnknown then
+    if Slug.Operand.Loc = locImmediate then
+      case GetTypeSize(Slug.ResultType) of
+        1: Slug.OpType := rtX8;
+        2: Slug.OpType := rtX16;
+      else
+        raise Exception.Create('Unknown Assignment type size');
+      end
+    else
+      Slug.OpType := VarTypeToOpType(Slug.ResultType);
+  if ExprType <> vtUnknown then
+  begin
+    Result := ValidateExprType(ExprType, Slug);
+    if Result <> qeNone then
+      EXIT;
+  end
+  else
+    ExprType := Slug.ResultType;
+//  if Assigned(Slug.ILData) then
+//    Slug.ILData.ResultType := lutVarTypeToOpType[ExprType];
 
-function ParseExpressionToSlug(Slug: PExprSlug;var ExprType: TVarType): TAssembleError;
+  EXIT(qeNone);
+end;
+
+function ParseExpressionToSlug(Slug: PExprSlug;var ExprType: TVarType): TQuicheError;
 var ILItem: PILItem;
 begin
   Parser.Mark;
 
   //Read the first slug of the expression
   Result := ParseExprSlug(Slug);
-  if Result <> errNone then
+  if Result <> qeNone then
     EXIT;
 
   //If no operation then the expression is just a single item - either a literal
   //or variable.
   //We'll populate the operation data, but the dest data will be added by the caller
   if Slug.OpIndex = opIndexNone then
-  begin
-    if Slug.ResultType = vtUnknown then
-      Slug.ResultType := ILParamToVarType(@Slug.Operand);
-    if Slug.OpType = rtUnknown then
-      if Slug.Operand.Loc = locImmediate then
-        case GetTypeSize(Slug.ResultType) of
-          1: Slug.OpType := rtX8;
-          2: Slug.OpType := rtX16;
-        else
-          raise Exception.Create('Unknown Assignment type size');
-        end
-      else
-        Slug.OpType := VarTypeToOpType(Slug.ResultType);
-    if ExprType <> vtUnknown then
-    begin
-      Result := ValidateExprType(ExprType, Slug);
-      if Result <> errNone then
-        EXIT;
-    end
-    else
-      ExprType := Slug.ResultType;
-//    if Assigned(Slug.ILData) then
-//      Slug.ILData.ResultType := lutVarTypeToOpType[ExprType];
+    EXIT(FixupSlugNoOperation(Slug, ExprType));
 
-    Slug.ImplicitType := GetOperandImplicitType(@Slug.Operand);
-
-    EXIT(errNone);
-  end;
 
   //If the slug returned an ILItem then we need to set it's Dest to a temp var
   if Slug.ILItem <> nil then
@@ -1176,10 +1214,9 @@ begin
     SlugAssignToTempVar(Slug);
 
   //Loop until end of expression
-  while True do
-  begin
+  repeat
     Result := ParseSubExpression(Slug, ILItem);
-    if Result <> errNone then
+    if Result <> qeNone then
       EXIT;
 
 {    if ExprType <> vtUnknown then
@@ -1197,39 +1234,39 @@ begin
     begin
       Slug.Operand.Loc := locTemp;
       Slug.Operand.TempIndex := GetNextTempIndex;
-      VarCreateTemp(Slug.Operand.TempIndex, Slug.ResultType);//ExprType);
+      VarCreateTemp(Slug.Operand.TempIndex, Slug.ResultType, optDefaultVarStorage);
 
       ILItem.Dest.Loc := locTemp;
       ILItem.Dest.TempIndex := Slug.Operand.TempIndex;
-    end
-    else //Slug.Op = opNone
-    begin
-      if ILItem = nil then
-      begin
-        if ExprType <> vtUnknown then
-        begin
-          Result := ValidateExprType(ExprType, Slug);
-          if Result <> errNone then
-            EXIT;
-        end;
-
-        if ExprType <> vtUnknown then
-          Slug.ResultType := ExprType;
-//      Slug.ImplicitType := ExprType;
-      end
-      else // ILItem <> nil
-      begin
-        Slug.ILItem := ILItem;
-        if ExprType <> vtUnknown then
-          ILItem.ResultType := VarTypeToOpType(ExprType)
-        else
-          ILItem.ResultType := VarTypeToOpType(Slug.ImplicitType);
-      end;
-
-      EXIT(errNone);
     end;
+  until Slug.OpIndex = opIndexNone;
+
+
+  if ILItem = nil then
+  begin
+    if ExprType <> vtUnknown then
+    begin
+      Result := ValidateExprType(ExprType, Slug);
+      if Result <> qeNone then
+        EXIT;
+    end;
+
+    if ExprType <> vtUnknown then
+      Slug.ResultType := ExprType;
+//      Slug.ImplicitType := ExprType;
+  end
+  else // ILItem <> nil
+  begin
+    Slug.ILItem := ILItem;
+    if ExprType <> vtUnknown then
+      ILItem.ResultType := VarTypeToOpType(ExprType)
+    else
+      ILItem.ResultType := VarTypeToOpType(Slug.ImplicitType);
   end;
+
+  Result := qeNone;
 end;
+
 (*
 //See header section
 function ParseExpression(out ILItem: PILItem;var ExprType: TVarType;out ImplicitType: TVarType): TAssembleError;
@@ -1346,4 +1383,30 @@ begin
   end;
 end;
 *)
+
+//Parses an expression to an ILItem
+function ParseExprToILItem(out ILItem: PILItem;out VType: TVarType): TQuicheError;
+var
+  Variable: PVariable;
+  VarIndex: Integer;
+  ExprType: TVarType;
+  Slug: TExprSlug;
+begin
+  ExprType := vtUnknown;
+  Result := ParseExpressionToSlug(@Slug, ExprType);
+  if Result <> qeNone then
+    EXIT;
+
+  if Slug.ILItem <> nil then
+    SlugAssignToTempVar(@Slug);
+
+  VType := Slug.ResultType;
+  ILItem := ILAppend(dtData);
+  ILItem.OpIndex := OpIndexNone;
+  ILItem.Param1 := Slug.Operand;
+  ILItem.Param2.Loc := locNone;
+
+  //Op data and Dest to be assigned by caller
+end;
+
 end.

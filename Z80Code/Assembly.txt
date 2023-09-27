@@ -83,17 +83,23 @@
   ld <p1.r8>,<p1.immbyte>
   
 =ldp1r8offset
-  ld <p1.r8>,(ix<p1.offset>)
+  ld <p1.r8>,(ix<p1.offset>)	;$$
+
+=ldp1r8offsetlow
+  ld <p1.r8>,(ix<p1.offsetlow>)	;$$
   
+=ldp1r8offsethigh
+  ld <p1.r8>,(ix<p1.offsethigh>)	;$$
+    
 =ldp1r16imm
   ld <p1.r16>,<p1.immword>
  
 =ldp1r16offset
-  ld <p1.r16low>,(ix<p1.offsetlow>)  
+  ld <p1.r16low>,(ix<p1.offsetlow>)	;$$  
   ld <p1.r16high>,(ix<p1.offsethigh>)
 
 =ldp1r16lowoffsetlow
-  ld <p1.r16low>,(ix<p1.offsetlow>)
+  ld <p1.r16low>,(ix<p1.offsetlow>)	;$$
   
 =ldp1r16highzero
   ld <p1.r16high>,$00
@@ -103,17 +109,17 @@
   ld <p2.r8>,<p2.immbyte>
 
 =ldp2r8offset
-  ld <p2.r8>,(ix<p2.offset>)
+  ld <p2.r8>,(ix<p2.offset>)	;$$
 
 =ldp2r16imm
   ld <p2.r16>,<p2.immword>
 
 =ldp2r16offset
-  ld <p2.r16low>,(ix<p2.offsetlow>)  
+  ld <p2.r16low>,(ix<p2.offsetlow>)	;$$  
   ld <p2.r16high>,(ix<p2.offsethigh>)
 
 =ldp2r16lowoffsetlow
-  ld <p2.r16low>,(ix<p2.offsetlow>)
+  ld <p2.r16low>,(ix<p2.offsetlow>)	;$$
   
 =ldp2r16highzero
   ld <p2.r16high>,$00
@@ -124,58 +130,64 @@
 ;another
 
 =assignoffset8imm8
-  ld (ix<d.offset>),<p1.immbyte>
+  ld (ix<d.offset>),<p1.immbyte>	;$$
   
 =assignoffset16imm8
-  ld (ix<d.offsetlow>),<p1.immbyte>
+  ld (ix<d.offsetlow>),<p1.immbyte>	;$$
   ld (ix<d.offsethigh>),$00
 
 =assignoffset16imm8neg
-  ld (ix<d.offsetlow>),<p1.immbyte>
+  ld (ix<d.offsetlow>),<p1.immbyte>	;$$
   ld (ix<d.offsethigh>),$ff
 
 =assignoffset16imm16
-  ld (ix<d.offsetlow>),<p1.immwordlow>
+  ld (ix<d.offsetlow>),<p1.immwordlow>	;$$
   ld (ix<d.offsethigh>),<p1.immwordhigh>
+
+=assignoffset16r8
+  ld (ix<d.offsetlow>),<p1.r8>	;$$
+  ld (ix<d.offsethigh>),$00
   
 =assignoffset8r8
-  ld (ix<d.offset>),<p1.r8>
+  ld (ix<d.offset>),<p1.r8>		;$$
 
 =assignoffset8r8
-  ld (ix<d.offset>),<p1.r8> 
-  
+  ld (ix<d.offset>),<p1.r8> 	;$$
+
+=assignoffset8r16low
+  ld (ix<d.offset>),<p1.r16low>   ;$$
 ;Stores
 ;====================================================
 ;A store copies the result of a primitive into a variable
 
 =storeoffset8a
-  ld (ix<d.offset>),a
+  ld (ix<d.offset>),a		;$$
   
 =storeoffset8r8
-  ld (ix<d.offset>),<d.r8>
+  ld (ix<d.offset>),<d.r8>	;$$
   
 =storeoffset16r8
-  ld (ix<d.offsethigh>),$00
+  ld (ix<d.offsethigh>),$00	;$$
   ld (ix<d.offsetlow>),<d.r8>
   
 ;For use before a sign extend
 =storeoffset16lowr8
-  ld (ix<d.offsetlow>),<d.r8>
+  ld (ix<d.offsetlow>),<d.r8>	;$$
 
 ;For use after a sign extend
 =storeoffset16higha
-  ld (ix<d.offsethigh>),a
+  ld (ix<d.offsethigh>),a		;$$
   
 ;For use after a sign extend
 =storeoffset16highr8
-  ld (ix<d.offsethigh>),<d.r8>
+  ld (ix<d.offsethigh>),<d.r8>	;$$
 
 =storeoffset16r16
-  ld (ix<d.offsetlow>),<d.r16low>
+  ld (ix<d.offsetlow>),<d.r16low>	;$$
   ld (ix<d.offsethigh>),<d.r16high>
 
 =storeoffset8r16low
-  ld (ix<d.offsetlow>),<d.r16low>
+  ld (ix<d.offsetlow>),<d.r16low>	;$$
     
 ;ALU operations
 ;=========================================================
@@ -199,6 +211,18 @@
   or a				;Clear carry
   adc hl,<p2.r16>
 
+=inc8r
+  inc <p1.r8>
+
+=inc16r
+  inc <p1.r16>
+
+=dec8r
+  dec <p1.r8>
+
+=dec16r
+  dec <p1.r16>
+  
 ;----Subtraction
 
 ;8 bit immediate subtract
@@ -293,6 +317,13 @@
   cpl
   or <p1.r8>
   
+=odd8r
+  rra
+  sbc a,a
+  
+=odd8r_branch
+  rra
+  
 ;====Conversions to Boolean
 
 ;If A is non-zero outputs A=$ff, otherwise A=$00 (unchanged)
@@ -305,6 +336,9 @@
   neg				;Set carry if A not equal 0
   sbc a,a			;Set A to -1 or 0
   cpl				;Invert bits of A
+  
+=atozf
+  and a
   
 ;If Zero flag set, outputs A=$ff, otherwise A=$00
 =zftoboolean
@@ -399,3 +433,10 @@
   xor <p2.r16high>
   ld <p1.r16high>,a
   
+=not16rr
+  ld a,<p1.r16low>
+  cpl
+  ld <p1.r16low>,a
+  ld a,<p1.r16high>
+  cpl
+  ld <p1.r16high>,a  

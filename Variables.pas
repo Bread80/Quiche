@@ -24,12 +24,17 @@ interface
 uses Classes, ILData, QTypes, Generics.Collections;
 
 type
+  TVarStorage = (
+    vsFixed,    //Fixed, permanent memory location
+    vsOffset);  //Offset from a base address (i.e in stack frame)
+
   PVariable = ^TVariable;
   TVariable = record
     Name: String;
     VarType: TVarType;
-    Offset: Integer;  //Sum of the sizes of all previous variables
-                      //Used to calculate offset into stack frame
+    Storage: TVarStorage; //Fixed or offset location?
+    Offset: Integer;  //If the Storage is vsOffset, this is the offset from the
+                      //base address
 
     //Compile and execution time data
     Sub: Integer;
@@ -60,10 +65,11 @@ procedure VarRollback;
 
 //Creates a new, uniquely named variable. If a variable with that name already exists
 //returns nil
-function VarCreate(AName: String;VarType: TVarType;out Index: Integer): PVariable;
+function VarCreate(AName: String;VarType: TVarType;Storage: TVarStorage;
+  out Index: Integer): PVariable;
 //function FindOrAddVar(AName: String;VarType: TVarType;out Index: Integer): PVariable;
-function VarCreateHidden(VarType: TVarType;out Index: Integer): PVariable;
-function VarCreateTemp(TempIndex: Integer;VarType: TVarType): PVariable;
+function VarCreateHidden(VarType: TVarType;Storage: TVarStorage;out Index: Integer): PVariable;
+function VarCreateTemp(TempIndex: Integer;VarType: TVarType;Storage: TVarStorage): PVariable;
 
 //The Name can *only* be set if it is blank. *Only* to be used where the
 //variable has to be created where the name is unknown, and the name is
@@ -80,7 +86,12 @@ function GetNextTempIndex: Integer;
 function GetTempCount: Integer;
 
 //--------------Finding/accessing
-function VarFindByName(AName: String;out Index: Integer): PVariable;
+//Find a variable by name across all current scopes.
+function VarFindByNameAllScopes(AName: String;out Index: Integer): PVariable;
+
+//Find a varible by name only searching the current Scope (ie list).
+function VarFindByNameInScope(AName: String;out Index: Integer): PVariable;
+
 
 function VarIndexToData(Index: Integer): PVariable;
 function VarTempToData(TempIndex: Integer): PVariable;
@@ -118,8 +129,9 @@ procedure SetCurrentVarList(List: TVarList;FirstIndex: Integer);
 //Prepare all variables for execution
 procedure VarsExecClear;
 
-procedure LoadVarsFromMemoryDump(Filename: String;Base: Integer;
-  out RunTimeError: Byte;out RunTimeErrorAddress: Word);
+//Returns contents of output buffer
+function LoadVarsFromMemoryDump(Filename: String;Base: Integer;
+  out RunTimeError: Byte;out RunTimeErrorAddress: Word): String;
 
 function VarIndexToName(Index: Integer): String;
 //If TypeSummary is true, only lists name and type,
@@ -140,7 +152,7 @@ procedure VarTouch(Variable: PVariable);
 
 
 implementation
-uses SysUtils, ILExec, IOUtils, Scopes, ParserBase;
+uses SysUtils, ILExec, IOUtils, Scopes, ParserBase, Globals;
 
 var Vars: TVarList;
   VarsFirstIndex: Integer;
@@ -201,11 +213,12 @@ begin
 end;
 
 //Doesn't check whether a variable with that name already exists!
-function VarCreateInt(AName: String;VType: TVarType;out Index: Integer): PVariable;
+function VarCreateInt(AName: String;VType: TVarType;Storage: TVarStorage;out Index: Integer): PVariable;
 begin
   New(Result);
   Result.Name := AName;
   Result.VarType := VType;
+  Result.Storage := Storage;
   Result.Sub := 0;
   Result.Touched := False;
   if Vars.Count = 0 then
@@ -216,58 +229,61 @@ begin
   Index := VarsFirstIndex + Vars.Add(Result);
 end;
 
-function VarFindByName(AName: String;out Index: Integer): PVariable;
-var I: Integer;
+function VarFindByNameAllScopes(AName: String;out Index: Integer): PVariable;
+var IdentType: TIdentType;
   Scope: PScope;
+  Item: Pointer;
 begin
-  Scope := GetCurrentScope;
+  if SearchScopes(AName,IdentType,Scope,Item,Index) then
+    if IdentType = itVar then
+      EXIT(PVariable(Item));
 
-  //Recurse up Scopes until we find it
-  repeat
-    for I := 0 to Vars.Count-1 do
-      if CompareText(Vars[I].Name, AName) = 0 then
-      begin
-        Result := Vars[I];
-        Index := VarsFirstIndex + I;
-        SetCurrentScope(Scope);
-        EXIT;
-      end;
+  Result := nil;
+end;
 
-  until not SetParentScope;
+function VarFindByNameInScope(AName: String;out Index: Integer): PVariable;
+var I: Integer;
+begin
+  for I := 0 to Vars.Count-1 do
+    if CompareText(Vars[I].Name, AName) = 0 then
+    begin
+      Result := Vars[I];
+      Index := VarsFirstIndex + I;
+      EXIT;
+    end;
 
   Index := -1;
   Result := nil;
-  SetCurrentScope(Scope);
 end;
 
-function FindOrAddVar(AName: String;VarType: TVarType;out Index: Integer): PVariable;
+{function FindOrAddVar(AName: String;VarType: TVarType;Storage: TVarStorage;out Index: Integer): PVariable;
 begin
-  Result := VarFindByName(AName, Index);
+  Result := VarFindByNameAllScopes(AName, Index);
 
   if Result = nil then
-    Result := VarCreateInt(AName, VarType, Index);
+    Result := VarCreateInt(AName, VarType, Storage, Index);
 end;
-
-function VarCreateHidden(VarType: TVarType;out Index: Integer): PVariable;
+}
+function VarCreateHidden(VarType: TVarType;Storage: TVarStorage;out Index: Integer): PVariable;
 begin
-  Result := VarCreateInt('',VarType, Index);
+  Result := VarCreateInt('',VarType, Storage, Index);
 end;
 
-function VarCreateTemp(TempIndex: Integer;VarType: TVarType): PVariable;
+function VarCreateTemp(TempIndex: Integer;VarType: TVarType;Storage: TVarStorage): PVariable;
 var Index: Integer;
 begin
-  Result := VarCreateInt('=temp'+IntToStr(TempIndex), VarType, Index);
+  Result := VarCreateInt('=temp'+IntToStr(TempIndex), VarType, Storage, Index);
 end;
 
-function VarCreate(AName: String;VarType: TVarType;out Index: Integer): PVariable;
+function VarCreate(AName: String;VarType: TVarType;Storage: TVarStorage;out Index: Integer): PVariable;
 begin
-  if VarFindByName(AName, Index) <> nil then
+  if VarFindByNameInScope(AName, Index) <> nil then
   begin
     Index := -1;
     Result := nil;
   end
   else
-    Result := VarCreateInt(AName, VarType, Index);
+    Result := VarCreateInt(AName, VarType, Storage, Index);
 end;
 
 procedure VarSetName(Variable: PVariable;AName: String);
@@ -338,7 +354,7 @@ end;
 function VarTempToData(TempIndex: Integer): PVariable;
 var Index: Integer;
 begin
-  Result := VarFindByName('=temp'+IntToStr(TempIndex), Index);
+  Result := VarFindByNameInScope('=temp'+IntToStr(TempIndex), Index);
 end;
 
 function VarIndexToName(Index: Integer): String;
@@ -403,10 +419,12 @@ begin
   end;
 end;
 
-procedure LoadVarsFromMemoryDump(Filename: String;Base: Integer;
-  out RunTimeError: Byte;out RunTimeErrorAddress: Word);
+function LoadVarsFromMemoryDump(Filename: String;Base: Integer;
+  out RunTimeError: Byte;out RunTimeErrorAddress: Word): String;
 var Mem: TBytes;
   V: PVariable;
+  BufHead: Byte;
+  BufPtr: Word;
 begin
   Mem := TFile.ReadAllBytes(Filename);
 
@@ -425,6 +443,16 @@ begin
         raise Exception.Create('Invalid VarType in LoadVarsFromMemoryDump');
       end;
     end;
+
+  BufHead := Mem[$800e];
+  Result := '';
+  BufPtr := $800f;
+  while BufHead > 0 do
+  begin
+    Result := Result + chr(Mem[BufPtr]);
+    inc(BufPtr);
+    dec(BufHead);
+  end;
 end;
 
 

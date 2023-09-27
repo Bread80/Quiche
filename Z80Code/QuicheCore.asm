@@ -560,6 +560,12 @@ _int_modulo_45:
         ret                       
 
 ;;--------------------------------------------------------------
+abs_hl_with_overflow
+		bit 7,h
+		jr nz,negate_HL_and_test_if_INT
+		scf
+		ret
+		
 ;;=negate HL if negative and test if INT
 negate_HL_if_negative_and_test_if_INT:
         ld      a,h                
@@ -791,3 +797,138 @@ comp_s16_u16:
 
 	sbc hl,de				;CF must be clear from rotate
 	ret
+
+
+;;============================================
+;Numbers to strings
+
+;HL=value
+;Output:
+;  AF,HL corrupt
+write_integer:
+	bit 7,h
+	jp z,write_word
+;	push af
+	ld a,'-'
+	call s_writechar
+	call negate_hl_and_test_if_int
+;	pop af
+	jr write_word
+
+;HL=value
+;Output:
+;  AF,HL corrupt
+write_byte:
+	ld h,0
+	ld a,2			;2 digits
+	jr do_write_word
+
+;L=value
+;Output:
+;  AF,HL corrupt
+write_word:
+	xor a			;No padding/leading digits
+do_write_word
+	push bc
+	ld bc,$040f		;Hex: 4 bit per digit; mask for 4 bits
+	call convert_based_number_to_string
+	pop bc
+	jp write_asciiz
+
+;Conversion buffer
+	org $+16		;17 byte buffer (16 bits...
+end_of_conversion_buffer:
+	db 0			;... plus trailing zero)
+
+;Extracted from Amstrad CPC BASIC:
+
+;;===============================
+;;convert based number to string
+;HL=number to convert
+;C=base (01=binary, 0f=hex)
+;B=number of bits per output digit (01 for binary, 04 for hex)
+;A: $01 to $80=minimum number of digits to output. I.e. pad with leading zeros. 
+;   $81 to $ff or $00=no padding.
+
+;Returns: ASCIIZ string at HL
+convert_based_number_to_string:   ;{{Addr=$f1df Code Calls/jump count: 2 Data use count: 0}}
+        push    de                ;{{f1df:d5}} 
+        ex      de,hl             ;{{f1e0:eb}} 
+        ld      hl,end_of_conversion_buffer;{{f1e1:213eae}} 
+        ld      (hl),$00          ;{{f1e4:3600}} Returns a zero terminated string
+        dec     a                 ;{{f1e6:3d}} 
+
+;;=convert digit loop
+convert_digit_loop:               ;{{Addr=$f1e7 Code Calls/jump count: 2 Data use count: 0}}
+        push    af                ;{{f1e7:f5}} 
+        ld      a,e               ;{{f1e8:7b}} A=byte
+        and     c                 ;{{f1e9:a1}} C=mask for bits we're interested in
+
+;These four lines convert nybble to hex ASCII. 
+;See 'Analysis of the binary to ASCII hex conversion' below
+        or      $f0               ;{{f1ea:f6f0}} 
+        daa                       ;{{f1ec:27}} 
+        add     a,$a0             ;{{f1ed:c6a0}} 
+        adc     a,$40             ;{{f1ef:ce40}} ; 'A'-1
+
+        dec     hl                ;{{f1f1:2b}} 
+        ld      (hl),a            ;{{f1f2:77}} Write to buffer
+        ld      a,b               ;{{f1f3:78}} Cache bits per digit
+
+;;=convert shift loop
+convert_shift_loop:               ;{{Addr=$f1f4 Code Calls/jump count: 1 Data use count: 0}}
+        srl     d                 ;{{f1f4:cb3a}} DE=number to convert
+        rr      e                 ;{{f1f6:cb1b}} Shift for next digit
+        djnz    convert_shift_loop;{{f1f8:10fa}}  (-$06) Next digit
+
+        ld      b,a               ;{{f1fa:47}} Restore bits per digit
+        pop     af                ;{{f1fb:f1}} A=minimum width
+        dec     a                 ;{{f1fc:3d}} 
+        jp      p,convert_digit_loop;{{f1fd:f2e7f1}} If A still > 0 then loop
+
+        ld      a,d               ;{{f200:7a}} If A < 0 then check if number is now zero
+        or      e                 ;{{f201:b3}} 
+        ld      a,$00             ;{{f202:3e00}} Force no padding
+        jr      nz,convert_digit_loop;{{f204:20e1}}  (-$1f) Not zero? => next digit
+
+        pop     de                ;{{f206:d1}} 
+        ret                       ;{{f207:c9}} 
+
+	
+str_false: 
+	db "FALS","E"+$80
+str_true: 
+	db "TRU","E"+$80
+	
+;Outputs the string 'FALSE' or 'TRUE' depending on the value of A
+;Inputs: A is a boolean value
+;Outputs: A,HL and Flags corrupt. All other registers preserved
+write_bool:	
+	ld hl,str_false
+	and a
+	jr z,write_ascii7
+	ld hl,str_true
+
+;Outputs an ASCII7 string (i.e. bit 7 of the last character is set)
+;Inputs: HL is the address of an ASCII7 string
+;Outputs: A,HL and flags corrupt. All other registers preserved
+write_ascii7:
+	ld a,(hl)			;Get character
+	and $7f				;Mask out bit 7
+	call s_writechar	;Output
+	xor (hl)			;Compare to original
+	ret nz				;If it's different bit 7 was set so return
+	inc hl				;Next char
+	jr write_ascii7
+
+;Outputs an ASCIIZ string (i.e one which is followed by a #0 byte)
+;Inputs: HL is the address of the string
+;Outputs: A,HL and flags corrupt. All other registers preserved
+write_asciiz:
+	ld a,(hl)
+	and a
+	ret z
+	call s_writechar
+	inc hl
+	jr write_asciiz
+	
