@@ -68,10 +68,10 @@ procedure SCR_SET_BORDER(FirstColour: B;SecondColour: C); extern $bc38;
 procedure SCR_GET_BORDER(out FirstColour: B;out SecondColour: C); extern $bc3b;
 
 [Corrupts AF, HL]
-procedure SCR_SET_FLASHING(Period: H;Period: L); extern $bc3e;
+procedure SCR_SET_FLASHING(Period1: H;Period2: L); extern $bc3e;
 
 [Corrupts AF]
-procedure SCR_GET_FLASHING(out Period: H;out Period: L); extern $bc41;
+procedure SCR_GET_FLASHING(out Period1: H;out Period2: L); extern $bc41;
 
 [Corrupts AF, BC, DE, HL]
 procedure SCR_FILL_BOX(EncodedInk: A;PhysicalLeftColumn: H;PhysicalRightColumn: D;PhysicalTopRow: L;PhysicalBottomRow: E); extern $bc44;

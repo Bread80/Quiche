@@ -74,7 +74,7 @@ function CAS_TEST_EOF(out Escape: ZF;out Error: A): CF; extern $bc89;
 //Returns False and Zero clear if the stream is already in use (cassette)
 //                                stream already open (disc)
 [Corrupts BC, DE, IX, F]
-function CAS_OUT_OPEN(NameLength: B;Filename: HL as Pointer;Buffer: DE as Pointer;out Escape: ZF;out Buffer: HL as Pointer;A: Error): CF; extern $bc8c;
+function CAS_OUT_OPEN(NameLength: B;Filename: HL as Pointer;Buffer: DE as Pointer;out Escape: ZF;out BufferOut: HL as Pointer;out Error: A): CF; extern $bc8c;
 
 //Returns True if the file was closed okay
 //Returns Zero Flag set if the user pressed escape (cassette)

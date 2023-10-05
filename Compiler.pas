@@ -10,6 +10,7 @@ var WriteBuffer: String;    //Text written to output
 
 //Output log of the assembler
 var AssemblerLog: String;
+  AssembleError: Boolean;
 
 var RunTimeError: Byte;
 var RunTimeErrorAddress: Word;
@@ -69,7 +70,8 @@ procedure GetFunctionsText(S: TStrings);
 procedure RunInterpreter;
 procedure GetInterpreterOutput(S: TStrings);
 
-procedure LoadCodeGenLibrary(Filename: String);
+const FragmentsFilename = 'Data/Fragments.txt';
+procedure LoadFragmentsLibrary(Filename: String);
 
 function DoCodeGen: Boolean;
 
@@ -84,9 +86,7 @@ function Emulate(Filename: String): Boolean;
 implementation
 uses SysUtils, IOUtils,
   Operators, PrimitivesEx, ILData, Variables, Parse, CodeGenZ80AsmEx,
-  CodeLibrary, ILExec, Shell, ParserBase, Functions, Scopes, Globals;
-
-//var LastError: TQuicheError;
+  Fragments, ILExec, Shell, ParserBase, Functions, Scopes, Globals;
 
 const scQuicheLibrary = 'Z80Code\quichecore.asm';
 const scRAMDump = 'RAMDump.bin';  //In output folder
@@ -106,7 +106,7 @@ procedure InitialiseDirectives;
 begin
   optAllowAutoCreation := False;
   optOverflowChecks := True;
-  optDefaultVarStorage := vsOffset;
+  optDefaultVarStorage := vsRelative;
 end;
 
 procedure Initialise(InitDirectives: Boolean);
@@ -120,8 +120,8 @@ begin
   InitialiseVars;
   InitialiseScopes;
   InitialiseOperatorList;
+  LoadFragmentsLibrary(TPath.Combine(QuicheFolder, FragmentsFilename));
   InitialisePrimitiveList;
-  LoadCodeGenLibrary(TPath.Combine(QuicheFolder, 'Z80Code/Assembly.txt'));
 
   InitialiseCodeGen(TPath.Combine(QuicheFolder, PlatformFileName),
     TPath.Combine(QuicheFolder, scQuicheLibrary));
@@ -148,8 +148,10 @@ begin
 end;
 
 function CodeGenCallback: Boolean;
+var Scope: PScope;
 begin
-  Result := CodeGen(GetCurrentScope.Name, GetCurrentScope.Assembly);
+  Scope := GetCurrentScope;
+  Result := CodeGen(Scope.Name, Scope.AsmCode, Scope.AsmData);
 end;
 
 function Parse(Scope: TCompileScope): Boolean;
@@ -162,7 +164,7 @@ begin
   else
     while (LastError = qeNone) and not ParserEOF do
       case Scope of
-        csBlock: LastError := ParseBlock(bsSingle);
+        csBlock: LastError := ParseBlock(bsSingle, vsRelative);
       else
         raise Exception.Create('Unknown compile scope in Compiler.Parse');
       end;
@@ -215,21 +217,29 @@ begin
 end;
 
 
-procedure LoadCodeGenLibrary(Filename: String);
+procedure LoadFragmentsLibrary(Filename: String);
 begin
-  LoadLibrary(Filename);
+  Fragments.LoadFragments(Filename);
 end;
 
 function DoCodeGen: Boolean;
+var Scope: PScope;
 begin
-  Result := CodeGen(GetCurrentScope.Name, GetCurrentScope.Assembly);
+  Scope := GetCurrentScope;
+  Result := CodeGen(Scope.Name, Scope.AsmCode, Scope.AsmData);
 //  LastErrorNo := Integer(LastError);
 end;
 
 procedure GetObjectCode(S: TStrings);
+var Scope: PScope;
 begin
-  if Assigned(GetCurrentScope.Assembly) then
-    S.Assign(GetCurrentScope.Assembly);
+  Scope := GetCurrentScope;
+  if Assigned(Scope.AsmCode) then
+  begin
+    S.Assign(Scope.AsmCode);
+//    S.Assign(GetCurrentScope.Assembly);
+    S.Append(Scope.AsmData.Text);
+  end;
 end;
 
 procedure SaveObjectCode(Filename: String);
@@ -243,14 +253,15 @@ function Assemble(Filename: String): Boolean;
 begin
   BinaryFilename := TPath.ChangeExtension(Filename, '.bin');
   AssemblerLog := Shell.Assemble(Filename);
-  Result := not (AssemblerLog.Contains('failed') or AssemblerLog.Contains('Error'));
+  AssembleError := AssemblerLog.Contains('failed') or AssemblerLog.Contains('Error');
+  Result := not AssembleError;
 end;
 
 //Compile source in parser
 function CompileParser(Scope: TCompileScope): Boolean;
 begin
   //CodeGen
-  LoadCodeGenLibrary(TPath.Combine(QuicheFolder, 'Z80Code/Assembly.txt'));
+  LoadFragmentsLibrary(TPath.Combine(QuicheFolder, FragmentsFilename));
 
   Result := Compiler.Parse(Scope);
   if not Result then

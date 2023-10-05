@@ -9,9 +9,11 @@ uses Generics.Collections, Classes, QTypes;
 type
   //Locations where a parameter can be found
   TAllocLoc = (
-    plNone, //No parameter
-    plImm,  //Immediate (constant) value
-    plP1,   //Data is output in the same register as param1
+    plNone,   //No parameter
+    plImm,    //Immediate (constant) value
+    plAbsVar, //Variable/data at absolute, fixed, location
+    plRelVar, //Variable/data at stack relative, offset location
+    plP1,     //Data is output in the same register as param1
     plA, plB, plC, plD, plE, plH, plL,  //8 bit registers
     plHL, plDE, plBC, plIX, plIY,       //16 bit register pairs
     plZF, plZFA,  //Zero flag Set. A version also sets A to non-zero
@@ -26,7 +28,7 @@ type
 const
   //Mappings between register and register name
   AllocLocToReg8: array[low(TAllocLoc)..High(TAllocLoc)] of Char = (
-  #0,#0,#0,
+  #0,#0,#0,#0,#0,
   'a','b','c','d','e','h','l',
   #0,#0,#0,#0,#0,
   #0,#0,
@@ -36,7 +38,7 @@ const
   #0,
   #0);
   AllocLocToRegPAir: array[low(TAllocLoc)..High(TAllocLoc)] of String = (
-  #0,#0,#0,
+  #0,#0,#0,#0,#0,
   #0,#0,#0,#0,#0,#0,#0,
   'hl','de','bc','ix','iy',
   #0,#0,
@@ -46,7 +48,7 @@ const
   #0,
   #0);
   AllocLocToLowReg: array[low(TAllocLoc)..High(TAllocLoc)] of Char = (
-  #0,#0,#0,
+  #0,#0,#0,#0,#0,
   #0,#0,#0,#0,#0,#0,#0,
   'l','e','c',#0,#0,
   #0,#0,
@@ -56,7 +58,7 @@ const
   #0,
   #0);
   AllocLocToHighReg: array[low(TAllocLoc)..High(TAllocLoc)] of Char = (
-  #0,#0,#0,
+  #0,#0,#0,#0,#0,
   #0,#0,#0,#0,#0,#0,#0,
   'h','d','b',#0,#0,
   #0,#0,
@@ -132,7 +134,9 @@ type
 
     Param1Alloc: TAllocLoc; //Register of other location to place Param1 into before the primitive
     Param2Alloc: TAllocLoc; //Ditto for Param2
-    DestAlloc: TAllocLoc;   //And the register or other location to place/move the result into
+    ResultAlloc: TAllocLoc; //And the register or other location where the result of the
+                            //operation will be found. From here if can be used in a branch,
+                            //store, moved to enother register etc
 
     case DestType: TDestType of
       dtNone: ();

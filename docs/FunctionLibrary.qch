@@ -1,0 +1,120 @@
+//Quiche Function Library
+
+//The following functions are available in Quiche.
+
+//Where a function is described as 'intrinsic' or 'implemented as intrinsic'
+//the code generator will generate either inline code or a call to a routine
+//in the core library, as opposed to a 'standard' function call.
+
+
+//These declarations are needed for later:
+var i: Integer = 0
+var i8: Int8 = 0
+var b: Byte = 0
+var w: Word = 0
+var p: Pointer = $0000
+var bool: Boolean = False
+var c: Char = 'A'
+var t: TypeDef = Integer   //This is undocumented
+
+//------------------
+//Maths functions
+//------------------
+
+//FUNCTION ABS(<signed-number>): signed-number
+//Parameters: signed numeric values
+//Implemented as an intrinsic
+//Returns the absolute value of it's paramater: if the value is negative 
+//it is converted to a positive value. If the value is zero of positive it is 
+//left unchanged.
+
+i:=abs(-1234)  //Returns 1234
+
+
+//PROCEDURE DEC(var <enumerated-variable>)
+//PROCEDURE DEC(var <enumerated-variable>, <step>)
+//Intrinsic
+//Decrements the variable by <step> or one if no <step> is given. The first 
+//parameter must be a variable. The second must be a constant expression.
+//DEC does not return a value and cannot be used in an expression.
+//For small values of <step> DEC generates DEC instructions which may be
+//more efficient than the quivalent X := X - 1.
+//The result is NOT overflow checked even if overflow checking is on.
+
+i:=100
+dec(i)       //I now equals 99
+dec(i, 20)   //I now equals 79
+
+//See also: INC, SUCC, PRED
+
+
+//PROCEDURE INC(var <enumerated-variable>)
+//PROCEDURE INC(var <enumerated-variable>, <step>)
+//Intrinsic
+//Increments the variable by <step> or one if no <step> is given. The first 
+//parameter must be a variable. The second must be a constant expression.
+//INC does not return a value and cannot be used in an expression.
+//For small values of <step> INC generates INC instructions which may be
+//more efficient than the quivalent X := X - 1.
+//The result is NOT overflow checked even if overflow checking is on.
+
+i:=100
+inc(i)       //I now equals 101
+inc(i, 20)   //I now equals 121
+
+//See also: DEC, SUCC, PRED
+
+
+//FUNCTION ODD(<numeric-expr>): BOOLEAN
+//Intrinsic
+//Returns TRUE if <numeric-expr> is odd.
+//Generates more efficient code than expressions such as
+//(X and 1) = 1
+//(X mod 2) = 1
+
+i := odd(11)    //Returns TRUE
+if odd(100) then
+  w:=12
+else
+  w:=11             //This branch executes
+
+
+//CONST PI
+//System constant
+//Not implemented yet. This will need Real type.
+
+
+//------------------
+//System functions
+//------------------
+
+//FUNCTION ADDR(<variable>): POINTER
+//Intrinsic
+//Not implemented yet. This will return the address of a variable. A synonym
+//for the @ operator.
+
+
+//FUNCTION HI(<16-bit-integer>): BYTE
+//Intrinsic
+//Returns the high byte of the parameter
+
+b:=hi($cdef)    //Returns $cd
+
+//See also: LO, SWAP
+
+
+//FUNCTION HIGH(<enumerated-value>): <T>
+//FUNCTION HIGH(<type-name>): <T>
+//Returns the highest value available in a given type. If HIGH is passed the
+//name of a type it returns data for that type. If it is passed a variable or
+//expression it returns data for the type of the variable. If it is passed an
+//expression it returns data for the implicit type of the expression. Passing
+//it anything other than a type name or variable is probably not useful.
+//The return value is of the same type as the parameter.
+
+i:= high(Integer)      //Returns 32767
+b:= high(b)            //Returns 255. Note that the initial value of B is irrelevant
+c:= high(Char)         //Returns chr(255)
+bool := high(Boolean)  //Returns TRUE
+
+//See also: LOW, MAXINT, MININT

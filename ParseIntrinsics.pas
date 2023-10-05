@@ -13,7 +13,7 @@ uses ParseErrors, ParseExpr;
 //assign or use in an expression etc. If AssignReturn is True and the operation is a procedure
 //then an error will be raised.
 //If a value is being returned, it must be returned in Slug.
-function ParseIntrinsic(OpIndex: Integer;AssignReturn: Boolean;var Slug: PExprSlug): TQuicheError;
+function ParseIntrinsic(OpIndex: Integer;AssignReturn: Boolean;var Slug: TExprSlug): TQuicheError;
 
 implementation
 uses SysUtils,
@@ -113,7 +113,7 @@ begin
 
   //Read first parameter
   ExprType1 := vtUnknown;
-  Result := ParseExpressionToSlug(@Slug1, ExprType1);
+  Result := ParseExpressionToSlug(Slug1, ExprType1);
   if Result <> qeNone then
     EXIT;
 
@@ -132,7 +132,7 @@ begin
       EXIT(ErrOpUsage(ermIncorrectParameterCount, OpIndex));
     Parser.SkipChar;
     ExprType2 := vtUnknown;
-    Result := ParseExpressionToSlug(@Slug2, ExprType2);
+    Result := ParseExpressionToSlug(Slug2, ExprType2);
 
     Parser.SkipWhiteSpace;
   end;
@@ -159,6 +159,10 @@ begin
   if HaveParam2 and (opfP2Immediate in OpData.FuncFlags) then
     if (Slug2.ILItem <> nil) or (Slug2.Operand.Loc <> locImmediate) then
       EXIT(ErrOpUsage('Second parameter must be a constant or constant expression', OpIndex));
+  if opfP1Bitsize16Only in OpData.FuncFlags then
+    if Slug1.Operand.Loc <> locImmediate then
+      if GetTypeSize(ILParamToVarType(@Slug1.Operand)) <> 2 then
+        EXIT(ErrOpUsage('First parameter must be a 16-bit value', OpIndex));
 
   //Validate parameter type matches types available for the operation
   if FindAssignmentTypes(OpData.LTypes, ILParamToVarType(@Slug1.Operand)) = vtUnknown then
@@ -172,7 +176,7 @@ end;
 
 //Handle generic intrinsics which follow the standard syntax etc rules defined in
 //the operators table.
-function ParseGenericIntrinsic(OpIndex: Integer;AssignReturn: Boolean;var Slug: PExprSlug): TQuicheError;
+function ParseGenericIntrinsic(OpIndex: Integer;AssignReturn: Boolean;var Slug: TExprSlug): TQuicheError;
 var
   OpData: POperator;
   ILItem: PILItem;
@@ -240,9 +244,9 @@ begin
 
   //Create ILData or ExprSlug
   if Slug1.ILItem <> nil then
-    SlugAssignToTempVar(@Slug1);
+    SlugAssignToTempVar(Slug1);
   if HaveParam2 and (Slug2.ILItem <> nil) then
-    SlugAssignToTempVar(@Slug2);
+    SlugAssignToTempVar(Slug2);
   if AssignReturn or (opfp1Variable in OpData.FuncFlags) then
   begin //Return a slug for assignment/remainder of expression
     ILItem := ILAppend(dtData);
@@ -301,7 +305,7 @@ begin
   end;
 end;
 
-function ParseIntrinsic(OpIndex: Integer;AssignReturn: Boolean;var Slug: PExprSlug): TQuicheError;
+function ParseIntrinsic(OpIndex: Integer;AssignReturn: Boolean;var Slug: TExprSlug): TQuicheError;
 begin
   if OpIndex = OpIndexWrite then
     if AssignReturn then

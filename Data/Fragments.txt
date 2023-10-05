@@ -1,11 +1,19 @@
-;Code snippets used by the code generator to build primitives
+;This file contains code fragments which are used by the compiler to
+;generate primitives and intrinsics
 
-;Prefix indicates
+;Data can be inserted into a fragment using substitiions.
+;Substitutions are placed in angle brackets, e.g.
+;inc <p1.r8>
+
+;Substitutions are split into two parts: prefix and suffix.
+;The prefix specifies which parameter the data is to be for.
+;Valid values are:
 ;d.		Destination
 ;p1.	First parameter
 ;p2.	Second parameter
 
-;Suffix indicates
+;Suffix specifies the actual data required from the parameter
+;Valid values are:
 ;immbyte	- immediate value as a byte
 ;immword	- immediate value as a word
 ;r8			- an 8 bit register
@@ -15,6 +23,13 @@
 ;offset		- the offset to a stack variable
 ;offsetlow	- offset to the low byte of a stack variable
 ;offsethigh	- offset to the high byte of a stack variable
+;varname	- Fully qualified name of the variable
+
+;Invalid values will result in a compiler exception or assertion failure.
+
+;In addition the $$ parameter can be used to susbitute meta data into the comments
+;of the output code. The exact data to be substituted is dependant on the 
+;substitutions above but is usually the variable name.
 
 ;Validation
 ;===============================================
@@ -79,114 +94,207 @@
 ;Loads  
 ;====================================================
 
-=ldp1r8imm
+=ld_p1r8_imm
   ld <p1.r8>,<p1.immbyte>
-  
-=ldp1r8offset
-  ld <p1.r8>,(ix<p1.offset>)	;$$
 
-=ldp1r8offsetlow
-  ld <p1.r8>,(ix<p1.offsetlow>)	;$$
-  
-=ldp1r8offsethigh
-  ld <p1.r8>,(ix<p1.offsethigh>)	;$$
-    
-=ldp1r16imm
+=ld_p1r16_imm
   ld <p1.r16>,<p1.immword>
- 
-=ldp1r16offset
-  ld <p1.r16low>,(ix<p1.offsetlow>)	;$$  
-  ld <p1.r16high>,(ix<p1.offsethigh>)
-
-=ldp1r16lowoffsetlow
-  ld <p1.r16low>,(ix<p1.offsetlow>)	;$$
   
-=ldp1r16highzero
+=ld_p1r16high_zero
   ld <p1.r16high>,$00
   
   
-=ldp2r8imm
+=ld_p1r8_abs
+  ld <p1.r8>,(<p1.varname>)	;$$
+
+=ld_p1r8_abslow
+  ld <p1.r8>,(<p1.varname>)	;$$
+  
+=ld_p1r8_abshigh
+  ld <p1.r8>,(<p1.varname> + 1)	;$$
+ 
+=ld_p1r16_abs
+  ld <p1.r16>,(<p1.varname>)	;$$  
+
+=ld_p1r16low_abslow
+  ld <p1.r16low>,(<p1.varname>)	;$$
+
+
+=ld_p1r8_rel
+  ld <p1.r8>,(ix<p1.offset>)	;$$
+
+=ld_p1r8_rellow
+  ld <p1.r8>,(ix<p1.offsetlow>)	;$$
+  
+=ld_p1r8_relhigh
+  ld <p1.r8>,(ix<p1.offsethigh>)	;$$
+    
+=ld_p1r16_rel
+  ld <p1.r16low>,(ix<p1.offsetlow>)	;$$  
+  ld <p1.r16high>,(ix<p1.offsethigh>)
+
+=ld_p1r16low_rellow
+  ld <p1.r16low>,(ix<p1.offsetlow>)	;$$
+  
+  
+=ld_p2r8_imm
   ld <p2.r8>,<p2.immbyte>
 
-=ldp2r8offset
+=ld_p2r16_imm
+  ld <p2.r16>,<p2.immword>
+  
+=ld_p2r16high_zero
+  ld <p2.r16high>,$00
+
+
+=ld_p2r8_abs
+  ld <p2.r8>,(<p2.varname>)	;$$
+
+=ld_p2r16_abs
+  ld <p2.r16>,(<p2.varname>)	;$$ 
+
+=ld_p2r16low_abslow
+  ld <p2.r16low>,(<p2.varname>)	;$$
+  
+
+=ld_p2r8_rel
   ld <p2.r8>,(ix<p2.offset>)	;$$
 
-=ldp2r16imm
-  ld <p2.r16>,<p2.immword>
-
-=ldp2r16offset
+=ld_p2r16_rel
   ld <p2.r16low>,(ix<p2.offsetlow>)	;$$  
   ld <p2.r16high>,(ix<p2.offsethigh>)
 
-=ldp2r16lowoffsetlow
+=ld_p2r16low_rellow
   ld <p2.r16low>,(ix<p2.offsetlow>)	;$$
-  
-=ldp2r16highzero
-  ld <p2.r16high>,$00
+
 
 ;Assigns
 ;===================================================
 ;An assignment copies one register, or an immediate value, to
 ;another
+  
+=assign_abs8_imm8
+  ld a,<p1.immbyte>
+  ld (<d.varname>),a		;$$
+  
+=assign_abs16_imm8_neg
+  ld a,<p1.immbyte>
+  ld (<d.varname>),a		;$$
+  ld a,$ff
+  ld (<d.varname> + 1),a
 
-=assignoffset8imm8
+=assign_abs16_imm8
+  ld a,<p1.immbyte>
+  ld (<d.varname>),a		;$$
+  xor a
+  ld (<d.varname> + 1),a
+
+=assign_abs16_imm16
+  ld a,<p1.immwordlow>
+  ld (<d.varname>),a		;$$
+  ld a,<p1.immwordhigh>
+  ld (<d.varname> + 1),a
+ 
+ 
+=assign_rel8_imm8
   ld (ix<d.offset>),<p1.immbyte>	;$$
   
-=assignoffset16imm8
+=assign_rel16_imm8
   ld (ix<d.offsetlow>),<p1.immbyte>	;$$
   ld (ix<d.offsethigh>),$00
 
-=assignoffset16imm8neg
+=assign_rel16_imm8_neg
   ld (ix<d.offsetlow>),<p1.immbyte>	;$$
   ld (ix<d.offsethigh>),$ff
 
-=assignoffset16imm16
+=assign_rel16_imm16
   ld (ix<d.offsetlow>),<p1.immwordlow>	;$$
   ld (ix<d.offsethigh>),<p1.immwordhigh>
 
-=assignoffset16r8
+
+=assign_abs16_r8
+  ld (<d.varname>),<p1.r8>	;$$
+  xor a
+  ld (<d.varname> + 1),a
+
+=assign_abs8_r8
+  ld (<d.varname>),<p1.r8> 	;$$
+
+=assign_abs8r_16low
+  ld (<d.varname>),<p1.r16low>   ;$$
+  
+
+=assign_rel16_r8
   ld (ix<d.offsetlow>),<p1.r8>	;$$
   ld (ix<d.offsethigh>),$00
-  
-=assignoffset8r8
-  ld (ix<d.offset>),<p1.r8>		;$$
 
-=assignoffset8r8
+=assign_rel8_r8
   ld (ix<d.offset>),<p1.r8> 	;$$
 
-=assignoffset8r16low
+=assign_rel8r_16low
   ld (ix<d.offset>),<p1.r16low>   ;$$
+
+
 ;Stores
 ;====================================================
 ;A store copies the result of a primitive into a variable
 
-=storeoffset8a
-  ld (ix<d.offset>),a		;$$
+=store_abs8_a
+  ld (<d.varname>),a		;$$
   
-=storeoffset8r8
+=store_abs8_r8
+  ld (<d.varname>),<d.r8>	;$$
+  
+=store_abs16_r8
+  xor a
+  ld (<d.varname> + 1),a	;$$
+  ld (<d.varname>),<d.r8>
+  
+;For use before a sign extend
+=store_abs16low_r8
+  ld (<d.varname>),<d.r8>	;$$
+
+;For use after a sign extend
+=store_abs16high_a
+  ld (<d.varname> + 1),a		;$$
+  
+;For use after a sign extend
+=store_abs16high_r8
+  ld (<d.varname> + 1),<d.r8>	;$$
+
+=store_abs16_r16
+  ld (<d.varname>),<d.r16>	;$$
+
+=store_abs8_r16low
+  ld (<d.varname>),<d.r16low>	;$$
+  
+  
+  
+  
+=store_rel8_r8
   ld (ix<d.offset>),<d.r8>	;$$
   
-=storeoffset16r8
+=store_rel16_r8
   ld (ix<d.offsethigh>),$00	;$$
   ld (ix<d.offsetlow>),<d.r8>
   
 ;For use before a sign extend
-=storeoffset16lowr8
+=store_rel16low_r8
   ld (ix<d.offsetlow>),<d.r8>	;$$
 
 ;For use after a sign extend
-=storeoffset16higha
+=store_rel16high_a
   ld (ix<d.offsethigh>),a		;$$
   
 ;For use after a sign extend
-=storeoffset16highr8
+=store_rel16high_r8
   ld (ix<d.offsethigh>),<d.r8>	;$$
 
-=storeoffset16r16
+=store_rel16_r16
   ld (ix<d.offsetlow>),<d.r16low>	;$$
   ld (ix<d.offsethigh>),<d.r16high>
 
-=storeoffset8r16low
+=store_rel8_r16low
   ld (ix<d.offsetlow>),<d.r16low>	;$$
     
 ;ALU operations

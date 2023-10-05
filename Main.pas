@@ -1,3 +1,33 @@
+{
+Directory structure:
+
+/Data (Core?)
+  Operations
+  Primitives
+  Fragments DONE
+  Core library(ies)
+
+/Platforms
+  <platform-name>.asm - Core file for platform
+  <platform-name>.config - Config for platform
+  /<platform name> - eg CPC
+    Libraries for platform
+
+/Tests
+  /DeepTests (Auto-generated?)
+
+/Config
+  UI state
+  Compiler defaults
+
+/Docs
+  Compilable examples/documentation
+
+/Examples
+}
+
+
+
 unit Main;
 
 interface
@@ -92,7 +122,7 @@ begin
   if Compiler.LastErrorNo <> 0 then
     EXIT;
   btnAssembleClick(nil);
-  if Compiler.LastErrorNo <> 0 then
+  if Compiler.AssembleError then
     EXIT;
   btnEmulateClick(nil);
   if Compiler.LastErrorNo <> 0 then
@@ -114,7 +144,7 @@ end;
 
 procedure TForm1.btnCodeGenClick(Sender: TObject);
 begin
-  Compiler.LoadCodeGenLibrary(TPath.Combine(Compiler.QuicheFolder, 'Z80Code/Assembly.txt'));
+  Compiler.LoadFragmentsLibrary(TPath.Combine(Compiler.QuicheFolder, FragmentsFilename));
 
   if not Compiler.DoCodeGen then
     edError.Text := LastErrorString;

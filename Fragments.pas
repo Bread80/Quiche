@@ -1,39 +1,60 @@
-unit CodeLibrary;
+unit Fragments;
 
 interface
 uses ILData;
 
-procedure LoadLibrary(Filename: String);
+type
+  PFragment = ^TFragment;
+  TFragment = record
+    Name: String;
+    Code: String;
+  end;
 
-function CodeSub(AName: String;ILItem: PILItem): String;
+procedure LoadFragments(Filename: String);
+
+function FindFragmentByName(const AName: String): PFragment;
+
+function FragmentSub(AName: String;ILItem: PILItem): String;
 
 
 implementation
 uses Classes, Generics.Collections, SysUtils, Variables;
 
-type
-  PLibraryEntry = ^TLIbraryEntry;
-  TLibraryEntry = record
-    Name: String;
-    Code: String;
-  end;
+var  Lib: TList<PFragment>;
 
-var  Lib: TList<PLibraryEntry>;
-
-procedure ClearLibrary;
-var Entry: PLibraryEntry;
+procedure ClearFragments;
+var Entry: PFragment;
 begin
   for Entry in Lib do
     Dispose(Entry);
   Lib.Clear;
 end;
 
-procedure LoadLibrary(Filename: String);
+function FindFragmentByName(const AName: String): PFragment;
+begin
+  for Result in Lib do
+    if CompareText(AName, Result.Name) = 0 then
+      EXIT;
+  Result := nil;
+end;
+
+function FindEntry(AName: String): String;
+var Frag: PFragment;
+begin
+  Frag := FindFragmentByName(AName);
+
+  if Frag = nil then
+    raise Exception.Create('Library segment not found for: ' + AName);
+
+  Result := Frag.Code;
+end;
+
+procedure LoadFragments(Filename: String);
 var SL: TStringList;
   Line: String;
-  Entry: PLibraryEntry;
+  Entry: PFragment;
 begin
-  ClearLibrary;
+  ClearFragments;
   Entry := nil;
   SL := nil;
   try
@@ -46,8 +67,10 @@ begin
         //Skip
       else if Line.Chars[0] = '=' then
       begin
-        Entry := New(PLibraryEntry);
+        Entry := New(PFragment);
         Entry.Name := Line.Trim.Substring(1,MaxInt);
+        if Assigned(FindFragmentByName(Entry.Name)) then
+          raise Exception.Create('LoadFragments: Entry redeclared: ' + Entry.Name);
         Entry.Code := '';
         Lib.Add(Entry);
       end
@@ -99,8 +122,7 @@ function CodeOffset(Param: PILParam;out Comment: String): String;
 var Variable: PVariable;
 begin
   Variable := ILParamToVariable(Param);
-//  if Variable. <> Offset var then
-//    raise Exeption.Create('Variable is not an offset var in CodeOffset');
+  Assert(Variable.Storage = vsRelative);
   Result := OffsetToStr(Variable.Offset);
   Comment := Variable.Name;
 end;
@@ -109,9 +131,17 @@ function CodeOffsetHigh(Param: PILParam;out Comment: String): String;
 var Variable: PVariable;
 begin
   Variable := ILParamToVariable(Param);
-//  if Variable. <> Offset var then
-//    raise Exeption.Create('Variable is not an offset var in CodeOffset');
+  Assert(Variable.Storage = vsRelative);
   Result := OffsetToStr(Variable.Offset+1);
+  Comment := Variable.Name;
+end;
+
+function CodeVarName(Param: PILParam;out Comment: String): String;
+var Variable: PVariable;
+begin
+  Variable := ILParamToVariable(Param);
+  Assert(Variable.Storage = vsAbsolute);
+  Result := VarGetAsmName(Variable);
   Comment := Variable.Name;
 end;
 
@@ -158,7 +188,7 @@ begin
 
       //8 bit registers
       else if CompareText(PName, 'd.r8') = 0 then
-        Sub := AllocLocToReg8[ILItem.DestAlloc]
+        Sub := AllocLocToReg8[ILItem.ResultAlloc]
       else if CompareText(PName, 'p1.r8') = 0 then
         Sub := AllocLocToReg8[ILItem.Param1Alloc]
       else if CompareText(PName, 'p2.r8') = 0 then
@@ -166,11 +196,11 @@ begin
 
       //16 bit registers
       else if CompareText(PName, 'd.r16') = 0 then
-        Sub := AllocLocToHighReg[ILItem.DestAlloc] + AllocLocToLowReg[ILItem.DestAlloc]
+        Sub := AllocLocToHighReg[ILItem.ResultAlloc] + AllocLocToLowReg[ILItem.ResultAlloc]
       else if CompareText(PName, 'd.r16low') = 0 then
-        Sub := AllocLocToLowReg[ILItem.DestAlloc]
+        Sub := AllocLocToLowReg[ILItem.ResultAlloc]
       else if CompareText(PName, 'd.r16high') = 0 then
-        Sub := AllocLocToHighReg[ILItem.DestAlloc]
+        Sub := AllocLocToHighReg[ILItem.ResultAlloc]
 
       else if CompareText(PName, 'p1.r16') = 0 then
         Sub := AllocLocToRegPair[ILItem.Param1Alloc]
@@ -185,6 +215,14 @@ begin
         Sub := AllocLocToLowReg[ILItem.Param2Alloc]
       else if CompareText(PName, 'p2.r16high') = 0 then
         Sub := AllocLocToHighReg[ILItem.Param2Alloc]
+
+      //Absolutes (fixed/global variables)
+      else if CompareText(PName, 'd.varname') = 0 then
+        Sub := CodeVarName(@ILItem.Dest, Comment)
+      else if CompareText(PName, 'p1.varname') = 0 then
+        Sub := CodeVarName(@ILItem.Param1, Comment)
+      else if CompareText(PName, 'p2.varname') = 0 then
+        Sub := CodeVarName(@ILItem.Param2, Comment)
 
       //Offsets (stack variables)
       else if CompareText(PName, 'd.offset') = 0 then
@@ -221,17 +259,7 @@ begin
   end;
 end;
 
-function FindEntry(AName: String): String;
-var Entry: PLibraryEntry;
-begin
-  for Entry in Lib do
-    if CompareText(AName, Entry.Name) = 0 then
-      EXIT(Entry.Code);
-
-  raise Exception.Create('Library segment not found for: ' + AName);
-end;
-
-function CodeSub(AName: String;ILItem: PILItem): String;
+function FragmentSub(AName: String;ILItem: PILItem): String;
 var Code: String;
 begin
   Code := FindEntry(AName);
@@ -240,5 +268,5 @@ end;
 
 
 initialization
-  Lib := TList<PLibraryEntry>.Create;
+  Lib := TList<PFragment>.Create;
 end.

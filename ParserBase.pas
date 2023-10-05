@@ -232,12 +232,12 @@ function ParseVarType(out VT: TVarType): TQuicheError;
 var Ident: String;
 begin
   Result := ParseIdentifier(#0, Ident);
-  if Result = qeNone then
-  begin
-    VT := StringToVarType(Ident);
-    if VT = vtUnknown then
-      EXIT(ErrSub(qeUnknownType, Ident));
-  end;
+  if Result <> qeNone then
+    EXIT;
+
+  VT := StringToVarType(Ident);
+  if VT = vtUnknown then
+    EXIT(ErrSub(qeUnknownType, Ident));
 end;
 
 function TestForTypeSymbol(out VarType: TVarType): TQuicheError;
@@ -278,70 +278,98 @@ begin
   Result := qeNone;
 end;
 
-function ParseAttribute: TQuicheError;
-var Ident: String;
+//Called after '[Corrupts' has been parsed
+function ParseCorruptsAttribute: TQuicheError;
+type TIXIYState = (xsNone, xsIRead, xsWaitingXY);
+var
   Ch: Char;
-  InIXIY: Boolean;
+  IXIYState: TIXIYState;
   WhiteSpace: Boolean;
   Reg: TUsedReg;
-const strCorruptsAttrError = 'Invalid corrupts attribute: ''%s''. Valid values are A,B,C,D,E,F,H,L,IX,IY,L,X,Y. Whitespace and comma separators are allowed.';
+const
+  strCorruptsAttrError = 'Invalid corrupts attribute: ''%s''. Valid values are A,B,C,D,E,F,H,L,IX,IY,L,X,Y. Whitespace and comma separators are allowed.';
+  strXorYRequired = 'X or Y required after I in Corrupts attribute (IX or IY register)';
 begin
-  ParseIdentifier(#0, Ident);
-  if CompareText(Ident, 'corrupts') = 0 then
+  AttrCorrupts := [];
+  Parser.SkipWhiteSpace;
+  IXIYState := xsNone;
+  while True do
   begin
-    AttrCorrupts := [];
-    Parser.SkipWhiteSpace;
-    InIXIY := False;
-    while True do
-      if Parser.Readchar(Ch) then
-      begin
-        WhiteSpace := False;
-        Ch := UpCase(Ch);
-        case Ch of
-          #0..#32,',': WhiteSpace := True;  //Whitespace and separators
-          ']': EXIT(qeNone);
-          'A': Reg := urA;
-          'B': Reg := urB;
-          'C': Reg := urC;
-          'D': Reg := urD;
-          'E': Reg := urE;
-          'F': Reg := urFlags;
-          'H': Reg := urH;
-          'I':
-            if InIXIY then
-              EXIT(ErrMsg(qeAttributeError, Format(strCorruptsAttrError, ['I'])))
-            else
-              InIXIY := True;
-          'L': Reg := urL;
-          'X': Reg := urIX;
-          'Y': Reg := urIY;
-        else
-          EXIT(ErrMsg(qeAttributeError, Format(strCorruptsAttrError, [Ch])));
-        end;
-
-        if not WhiteSpace then
-          if InIXIY then
-          begin
-            if Reg in [urIX, urIY] then
-              AttrCorrupts := AttrCorrupts + [Reg]
-            else
-            if Ch <> 'I' then
-              EXIT(ErrMsg(qeAttributeError, Format(strCorruptsAttrError, [Ch])));
-            InIXIY := False;
-          end
+    Parser.Mark;
+    if Parser.Readchar(Ch) then
+    begin
+      WhiteSpace := False;
+      case Upcase(Ch) of
+        #0..#32,',': WhiteSpace := True;  //Whitespace and separators
+        ']':
+          if IXIYState <> xsNone then
+            EXIT(ErrMsg(qeAttributeError, StrXOrYRequired))
           else
-            AttrCorrupts := AttrCorrupts + [Reg];
+            EXIT(qeNone);
+        'A': Reg := urA;
+        'B': Reg := urB;
+        'C': Reg := urC;
+        'D': Reg := urD;
+        'E': Reg := urE;
+        'F': Reg := urFlags;
+        'H': Reg := urH;
+        'I':
+          if IXIYState <> xsNone then
+            EXIT(ErrMsg(qeAttributeError, StrXOrYRequired))
+          else
+            IXIYState := xsIRead;
+        'L': Reg := urL;
+        'X':
+          if IXIYState = xsWaitingXY then
+            Reg := urIX
+          else
+            EXIT(ErrMsg(qeAttributeError, StrXOrYRequired));
+        'Y':
+          if IXIYState = xsWaitingXY then
+            Reg := urIY
+          else
+            EXIT(ErrMsg(qeAttributeError, StrXOrYRequired));
+      else
+        EXIT(ErrMsg(qeAttributeError, Format(strCorruptsAttrError, [Ch])));
+      end;
+
+      if IXIYState = xsWaitingXY then
+      begin
+        if Reg in [urIX, urIY] then
+          AttrCorrupts := AttrCorrupts + [Reg]
+        else
+          EXIT(ErrMsg(qeAttributeError, StrXOrYRequired));
+        IXIYState := xsNone;
       end
       else
-        EXIT(Err(qeAttributeError))
-  end
+        if (not WhiteSpace) and (IXIYState = xsNone) then
+          AttrCorrupts := AttrCorrupts + [Reg];
+
+      if IXIYState = xsIRead then
+        IXIYState := xsWaitingXY;
+    end
+    else
+      EXIT(ErrMsg(qeAttributeError, Format(strCorruptsAttrError, [Ch])))
+  end;
+end;
+
+
+function ParseAttribute: TQuicheError;
+var Ident: String;
+begin
+  Result := ParseIdentifier(#0, Ident);
+  if Result <> qeNone then
+    EXIT(ErrMsg(qeAttributeError, 'Attribute name expected'));
+
+  if CompareText(Ident, 'corrupts') = 0 then
+    EXIT(ParseCorruptsAttribute)
   else if CompareText(Ident, 'preservesall') = 0 then
   begin
-    Parser.SkipWhiteSpace;
+{    Parser.SkipWhiteSpace;
     Result := ParseIdentifier(#0, Ident);
     if Result <> qeNone then
       EXIT;
-    Parser.SkipWhiteSpace;
+}    Parser.SkipWhiteSpace;
     if Parser.TestChar <> ']' then
       EXIT(ErrMsg(qeAttributeError, '''['' expected at end of attribute'));
     Parser.SkipChar;

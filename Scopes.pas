@@ -31,6 +31,9 @@ type
   TScope = record
     Parent: PScope;   //The next higher Scope, or nil in none
     Name: String;     //For the scope. For reference only
+    Depth: Integer;   //The block depth within the current scope. Used to determine
+                      //which variables are in scope. Ie. within a BEGIN...END block
+                      //Depth is increased for every BEGIN and decreased for every END
 //    Func: PFunction;  //The function which owns this scope. Nil for main/global code
 //    Constants: ;      //Constants declared at this scope level
 //    Types: ;          //Ditto for Types
@@ -49,7 +52,8 @@ type
     VarListFirstIndex: Integer; //Then index number of the first variable in the
                                 //VarList. Lower Indexes will be in parent scope(s)
     FuncList: TFuncList;  //Functions declared in this scope
-    Assembly: TStringList;  //Assembly code (from CodeGen) for this scope
+    AsmCode: TStringList;  //Assembly code for Code segment for this scope (from CodeGen)
+    AsmData: TStringList;   //Assembly code for Data segment (from CodeGen)
     ILList: TILList;
   end;
 
@@ -87,6 +91,15 @@ procedure InitialiseScopes;
 //Index returns an index value which is dependant on the item type
 function SearchScopes(Ident: String;out IdentType: TIdentType;out Scope: PScope;
   out Item: Pointer; out Index: Integer): Boolean;
+
+//Increase the Depth of the current Scope (called for each BEGIN)
+procedure ScopeIncDepth;
+
+//ecrease the Depth of the current Scope (called for each END)
+procedure ScopeDecDepth;
+
+//Get the depth of the current Scope
+function ScopeGetDepth: Integer;
 
 
 //-----GUI utlilities
@@ -126,7 +139,8 @@ begin
     Scope.VarList.Free;
     ClearFuncList(Scope.FuncList);
     Scope.FuncList.Free;
-    Scope.Assembly.Free;
+    Scope.AsmCode.Free;
+    Scope.AsmData.Free;
     ClearILList(Scope.ILList);
     Scope.ILList.Free;
     Dispose(Scope);
@@ -169,6 +183,7 @@ begin
   ScopeList.Add(Result);
   Result.Name := Name;
   Result.Parent := CurrentScope;
+  Result.Depth := 0;
 //  Result.Func := nil;
 //    Constants: ;
 //    Types: ;
@@ -182,7 +197,8 @@ begin
   else
     Result.VarListFirstIndex := 0;
   Result.FuncList := CreateFuncList;
-  Result.Assembly := TStringlist.Create;
+  Result.AsmCode := TStringlist.Create;
+  Result.AsmData := TStringList.Create;
   Result.ILList:= CreateILList;
 
   if MainScope = nil then
@@ -238,6 +254,25 @@ begin
   Result := False;
 end;
 
+procedure ScopeIncDepth;
+begin
+  CurrentScope.Depth := CurrentScope.Depth + 1;
+end;
+
+//ecrease the Depth of the current Scope (called for each END)
+procedure ScopeDecDepth;
+begin
+  Assert(CurrentScope.Depth > 0);
+  CurrentScope.Depth := CurrentScope.Depth - 1;
+  //TODO Tell variables about the new depth
+  Variables.ScopeDepthDecced(CurrentScope.Depth);
+end;
+
+//Get the depth of the current Scope
+function ScopeGetDepth: Integer;
+begin
+  Result := CurrentScope.Depth;
+end;
 
 
 

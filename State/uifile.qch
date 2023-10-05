@@ -1,3 +1,5 @@
-var a:byte=255
-var b:=hi(a)
-write b
+var T := Integer
+var Tx := TypeDef
+
+begin
+end.

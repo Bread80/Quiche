@@ -382,7 +382,7 @@
         <DCCReference Include="Parse.pas"/>
         <DCCReference Include="Variables.pas"/>
         <DCCReference Include="ILExec.pas"/>
-        <DCCReference Include="CodeLibrary.pas"/>
+        <DCCReference Include="Fragments.pas"/>
         <DCCReference Include="Operators.pas"/>
         <DCCReference Include="Shell.pas"/>
         <DCCReference Include="Compiler.pas"/>
@@ -400,6 +400,7 @@
         <DCCReference Include="ParseErrors.pas"/>
         <DCCReference Include="SourceReader.pas"/>
         <DCCReference Include="ParseIntrinsics.pas"/>
+        <DCCReference Include="ParseFuncDef.pas"/>
         <None Include="Tests.txt"/>
         <None Include="Assembly.txt"/>
         <BuildConfiguration Include="Release">

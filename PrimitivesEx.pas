@@ -42,11 +42,10 @@ type
     ValProcU8: String;
     ValProcS16: String;
     ValProcU16: String;
-//    SnippetName: String;      //If there is code snippet for this operation, name it here
   end;
 
 
-function ILItemToPrimitive(ILItem: PILItem): PPrimitive;
+function ILItemToPrimitive(const ILItem: TILItem): PPrimitive;
 
 function PrimFindByProcName(AName: String): PPrimitive;
 
@@ -55,8 +54,12 @@ procedure PrimSetValProc(Name: String;Proc: TValidationProc);
 
 procedure InitialisePrimitiveList;
 
+//Validates that generators are available for every primitive.
+//Raises an exception if there is a problem
+procedure ValidatePrimitives;
+
 implementation
-uses Generics.Collections, Classes, SysUtils, Operators;
+uses Generics.Collections, Classes, SysUtils, Operators, Variables, Fragments;
 
 var PrimList: TList<PPrimitive>;
 
@@ -84,7 +87,7 @@ begin
   end;
 end;
 
-function OpOrderMatch(FirstParamType: Char;ILItem: PILItem): Boolean;
+function OpOrderMatch(FirstParamType: Char;const ILItem: TILItem): Boolean;
 begin
   case FirstParamType of
     #0: Result := True;
@@ -102,24 +105,57 @@ begin
     pvNo: Result := not (cgOverflowCheck in CodeGenFlags);
     pvEither: Result := True;
   else
-    raise Exception.Create('Unhandled Prim Validatio value');
+    raise Exception.Create('Unhandled Prim Validation value');
   end;
 end;
 
 function ParamLocMatch(ProcLoc: TAllocLocSet;const ILParam: TILParam): Boolean;
+var V: PVariable;
 begin
-  if ILParam.Loc = locNone then
-    EXIT(ProcLoc = []);
-
-  if (ILParam.Loc = locImmediate) then
-    EXIT(True);//ProcLoc = [plImm]);
+  case ILParam.Loc of
+    locNone: EXIT(ProcLoc = []);
+    locImmediate: EXIT(True);//ProcLoc = [plImm]);
+    locVar, locTemp: //Special cases which can handle variable types directly
+    begin
+      V := ILParamToVariable(@ILParam);
+      if plAbsVar in ProcLoc then
+        EXIT(V.Storage = vsAbsolute);
+      if plRelVar in ProcLoc then
+        EXIT(V.Storage = vsRelative);
+    end;
+  else
+      //Nothing
+  end;
 
   //If we can't find a suitable routine which accepts an Imm value then we'll
   //use one which doesn't and manually load it into a register.
   Result := (ProcLoc * [plA..plE,plH..plL, plHL..plBC]) <> [];
 end;
 
-function ILItemToPrimitive(ILItem: PILItem): PPrimitive;
+function DestLocMatch(const Prim: PPrimitive; const ILItem: TILItem): Boolean;
+var V: PVariable;
+begin
+//  Result := (Prim.IsBranch and (ILItem.DestType = dtCondBranch)) or not Prim.IsBranch then
+  if Prim.IsBranch then
+    EXIT(ILItem.DestType = dtCondBranch);
+
+  if ILItem.DestType = dtData then
+  begin
+    //For an assign to a variable (Anything other than Assign is handled after the Primitive)
+    V := ILDestToVariable(ILItem.Dest);
+    if Prim.DestLoc = plAbsVar then
+      EXIT(V.Storage = vsAbsolute);
+    if Prim.DestLoc = plRelVar then
+      EXIT(V.Storage = vsRelative);
+    EXIT(True);
+  end
+  else  //DestType <> dtData - return true because value can be massaged for branches
+    EXIT(True);
+
+  Result := False;
+end;
+
+function ILItemToPrimitive(const ILItem: TILItem): PPrimitive;
 begin
   for Result in PrimList do
     if ILItem.OpIndex = Result.OpIndex then
@@ -127,7 +163,7 @@ begin
         if OpOrderMatch(Result.FirstParamType, ILItem) then
           if ValidationMatch(Result.Validation, ILItem.CodeGenFlags) then
             if ParamLocMatch(Result.Param1Loc, ILItem.Param1) and ParamLocMatch(Result.Param2Loc, ILItem.Param2) then
-              if (Result.IsBranch and (ILItem.DestType = dtCondBranch)) or not Result.IsBranch then
+              if DestLocMatch(Result, ILItem) then
                   EXIT;
 
   Result := nil;
@@ -205,6 +241,10 @@ begin
     Result := StrToParamLoc8(S.Chars[0], ForCorrupts)
   else if CompareText(S, 'none') = 0 then
     Result := plNone
+  else if CompareText(S, 'absvar') = 0 then
+    Result := plAbsVar
+  else if CompareText(S, 'relvar') = 0 then
+    Result := plRelVar
   else if CompareText(S, 'p1') = 0 then
     Result := plP1
   else if (S = 'bc') or (S = 'BC') then
@@ -326,7 +366,7 @@ begin
       end;
 
       Prim.ProcName := Fields[fProcName];
-      Prim.ValProcName := Fields[fValProcName];
+
       Prim.Flags := StrToPrimFlagSet(Fields[fFlags]);
 
       Prim.Param1Loc := StrToParamLocSet(Fields[fParam1Loc], False);
@@ -343,6 +383,41 @@ begin
       Prim.Proc := nil;
       Prim.ValProc := nil;
     end;
+end;
+
+//Validate that the specified proc exists in our codebase
+procedure ValidateProc(S: String);
+begin
+  if S = '' then
+    EXIT;
+  if CompareText(S, 'empty') = 0 then
+    EXIT;
+  if CompareText(S, 'error') = 0 then
+    EXIT;
+  if S.Chars[0] = ':' then
+    EXIT;
+
+  if not Assigned(Fragments.FindFragmentByName(S)) then
+    raise Exception.Create('Load primitives: Fragment not found: ' + S);
+end;
+
+procedure ValidatePrimitive(Prim: PPrimitive);
+begin
+  if not Assigned(Prim.Proc) then
+    ValidateProc(Prim.ProcName);
+
+  ValidateProc(Prim.ValProcName);
+  ValidateProc(Prim.ValProcS8);
+  ValidateProc(Prim.ValProcU8);
+  ValidateProc(Prim.ValProcS16);
+  ValidateProc(Prim.ValProcU16);
+end;
+
+procedure ValidatePrimitives;
+var Prim: PPrimitive;
+begin
+  for Prim in PrimList do
+    ValidatePrimitive(Prim);
 end;
 
 end.

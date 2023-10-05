@@ -15,7 +15,7 @@ type
 //The expression parser breaks the input stream down into chunks of an operand and an
 //operation. A 'slug' (for want of a better term) is one of those chunks.
 type
-  PExprSlug = ^TExprSlug;
+//  PExprSlug = ^TExprSlug;
   TExprSlug = record
     //NOTE: If ILItem is non-nil then Operand will be ignored
     ILItem: PILItem;  //Returns the ILItem of a sub-expression or unary operators
@@ -38,9 +38,9 @@ type
 
 //Where the Slug has an ILItem, this routine creates a temp var and sets the
 //ILItem's Dest data to point to it.
-procedure SlugAssignToTempVar(Slug: PExprSlug);
+procedure SlugAssignToTempVar(var Slug: TExprSlug);
 
-function ParseExpressionToSlug(Slug: PExprSlug;var ExprType: TVarType): TQuicheError;
+function ParseExpressionToSlug(var Slug: TExprSlug;var ExprType: TVarType): TQuicheError;
 
 //Parses an expression to an ILItem with a single parameter and no operation
 //Dest and Operation data *must* be assigned by the caller
@@ -73,7 +73,7 @@ uses SysUtils, Variables, ParserBase, Eval, Globals, Scopes, ParseIntrinsics;
 
 //Where the Slug has an ILItem, this routine creates a temp var and sets the
 //ILItem's Dest data to point to it.
-procedure SlugAssignToTempVar(Slug: PExprSlug);
+procedure SlugAssignToTempVar(var Slug: TExprSlug);
 begin
   Assert(Slug.ILItem <> nil);
 
@@ -93,7 +93,7 @@ end;
 //side slug.
 
 //Returns the type to be used in deciding the implicit type of the expression
-function GetOperandImplicitType(Slug: PExprSlug): TVarType;
+function GetOperandImplicitType(const Slug: TExprSlug): TVarType;
 var Variable: PVariable;
 begin
   case Slug.Operand.Loc of
@@ -128,7 +128,7 @@ end;
 
 //The ultimate destination of the routines below. This sets the fields of the
 //slug once the values for those fields have been determined
-procedure SetSlugTypes(var Slug: PExprSlug;ResultType: TVarType;OpType: TOpType);
+procedure SetSlugTypes(var Slug: TExprSlug;ResultType: TVarType;OpType: TOpType);
 begin
   if Slug.ResultType = vtUnknown then
     Slug.ResultType := ResultType;
@@ -141,7 +141,7 @@ end;
 //The ImmType of the operand,
 //The Origin of the operand (implicit or explicit),
 //and the value of the operand
-function MinImmType(Imm: PExprSlug): TVarType;
+function MinImmType(const Imm: TExprSlug): TVarType;
 begin
   if (Imm.ParamOrigin = poExplicit) and (Imm.Operand.ImmType in [vtByte, vtWord, vtPointer]) then
     EXIT(Imm.Operand.ImmType);
@@ -170,7 +170,7 @@ end;
 //(And in both cases the other parameter is the immediate (constant) one.
 
 //Returns False if there is no valid combination of types, otherwise True.
-function SetMinCommonVarImmediateType(var Left: PExprSlug; Right: PExprSlug;Swap: Boolean): Boolean;
+function SetMinCommonVarImmediateType(var Left: TExprSlug;const Right: TExprSlug;Swap: Boolean): Boolean;
 var VType, ImmType: TVarType;
   ImmValue: Word;
 begin
@@ -255,7 +255,7 @@ end;
 //(An M16 operation is one where one side is signed and the other unsigned)
 
 //Returns False if there is no valid combination of types, otherwise True.
-function SetMinCommonType(var Slug: PExprSlug; LType, RType: TVarType): Boolean;
+function SetMinCommonType(var Slug: TExprSlug; LType, RType: TVarType): Boolean;
 begin
   if IsNumericType(LType) and IsNumericType(RType) then
   begin
@@ -297,7 +297,7 @@ end;
 //Left slug parameter.
 
 //Returns False if there is no valid combination of types, otherwise True.
-function SetMinCommonImmediateType(var Left: PExprSlug; Right: PExprSlug): Boolean;
+function SetMinCommonImmediateType(var Left: TExprSlug;const Right: TExprSlug): Boolean;
 var LType, RType: TVarType;
 begin
   LType := MinImmType(Left);
@@ -309,7 +309,7 @@ end;
 //for the operation and result, and sets those values into the Left slug parameter.
 
 //Returns False if there is no valid combination of types, otherwise True.
-function SetMinCommonVarType(var Left: PExprSlug;Right: PExprSlug): Boolean;
+function SetMinCommonVarType(var Left: TExprSlug;const Right: TExprSlug): Boolean;
 var LType, RType: TVarType;
 begin
   LType := ILParamToVarType(@Left.Operand);
@@ -320,7 +320,7 @@ end;
 //For a boolean/bitwise operator, sets the type/size of boolean operation required
 
 //Returns False if there is no valid combination of types, otherwise True.
-function SetBooleanOperatorType(var Left: PExprSlug;Right: PExprSlug): Boolean;
+function SetBooleanOperatorType(var Left: TExprSlug;const Right: TExprSlug): Boolean;
 var LType, RType: TVarType;
 begin
   LType := ILParamToVarType(@Left.Operand);
@@ -350,7 +350,7 @@ end;
 //that there is a suitable primitive available (as noted in the OpTypes field of
 //the Operands list.
 //Returns False if operands are incompatible with the operator/available primitives
-function AssignSlugTypes(var Slug: PExprSlug; RightSlug: PExprSlug): Boolean;
+function AssignSlugTypes(var Slug: TExprSlug;const RightSlug: TExprSlug): Boolean;
 begin
   //Operation has a fixed result type
   if Slug.OpData.ResultType <> teUnknown then
@@ -417,7 +417,7 @@ end;
 
 //Tests whether the expression returned by Slug is compatible with the type
 //given in ExprType. If it is returns errNone, otherwise returns a suitable error code
-function ValidateExprType(ExprType: TVarType; Slug: PExprSlug): TQuicheError;
+function ValidateExprType(ExprType: TVarType;const Slug: TExprSlug): TQuicheError;
 var Negative: Boolean;
   Valid: Boolean;
 begin
@@ -455,7 +455,7 @@ end;
 //======================================Parsing literals
 
 //Parses and returns an integer literal
-function ParseInteger(Slug: PExprSlug): TQuicheError;
+function ParseInteger(var Slug: TExprSlug): TQuicheError;
 var
   Ch: Char;
   Value: Integer;
@@ -490,7 +490,7 @@ begin
 end;
 
 //Where the '-' sign has already been parsed
-function ParseNegativeInteger(Slug: PExprSlug): TQuicheError;
+function ParseNegativeInteger(var Slug: TExprSlug): TQuicheError;
 begin
   Result := ParseInteger(Slug);
   if Result <> qeNone then
@@ -510,7 +510,7 @@ end;
 
 //Parses and returns a hex literal
 //Parser must be pointing to
-function ParseHex(Slug: PExprSlug): TQuicheError;
+function ParseHex(var Slug: TExprSlug): TQuicheError;
 var
   Ch: Char;
   Ignore: Boolean;
@@ -558,7 +558,7 @@ begin
 end;
 
 //Parses and returns a binary literal
-function ParseBinary(Slug: PExprSlug): TQuicheError;
+function ParseBinary(var Slug: TExprSlug): TQuicheError;
 var
   Ch: Char;
   Digits: Integer;
@@ -600,7 +600,7 @@ end;
 
 //Parses and returns a quoted string or character
 //Currently only handles single character strings (i.e. chars)
-function ParseString(Slug: PExprSlug): TQuicheError;
+function ParseString(var Slug: TExprSlug): TQuicheError;
 var
   Ch: Char;
   S: String;
@@ -652,7 +652,7 @@ end;
 //Syntax: #<constant>
 //where <constant> can be a decimal, hex or binary value (with the appropriate
 //prefixes).
-function ParseCharLiteral(Slug: PExprSlug): TQuicheError;
+function ParseCharLiteral(var Slug: TExprSlug): TQuicheError;
 var
   Ch: Char;
 begin
@@ -662,9 +662,9 @@ begin
 
   Ch := Parser.TestChar;
   case Ch of
-    '0'..'9': Result := ParseInteger(@Slug.Operand);
-    '$': Result := ParseHex(@Slug.Operand);
-    '%': Result := ParseBinary(@Slug.Operand);
+    '0'..'9': Result := ParseInteger(Slug);
+    '$': Result := ParseHex(Slug);
+    '%': Result := ParseBinary(Slug);
   else
     EXIT(Err(qeInvalidCharLiteral));
   end;
@@ -687,11 +687,11 @@ end;
 
 //=================================Complex operands, and operators
 
-function ParseOperand(Slug: PExprSlug;UnaryOp: TUnaryOperator): TQuicheError; forward;
+function ParseOperand(var Slug: TExprSlug;UnaryOp: TUnaryOperator): TQuicheError; forward;
 
 //Parses identifiers as expression parameters. Identifiers can be constants,
 //variables or functions
-function ParseOperandIdentifier(var Slug: PExprSlug;Ident: String): TQuicheError;
+function ParseOperandIdentifier(var Slug: TExprSlug;Ident: String): TQuicheError;
 var Keyword: TKeyword;
   IdentType: TIdentType;
   Scope: PScope;
@@ -699,6 +699,7 @@ var Keyword: TKeyword;
   Index: Integer;
   V: PVariable;
   OpIndex: Integer;
+  VarType: TVarType;
 begin
   Keyword := IdentToKeyword(Ident);
 
@@ -760,6 +761,24 @@ begin
   end
   else
   begin
+    //Test for type names. If it is a typecast it will be followed by open bracket.
+    //If not it's a typename
+    if Parser.TestChar <> '(' then
+    begin
+      VarType := StringToVarType(Ident);
+      if VarType >= 0 then
+      begin
+        Slug.Operand.Loc := locImmediate;
+        Slug.Operand.immType := vtType;
+        Slug.Operand.ImmValue := VarType;
+        Slug.ParamOrigin := poExplicit;
+        Slug.ResultType := vtType;
+        Slug.ImplicitType := vtType;
+        EXIT(qeNone);
+      end;
+    end;
+
+    //Test for intrinsic functions
     OpIndex := OpFunctionToIndex(Ident);
     if OpIndex <> -1 then
       if OpIndexToData(OpIndex).OpGroup = ogProc then
@@ -767,12 +786,16 @@ begin
       else
         Result := ParseIntrinsic(OpIndex, True, Slug)
     else
+    begin
       //TODO: Search builtin function library
       EXIT(ErrMsg(qeTODO, 'Library function lookup not yet implemented'));
+
+      //If we get here then it's 'Identifier not found/not declared'
+    end;
   end;
 end;
 
-function DoUnaryOp(UnaryOp: TUnaryOperator;var Slug: PExprSlug): TQuicheError;
+function DoUnaryOp(UnaryOp: TUnaryOperator;var Slug: TExprSlug): TQuicheError;
 var EvalResult: Integer;
   EvalType: TVarType;
 begin
@@ -833,7 +856,7 @@ end;
 //will be cancelled out by the recursive call returning the UnaryOp to uoNone.
 //The unary operator will be inserted into the IL when we reach the end of the chain of
 //(identical) unary operators, with tail recursion adding any previous unary operators
-function ParseOperand(Slug: PExprSlug;UnaryOp: TUnaryOperator): TQuicheError;
+function ParseOperand(var Slug: TExprSlug;UnaryOp: TUnaryOperator): TQuicheError;
 var
   Ch: Char;
   Ident: String;
@@ -940,7 +963,7 @@ end;
 
 //Parse and returns a *binary* operator (i.e. not unary ones) and it's precedence
 //If at the end of an expression returns opNone.
-function ParseOperator(Slug: PExprSlug): TQuicheError;
+function ParseOperator(var Slug: TExprSlug): TQuicheError;
 var
   Ch: Char;
   Ident: String;
@@ -1012,7 +1035,7 @@ end;
 
 //Parse out and returns a single 'slug' - an operand and the operator following
 //it (or opNone)
-function ParseExprSlug(Slug: PExprSlug): TQuicheError;
+function ParseExprSlug(var Slug: TExprSlug): TQuicheError;
 begin
   Slug.ResultType := vtUnknown;
   Slug.OpType := rtUnknown;
@@ -1038,7 +1061,7 @@ end;
 //deeper operations.
 //ILItem returns the final operation of the expression. The caller will need
 //to update the Dest info as needed
-function ParseSubExpression(Slug: PExprSlug;out ILItem: PILItem): TQuicheError;
+function ParseSubExpression(var Slug: TExprSlug;out ILItem: PILItem): TQuicheError;
 var RightSlug: TExprSlug;
   TempIndex: Integer;
   EvalResult: Integer;
@@ -1047,7 +1070,7 @@ begin
   while True do
   begin
     //Next slug
-    Result := ParseExprSlug(@RightSlug);
+    Result := ParseExprSlug(RightSlug);
     if Result <> qeNone then
       EXIT;
 
@@ -1055,16 +1078,16 @@ begin
     if RightSlug.ILItem <> nil then
       //We already have an ILItem created. If so, we need to set the Dest to
       //assign it to a temp var and use that in our calculations
-      SlugAssignToTempVar(@RightSlug);
+      SlugAssignToTempVar(RightSlug);
 
     //Is next slug higher precedence
     while (RightSlug.OpIndex <> OpIndexNone) and (Slug.OpData.Precedence < RightSlug.OpData.Precedence) do
     begin
-      Result := ParseSubExpression(@RightSlug, ILItem);
+      Result := ParseSubExpression(RightSlug, ILItem);
       if Result <> qeNone then
         EXIT;
 
-      if not AssignSlugTypes(Slug, @RightSlug) then
+      if not AssignSlugTypes(Slug, RightSlug) then
         EXIT(ErrOpUsage('No operator available for operand types ' +
           VarTypeToName(ILParamToVarType(@Slug.Operand)) + ' and ' +
           VarTypeToName(ILParamToVarType(@RightSlug.Operand)), Slug.OpIndex));
@@ -1109,7 +1132,7 @@ begin
 
     if EvalType = vtUnknown then
     begin //not Evaluated
-      if not AssignSlugTypes(Slug, @RightSlug) then
+      if not AssignSlugTypes(Slug, RightSlug) then
         EXIT(ErrOpUsage('No operator available for operand types ' +
           VarTypeToName(ILParamToVarType(@Slug.Operand)) + ' and ' +
           VarTypeToName(ILParamToVarType(@RightSlug.Operand)), Slug.OpIndex));
@@ -1162,7 +1185,7 @@ end;
 //For cases where the expression is a single item with no operation, either a
 //literal value or a variable/identifier
 //Updates the Slug's data as appropriate
-function FixupSlugNoOperation(var Slug: PExprSlug;var ExprType: TVarType): TQuicheError;
+function FixupSlugNoOperation(var Slug: TExprSlug;var ExprType: TVarType): TQuicheError;
 begin
   if Slug.ResultType = vtUnknown then
     Slug.ResultType := ILParamToVarType(@Slug.Operand);
@@ -1190,7 +1213,7 @@ begin
   EXIT(qeNone);
 end;
 
-function ParseExpressionToSlug(Slug: PExprSlug;var ExprType: TVarType): TQuicheError;
+function ParseExpressionToSlug(var Slug: TExprSlug;var ExprType: TVarType): TQuicheError;
 var ILItem: PILItem;
 begin
   Parser.Mark;
@@ -1393,12 +1416,12 @@ var
   Slug: TExprSlug;
 begin
   ExprType := vtUnknown;
-  Result := ParseExpressionToSlug(@Slug, ExprType);
+  Result := ParseExpressionToSlug(Slug, ExprType);
   if Result <> qeNone then
     EXIT;
 
   if Slug.ILItem <> nil then
-    SlugAssignToTempVar(@Slug);
+    SlugAssignToTempVar(Slug);
 
   VType := Slug.ResultType;
   ILItem := ILAppend(dtData);

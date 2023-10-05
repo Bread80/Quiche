@@ -17,9 +17,10 @@ type
     ogProc);    //Appears as a procedure to the user
 
   TOpFuncFlag = (
-    opfP1Variable,  //First parameter must be a variable reference
-    opfP2Optional,  //Second parameter is optional
-    opfP2Immediate,  //Second parameter must be an immediate/constant value
+    opfP1Variable,      //First parameter must be a variable reference
+    opfP1BitSize16Only, //First param must be a 16 bit value
+    opfP2Optional,      //Second parameter is optional
+    opfP2Immediate,     //Second parameter must be an immediate/constant value
     opfNoOverflowChecks //Don't perform any overflow checks
     );
   TOpFuncFlagSet = set of TOpFuncFlag;
@@ -196,6 +197,8 @@ begin
   for I in Items do
     if CompareText(I, 'p1variable') = 0 then
       Result := Result + [opfP1Variable]
+    else if CompareText(I, 'p1Bitsize16Only') = 0 then
+      Result := Result + [opfP1BitSize16Only]
     else if CompareText(I, 'p2optional') = 0 then
       Result := Result + [opfP2OPtional]
     else if CompareText(I, 'p2immediate') = 0 then

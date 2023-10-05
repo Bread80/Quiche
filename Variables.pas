@@ -25,16 +25,23 @@ uses Classes, ILData, QTypes, Generics.Collections;
 
 type
   TVarStorage = (
-    vsFixed,    //Fixed, permanent memory location
-    vsOffset);  //Offset from a base address (i.e in stack frame)
+    vsAbsolute,   //Absolute, permanent memory location
+    vsRelative);  //Relaive, offset from a base address (i.e in stack frame)
 
   PVariable = ^TVariable;
   TVariable = record
     Name: String;
     VarType: TVarType;
+    InScope: Boolean; //If False the variable hsa gone out of scope and should be ignored
+    Depth: Integer;   //The block depth within the current scope.
+                      //Every time we encounted a BEGIN the scopes depth is increased.
+                      //Every time a variable is declared the scope depth is recorded here.
+                      //Every time we encounter an END the scope's depth is decreased...
+                      //...and any variable which are too deep are marked as out of scope.
     Storage: TVarStorage; //Fixed or offset location?
-    Offset: Integer;  //If the Storage is vsOffset, this is the offset from the
-                      //base address
+    Offset: Integer;  //If the Storage is:
+                      //vsOffset, this is the offset from the stack base address
+                      //vsFixed: the offset from the start of the Data segment
 
     //Compile and execution time data
     Sub: Integer;
@@ -80,6 +87,11 @@ procedure VarSetName(Variable: PVariable;AName: String);
 //is unknown, and the type is assigned immediately after.
 procedure VarSetType(Variable: PVariable;VType: TVarType);
 
+function VarGetCount: Integer;
+
+//Returns the name of the variable used in Assemby code
+function VarGetAsmName(Variable: PVariable): String;
+
 procedure VarClearTempList;
 //Gets the next temp value index, and increments it (CurrTempIndex) for the next call
 function GetNextTempIndex: Integer;
@@ -102,7 +114,7 @@ function VarIncWriteCount(Variable: PVariable): Integer;
 function VarIndexIncWriteCount(VarIndex: Integer): Integer;
 
 function ILParamToVariable(ILParam: PILParam): PVariable;
-function ILDestToVariable(ILDest: PILDest): PVariable;
+function ILDestToVariable(const ILDest: TILDest): PVariable;
 
 
 
@@ -122,6 +134,9 @@ const ScopeVarCount = 1000;
 function CreateVarList: TVarList;
 procedure ClearVarList(List: TVarList);
 procedure SetCurrentVarList(List: TVarList;FirstIndex: Integer);
+//Scope depth has been DECrememented. Any in scope variable with higher scope depth
+//need to go out of scope
+procedure ScopeDepthDecced(NewDepth: Integer);
 
 
 //-----------UI related
@@ -180,6 +195,22 @@ begin
   VarMarkPosition := -1;
 end;
 
+function VarGetCount: Integer;
+begin
+  Result := Vars.Count;
+end;
+
+procedure ScopeDepthDecced(NewDepth: Integer);
+var I: Integer;
+begin
+  I := Vars.Count-1;
+  while (I >= 0) and (Vars[I].Depth > NewDepth) do
+  begin
+    Vars[I].InScope := False;
+    dec(I);
+  end;
+end;
+
 procedure VarMark;
 begin
   Assert(VarMarkPosition = -1);
@@ -218,6 +249,8 @@ begin
   New(Result);
   Result.Name := AName;
   Result.VarType := VType;
+  Result.Depth := GetCurrentScope.Depth;
+  Result.InScope := True;
   Result.Storage := Storage;
   Result.Sub := 0;
   Result.Touched := False;
@@ -245,7 +278,7 @@ function VarFindByNameInScope(AName: String;out Index: Integer): PVariable;
 var I: Integer;
 begin
   for I := 0 to Vars.Count-1 do
-    if CompareText(Vars[I].Name, AName) = 0 then
+    if (CompareText(Vars[I].Name, AName) = 0) and Vars[I].InScope then
     begin
       Result := Vars[I];
       Index := VarsFirstIndex + I;
@@ -299,6 +332,11 @@ begin
   if Variable <> Vars[Vars.Count-1] then
     raise Exception.Create('VarSetType must only be called when it is the last in the VarList');
   Variable.VarType := VType;
+end;
+
+function VarGetAsmName(Variable: PVariable): String;
+begin
+  Result := 'v_' + GetCurrentScope.Name + '_' + Variable.Name;
 end;
 
 var CurrTempIndex: Integer;
@@ -395,7 +433,7 @@ begin
   end;
 end;
 
-function ILDestToVariable(ILDest: PILDest): PVariable;
+function ILDestToVariable(const ILDest: TILDest): PVariable;
 begin
   case ILDest.Loc of
     locVar: Result := VarIndexToData(ILDest.VarIndex);
@@ -426,6 +464,7 @@ var Mem: TBytes;
   BufHead: Byte;
   BufPtr: Word;
 begin
+  Assert(sizeof(TQType) = 1,'LoadVarsFromMemoryDump: sizeof vtType needs updating');
   Mem := TFile.ReadAllBytes(Filename);
 
   RuntimeError := Mem[$800b];
@@ -438,7 +477,7 @@ begin
         vtInteger: V.ValueInt := Int16(Mem[Base+V.Offset] + (Mem[Base+V.Offset+1] shl 8));
         vtInt8: V.ValueInt := Int8(Mem[Base+V.Offset]);
         vtWord, vtPointer: V.ValueInt := Mem[Base+V.Offset] + (Mem[Base+V.Offset+1] shl 8);
-        vtByte, vtBoolean, vtChar:  V.ValueInt := Mem[Base+V.Offset];
+        vtByte, vtBoolean, vtChar, vtType:  V.ValueInt := Mem[Base+V.Offset];
       else
         raise Exception.Create('Invalid VarType in LoadVarsFromMemoryDump');
       end;
@@ -466,6 +505,9 @@ function VarToString(V: PVariable;TypeSummary: Boolean): String;
 begin
   if TypeSummary then
     Result := ''
+  else if V.Storage = vsAbsolute then
+    Result := '@'+IntToHex(V.Offset, 4).Tolower
+  //vsOffset
   else if V.Offset < 0 then
     Result := '-' + IntToHex(0-V.Offset, 2) + ' '
   else
@@ -486,6 +528,7 @@ begin
           Result := Result + 'ILLEGAL BOOLEAN: ' + IntToStr(V.ValueInt);
         end;
       vtChar: Result := Result + '''' + chr(V.ValueInt and $ff) + '''';
+      vtType: Result := Result + 'type ' + VarTypeToName(V.ValueInt);
 //      vtString: ;
 //      vtReal: ;
     else

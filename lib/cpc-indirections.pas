@@ -23,7 +23,7 @@ procedure IND_GRA_PLOT(UserXCoordinate: DE;UserYCoordinate: HL); extern $bddc;
 [Corrupts BC, DE, HL, F]
 function IND_GRA_TEST(UserXCoordinate: DE;UserYCoordinate: HL): A; extern $bddf;
 
-[Corrupts AF, BC. DE, HL]
+[Corrupts AF, BC, DE, HL]
 procedure IND_GRA_LINE(UserXCoordinate: DE;UserYCoordinate: HL); extern $bde2;
 
 [Corrupts F]

@@ -32,7 +32,7 @@ procedure KL_NEW_FAST_TICKER(FastTickerBlock: HL as Pointer;EventClass: B;ROMSel
 [Corrupts AF, DE, HL]
 procedure KL_ADD_FAST_TICKER(FastTickerBlock: HL as Pointer); extern $bce3;
 
-[Corrupts AF, DE, ilL]
+[Corrupts AF, DE, HL]
 procedure KL_DEL_FAST_TICKER(FastTickerBlock: HL as Pointer); extern $bce6;
 
 [Corrupts AF, BC, DE, HL]
@@ -62,7 +62,7 @@ function KL_NEXT_SYNC(out EventBlock: HL as Pointer;out PreviousEventPriority: A
 [Corrupts AF, BC, DE, HL]
 procedure KL_DO_SYNC(EventBlock: HL as Pointer); extern $bcfe;
 
-[Corrupts AF, BC, DE, HL corrupt]
+[Corrupts AF, BC, DE, HL]
 procedure KL_DONE_SYNC(PreviousEventPriority: A;EventBlock: HL as Pointer); extern $bd01;
 
 [Corrupts HL]
@@ -75,7 +75,7 @@ procedure KL_EVENT_ENABLE; extern $bd07;
 procedure KL_DISARM_EVENT(EventBlock: HL as Pointer); extern $bd0a;
 
 //Returns separate high word and low word of the 32-bit time count
-[Preserves all]
+[PreservesAll]
 procedure KL_TIME_PLEASE(out HighWord: DE;out LowWord: HL); extern $bd0d;
 
 //Set the high word and low word of the 32-bit time count

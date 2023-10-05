@@ -9,7 +9,7 @@ const
   iRealSize     = 5;  //Byte size of a float on the current target. 5 is CPC size :)
 
 //This is the type system as seen by the langauge parser
-type TQType = Byte;
+type TQType = Byte;  //***Code for vtType will need updating if this changes
 
 const
   //Simple types
@@ -21,13 +21,10 @@ const
   vtPointer = 2;  //Untyped pointer. Can be used in expressions
   vtInt8    = 3;
   vtInteger = 4;
-  vtUntyped = 5;  //A special case for expr parser: Signals that an immediate value is the result
-                  //of a typecast and should be accepted 'as is' without further type checking of
-                  //an assignment.
-                  //NOTE: ONLY to be used for immediate values
+  //Unused  = 5;  //**Only to be used for numeric types
   vtReal    = 6;  //For future use.
   vtChar    = 7;
-  //Unused  = 8
+  vtType    = 8;  //A type. E.g as in a call to sizeof(Integer)
   vtBoolean = 9;
   vtString  = 10; //For future use. Pointer to actual data.
 //  vtEnumeration
@@ -168,7 +165,7 @@ implementation
 uses SysUtils, Globals;
 
 const VarTypeNames : array[vtWord..vtString] of String = (
-  'Word','Byte','Pointer','Int8','Integer','<INVALID>','Real','Char','<INVALID>','Boolean','String');
+  'Word','Byte','Pointer','Int8','Integer','<INVALID>','Real','Char','TypeDef','Boolean','String');
 
 function VarTypeToName(VarType: TVarType): String;
 begin
@@ -189,12 +186,16 @@ begin
 
   //TODO: User defined types
 
+  //TODO: FFBoolean should be a user defined type alias
+  if CompareText(VarTypeName, 'FFBoolean') = 0 then
+    EXIT(vtBoolean);
+
   Result := vtUnknown;
 end;
 
 function GetTypeSize(VarType: TVarType): Integer;
 const TypeSizes: array[vtWord..vtString] of Byte =
-  (2,1,2,1,2,0,iRealSize,1,0,1,2);
+  (2,1,2,1,2,0,iRealSize,1,sizeof(TQType),1,2);
 begin
   if VarType = vtUnknown then
     //Unknown/invalid
@@ -266,8 +267,10 @@ end;
 
 function VarTypeToOpType(VarType: TVarType): TOpType;
 const lutVarTypeToOpType : array[vtWord..vtString] of TOpType =
-  (rtU16, rtU8, rtU16, rtS8, rtS16, rtUnknown, rtReal, rtU8, rtUnknown, rtBoolean, rtU16);
+  (rtU16, rtU8, rtU16, rtS8, rtS16, rtUnknown, rtReal, rtU8, rtU8{TType-This may change}, rtBoolean, rtU16);
 begin
+  Assert(Sizeof(TQType) = 1,'VarTypeToOpType: sizeof TQType has changed!');
+
   if VarType <= vtString then
     EXIT(lutVarTypeToOpType[VarType]);
   if VarType >= $80 then

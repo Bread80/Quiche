@@ -14,7 +14,7 @@ procedure TXT_VDU_ENABLE; extern $bb54;
 [Corrupts AF]
 procedure TXT_VDU_DISABLE; extern $bb57;
 
-[Preserves all]
+[PreservesAll]
 procedure TXT_OUTPUT(Character: A as Char); extern $bb5a;
 
 [Corrupts AF, BC, DE, HL]
@@ -29,7 +29,7 @@ function TXT_RD_CHAR(out CharacterRead: A): CF; extern $bb60;
 procedure TXT_SET_GRAPHIC(SetOn: A as Boolean); extern $bb63;
 
 [Corrupts AF, BC, DE, HL]
-procedure TXT_WIN_ENABLE(PhysicalColumn: H;PhysicalColumn: D;PhysicalRow: L;PhysicalRow: E); extern $bb66;
+procedure TXT_WIN_ENABLE(PhysicalColumn1: H;PhysicalColumn2: D;PhysicalRow1: L;PhysicalRow2: E); extern $bb66;
 
 //Returns true if window covers less than the whole screen
 [Corrupts A]
@@ -65,7 +65,7 @@ procedure TXT_CUR_OFF; extern $bb84;
 //Returns True if printing at the position would *not* cause the window to roll
 //B returns #FF for roll up, #00 for roll down (corrupt if no roll needed)
 [Corrupts A, F]
-function TXT_VALIDATE(LogicalColumn: H;LogicalRow: L;out RollUp: B as FFBoolean;out LogicalColumn: H;out LogicalRow: L): CF; extern $bb87;
+function TXT_VALIDATE(LogicalColumn: H;LogicalRow: L;out RollUp: B as FFBoolean;out LogicalColumnOut: H;out LogicalRowOut: L): CF; extern $bb87;
 
 [Corrupts AF]
 procedure TXT_PLACE_CURSOR; extern $bb8a;
@@ -92,10 +92,11 @@ procedure TXT_INVERSE; extern $bb9c;
 [Corrupts AF, HL]
 procedure TXT_SET_BACK(Transparent: A as Boolean); extern $bb9f;
 
+//TODO: NZBoolean not yet defined
 //Returns A as zero for oqaque mode, non-zero for transparent mode
 //I.e returns true for transparent mode
-[Corrupts DE, HL, F]
-function TXT_GET_BACK: A as NZBoolean; extern $bba2;
+//[Corrupts DE, HL, F]
+//function TXT_GET_BACK: A as NZBoolean; extern $bba2;
 
 //Returns true if the matrix is in the user defined matrix table
 [Corrupts A, F]
@@ -110,11 +111,11 @@ function TXT_SET_MATRIX(Character: A as Char;Matrix: HL as Pointer): CF; extern 
 function TXT_SET_M_TABLE(FirstCharacter: DE;NewTable: HL as Pointer;out OldFirstCharacter: A;out OldTable: HL as Pointer): CF; extern $bbab;
 
 //Returns true if there is a user defined matrix table
-[Corrupts F corrupt]
+[Corrupts F]
 function TXT_GET_M_TABLE(out FirstCharacter: A;out Table: HL as Pointer): CF; extern $bbae;
 
 //Returns address of control code table
-[Preserves all]
+[PreservesAll]
 function TXT_GET_CONTROLS: HL as Pointer; extern $bbb1;
 
 [Corrupts HL, F]

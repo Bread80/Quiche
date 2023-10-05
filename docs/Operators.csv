@@ -11,6 +11,7 @@
 ;,FuncFlags,,Flags relating to function/procedure intrinsics,,,,,,,,,,,,,,,
 ;,,p2optional,"The second parameter is optional. (No, or blank for other cases)",,,,,,,,,,,,,,,
 ;,,p1variable,The first parameter must be a variable reference (i.e. no immediate/constant data). Result will be assigned to this variable.,,,,,,,,,,,,,,,
+;,,p1bitsize16only,The first parameter must be a 16 bit value.,,,,,,,,,,,,,,,
 ;,,p2immediate,The second parameter must be an immediate/constant value,,,,,,,,,,,,,,,
 ;,,nooverflowchecks,Don't preform overflow checks,,,,,,,,,,,,,,,
 ;,Result,,The type of the result. 'Same' means the result will be the same type as the operators (extended if necessary),,,,,,,,,,,,,,,
@@ -78,7 +79,7 @@
 ;,,,,,,,,,,,,,,,,,,
 ;,System,,,,,,,,,,,,,,,,,
 ;,addr,func,,addr,,,,,,,,,Address of variable (equivalent to @ operator),,,,,
-,hi,func,hi,hi,x16,0,Word,N/A,N/A,N/A,,Byte,High byte of 16-bit parameter,,,,,16 bit types only
+,hi,func,hi,hi,x16,0,Word,N/A,N/A,N/A,p1bitsize16only,Byte,High byte of 16-bit parameter,,,,,16 bit types only
 ,high,func,high,high,x8 x16 boolean,0,Any,N/A,N/A,N/A,,Same,Highest value of variable or type or array bound,,,,,"Enumerable types, type names"
 ;,inp,func,,inp,,,,,,,,,Input from I/O port,,,,,
 ,lo,func,lo,lo,x16,0,Integer,N/A,N/A,N/A,,Byte,Low byte of 16-bit parameter,,,,,16 bit types

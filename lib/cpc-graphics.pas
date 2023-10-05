@@ -14,7 +14,7 @@ procedure GRA_RESET; extern $bbbd;
 [Corrupts AF, BC, DE, HL]
 procedure GRA_MOVE_ABSOLUTE(UserXCoordinate: DE;UserYCoordinate: HL); extern $bbc0;
 
-[Corrupts AF, BC, DE andHL]
+[Corrupts AF, BC, DE, HL]
 procedure GRA_MOVE_RELATIVE(SignedXOffset: DE as Integer;SignedYOffset: HL as Integer); extern $bbc3;
 
 [Corrupts AF]
@@ -23,20 +23,20 @@ procedure GRA_ASK_CURSOR(out UserXCoordinate: DE;out UserYCoordinate: HL); exter
 [Corrupts AF, BC, DE, HL]
 procedure GRA_SET_ORIGIN(StandardXCoordinate: DE;StandardYCoordinate: HL); extern $bbc9;
 
-[Preserves all]
+[PreservesAll]
 procedure GRA_GET_ORIGIN(out StandardXCoordinate: DE;out StandardYCoordinate: HL); extern $bbcc;
 
 [Corrupts AF, BC, DE, HL]
-procedure GRA_WIN_WIDTH(StandardXCoordinate: DE;StandardXCoordinate: HL); extern $bbcf;
+procedure GRA_WIN_WIDTH(StandardXCoordinate1: DE;StandardXCoordinate2: HL); extern $bbcf;
 
 [Corrupts AF, BC, DE, HL]
-procedure GRA_WIN_HEIGHT(StandardYCoordinate: DE;StandardYCoordinate: HL); extern $bbd2;
+procedure GRA_WIN_HEIGHT(StandardYCoordinate1: DE;StandardYCoordinate2: HL); extern $bbd2;
 
 [Corrupts AF]
-procedure GRA_GET_W_WIDTH(out StandardXCoordinate: DE;out StandardXCoordinate: HL); extern $bbd5;
+procedure GRA_GET_W_WIDTH(out StandardXCoordinate1: DE;out StandardXCoordinate2: HL); extern $bbd5;
 
 [Corrupts AF]
-procedure GRA_GET_W_HEIGHT(out StandardYCoordinate: DE;out StandardYCoordinate: HL); extern $bbd8;
+procedure GRA_GET_W_HEIGHT(out StandardYCoordinate1: DE;out StandardYCoordinate2: HL); extern $bbd8;
 
 [Corrupts AF, BC, DE, HL]
 procedure GRA_CLEAR_WINDOW; extern $bbdb;
@@ -74,7 +74,7 @@ procedure GRA_LINE_RELATIVE(SignedXOffset: DE as Integer;SignedYOffset: HL as In
 [Corrupts AF, BC, DE, HL]
 procedure GRA_WR_CHAR(Character: A as Char); extern $bbfc;
 
-[Corrupts AF, BC, DE, ilL]
+[Corrupts AF, BC, DE, HL]
 procedure GRA_DEFAULT; extern $bd43;
 
 //If A is zero sets opaque mode, if A is non-zero sets transparent mode
@@ -84,10 +84,10 @@ procedure GRA_SET_BACK(Transparent: A as Boolean); extern $bd46;
 
 //If A is zero (false) first pixel will not be plotted, 
 //if A is non-zero (true) first pixel will be plotted
-[Preserves all]
+[PreservesAll]
 procedure GRA_SET_FIRST(Plot: A as Boolean); extern $bd49;
 
-[Preserves all]
+[PreservesAll]
 procedure GRA_SET_LINE_MASK(LineMask: A); extern $bd4c;
 
 [Corrupts AF]

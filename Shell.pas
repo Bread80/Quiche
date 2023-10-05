@@ -73,7 +73,7 @@ var
   CommandLine: String;
 begin
   //-oa option takes output file path from input file path
-  CommandLine := RASM + ' ' + TPath.GetFullPath(Filename) + ' -oa';
+  CommandLine := RASM + ' ' + TPath.GetFullPath(Filename) + ' -oa -s -sa';
   Result := GetDosOutput(CommandLine, WorkDir);
 end;
 

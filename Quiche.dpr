@@ -8,7 +8,7 @@ uses
   Parse in 'Parse.pas',
   Variables in 'Variables.pas',
   ILExec in 'ILExec.pas',
-  CodeLibrary in 'CodeLibrary.pas',
+  Fragments in 'Fragments.pas',
   Operators in 'Operators.pas',
   Shell in 'Shell.pas',
   Compiler in 'Compiler.pas',
@@ -25,7 +25,8 @@ uses
   Globals in 'Globals.pas',
   ParseErrors in 'ParseErrors.pas',
   SourceReader in 'SourceReader.pas',
-  ParseIntrinsics in 'ParseIntrinsics.pas';
+  ParseIntrinsics in 'ParseIntrinsics.pas',
+  ParseFuncDef in 'ParseFuncDef.pas';
 
 {$R *.res}
 

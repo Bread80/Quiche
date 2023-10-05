@@ -16,19 +16,25 @@
 ,x,,,,x,b7sov,,,,p1,f,,,,,,Overflow if bit 7 set
 ,x,,,,x,b15sov,,,,p1,f,,,,,,Overflow if bit 15 set
 ;,Assignment from immediate data - these routines both read the source data and store it to the destination. Thus the 'Dest' column says 'none' - we don't want the code generator also generating store code,,,,,,,,,,,,,,,,
-,assign,x8,,x8,n,assignoffset8imm8,,i,,none,,,,,,,Assigns an immediate 8 bit value (constant) (Validation done by parser!)
-,assign,x8,,boolean,n,assignoffset8imm8,,i,,none,,,,,,,
-,assign,s8,,s16,n,procassigns8s16ni,,i,,none,,,,,,,Extends an x8 constant to x16
-,assign,x8,,x16,n,assignoffset16imm8,,i,,none,,,,,,,Zero extends to 16 bits
-,assign,x16,,x16,n,assignoffset16imm16,,i,,none,,,,,,,Assigns an immediate 16 bit value (validation done by parser!)
-,assign,x16,,x8,n,assignoffset8imm8,,i,,none,,,,,,,Shorten a 16 bit immediate to an 8 bit (validated by parser)
-,assign,boolean,,boolean,n,assignoffset8imm8,,i,,none,,,,,,,
+,assign,x8,,x8,n,assign_abs8_imm8,,i,,absvar,a,,,,,,Assigns an immediate 8 bit value (constant) (Validation done by parser!)
+,assign,x8,,x8,n,assign_rel8_imm8,,i,,relvar,,,,,,,Assigns an immediate 8 bit value (constant) (Validation done by parser!)
+,assign,x8,,boolean,n,assign_abs8_imm8,,i,,absvar,a,,,,,,Assigns an immediate 8 bit value (constant) (Validation done by parser!)
+,assign,x8,,boolean,n,assign_rel8_imm8,,i,,relvar,,,,,,,
+,assign,x8,,s16,n,proc_assign_abss16_imm8,,i,,absvar,a;f,,,,,,Zero extends to 16 bits
+,assign,s8,,s16,n,proc_assign_rels16_imm8,,i,,relvar,,,,,,,Extends an x8 constant to x16
+,assign,x8,,x16,n,assign_abs16_imm8,,i,,absvar,a,,,,,,Zero extends to 16 bits
+,assign,x8,,x16,n,assign_rel16_imm8,,i,,relvar,,,,,,,Zero extends to 16 bits
+,assign,x16,,x16,n,assign_abs16_imm16,,i,,absvar,a,,,,,,Assigns an immediate 16 bit value (validation done by parser!)
+,assign,x16,,x16,n,assign_rel16_imm16,,i,,relvar,,,,,,,Assigns an immediate 16 bit value (validation done by parser!)
+,assign,x16,,x8,n,assign_abs8_imm8,,i,,absvar,a,,,,,,Shorten a 16 bit immediate to an 8 bit (validated by parser)
+,assign,x16,,x8,n,assign_rel8_imm8,,i,,relvar,,,,,,,Shorten a 16 bit immediate to an 8 bit (validated by parser)
+,assign,boolean,,boolean,n,assign_abs8_imm8,,i,,absvar,a,,,,,,
+,assign,boolean,,boolean,n,assign_rel8_imm8,,i,,relvar,,,,,,,
 ;,Assignment,,,,,,,,,,,,,,,,
 ,assign,u8,,,x,empty,,b;c;d;e;h;l;a,,p1,,,,,,,Assigning from a U8
 ,assign,s8,,,x,empty,,b;c;d;e;h;l;a,,p1,,,,,,,Assigning from an S8
 ,assign,u16,,,x,empty,,hl;de;bc,,p1,,,,,,,Assigning from a U16
 ,assign,s16,,,x,empty,,hl;de;bc,,p1,,,,,,,Assigning from an S16
-;,assign,boolean,,,x,assignoffset8imm8,,i,,none,,,,,,,Assigning from boolean
 ;,,,,,,,,,,,,,,,,,
 ;,branch,,,,,branch,,,,,,,,,,,Conditional or unconditional
 ,condbranch,boolean,,branch,x,atozf,,a,,zf,f,,,,,,Conditional branch
@@ -265,15 +271,21 @@
 ;,,,,,,,,,,,,,,,,,
 ;,Typecasts,,,,,,,,,,,,,,,,
 ;,,,,,,,,,,,,,,,,,
-,integer,x8,,x16,x,assignoffset16r8,,a;b;c;d;e;h;l,,none,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
+,integer,x8,,x16,x,assign_abs16_r8,,a;b;c;d;e;h;l,,absvar,a;f,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
+,integer,x8,,x16,x,assign_rel16_r8,,a;b;c;d;e;h;l,,relvar,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
 ,integer,x16,,x16,x,empty,,hl;de;bc,,p1,,empty,empty,empty,empty,empty,
-,integer,boolean,,x16,x,assignoffset16r8,,a;b;c;d;e;h;l,,none,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
-,word,x8,,x16,x,assignoffset16r8,,a;b;c;d;e;h;l,,none,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
+,integer,boolean,,x16,x,assign_abs16_r8,,a;b;c;d;e;h;l,,absvar,a;f,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
+,integer,boolean,,x16,x,assign_rel16_r8,,a;b;c;d;e;h;l,,relvar,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
+,word,x8,,x16,x,assign_abs16_r8,,a;b;c;d;e;h;l,,absvar,a;f,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
+,word,x8,,x16,x,assign_rel16_r8,,a;b;c;d;e;h;l,,relvar,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
 ,word,x16,,x16,x,empty,,hl;de;bc,,p1,,empty,empty,empty,empty,empty,
-,word,boolean,,x16,x,assignoffset16r8,,a;b;c;d;e;h;l,,none,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
-,pointer,x8,,x16,x,assignoffset16r8,,a;b;c;d;e;h;l,,none,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
+,word,boolean,,x16,x,assign_abs16_r8,,a;b;c;d;e;h;l,,absvar,a;f,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
+,word,boolean,,x16,x,assign_rel16_r8,,a;b;c;d;e;h;l,,relvar,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
+,pointer,x8,,x16,x,assign_abs16_r8,,a;b;c;d;e;h;l,,absvar,a;f,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
+,pointer,x8,,x16,x,assign_rel16_r8,,a;b;c;d;e;h;l,,relvar,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
 ,pointer,x16,,x16,x,empty,,hl;de;bc,,p1,,empty,empty,empty,empty,empty,
-,pointer,boolean,,x16,x,assignoffset16r8,,a;b;c;d;e;h;l,,none,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
+,pointer,boolean,,x16,x,assign_abs16_r8,,a;b;c;d;e;h;l,,absvar,a;f,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
+,pointer,boolean,,x16,x,assign_rel16_r8,,a;b;c;d;e;h;l,,relvar,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
 ,int8,x8,,x8,x,empty,,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,
 ,int8,x16,,x8,x,empty,loadrplow,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,Typecast 16 bit to 8 bit. High byte will be ignored
 ,int8,boolean,,x8,x,empty,,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,
@@ -303,3 +315,4 @@
 ,odd,x8,,boolean,x,odd8r,,a,,a,a;f,,,,,,
 ,odd,x16,,boolean,x,odd8r,loadrplow,a,,a,a;f,,,,,,
 ,hi,x16,,u8,x,empty,loadrphigh,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,
+;,hi,u16,,u8,x,empty,loadrphigh,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,
