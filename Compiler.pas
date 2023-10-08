@@ -15,17 +15,20 @@ var AssemblerLog: String;
 var RunTimeError: Byte;
 var RunTimeErrorAddress: Word;
 
-//Base folder where Quiche data is stored
-var QuicheFolder: String;
 //Folder where output files will be written (assembler, binaries etc)
 var OutputFolder: String;
-//File of platform specific code to be included
-var PlatformFileName: String;
 
 //Fully qualified path - READ ONLY
 var AssemblerFileName: String;
 //Fully qualified path - READ ONLY
 var BinaryFileName: String;
+
+//Set the folder at the base of the Quiche directory tree
+procedure SetQuicheFolder(const Folder: String);
+
+procedure SetPlatform(const APlatform: String);
+
+function GetTestsFolder: String;
 
 function LastErrorString: String;
 
@@ -70,7 +73,6 @@ procedure GetFunctionsText(S: TStrings);
 procedure RunInterpreter;
 procedure GetInterpreterOutput(S: TStrings);
 
-const FragmentsFilename = 'Data/Fragments.txt';
 procedure LoadFragmentsLibrary(Filename: String);
 
 function DoCodeGen: Boolean;
@@ -88,8 +90,40 @@ uses SysUtils, IOUtils,
   Operators, PrimitivesEx, ILData, Variables, Parse, CodeGenZ80AsmEx,
   Fragments, ILExec, Shell, ParserBase, Functions, Scopes, Globals;
 
-const scQuicheLibrary = 'Z80Code\quichecore.asm';
+const
+  FragmentsFilename = 'Data/Fragments.txt';
+  OperatorsFilename = 'Data/Operators.csv';
+  PrimitivesFilename = 'Data/Primitives.csv';
+
+  QuicheCoreFilename = 'Assembler/QuicheCore.asm';
+  PlatformsBaseFolder = 'Platforms';
+  //Platform library is in PlatformFolder
+  PlatformLibraryFilename = 'Main.asm';
+
 const scRAMDump = 'RAMDump.bin';  //In output folder
+
+//Base folder where Quiche data is stored
+var QuicheFolder: String;
+//File of platform specific code to be included
+var PlatformFolder: String;
+var PlatformName: String;
+
+procedure SetQuicheFolder(const Folder: String);
+begin
+  QuicheFolder := Folder;
+end;
+
+procedure SetPlatform(const APlatform: String);
+begin
+  PlatformName := APlatform;
+  PlatformFolder := TPath.Combine(QuicheFolder, PlatformsBaseFolder);
+  PlatformFolder := TPath.Combine(PlatformFolder, PlatformName);
+end;
+
+function GetTestsFolder: String;
+begin
+  Result := TPath.Combine(QuicheFolder, 'Tests');
+end;
 
 function LastErrorString: String;
 begin
@@ -119,12 +153,15 @@ begin
   InitialiseSkipMode;
   InitialiseVars;
   InitialiseScopes;
-  InitialiseOperatorList;
+  InitialiseOperators;
+  LoadOperatorsFile(TPath.Combine(QuicheFolder, OperatorsFilename));
+  InitialiseFragments;
   LoadFragmentsLibrary(TPath.Combine(QuicheFolder, FragmentsFilename));
-  InitialisePrimitiveList;
+  InitialisePrimitives;
+  LoadPrimitivesFile(TPath.Combine(QuicheFolder, PrimitivesFilename));
 
-  InitialiseCodeGen(TPath.Combine(QuicheFolder, PlatformFileName),
-    TPath.Combine(QuicheFolder, scQuicheLibrary));
+  InitialiseCodeGen(TPath.Combine(PlatformFolder, 'Assembler/' + PlatformName + '.asm'),
+    TPath.Combine(QuicheFolder, QuicheCoreFilename));
 end;
 
 procedure SetOverflowChecks(Value: Boolean);
@@ -219,7 +256,7 @@ end;
 
 procedure LoadFragmentsLibrary(Filename: String);
 begin
-  Fragments.LoadFragments(Filename);
+  Fragments.LoadFragmentsFile(Filename);
 end;
 
 function DoCodeGen: Boolean;
@@ -261,7 +298,7 @@ end;
 function CompileParser(Scope: TCompileScope): Boolean;
 begin
   //CodeGen
-  LoadFragmentsLibrary(TPath.Combine(QuicheFolder, FragmentsFilename));
+//  LoadFragmentsLibrary(TPath.Combine(QuicheFolder, FragmentsFilename));
 
   Result := Compiler.Parse(Scope);
   if not Result then

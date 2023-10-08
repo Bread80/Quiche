@@ -105,9 +105,9 @@ begin
 
   if Variable = nil then
     if VType = vtUnknown then
-      Variable := VarCreateHidden(Slug.ImplicitType, Storage, VarIndex)
+      Variable := VarCreate('', Slug.ImplicitType, Storage, VarIndex)
     else
-      Variable := VarCreateHidden(VType, Storage, VarIndex);
+      Variable := VarCreate('', VType, Storage, VarIndex);
 
   VarSub := VarIndexIncWriteCount(VarIndex);
 
@@ -119,17 +119,14 @@ begin
   end
   else
   begin
-    ILItem := ILAppend(dtData);
+    ILItem := ILAppend(dtData, OpIndexAssign);
     ILItem.Param1 := Slug.Operand;
     ILItem.Param2.Loc := locNone;
-    ILItem.OpIndex := OpIndexAssign;
     ILItem.OpType := Slug.OpType;
     ILItem.ResultType := VarTypeToOpType(Variable.VarType);
   end;
 
-  ILItem.Dest.Loc := locVar;
-  ILItem.Dest.VarIndex := VarIndex;
-  ILItem.Dest.VarSub := VarSub;
+  ILItem.Dest.SetVar(VarIndex, VarSub);
 
 //  if VType <> vtUnknown then
     //Sets any validation needed to assign the result to the variable
@@ -188,13 +185,9 @@ begin
   end
   else
   begin //ILItem = nil and OpIndex <> None
-    ILItem := ILAppend(dtCondBranch);
+    ILItem := ILAppend(dtCondBranch, OpIndexCondBranch);
     ILItem.Param1 := Slug.Operand;
     ILItem.Param2.Loc := locNone;
-//    if Slug.Operand.Loc = LocImmediate then
-//      ILItem.OpIndex := OpIndexConstBranch
-//    else
-      ILItem.OpIndex := OpIndexCondBranch;
     ILItem.OpType := rtBoolean;
     ILItem.ResultType := rtBoolean; //(Not technically needed)
   end;
@@ -310,7 +303,7 @@ begin
       EXIT;
 
     if Creating and (VarType <> vtUnknown) then
-      VarSetType(Variable, VarType);
+      Variable.SetType(VarType);
 
     //Was a type specified, or are we using type inference?
 {    if VarType <> vtUnknown then
@@ -326,7 +319,7 @@ begin
         VarSetType(Variable, vtInteger);
 }
     if Creating then
-      VarSetName(Variable, VarName);
+      Variable.SetName(VarName);
   end
   else
   begin //Otherwise just create it. Meh. Boring
@@ -413,7 +406,7 @@ begin
   EndValue := nil;
   EndValueIndex := -1;
   //Parse and create EndValue
-  Result := ParseAssignmentExpr(EndValue, Storage, EndValueIndex, LoopVar.VarType);//vtUnknown);
+  Result := ParseAssignmentExpr(EndValue, Storage, EndValueIndex, LoopVar.VarType);
   if Result <> qeNone then
     EXIT;
 
@@ -423,8 +416,7 @@ begin
     EXIT(ErrSyntaxMsg(synFOR, 'DO expected'));
 
   //Insert Branch into header
-  ILItem := ILAppend(dtBranch);
-  ILItem.OpIndex := OpIndexBranch;
+  ILItem := ILAppend(dtBranch, OpIndexBranch);
   ILItem.BranchBlockID := GetCurrBlockID + 1;
   EntryBlockID := GetCurrBlockID;
   EntryLastItemIndex := ILGetCount - 1;
@@ -433,37 +425,30 @@ begin
   //------------
   //Insert Phi for loop variable
   NewBlock := True;
-  LoopVarPhi := ILAppend(dtData);
-  LoopVarPhi.OpIndex := OpIndexPhi;
-
+  LoopVarPhi := ILAppend(dtData, OpIndexPhi);
   LoopVarPhi.Param1.Loc := locPhiVar;
   LoopVarPhi.Param1.PhiBlockID := EntryBlockID;
-  LoopVarPhi.Param1.PhiSub := LoopVar.Sub;
+  LoopVarPhi.Param1.PhiSub := LoopVar.WriteCount;
   //(Fixup param2 later)
   LoopVarPhi.Param2.Loc := locPhiVar;
 
   LoopVarPhi.Dest.Loc := locPhiVar;
   LoopVarPhi.Dest.PhiVarIndex := LoopVarIndex;
-  LoopVarPhi.Dest.PhiSub := VarIncWriteCount(LoopVar);
+  LoopVarPhi.Dest.PhiSub := LoopVar.IncWriteCount;
 
   HeaderBlockID := GetCurrBlockID;
   PhiItemIndex := ILGetCount - 1; //Needed later so we can Phi any other variables
 
   //Test LoopVar and Branch to Body or Exit
-  ExitTestItem := ILAppend(dtCondBranch);
+  if ToInc then
+    ExitTestItem := ILAppend(dtCondBranch, OpIndexLessEqual)
+  else
+    ExitTestItem := ILAppend(dtCondBranch, OpIndexGreaterEqual);
   ExitTestItem.OpType := VarTypeToOpType(LoopVar.VarType);
   ExitTestItem.ResultType := rtBoolean;
-  if ToInc then
-    ExitTestItem.OpIndex := OpIndexLessEqual
-  else
-    ExitTestItem.OpIndex := OpIndexGreaterEqual;
-  ExitTestItem.Param1.Loc := locVar;
-  ExitTestItem.Param1.VarIndex := LoopVarIndex;
-  ExitTestItem.Param1.VarSub := LoopVar.Sub;
 
-  ExitTestItem.Param2.Loc := locVar;
-  ExitTestItem.Param2.VarIndex := EndValueIndex;
-  ExitTestItem.Param2.VarSub := EndValue.Sub;
+  ExitTestItem.Param1.SetVar(LoopVarIndex, LoopVar.WriteCount);
+  ExitTestItem.Param2.SetVar(EndValueIndex, EndValue.WriteCount);
 
   ExitTestItem.TrueBlockID := GetCurrBlockID + 1; //Body BlockID
   //FalseBlock to be fixed up at end of loop
@@ -479,44 +464,33 @@ begin
     EXIT;
 
   //Insert Branch into Latch section
-  ILItem := ILAppend(dtBranch);
-  ILItem.OpIndex := OpIndexBranch;
+  ILItem := ILAppend(dtBranch, OpIndexBranch);
   ILItem.BranchBlockID := GetCurrBlockID + 1;
 
   //LATCH section - next LoopVar and branch back to header
   //-------------
   NewBlock := True;
   //Next loopvar
-  ILItem := ILAppend(dtData);
+  if ToInc then
+    ILItem := ILAppend(dtData, OpIndexAdd)
+  else
+  ILItem := ILAppend(dtData, OpIndexSubtract);
   ILItem.OpType := VarTypeToOpType(LoopVar.VarType);
   ILItem.ResultType := ILItem.OpType;
-  if ToInc then
-    ILItem.OpIndex := OpIndexAdd
-  else
-    ILItem.OpIndex := OpIndexSubtract;
-  ILItem.Param1.Loc := locVar;
-  ILItem.Param1.VarIndex := LoopVarIndex;
-  ILItem.Param1.VarSub := LoopVar.Sub;
-
+  ILItem.Param1.SetVar(LoopVarIndex, LoopVar.WriteCount);
   //(Uncomment to add Step value)
-  ILItem.Param2.Loc := locImmediate; //locVar;
-  ILItem.Param2.ImmValue := 1; //StepValueIndex;
-  ILItem.Param2.ImmType := vtByte;
+  ILItem.Param2.SetImmediate(1, vtByte);
 
-  ILItem.Dest.Loc := locVar;
-  ILItem.OpType := VarTypeToOpType(LoopVar.VarType);
-  ILItem.Dest.VarIndex := LoopVarIndex;
-  ILItem.Dest.VarSub := VarIncWriteCount(LoopVar);
+  ILItem.Dest.SetVar(LoopVarIndex, LoopVar.IncWriteCount);
 
   //Insert Branch back to Header section
-  ILItem := ILAppend(dtBranch);
-  ILItem.OpIndex := OpIndexBranch;
+  ILItem := ILAppend(dtBranch, OpIndexBranch);
   ILItem.BranchBlockID := HeaderBlockID;
 
   //Fixup Phi for Loopvar at start of Header section
   LoopVarPhi.Param2.Loc := locPhiVar;
   LoopVarPhi.Param2.PhiBlockID := GetCurrBlockID;
-  LoopVarPhi.Param2.VarSub := LoopVar.Sub;
+  LoopVarPhi.Param2.VarSub := LoopVar.WriteCount;
 
   //Insert Phis at start of Header (for any variables updated during loop)
   VarClearAdjust; //Prep for branch adjust
@@ -589,8 +563,7 @@ begin
   if Branch <> nil then
   begin
     //Branch to merge block
-    ThenBranch := ILAppend(dtBranch);
-    ThenBranch.OpIndex := OpIndexBranch;
+    ThenBranch := ILAppend(dtBranch, OpIndexBranch);
     ThenLastID := GetCurrBlockID;
     ThenLastIndex := ILGetCount-1;
   end;
@@ -614,8 +587,7 @@ begin
     if Branch <> nil then
     begin
       //Branch to merge block
-      ElseBranch := ILAppend(dtBranch);
-      ElseBranch.OpIndex := OpIndexBranch;
+      ElseBranch := ILAppend(dtBranch, OpIndexBranch);
       ElseLastID := GetCurrBlockID;
       ElseLastIndex := ILGetCount-1;
 
@@ -680,13 +652,10 @@ function ParseStatement(Ident: String;Storage: TVarStorage): TQuicheError;
 var
   Ch: Char;
   Keyword: TKeyword;
-  Variable: PVariable;
-  VarIndex: Integer;
   Scope: PScope;
   IdentType: TIdentType;
   Item: Pointer;
   Index: Integer;
-  Func: PFunction;
   OpIndex: Integer;
   Slug: TExprSlug;  //Dummy, value assigned will be ignored
 begin

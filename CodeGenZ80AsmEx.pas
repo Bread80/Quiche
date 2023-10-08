@@ -36,7 +36,7 @@ begin
     V := VarIndexToData(I);
     if V.Storage = vsAbsolute then
     begin
-      S := VarGetAsmName(V) + ': ';
+      S := V.GetAsmName + ': ';
       case GetTypeSize(V.VarType) of
         1: S := S + 'db 0';
         2: S := S + '  dw 0';
@@ -102,39 +102,6 @@ function VarToOffset(Variable: PVariable): Integer;
 begin
   Assert(Variable.Storage = vsRelative);
   Result := {StackFrameSize - }Variable.Offset;
-end;
-
-function CodeOffset(Offset: Integer): String;
-begin
-  if Offset < 0 then
-    Result := '-$' + IntToHex(-Offset, 2)
-  else
-    Result := '+$' + IntToHex(Offset, 2);
-end;
-
-function HexByte(Value: Byte): String;
-begin
-  Result := '$' + IntToHex(Value, 2).ToLower;
-end;
-
-function ImmLoByte(Param: PILParam): String;
-begin
-  Result := '$' + IntToHex(lo(Param.ImmValue), 2).ToLower;
-end;
-
-function ImmHiByte(Param: PILParam): String;
-begin
-  Result := '$' + IntToHex(hi(Param.ImmValue), 2).ToLower;
-end;
-
-function ImmWord(Param: PILParam): String;
-begin
-  Result := '$' + IntToHex(Param.ImmValue, 4).ToLower;
-end;
-
-function IXOffset(Offset: Integer): String;
-begin
-  Result := '(ix' + CodeOffset(Offset) + ')';
 end;
 
 //Write an entire instruction line
@@ -324,9 +291,9 @@ var Variable: PVariable;
 begin
   Assert(ILItem.Param1.Loc = locImmediate);
   Assert(ILItem.Param1.ImmType in [vtInt8, vtByte]);
-  Assert(ILItem.Dest.Loc in [locVar, locTemp]);
+  Assert(ILItem.Dest.Loc = locVar);
 
-  Variable := ILDestToVariable(ILItem.Dest);
+  Variable := ILItem.Dest.ToVariable;
   Assert(Variable.Storage = vsAbsolute);
 
   if (ILItem.Param1.ImmType = vtInt8) and (ILItem.Param1.ImmValue >= $80) then
@@ -343,7 +310,7 @@ begin
   Assert(ILItem.Param1.ImmType = vtInt8);
   Assert(ILItem.Dest.Loc = locVar);
 
-  Variable := ILDestToVariable(ILItem.Dest);
+  Variable := ILItem.Dest.ToVariable;
   Assert(Variable.Storage = vsRelative);
 
   if ILItem.Param1.ImmValue >= $80 then
@@ -362,7 +329,7 @@ begin
   if ILItem.Param2.Loc = locNone then
     Count := 1
   else
-    Count := ILParamValueToInteger(@ILItem.Param2);
+    Count := ILItem.Param2.ImmToInteger;
 
   for I := 1 to abs(Count) do
     if Count > 0 then
@@ -378,7 +345,7 @@ begin
   if ILItem.Param2.Loc = locNone then
     Count := 1
   else
-    Count := ILParamValueToInteger(@ILItem.Param2);
+    Count := ILItem.Param2.ImmToInteger;
 
   for I := 1 to abs(Count) do
     if Count > 0 then
@@ -394,7 +361,7 @@ begin
   if ILItem.Param2.Loc = locNone then
     Count := 1
   else
-    Count := ILParamValueToInteger(@ILItem.Param2);
+    Count := ILItem.Param2.ImmToInteger;
 
   for I := 1 to abs(Count) do
     if Count > 0 then
@@ -410,7 +377,7 @@ begin
   if ILItem.Param2.Loc = locNone then
     Count := 1
   else
-    Count := ILParamValueToInteger(@ILItem.Param2);
+    Count := ILItem.Param2.ImmToInteger;
 
   for I := 1 to abs(Count) do
     if Count > 0 then
@@ -656,9 +623,9 @@ begin
     AllocLoc := ILItem.Param2Alloc;
   end;
 
-  if Param.Loc in [locVar, locTemp] then
+  if Param.Loc = locVar then
   begin
-    V := ILParamToVariable(Param);
+    V := Param.ToVariable;
     case V.Storage of
       vsAbsolute: StoreStr := '_abs';
       vsRelative: StoreStr := '_rel';
@@ -684,7 +651,7 @@ begin
         GenLibraryProc(Prefix + 'r16_imm', ILItem)
       else
       begin
-        Variable := ILParamToVariable(Param);
+        Variable := Param.ToVariable;
         case GetTypeSize(Variable.VarType) of
         1:
         begin
@@ -798,7 +765,7 @@ begin
       GenCode(ValProcName, ILItem);
     end;
 
-  V := ILDestToVariable(ILItem.Dest);
+  V := ILItem.Dest.ToVariable;
   case V.Storage of
     vsAbsolute: StoreStr := 'store_abs';
     vsRelative: StoreStr := 'store_rel';

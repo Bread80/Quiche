@@ -226,10 +226,10 @@ begin
         //path or the origin path. We'll stick with Sub=0 to show this
         //(either a warning or a chance to auto-initialise tha variable)
         if InsertIndex = -1 then
-          ILPhi := ILAppend(dtData)
+          ILPhi := ILAppend(dtData, OpIndexPhi)
         else
         begin
-          ILPhi := ILInsert(InsertIndex, dtData);
+          ILPhi := ILInsert(InsertIndex, dtData, OpIndexPhi);
           if Index > InsertIndex then
             inc(Index);
           if Path2Index > InsertIndex then
@@ -238,11 +238,9 @@ begin
             inc(OriginIndex);
         end;
 
-        ILPhi.OpIndex := OpIndexPhi;
-
         ILPhi.Dest.Loc := locPhiVar;//ILItem.Dest.Loc;
         ILPhi.Dest.PhiVarIndex := ILItem.Dest.VarIndex;
-        ILPhi.Dest.PhiSub := VarIncWriteCount(Variable);
+        ILPhi.Dest.PhiSub := Variable.IncWriteCount;
 
         case ILItem.Dest.Loc of
           locVar:

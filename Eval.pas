@@ -48,8 +48,8 @@ var P1: Integer;  //First parameter value
   P2: Integer;    //Second parameter value
 begin
   RType := vtUnknown;
-  P1 := ILParamValueToInteger(Param1);
-  P2 := ILParamValueToInteger(Param2);
+  P1 := Param1.ImmToInteger;
+  P2 := Param2.ImmToInteger;
 
   if OpIndex = opIndexAdd then
     Value := P1 + P2
@@ -123,8 +123,8 @@ var P1: Integer;  //First parameter value
   P2: Integer;    //Second parameter value
 begin
   RType := vtUnknown;
-  P1 := ILParamValueToInteger(Param1);
-  P2 := ILParamValueToInteger(Param2);
+  P1 := Param1.ImmToInteger;
+  P2 := Param2.ImmToInteger;
 
   if OpIndex = opIndexEqual then
     Value := BooleanToBinary[P1 = P2]
@@ -158,9 +158,10 @@ function EvalBiChar(OpIndex: Integer;Param1, Param2: PILParam;
 var P1: Integer;  //First parameter value
   P2: Integer;    //Second parameter value
 begin
+  Result := qeNone;
   RType := vtUnknown;
-  P1 := ILParamValueToInteger(Param1);
-  P2 := ILParamValueToInteger(Param2);
+  P1 := Param1.ImmToInteger;
+  P2 := Param2.ImmToInteger;
 
   if OpIndex = opIndexEqual then
   begin
@@ -203,6 +204,7 @@ end;
 function EvalBi(OpIndex: Integer;Param1, Param2: PILParam;
   out Value: Integer;out RType: TVarType): TQuicheError;
 begin
+  Result := qeNone;
   if IsNumericType(Param1.ImmType) and IsNumericType(Param2.ImmType) then
     EvalBiInteger(OpIndex, Param1, Param2, Value, RType)
   else if (Param1.ImmType = vtBoolean) and (Param2.ImmType = vtBoolean) then
@@ -225,7 +227,7 @@ begin
 
   if IsNumericType(PType) and IsNumericType(PType) then
   begin
-    P := ILParamValueToInteger(Param);
+    P := Param.ImmToInteger;
 
     if OpIndex = opIndexNOT then
       Value := not P
@@ -241,18 +243,19 @@ begin
   end
   else if PType = vtBoolean then
   begin
-    P := ILParamValueToInteger(Param);  //???
+    P := Param.ImmToInteger;
 
     if OpIndex = opIndexNOT then
     begin
       Value := P xor valueTrue;
       RType := vtBoolean;
+      Result := qeNone;
     end
     else
       raise Exception.Create('Unknown operation in Evaluate');
-  end;
-
-  Result := qeNone;
+  end
+  else
+    Result := qeNone;
 end;
 
 //Evaluate and intrinsic with a single parameter
@@ -289,7 +292,7 @@ begin
   end
   else  //Functions
   begin
-    P := ILParamValueToInteger(Param);
+    P := Param.ImmToInteger;
     RType := vtUnknown;
 
     //-----Maths functions
@@ -407,8 +410,8 @@ begin
   Assert(Param1.Loc = locImmediate);
   Assert(Param2.Loc = locImmediate);
 
-  P1 := ILParamValueToInteger(@Param1);
-  P2 := ILParamValueToInteger(@Param2);
+  P1 := Param1.ImmToInteger;
+  P2 := Param2.ImmToInteger;
   RType := vtUnknown;
 
   if CompareText(OpData.Name, 'inc') = 0 then

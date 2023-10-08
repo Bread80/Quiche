@@ -10,7 +10,9 @@ type
     Code: String;
   end;
 
-procedure LoadFragments(Filename: String);
+procedure InitialiseFragments;
+
+procedure LoadFragmentsFile(Filename: String);
 
 function FindFragmentByName(const AName: String): PFragment;
 
@@ -20,41 +22,34 @@ function FragmentSub(AName: String;ILItem: PILItem): String;
 implementation
 uses Classes, Generics.Collections, SysUtils, Variables;
 
-var  Lib: TList<PFragment>;
+var  FragList: TList<PFragment>;
 
 procedure ClearFragments;
 var Entry: PFragment;
 begin
-  for Entry in Lib do
+  for Entry in FragList do
     Dispose(Entry);
-  Lib.Clear;
+  FragList.Clear;
+end;
+
+procedure InitialiseFragments;
+begin
+  ClearFragments;
 end;
 
 function FindFragmentByName(const AName: String): PFragment;
 begin
-  for Result in Lib do
+  for Result in FragList do
     if CompareText(AName, Result.Name) = 0 then
       EXIT;
   Result := nil;
 end;
 
-function FindEntry(AName: String): String;
-var Frag: PFragment;
-begin
-  Frag := FindFragmentByName(AName);
-
-  if Frag = nil then
-    raise Exception.Create('Library segment not found for: ' + AName);
-
-  Result := Frag.Code;
-end;
-
-procedure LoadFragments(Filename: String);
+procedure LoadFragmentsFile(Filename: String);
 var SL: TStringList;
   Line: String;
   Entry: PFragment;
 begin
-  ClearFragments;
   Entry := nil;
   SL := nil;
   try
@@ -72,7 +67,7 @@ begin
         if Assigned(FindFragmentByName(Entry.Name)) then
           raise Exception.Create('LoadFragments: Entry redeclared: ' + Entry.Name);
         Entry.Code := '';
-        Lib.Add(Entry);
+        FragList.Add(Entry);
       end
       else
         if Entry = nil then
@@ -121,7 +116,7 @@ end;
 function CodeOffset(Param: PILParam;out Comment: String): String;
 var Variable: PVariable;
 begin
-  Variable := ILParamToVariable(Param);
+  Variable := Param.ToVariable;
   Assert(Variable.Storage = vsRelative);
   Result := OffsetToStr(Variable.Offset);
   Comment := Variable.Name;
@@ -130,7 +125,7 @@ end;
 function CodeOffsetHigh(Param: PILParam;out Comment: String): String;
 var Variable: PVariable;
 begin
-  Variable := ILParamToVariable(Param);
+  Variable := Param.ToVariable;
   Assert(Variable.Storage = vsRelative);
   Result := OffsetToStr(Variable.Offset+1);
   Comment := Variable.Name;
@@ -139,9 +134,9 @@ end;
 function CodeVarName(Param: PILParam;out Comment: String): String;
 var Variable: PVariable;
 begin
-  Variable := ILParamToVariable(Param);
+  Variable := Param.ToVariable;
   Assert(Variable.Storage = vsAbsolute);
-  Result := VarGetAsmName(Variable);
+  Result := Variable.GetAsmName;
   Comment := Variable.Name;
 end;
 
@@ -260,13 +255,15 @@ begin
 end;
 
 function FragmentSub(AName: String;ILItem: PILItem): String;
-var Code: String;
+var Frag: PFragment;
 begin
-  Code := FindEntry(AName);
-  Result := DoSubs(Code, ILItem);
+  Frag := FindFragmentByName(AName);
+  if not Assigned(Frag) then
+    raise Exception.Create('Library segment not found for: ' + AName);
+
+  Result := DoSubs(Frag.Code, ILItem);
 end;
 
-
 initialization
-  Lib := TList<PFragment>.Create;
+  FragList := TList<PFragment>.Create;
 end.

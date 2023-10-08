@@ -6,6 +6,7 @@ interface
 
 const
   iCPUWordSize  = 2;  //For OG Z80
+  iCPUWordMask  = $ffff;
   iRealSize     = 5;  //Byte size of a float on the current target. 5 is CPC size :)
 
 //This is the type system as seen by the langauge parser

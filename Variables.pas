@@ -1,27 +1,7 @@
 unit Variables;
-{
-var A:=10
 
-procedure P;
-var PX: Integer
-begin
-  PX := A
-end
-
-procedure Q;
-var QX: Byte
-begin
-  QX := 100;
-end
-
-var X: Word
-begin
-  P;
-  X := 10000;
-end.
-}
 interface
-uses Classes, ILData, QTypes, Generics.Collections;
+uses Classes, QTypes, Generics.Collections;
 
 type
   TVarStorage = (
@@ -44,7 +24,7 @@ type
                       //vsFixed: the offset from the start of the Data segment
 
     //Compile and execution time data
-    Sub: Integer;
+    WriteCount: Integer;
 
     //Compile time only data
     Touched: Boolean; //Temporary data used when generating phi functions
@@ -54,12 +34,30 @@ type
 
     //Execution time only data
     ValueInt: Integer;
+
+    //The Name can *only* be set if it is blank. *Only* to be used where the
+    //variable has to be created where the name is unknown, and the name is
+    //assigned immediately after.
+    procedure SetName(AName: String);
+
+    //Set the variables type. Only allowed in the variale is the last on the list.
+    //*Only* to be used where the variable needs to be created where the eventual type
+    //is unknown, and the type is assigned immediately after.
+    procedure SetType(VType: TVarType);
+
+    //Incremenents the Sub Count of a variable and returns the value
+    //Does not increment if SkipMode is enabled
+    function IncWriteCount: Integer;
+
+    //Returns the name of the variable used in Assemby code
+    function GetAsmName: String;
   end;
 
 type TVarList = TList<PVariable>;
 
 procedure InitialiseVars;
 
+//---------------SkipMode
 //These two functions are used by SkipMode to enable
 //unwanted code to be removed
 
@@ -74,28 +72,11 @@ procedure VarRollback;
 //returns nil
 function VarCreate(AName: String;VarType: TVarType;Storage: TVarStorage;
   out Index: Integer): PVariable;
-//function FindOrAddVar(AName: String;VarType: TVarType;out Index: Integer): PVariable;
 function VarCreateHidden(VarType: TVarType;Storage: TVarStorage;out Index: Integer): PVariable;
-function VarCreateTemp(TempIndex: Integer;VarType: TVarType;Storage: TVarStorage): PVariable;
 
-//The Name can *only* be set if it is blank. *Only* to be used where the
-//variable has to be created where the name is unknown, and the name is
-//assigned immediately after.
-procedure VarSetName(Variable: PVariable;AName: String);
-//Set the variables type. Only allowed in the variale is the last on the list.
-//*Only* to be used where the variable needs to be created where the eventual type
-//is unknown, and the type is assigned immediately after.
-procedure VarSetType(Variable: PVariable;VType: TVarType);
 
+//Returns the number of variables in the current list/scope
 function VarGetCount: Integer;
-
-//Returns the name of the variable used in Assemby code
-function VarGetAsmName(Variable: PVariable): String;
-
-procedure VarClearTempList;
-//Gets the next temp value index, and increments it (CurrTempIndex) for the next call
-function GetNextTempIndex: Integer;
-function GetTempCount: Integer;
 
 //--------------Finding/accessing
 //Find a variable by name across all current scopes.
@@ -106,16 +87,8 @@ function VarFindByNameInScope(AName: String;out Index: Integer): PVariable;
 
 
 function VarIndexToData(Index: Integer): PVariable;
-function VarTempToData(TempIndex: Integer): PVariable;
 
-//Incremenents the Sub Count of a variable and returns the value
-//Does not increment if SkipMode is enabled
-function VarIncWriteCount(Variable: PVariable): Integer;
 function VarIndexIncWriteCount(VarIndex: Integer): Integer;
-
-function ILParamToVariable(ILParam: PILParam): PVariable;
-function ILDestToVariable(const ILDest: TILDest): PVariable;
-
 
 
 //------------CodeGen
@@ -243,25 +216,6 @@ begin
     Result := Vars[Vars.Count-1].Offset + GetTypeSize(Vars[Vars.Count-1].VarType);
 end;
 
-//Doesn't check whether a variable with that name already exists!
-function VarCreateInt(AName: String;VType: TVarType;Storage: TVarStorage;out Index: Integer): PVariable;
-begin
-  New(Result);
-  Result.Name := AName;
-  Result.VarType := VType;
-  Result.Depth := GetCurrentScope.Depth;
-  Result.InScope := True;
-  Result.Storage := Storage;
-  Result.Sub := 0;
-  Result.Touched := False;
-  if Vars.Count = 0 then
-    Result.Offset := 0
-  else  //Adding to current Scope
-    Result.Offset := Vars[Vars.Count-1].Offset + GetTypeSize(Vars[Vars.Count-1].VarType);
-
-  Index := VarsFirstIndex + Vars.Add(Result);
-end;
-
 function VarFindByNameAllScopes(AName: String;out Index: Integer): PVariable;
 var IdentType: TIdentType;
   Scope: PScope;
@@ -289,23 +243,29 @@ begin
   Result := nil;
 end;
 
-{function FindOrAddVar(AName: String;VarType: TVarType;Storage: TVarStorage;out Index: Integer): PVariable;
+//Doesn't check whether a variable with that name already exists!
+function VarCreateInt(AName: String;VType: TVarType;Storage: TVarStorage;out Index: Integer): PVariable;
 begin
-  Result := VarFindByNameAllScopes(AName, Index);
+  New(Result);
+  Result.Name := AName;
+  Result.VarType := VType;
+  Result.Depth := GetCurrentScope.Depth;
+  Result.InScope := True;
+  Result.Storage := Storage;
+  Result.WriteCount := 0;
+  Result.Touched := False;
+  if Vars.Count = 0 then
+    Result.Offset := 0
+  else  //Adding to current Scope
+    Result.Offset := Vars[Vars.Count-1].Offset + GetTypeSize(Vars[Vars.Count-1].VarType);
 
-  if Result = nil then
-    Result := VarCreateInt(AName, VarType, Storage, Index);
+  Index := VarsFirstIndex + Vars.Add(Result);
 end;
-}
+
 function VarCreateHidden(VarType: TVarType;Storage: TVarStorage;out Index: Integer): PVariable;
 begin
   Result := VarCreateInt('',VarType, Storage, Index);
-end;
-
-function VarCreateTemp(TempIndex: Integer;VarType: TVarType;Storage: TVarStorage): PVariable;
-var Index: Integer;
-begin
-  Result := VarCreateInt('=temp'+IntToStr(TempIndex), VarType, Storage, Index);
+  Result.SetName('%'+IntToStr(Index));
 end;
 
 function VarCreate(AName: String;VarType: TVarType;Storage: TVarStorage;out Index: Integer): PVariable;
@@ -319,55 +279,37 @@ begin
     Result := VarCreateInt(AName, VarType, Storage, Index);
 end;
 
-procedure VarSetName(Variable: PVariable;AName: String);
+procedure TVariable.SetName(AName: String);
 begin
-  if Variable.Name <> '' then
-    raise Exception.Create('VarSetName must only be called when Name is blank');
-  Variable.Name := AName;
+  Assert(Name = '', 'Variable.SetName must only be called when Name is blank');
+  Name := AName;
 end;
 
-procedure VarSetType(Variable: PVariable;VType: TVarType);
+procedure TVariable.SetType(VType: TVarType);
 begin
   //Last item in current list??
-  if Variable <> Vars[Vars.Count-1] then
-    raise Exception.Create('VarSetType must only be called when it is the last in the VarList');
-  Variable.VarType := VType;
+  Assert(@Self = Vars[Vars.Count-1], 'VarSetType must only be called when it is the last in the VarList');
+  VarType := VType;
 end;
 
-function VarGetAsmName(Variable: PVariable): String;
+function TVariable.GetAsmName: String;
 begin
-  Result := 'v_' + GetCurrentScope.Name + '_' + Variable.Name;
+  Result := 'v_' + GetCurrentScope.Name + '_' + Name;
 end;
 
-var CurrTempIndex: Integer;
-
-procedure VarClearTempList;
+function TVariable.IncWriteCount: Integer;
 begin
-  CurrTempIndex := 0;
-end;
-
-function GetNextTempIndex: Integer;
-begin
-  Result := CurrTempIndex;
-  inc(CurrTempIndex);
-end;
-
-function GetTempCount: Integer;
-begin
-  Result := CurrTempIndex;
-end;
-
-
-function VarIncWriteCount(Variable: PVariable): Integer;
-begin
-  Result := Variable.Sub + 1;
+  Result := WriteCount + 1;
   if not SkipMode then
-    Variable.Sub := Result;
+    WriteCount := Result;
 end;
 
 function VarIndexIncWriteCount(VarIndex: Integer): Integer;
+var V: PVariable;
 begin
-  Result := VarIncWriteCount(VarIndexToData(VarIndex));
+  V := VarIndexToData(VarIndex);
+  Assert(V <> nil);
+  Result := V.IncWriteCount;
 end;
 
 function VarIndexToData(Index: Integer): PVariable;
@@ -387,12 +329,6 @@ begin
 
   Result := nil;
   SetCurrentScope(Scope);
-end;
-
-function VarTempToData(TempIndex: Integer): PVariable;
-var Index: Integer;
-begin
-  Result := VarFindByNameInScope('=temp'+IntToStr(TempIndex), Index);
 end;
 
 function VarIndexToName(Index: Integer): String;
@@ -422,26 +358,6 @@ begin
   end;
 end;
 
-
-function ILParamToVariable(ILParam: PILParam): PVariable;
-begin
-  case ILParam.Loc of
-    locVar: Result := VarIndexToData(ILParam.VarIndex);
-    locTemp: Result := VarTempToData(ILParam.TempIndex);
-  else
-    raise Exception.Create('Illegal Param.Loc');
-  end;
-end;
-
-function ILDestToVariable(const ILDest: TILDest): PVariable;
-begin
-  case ILDest.Loc of
-    locVar: Result := VarIndexToData(ILDest.VarIndex);
-    locTemp: Result := VarTempToData(ILDest.TempIndex);
-  else
-    raise Exception.Create('Invalid Dest.Loc');
-  end;
-end;
 
 procedure VarUpdateLocalOffsets;
 var Offset: Integer;
@@ -557,7 +473,7 @@ begin
   begin
     V.ValueInt := 0;
     V.VarType := vtUnknown;
-    V.Sub := 0;
+    V.WriteCount := 0;
   end;
 end;
 

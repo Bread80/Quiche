@@ -103,7 +103,9 @@ function OpProcedureToIndex(Name: STring): Integer;
 //This code will update the OpIndex as necessary.
 //function UpdateOpForParams(var OpIndex: Integer;LType, RType: TVarType): Boolean;
 
-procedure InitialiseOperatorList;
+procedure InitialiseOperators;
+
+procedure LoadOperatorsFile(const Filename: String);
 
 //Convert an operator index to a string explaining it's usage
 function OpIndexToUsage(OpIndex: Integer): String;
@@ -112,6 +114,20 @@ implementation
 uses Generics.Collections, Classes, SysUtils;
 
 var OpList : TList<POperator>;
+
+procedure ClearOpList;
+var Op: POperator;
+begin
+  for Op in OpList do
+    Dispose(Op);
+  OpList.Clear;
+end;
+
+procedure InitialiseOperators;
+begin
+  ClearOpList;
+end;
+
 
 function OpIndexToData(Index: Integer): POperator;
 begin
@@ -223,19 +239,14 @@ const //Field indexes
   fFuncFlags      = 11;
   fResultType     = 12;
 
-procedure InitialiseOperatorList;
+procedure LoadOperatorsFile(const Filename: String);
 var Data: TStringList;
   Line: String;
   Fields: TArray<String>;
   Op: POperator;
 begin
-  if OpList <> nil then
-    OpList.Free;
-
-  OpList := TList<POperator>.Create;
-
   Data := TStringList.Create;
-  Data.LoadFromFile('..\..\docs\Operators.csv');
+  Data.LoadFromFile(Filename);
 
   for Line in Data do
     if (Length(Line) > 0) and (Line.Chars[0] <> ';') then
@@ -386,4 +397,6 @@ begin
   Result := OpData.Symbol + ' (stuff to do here)';
 end;
 
+initialization
+  OpList := TList<POperator>.Create;
 end.

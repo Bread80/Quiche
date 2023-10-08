@@ -1,7 +1,7 @@
 unit ILData;
 
 interface
-uses Generics.Collections, Classes, QTypes;
+uses Generics.Collections, Classes, QTypes, Variables;
 
   //Code register allocation and code generation
   //These types specify where a parameter must (can) be placed before a primitive can
@@ -37,7 +37,7 @@ const
   #0,
   #0,
   #0);
-  AllocLocToRegPAir: array[low(TAllocLoc)..High(TAllocLoc)] of String = (
+  AllocLocToRegPair: array[low(TAllocLoc)..High(TAllocLoc)] of String = (
   #0,#0,#0,#0,#0,
   #0,#0,#0,#0,#0,#0,#0,
   'hl','de','bc','ix','iy',
@@ -74,13 +74,27 @@ type TILLocation = (
     locNone,      //No parameter
     locImmediate, //Immediate data (constant)
     locPhiVar,    //Parameter for a phi function for a variable
-    locVar,       //Variable
-    locTemp       //Temporary (transient) data
+    locVar       //Variable
     );
 
 type
   PILParam = ^TILParam;
   TILParam = record
+    procedure SetImmediate(AImmValue: Integer;AImmType: TVarType);
+    procedure SetVar(AVarIndex, AVarSub: Integer);
+    //Obtains VarSub from AVarIndex
+    procedure SetVarFromIndex(AVarIndex: Integer);
+
+    //If a Param has an immediate value, convert that value to a 'modern'
+    //(cross-compiler native) Integer value
+    function ImmToInteger: Integer;
+    function ToVariable: PVariable;
+
+
+    function GetVarType: TVarType;
+    function GetRawType: TOpType;
+
+
     case Loc: TILLocation of
       locNone: ();
       locPhiVar: (            //Phi variable (specified in the Dest data)
@@ -92,14 +106,20 @@ type
       locVar: (
         VarIndex: Integer;    //Index into variable list
         VarSub: Integer; );   //Current Sub (version) of the variable
-      locTemp: (
-        TempIndex: Integer ); //Inded of temp variable (should be updated to be a standard variable index)
     end;
 
   TDestType = (dtNone, dtData, dtBranch, dtCondBranch);
 
   PILDest = ^TILDest;
   TILDest = record
+    procedure SetVar(AVarIndex, AVarSub: Integer);
+    procedure CreateAndSetHiddenVar(ResultType: TVarType; Storage: TVarStorage;
+      out AVarIndex: Integer);
+
+    function ToVariable: PVariable;
+
+    function GetOpType: TOpType;
+
     case Loc: TILLocation of
       locPhiVar: (
         PhiVarIndex: Integer; //Index into the variable list of the variable
@@ -107,8 +127,6 @@ type
       locVar: (
         VarIndex: Integer;    //Index into variable list
         VarSub: Integer; );   //Sub of variable assignment
-      locTemp: (
-        TempIndex: Integer ); //Index of Temp variable (should be updated to use VarIndexes)
     end;
 
 
@@ -152,10 +170,6 @@ type
         BranchBlockID: Integer; );  //Block number to branch to
   end;
 
-//If a Param has an immediate value, convert that value to a 'modern'
-//(cross-compiler native) Integer value
-function ILParamValueToInteger(Param: PILParam): Integer;
-
 procedure InitialiseILData;
 
 type TILList = TList<PILItem>;
@@ -177,19 +191,15 @@ function GetCurrBlockID: Integer;
 function GetNextBlockID: Integer;
 
 //Allocates a new IL item and appends it to the list
-function ILAppend(DestType: TDestType): PILItem;
+function ILAppend(DestType: TDestType;AOpIndex: Integer): PILItem;
 //Allocates a new IL item and inserts it into the IL list at the given Index
-function ILInsert(Index: Integer;DestType: TDestType): PILItem;
+function ILInsert(Index: Integer;DestType: TDestType;AOpIndex: Integer): PILItem;
 
 //Returns the current number of items in the IL list
 function ILGetCount: Integer;
 
 //Returns the Index'th item in the IL list
 function ILIndexToData(Index: Integer): PILItem;
-
-function ILParamToVarType(Param: PILParam): TVarType;
-function ILParamToRawType(Param: PILParam): TOpType;
-function ILDestToOpType(Dest: PILDest): TOpType;
 
 
 
@@ -200,16 +210,46 @@ procedure ILToStrings(S: TStrings);
 var NewSourceLine: Boolean;
 
 implementation
-uses SysUtils, Variables, SourceReader, ParserBase, Operators, Globals;
+uses SysUtils, SourceReader, ParserBase, Operators, Globals;
 
-function ILParamValueToInteger(Param: PILParam): Integer;
+procedure TILParam.SetImmediate(AImmValue: Integer;AImmType: TVarType);
 begin
-  Assert(Param.Loc = locImmediate);
+  Loc := locImmediate;
+  ImmValue := AImmValue and iCPUWordMask;
+  ImmType := AImmType;
+end;
 
-  Result := Param.ImmValue;
-  if IsSignedType(Param.ImmType) and (Result >= $8000) then
+procedure TILParam.SetVar(AVarIndex, AVarSub: Integer);
+begin
+  Loc := locVar;
+  VarIndex := AVarIndex;
+  VarSub := AVarSub;
+end;
+
+procedure TILParam.SetVarFromIndex(AVarIndex: Integer);
+var V: PVariable;
+begin
+   V := VarIndexToData(AVarIndex);
+   Assert(V <> nil);
+   SetVar(AVarIndex, V.WriteCount);
+end;
+
+function TILParam.ImmToInteger: Integer;
+begin
+  Assert(Loc = locImmediate);
+
+  Result := ImmValue;
+  if IsSignedType(ImmType) and (Result >= $8000) then
     Result := Result or (-1 xor $ffff);
 end;
+
+function TILParam.ToVariable: PVariable;
+begin
+  Assert(Loc = locVar);
+  Result := VarIndexToData(VarIndex);
+end;
+
+
 
 var
   ILList: TILList;
@@ -256,7 +296,6 @@ function CreateILList: TILList;
 begin
   Result := TILList.Create;
   NewBlock := True;
-  VarClearTempList;
   NewSourceLine := True;
 
   //We can't SkipMode over a change of scope
@@ -311,15 +350,17 @@ begin
   Result.Param2.Loc := locNone;
 end;
 
-function ILAppend(DestType: TDestType): PILItem;
+function ILAppend(DestType: TDestType;AOpIndex: Integer): PILItem;
 begin
   Result := ILCreate(DestType);
+  Result.OpIndex := AOpIndex;
   ILList.Add(Result);
 end;
 
-function ILInsert(Index: Integer;DestType: TDestType): PILItem;
+function ILInsert(Index: Integer;DestType: TDestType;AOpIndex: Integer): PILItem;
 begin
   Result := ILCreate(DestType);
+  Result.OpIndex := AOpIndex;
   ILList.Insert(Index, Result);
 end;
 
@@ -334,21 +375,16 @@ begin
 end;
 
 
-function ILParamToVarType(Param: PILParam): TVarType;
+function TILParam.GetVarType: TVarType;
 var Variable: PVariable;
 begin
-  case Param.Loc of
+  case Loc of
     locNone, locPhiVar: EXIT(vtUnknown);
     locImmediate:
-      Result := Param.ImmType;
+      Result := ImmType;
     locVar:
     begin
-      Variable := VarIndexToData(Param.VarIndex);
-      Result := Variable.VarType;
-    end;
-    locTemp:
-    begin
-      Variable := VarTempToData(Param.TempIndex);
+      Variable := VarIndexToData(VarIndex);
       Result := Variable.VarType;
     end;
   else
@@ -356,21 +392,40 @@ begin
   end;
 end;
 
-function ILParamToRawType(Param: PILParam): TOpType;
+function TILParam.GetRawType: TOpType;
 begin
-  Result := VarTypeToOpType(ILParamToVarType(Param));
+  Result := VarTypeToOpType(GetVarType);
 end;
 
-function ILDestToOpType(Dest: PILDest): TOpType;
+procedure TILDest.SetVar(AVarIndex, AVarSub: Integer);
+begin
+  Loc := locVar;
+  VarIndex := AVarIndex;
+  VarSub := AVarSub;
+end;
+
+procedure TILDest.CreateAndSetHiddenVar(ResultType: TVarType; Storage: TVarStorage;
+  out AVarIndex: Integer);
+var V: PVariable;
+begin
+  V := VarCreateHidden(ResultType, Storage, AVarIndex);
+  Loc := locVar;
+  VarIndex := AVarIndex;
+  VarSub := V.WriteCount;
+end;
+
+function TILDest.ToVariable: PVariable;
+begin
+  Assert(Loc = locVar);
+  Result := VarIndexToData(VarIndex);
+end;
+
+function TILDest.GetOpType: TOpType;
 var Variable: PVariable;
 begin
-  case Dest.Loc of
-    locVar: Variable := VarIndexToData(Dest.VarIndex);
-    locTemp: Variable := VarTempToData(Dest.TempIndex);
-  else
-    raise Exception.Create('ILDestToOpType: Invalid Dest type');
-  end;
+  Assert(Loc = locVar, 'ILDestToOpType: Invalid Dest type');
 
+  Variable := VarIndexToData(VarIndex);
   if Variable = nil then
     EXIT(rtUnknown);
 
@@ -393,11 +448,6 @@ begin
       Result := '%' + Variable.Name + '_' + IntToStr(Param.VarSub) +
         ':' + VarTypeToName(Variable.VarType);
     end;
-    locTemp:
-    begin
-      Variable := VarTempToData(Param.TempIndex);
-       Result := '%' + IntToStr(Param.TempIndex) + ':' + VarTypeToName(Variable.VarType);
-    end;
   else
     Result := '<INVALID PARAM>';
   end;
@@ -416,7 +466,6 @@ begin
         locImmediate: ;
         locPhiVar: Result := Result + '%' + VarIndexToName(Item.Dest.PhiVarIndex) + '_' + IntToStr(Item.Dest.PhiSub);
         locVar: Result := Result + '%' + VarIndexToName(Item.Dest.VarIndex) + '_' + IntToStr(Item.Dest.VarSub);
-        locTemp: Result := Result + '%' + IntToStr(Item.Dest.TempIndex);
       else
         Result := Result + 'Invalid DestLoc';
 //    raise Exception.Create('Invalid DestLoc');

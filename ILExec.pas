@@ -64,7 +64,7 @@ begin
       TempVars.Add(Result);
       Result.ValueInt := 0;
       Result.VarType := vtUnknown;
-      Result.Sub := -1;
+      Result.WriteCount := -1;
     end
   else
   begin
@@ -86,7 +86,7 @@ begin
 //      ExecTest(Variable.Sub = Sub, 'Variable Sub doesn''t match param Sub version (Phi node)');
       Result := Variable.ValueInt;
       ValueType := Variable.VarType;
-      SubMismatch := Variable.Sub <> Param.VarSub;
+      SubMismatch := Variable.WriteCount <> Param.VarSub;
     end;
     locImmediate:
     begin
@@ -96,14 +96,7 @@ begin
     locVar:
     begin
       Variable := VarIndexToData(Param.VarIndex);
-      ExecTest(Variable.Sub = Param.VarSub, 'Variable Sub doesn''t match param Sub version (normal node)');
-      Result := Variable.ValueInt;
-      ValueType := Variable.VarType;
-    end;
-    locTemp:
-    begin
-      Variable := TempVarIndexToData(Param.TempIndex);
-      ExecTest(Assigned(Variable), 'Temp variable not assigned yet');
+      ExecTest(Variable.WriteCount = Param.VarSub, 'Variable Sub doesn''t match param Sub version (normal node)');
       Result := Variable.ValueInt;
       ValueType := Variable.VarType;
     end;
@@ -288,22 +281,16 @@ begin
           Variable := VarIndexToData(ILItem.Dest.VarIndex);
           Variable.ValueInt := Value;
           Variable.VarType := ValueType;
-          Variable.Sub := ILItem.Dest.VarSub;
+          Variable.WriteCount := ILItem.Dest.VarSub;
         end;
         locVar:
         begin
           Variable := VarIndexToData(ILItem.Dest.PhiVarIndex);
           Variable.ValueInt := Value;
           Variable.VarType := ValueType;
-          Variable.Sub := ILItem.Dest.PhiSub;
+          Variable.WriteCount := ILItem.Dest.PhiSub;
         end;
         locImmediate: RaiseError('Dest assignment to <locImmediate>');
-        locTemp:
-        begin
-          Variable := TempVarCreate(ILItem.Dest.TempIndex);
-          Variable.ValueInt := Value;
-          Variable.VarType := ValueType;
-        end;
       else
         RaiseError('Unknown Dest type');
       end;

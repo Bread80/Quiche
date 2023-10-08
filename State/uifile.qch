@@ -1,5 +1,0 @@
-var T := Integer
-var Tx := TypeDef
-
-begin
-end.

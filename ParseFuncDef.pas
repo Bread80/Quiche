@@ -388,6 +388,9 @@ begin
     //Do we have a any directives? E.g. calling convention
     Parser.Mark;
     Result := ParseIdentifier(#0, Ident);
+    if Result <> qeNone then
+      EXIT;
+
     if Ident <> '' then
       NextKeyword := IdentToKeyword(Ident)
     else

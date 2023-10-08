@@ -1,26 +1,37 @@
 {
 Directory structure:
 
-/Data (Core?)
-  Operations
-  Primitives
+/Data - Compile time data
+  Operations DONE
+  Primitives DONE
   Fragments DONE
-  Core library(ies)
 
-/Platforms
-  <platform-name>.asm - Core file for platform
-  <platform-name>.config - Config for platform
-  /<platform name> - eg CPC
-    Libraries for platform
+/Assembler - Libraries written in assembler
+  Core library main DONE
+  Unpacked core libraries included in QuicheCore.asm
+
+/Quiche - Libraries written in Quiche
 
 /Tests
-  /DeepTests (Auto-generated?)
+  /DeepTests (Including auto-generated)
 
 /Config
   UI state
   Compiler defaults
+  /Build - Build configs, Debug, Deploy etc.
 
-/Docs
+/Platforms
+  /<platform-name> - Eg Amstrad CPC
+    /Config - Config for platform
+    /Assembler - Libraries written in assembler
+      <platform-name>.asm - Main file for platform. Eg AmstradCPC.asm
+    /Quiche - Libraries written in Quiche
+    /Deploy - Deployment options. E.g. emulator, to hardware via serial, etc
+            - Or under config folder??
+      Emulator.txt - eg.
+      ViaSerial.txt - etc.
+
+/Docs DONE
   Compilable examples/documentation
 
 /Examples
@@ -144,7 +155,7 @@ end;
 
 procedure TForm1.btnCodeGenClick(Sender: TObject);
 begin
-  Compiler.LoadFragmentsLibrary(TPath.Combine(Compiler.QuicheFolder, FragmentsFilename));
+//  Compiler.LoadFragmentsLibrary(TPath.Combine(Compiler.QuicheFolder, FragmentsFilename));
 
   if not Compiler.DoCodeGen then
     edError.Text := LastErrorString;
@@ -220,9 +231,9 @@ procedure TForm1.btnTestClick(Sender: TObject);
 begin
   Testing.Initialise;
   if cbTests.ItemIndex = 0 then
-    Testing.RunAllTests(TPath.Combine(Compiler.QuicheFolder, 'Tests\'), cbStopOnError.IsChecked)
+    Testing.RunAllTests(Compiler.GetTestsFolder, cbStopOnError.IsChecked)
   else
-    Testing.RunTestFile(TPath.Combine(QuicheFolder, 'Tests\' + cbTests.Items[cbTests.ItemIndex] + '.tst'),
+    Testing.RunTestFile(TPath.Combine(Compiler.GetTestsFolder, cbTests.Items[cbTests.ItemIndex] + '.tst'),
       cbStopOnError.IsChecked);
 
   mmTests.Lines.Clear;
@@ -251,13 +262,15 @@ begin
 end;
 
 procedure TForm1.FormCreate(Sender: TObject);
+var Folder: String;
 begin
-  Compiler.QuicheFolder := TPath.GetFullPath(TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), '..\..\'));
+  Folder := TPath.GetFullPath(TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), '..\..\'));
+  Compiler.SetQuicheFolder(Folder);
+  Compiler.SetPlatform('TestCase');
   Compiler.OutputFolder := 'C:\RetroTools\Quiche';
-  Compiler.PlatformFilename := 'Z80Code\TestCase.asm';
 
   LoadTestList;
-  FEditorFileName := TPath.Combine(Compiler.QuicheFolder, 'state\uifile.qch');
+  FEditorFileName := TPath.Combine(Folder, 'Config\uifile.qch');
   if TFile.Exists(FEditorFileName) then
     mmSource.Lines.LoadFromFile(FEditorFileName);
 end;
@@ -277,7 +290,7 @@ var FullFolder: String;
   Files: TArray<String>;
   Filename: STring;
 begin
-  FullFolder := TPath.GetFullPath(TPath.Combine(Compiler.QuicheFolder, 'Tests\'));
+  FullFolder := Compiler.GetTestsFolder;
 
   Files := TDirectory.GetFiles(FullFolder, '*.tst');
 

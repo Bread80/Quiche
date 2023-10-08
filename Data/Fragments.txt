@@ -269,7 +269,8 @@
   ld (<d.varname>),<d.r16low>	;$$
   
   
-  
+=store_rel8_a
+  ld (ix<d.offset>),a        ;$$  
   
 =store_rel8_r8
   ld (ix<d.offset>),<d.r8>	;$$

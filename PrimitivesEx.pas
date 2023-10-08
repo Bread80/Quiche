@@ -52,7 +52,9 @@ function PrimFindByProcName(AName: String): PPrimitive;
 procedure PrimSetProc(Name: String;Proc: TCodeGenProc);
 procedure PrimSetValProc(Name: String;Proc: TValidationProc);
 
-procedure InitialisePrimitiveList;
+procedure InitialisePrimitives;
+
+procedure LoadPrimitivesFile(const Filename: String);
 
 //Validates that generators are available for every primitive.
 //Raises an exception if there is a problem
@@ -62,6 +64,19 @@ implementation
 uses Generics.Collections, Classes, SysUtils, Operators, Variables, Fragments;
 
 var PrimList: TList<PPrimitive>;
+
+procedure ClearPrimList;
+var Prim: PPrimitive;
+begin
+  for Prim in PrimList do
+    Dispose(Prim);
+  PrimList.Clear;
+end;
+
+procedure InitialisePrimitives;
+begin
+  ClearPrimList;
+end;
 
 function PrimFindByProcName(AName: String): PPrimitive;
 begin
@@ -91,8 +106,8 @@ function OpOrderMatch(FirstParamType: Char;const ILItem: TILItem): Boolean;
 begin
   case FirstParamType of
     #0: Result := True;
-    's': Result := ILParamToRawType(@ILitem.Param1) in [rtS8, rtS16];
-    'u': Result := ILParamToRawType(@ILItem.Param1) in [rtU8, rtU16];
+    's': Result := ILItem.Param1.GetRawType in [rtS8, rtS16];
+    'u': Result := ILItem.Param1.GetRawType in [rtU8, rtU16];
   else
     raise Exception.Create('Invalid FirstParamType in OpOrderMatch');
   end;
@@ -115,9 +130,9 @@ begin
   case ILParam.Loc of
     locNone: EXIT(ProcLoc = []);
     locImmediate: EXIT(True);//ProcLoc = [plImm]);
-    locVar, locTemp: //Special cases which can handle variable types directly
+    locVar: //Special cases which can handle variable types directly
     begin
-      V := ILParamToVariable(@ILParam);
+      V := ILParam.ToVariable;
       if plAbsVar in ProcLoc then
         EXIT(V.Storage = vsAbsolute);
       if plRelVar in ProcLoc then
@@ -142,7 +157,7 @@ begin
   if ILItem.DestType = dtData then
   begin
     //For an assign to a variable (Anything other than Assign is handled after the Primitive)
-    V := ILDestToVariable(ILItem.Dest);
+    V := ILItem.Dest.ToVariable;
     if Prim.DestLoc = plAbsVar then
       EXIT(V.Storage = vsAbsolute);
     if Prim.DestLoc = plRelVar then
@@ -302,19 +317,14 @@ const
   fValProcU16     = 16;
 
 
-procedure InitialisePrimitiveList;
+procedure LoadPrimitivesFile(const Filename: String);
 var Data: TStringList;
   Line: String;
   Fields: TArray<String>;
   Prim: PPrimitive;
 begin
-  if PrimList <> nil then
-    PrimList.Free;
-
-  PrimList := TList<PPrimitive>.Create;
-
   Data := TStringList.Create;
-  Data.LoadFromFile('..\..\docs\PrimitivesEx.csv');
+  Data.LoadFromFile(Filename);
 
   for Line in Data do
     if (Length(Line) > 0) and (Line.Chars[0] <> ';') then
@@ -420,4 +430,6 @@ begin
     ValidatePrimitive(Prim);
 end;
 
+initialization
+  PrimList := TList<PPrimitive>.Create;
 end.

@@ -46,28 +46,18 @@ begin
       Result := ParseExprToILItem(ILItem, VType);
       if Result <> qeNone then
         EXIT;
+
+      ILItem.DestType := dtNone;  //No result
+      ILItem.Dest.Loc := locNone; //No result
+      ILItem.OpType := VarTypeToOpType(VType);
+
       case VType of
         vtChar:
-        begin
-          ILItem.DestType := dtNone;  //No result
-          ILItem.Dest.Loc := locNone; //No result
           ILItem.OpIndex := OpIndexWriteChar;
-          ILItem.OpType := VarTypeToOpType(VType);
-        end;
         vtInteger, vtInt8, vtByte, vtWord:
-        begin
-          ILItem.DestType := dtNone;  //No result
-          ILItem.Dest.Loc := locNone; //No result
           ILItem.OpIndex := OpIndexWriteInteger;
-          ILItem.OpType := VarTypeToOpType(VType);
-        end;
         vtBoolean:
-        begin
-          ILItem.DestType := dtNone;  //No result
-          ILItem.Dest.Loc := locNone; //No result
           ILItem.OpIndex := OpIndexWriteBoolean;
-          ILItem.OpType := VarTypeToOpType(VType);
-        end;
       else
         EXIT(ErrMsg(qeTodo, 'Unhandled parameter type for Write/ln: ' + VarTypeToName(VType)));
       end;
@@ -86,13 +76,7 @@ begin
   end;
 
   if NewLine then
-  begin
-    ILItem := ILAppend(dtNone);
-     ILItem.DestType := dtNone;  //No result
-     ILItem.Dest.Loc := locNone; //No result
-     ILItem.OpIndex := OpIndexWriteNewLine;
-     ILItem.OpType := rtUnknown;
-  end;
+    ILItem := ILAppend(dtNone, OpIndexWriteNewLine);
 end;
 
 //Read parameter(s) of an intrinsic
@@ -161,17 +145,19 @@ begin
       EXIT(ErrOpUsage('Second parameter must be a constant or constant expression', OpIndex));
   if opfP1Bitsize16Only in OpData.FuncFlags then
     if Slug1.Operand.Loc <> locImmediate then
-      if GetTypeSize(ILParamToVarType(@Slug1.Operand)) <> 2 then
+      if GetTypeSize(Slug1.Operand.GetVarType) <> 2 then
         EXIT(ErrOpUsage('First parameter must be a 16-bit value', OpIndex));
 
   //Validate parameter type matches types available for the operation
-  if FindAssignmentTypes(OpData.LTypes, ILParamToVarType(@Slug1.Operand)) = vtUnknown then
-    EXIT(ErrMsg(qeTypeMismatch, 'Expression type (' + VarTypeToName(ILParamToVarType(@Slug1.Operand)) + ') ' +
+  if FindAssignmentTypes(OpData.LTypes, Slug1.Operand.GetVarType) = vtUnknown then
+    EXIT(ErrMsg(qeTypeMismatch, 'Expression type (' + VarTypeToName(Slug1.Operand.GetVarType) + ') ' +
       'incompatible with operator (' + TypeEnumSetToString(OpData.LTypes) + ') in first parameter'));
   if HaveParam2 then
-    if FindAssignmentTypes(OpData.LTypes, ILParamToVarType(@Slug2.Operand)) = vtUnknown then
-      EXIT(ErrMsg(qeTypeMismatch, 'Expression type (' + VarTypeToName(ILParamToVarType(@Slug2.Operand)) + ') ' +
+    if FindAssignmentTypes(OpData.LTypes, Slug2.Operand.GetVarType) = vtUnknown then
+      EXIT(ErrMsg(qeTypeMismatch, 'Expression type (' + VarTypeToName(Slug2.Operand.GetVarType) + ') ' +
         'incompatible with operator (' + TypeEnumSetToString(OpData.RTypes) + ') in second parameter'));
+
+  Result := qeNone;
 end;
 
 //Handle generic intrinsics which follow the standard syntax etc rules defined in
@@ -180,7 +166,6 @@ function ParseGenericIntrinsic(OpIndex: Integer;AssignReturn: Boolean;var Slug: 
 var
   OpData: POperator;
   ILItem: PILItem;
-  VType: TVarType;
   Slug1, Slug2: TExprSlug;
   HaveParam2: Boolean;
   Value: Integer;
@@ -219,11 +204,8 @@ begin
     if RType <> vtUnknown then
     begin
       //TODO: Assign data to slug
-      Slug.Operand.Loc := locImmediate;
-      Slug.Operand.ImmValue := Value;
-      Slug.Operand.ImmType := RType;
+      Slug.SetImmediate(Value, RType);
       Slug.OpIndex := OpIndexNone;
-      Slug.ResultType := RType;
       Slug.ImplicitType := RType;
       EXIT(qeNone);
     end;
@@ -233,7 +215,7 @@ begin
   if (OpIndex = OpIndexInc) or (OpIndex = OpIndexDec) then
     if Slug2.Operand.Loc = locImmediate then
     begin
-      if abs(ILParamValueToInteger(@Slug2.Operand)) >= iConvertIncToAddThreshhold then
+      if abs(Slug2.Operand.ImmToInteger) >= iConvertIncToAddThreshhold then
         if OpIndex = OpIndexInc then
           OpIndex := OpIndexAdd
         else
@@ -244,12 +226,12 @@ begin
 
   //Create ILData or ExprSlug
   if Slug1.ILItem <> nil then
-    SlugAssignToTempVar(Slug1);
+    Slug1.AssignToHiddenVar;
   if HaveParam2 and (Slug2.ILItem <> nil) then
-    SlugAssignToTempVar(Slug2);
+    Slug2.AssignToHiddenVar;
   if AssignReturn or (opfp1Variable in OpData.FuncFlags) then
   begin //Return a slug for assignment/remainder of expression
-    ILItem := ILAppend(dtData);
+    ILItem := ILAppend(dtData, OpIndex);
     Slug.Operand.Loc := locNone;
     Slug.ILItem := ILItem;
     Slug.OpIndex := OpIndexNone;
@@ -260,9 +242,8 @@ begin
   end
   else
   begin //Append the function call to ILList, nothing to return
-    ILItem := ILAppend(dtNone);
+    ILItem := ILAppend(dtNone, OpIndex);
   end;
-  ILItem.OpIndex := OpIndex;
   if opfNoOverflowChecks in OpData.FuncFlags then
     ILItem.CodeGenFlags := ILItem.CodeGenFlags - [cgOverFlowCheck];
 
@@ -292,16 +273,8 @@ begin
   end
   else if opfp1Variable in OpData.FuncFlags then
   begin //Param1 is a variable and we're assigning the result to it.
-    ILItem.Dest.Loc := ILItem.Param1.Loc;
-    case ILItem.Param1.Loc of
-      locVar:
-      begin
-        ILItem.Dest.VarIndex := ILItem.Param1.VarIndex;
-        ILItem.Dest.VarSub := VarIndexIncWriteCount(ILItem.Param1.VarIndex);
-      end;
-    else
-      raise Exception.Create('Unknown Param Loc in Instrinsic Assign');
-    end;
+    Assert(ILItem.Param1.Loc = locVar);
+    ILItem.Dest.SetVar(ILItem.Param1.VarIndex, VarIndexIncWriteCount(ILItem.Param1.VarIndex));
   end;
 end;
 

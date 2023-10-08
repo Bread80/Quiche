@@ -1,0 +1,34 @@
+  var iia%:=5
+  var iib%:=5;
+  var i8a%%:=5
+  var i8b%%:=5
+  var wwa#:=5
+  var wwb#:=5
+  var bba##:=5
+  var bbb##:=5
+
+  var a:= iia=iib
+  var b:= iia=i8b
+  var c:= iia=wwb
+  var d:= iia=bbb
+  var e:= i8a=iib
+
+  var f:= i8a=i8b
+  var g:= i8a=wwb
+  var h:= i8a=bbb
+  var i:= wwa=iib
+  var j:= wwa=i8b
+  var k:= wwa=wwb
+  var l:= wwa=bbb
+  var m:= bba=iib
+  var n:= bba=i8b
+  var o:= bba=wwb
+  var p:= bba=bbb
+  var q:= iia=5
+  var r:= i8a=5
+  var s:= wwa=5
+  var t:= bba=5
+  var u:= 5=iia
+  var v:= 5=i8a
+  var w:= 5=wwa
+  var x:= 5=wwb

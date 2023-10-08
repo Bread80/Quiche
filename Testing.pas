@@ -78,6 +78,8 @@ end;
 
 procedure Initialise;
 begin
+  Compiler.SetPlatform('TestCase');
+
   if Assigned(Log) then
     Log.Clear;
   ResetTestStats;

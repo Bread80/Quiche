@@ -306,9 +306,7 @@ begin
 end;
 
 function TQuicheSourceReader.SkipWhiteSpace: Boolean;
-var Done: Boolean;
 begin
-  Done := False;
   while not EOF do
   begin
     case TestChar of
