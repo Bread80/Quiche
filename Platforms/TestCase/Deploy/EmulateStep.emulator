@@ -1,0 +1,1 @@
+;Sample config file for Z80 emulatorCreateMemoryDevice=RAMLoadBinary=c:\RetroTools\Quiche\QuicheOutput.bin,$8000LoadMapFile=c:\RetroTools\Quiche\QuicheOutput.mapSetPC=$8000;RunToHALTDumpMemory=RAM,c:\RetroTools\Quiche\RAMDump.binDumpCPUState=c:\RetroTools\Quiche\CPUState.txt;Die

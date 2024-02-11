@@ -1048,1747 +1048,1747 @@ endcode
 varvalue r False
 
 $overflow on
-code auto:146 not-equal[Int16] -128[Int8], -32768[Int16] -> [Boolean] Var $overflow on
+code auto:146 not-equal[Integer] -128[Int8], -32768[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = -128;
-  var  b: Int16 = -32768;
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:147 not-equal[Int16] -128[Int8], -32768[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32768;
+code auto:147 not-equal[Integer] -128[Int8], -32768[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:148 not-equal[Int16] -128[Int8], -32768[Int16] -> [Boolean] Right immediate $overflow on
+code auto:148 not-equal[Integer] -128[Int8], -32768[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -128;
   var  r: Boolean;
   r := a <> -32768;
 endcode
 varvalue r True
 
-code auto:149 not-equal[compile-time] -128[Int8], -32768[Int16] -> [Boolean] Both immediate $overflow on
+code auto:149 not-equal[compile-time] -128[Int8], -32768[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> -32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:150 not-equal[Int16] -128[Int8], -32767[Int16] -> [Boolean] Var $overflow on
+code auto:150 not-equal[Integer] -128[Int8], -32767[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = -128;
-  var  b: Int16 = -32767;
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:151 not-equal[Int16] -128[Int8], -32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32767;
+code auto:151 not-equal[Integer] -128[Int8], -32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:152 not-equal[Int16] -128[Int8], -32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:152 not-equal[Integer] -128[Int8], -32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -128;
   var  r: Boolean;
   r := a <> -32767;
 endcode
 varvalue r True
 
-code auto:153 not-equal[compile-time] -128[Int8], -32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:153 not-equal[compile-time] -128[Int8], -32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> -32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:154 not-equal[Int16] -128[Int8], -129[Int16] -> [Boolean] Var $overflow on
+code auto:154 not-equal[Integer] -128[Int8], -129[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = -128;
-  var  b: Int16 = -129;
+  var  b: Integer = -129;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:155 not-equal[Int16] -128[Int8], -129[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -129;
+code auto:155 not-equal[Integer] -128[Int8], -129[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -129;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:156 not-equal[Int16] -128[Int8], -129[Int16] -> [Boolean] Right immediate $overflow on
+code auto:156 not-equal[Integer] -128[Int8], -129[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -128;
   var  r: Boolean;
   r := a <> -129;
 endcode
 varvalue r True
 
-code auto:157 not-equal[compile-time] -128[Int8], -129[Int16] -> [Boolean] Both immediate $overflow on
+code auto:157 not-equal[compile-time] -128[Int8], -129[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> -129;
 endcode
 varvalue r True
 
 $overflow on
-code auto:158 not-equal[Int16] -128[Int8], -128[Int16] -> [Boolean] Var $overflow on
+code auto:158 not-equal[Integer] -128[Int8], -128[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = -128;
-  var  b: Int16 = -128;
+  var  b: Integer = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r False
 
-code auto:159 not-equal[Int16] -128[Int8], -128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -128;
+code auto:159 not-equal[Integer] -128[Int8], -128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -128;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r False
 
-code auto:160 not-equal[Int16] -128[Int8], -128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:160 not-equal[Integer] -128[Int8], -128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -128;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r False
 
-code auto:161 not-equal[compile-time] -128[Int8], -128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:161 not-equal[compile-time] -128[Int8], -128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> -128;
 endcode
 varvalue r False
 
 $overflow on
-code auto:162 not-equal[Int16] -128[Int8], -1[Int16] -> [Boolean] Var $overflow on
+code auto:162 not-equal[Integer] -128[Int8], -1[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = -128;
-  var  b: Int16 = -1;
+  var  b: Integer = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:163 not-equal[Int16] -128[Int8], -1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -1;
+code auto:163 not-equal[Integer] -128[Int8], -1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -1;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:164 not-equal[Int16] -128[Int8], -1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:164 not-equal[Integer] -128[Int8], -1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -128;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r True
 
-code auto:165 not-equal[compile-time] -128[Int8], -1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:165 not-equal[compile-time] -128[Int8], -1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> -1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:166 not-equal[Int16] -128[Int8], 0[Int16] -> [Boolean] Var $overflow on
+code auto:166 not-equal[Integer] -128[Int8], 0[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = -128;
-  var  b: Int16 = 0;
+  var  b: Integer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:167 not-equal[Int16] -128[Int8], 0[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 0;
+code auto:167 not-equal[Integer] -128[Int8], 0[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 0;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:168 not-equal[Int16] -128[Int8], 0[Int16] -> [Boolean] Right immediate $overflow on
+code auto:168 not-equal[Integer] -128[Int8], 0[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -128;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:169 not-equal[compile-time] -128[Int8], 0[Int16] -> [Boolean] Both immediate $overflow on
+code auto:169 not-equal[compile-time] -128[Int8], 0[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:170 not-equal[Int16] -128[Int8], 1[Int16] -> [Boolean] Var $overflow on
+code auto:170 not-equal[Integer] -128[Int8], 1[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = -128;
-  var  b: Int16 = 1;
+  var  b: Integer = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:171 not-equal[Int16] -128[Int8], 1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 1;
+code auto:171 not-equal[Integer] -128[Int8], 1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 1;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:172 not-equal[Int16] -128[Int8], 1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:172 not-equal[Integer] -128[Int8], 1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -128;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:173 not-equal[compile-time] -128[Int8], 1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:173 not-equal[compile-time] -128[Int8], 1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:174 not-equal[Int16] -128[Int8], 127[Int16] -> [Boolean] Var $overflow on
+code auto:174 not-equal[Integer] -128[Int8], 127[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = -128;
-  var  b: Int16 = 127;
+  var  b: Integer = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:175 not-equal[Int16] -128[Int8], 127[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 127;
+code auto:175 not-equal[Integer] -128[Int8], 127[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 127;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:176 not-equal[Int16] -128[Int8], 127[Int16] -> [Boolean] Right immediate $overflow on
+code auto:176 not-equal[Integer] -128[Int8], 127[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -128;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:177 not-equal[compile-time] -128[Int8], 127[Int16] -> [Boolean] Both immediate $overflow on
+code auto:177 not-equal[compile-time] -128[Int8], 127[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:178 not-equal[Int16] -128[Int8], 128[Int16] -> [Boolean] Var $overflow on
+code auto:178 not-equal[Integer] -128[Int8], 128[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = -128;
-  var  b: Int16 = 128;
+  var  b: Integer = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:179 not-equal[Int16] -128[Int8], 128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 128;
+code auto:179 not-equal[Integer] -128[Int8], 128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 128;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:180 not-equal[Int16] -128[Int8], 128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:180 not-equal[Integer] -128[Int8], 128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -128;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r True
 
-code auto:181 not-equal[compile-time] -128[Int8], 128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:181 not-equal[compile-time] -128[Int8], 128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> 128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:182 not-equal[Int16] -128[Int8], 32767[Int16] -> [Boolean] Var $overflow on
+code auto:182 not-equal[Integer] -128[Int8], 32767[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = -128;
-  var  b: Int16 = 32767;
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:183 not-equal[Int16] -128[Int8], 32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 32767;
+code auto:183 not-equal[Integer] -128[Int8], 32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:184 not-equal[Int16] -128[Int8], 32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:184 not-equal[Integer] -128[Int8], 32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -128;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:185 not-equal[compile-time] -128[Int8], 32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:185 not-equal[compile-time] -128[Int8], 32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:186 not-equal[Int16] -127[Int8], -32768[Int16] -> [Boolean] Var $overflow on
+code auto:186 not-equal[Integer] -127[Int8], -32768[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = -127;
-  var  b: Int16 = -32768;
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:187 not-equal[Int16] -127[Int8], -32768[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32768;
+code auto:187 not-equal[Integer] -127[Int8], -32768[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := -127 <> b;
 endcode
 varvalue r True
 
-code auto:188 not-equal[Int16] -127[Int8], -32768[Int16] -> [Boolean] Right immediate $overflow on
+code auto:188 not-equal[Integer] -127[Int8], -32768[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -127;
   var  r: Boolean;
   r := a <> -32768;
 endcode
 varvalue r True
 
-code auto:189 not-equal[compile-time] -127[Int8], -32768[Int16] -> [Boolean] Both immediate $overflow on
+code auto:189 not-equal[compile-time] -127[Int8], -32768[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -127 <> -32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:190 not-equal[Int16] -127[Int8], -32767[Int16] -> [Boolean] Var $overflow on
+code auto:190 not-equal[Integer] -127[Int8], -32767[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = -127;
-  var  b: Int16 = -32767;
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:191 not-equal[Int16] -127[Int8], -32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32767;
+code auto:191 not-equal[Integer] -127[Int8], -32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := -127 <> b;
 endcode
 varvalue r True
 
-code auto:192 not-equal[Int16] -127[Int8], -32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:192 not-equal[Integer] -127[Int8], -32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -127;
   var  r: Boolean;
   r := a <> -32767;
 endcode
 varvalue r True
 
-code auto:193 not-equal[compile-time] -127[Int8], -32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:193 not-equal[compile-time] -127[Int8], -32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -127 <> -32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:194 not-equal[Int16] -127[Int8], -129[Int16] -> [Boolean] Var $overflow on
+code auto:194 not-equal[Integer] -127[Int8], -129[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = -127;
-  var  b: Int16 = -129;
+  var  b: Integer = -129;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:195 not-equal[Int16] -127[Int8], -129[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -129;
+code auto:195 not-equal[Integer] -127[Int8], -129[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -129;
   var  r: Boolean;
   r := -127 <> b;
 endcode
 varvalue r True
 
-code auto:196 not-equal[Int16] -127[Int8], -129[Int16] -> [Boolean] Right immediate $overflow on
+code auto:196 not-equal[Integer] -127[Int8], -129[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -127;
   var  r: Boolean;
   r := a <> -129;
 endcode
 varvalue r True
 
-code auto:197 not-equal[compile-time] -127[Int8], -129[Int16] -> [Boolean] Both immediate $overflow on
+code auto:197 not-equal[compile-time] -127[Int8], -129[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -127 <> -129;
 endcode
 varvalue r True
 
 $overflow on
-code auto:198 not-equal[Int16] -127[Int8], -128[Int16] -> [Boolean] Var $overflow on
+code auto:198 not-equal[Integer] -127[Int8], -128[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = -127;
-  var  b: Int16 = -128;
+  var  b: Integer = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:199 not-equal[Int16] -127[Int8], -128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -128;
+code auto:199 not-equal[Integer] -127[Int8], -128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -128;
   var  r: Boolean;
   r := -127 <> b;
 endcode
 varvalue r True
 
-code auto:200 not-equal[Int16] -127[Int8], -128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:200 not-equal[Integer] -127[Int8], -128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -127;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r True
 
-code auto:201 not-equal[compile-time] -127[Int8], -128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:201 not-equal[compile-time] -127[Int8], -128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -127 <> -128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:202 not-equal[Int16] -127[Int8], -1[Int16] -> [Boolean] Var $overflow on
+code auto:202 not-equal[Integer] -127[Int8], -1[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = -127;
-  var  b: Int16 = -1;
+  var  b: Integer = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:203 not-equal[Int16] -127[Int8], -1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -1;
+code auto:203 not-equal[Integer] -127[Int8], -1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -1;
   var  r: Boolean;
   r := -127 <> b;
 endcode
 varvalue r True
 
-code auto:204 not-equal[Int16] -127[Int8], -1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:204 not-equal[Integer] -127[Int8], -1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -127;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r True
 
-code auto:205 not-equal[compile-time] -127[Int8], -1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:205 not-equal[compile-time] -127[Int8], -1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -127 <> -1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:206 not-equal[Int16] -127[Int8], 0[Int16] -> [Boolean] Var $overflow on
+code auto:206 not-equal[Integer] -127[Int8], 0[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = -127;
-  var  b: Int16 = 0;
+  var  b: Integer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:207 not-equal[Int16] -127[Int8], 0[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 0;
+code auto:207 not-equal[Integer] -127[Int8], 0[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 0;
   var  r: Boolean;
   r := -127 <> b;
 endcode
 varvalue r True
 
-code auto:208 not-equal[Int16] -127[Int8], 0[Int16] -> [Boolean] Right immediate $overflow on
+code auto:208 not-equal[Integer] -127[Int8], 0[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -127;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:209 not-equal[compile-time] -127[Int8], 0[Int16] -> [Boolean] Both immediate $overflow on
+code auto:209 not-equal[compile-time] -127[Int8], 0[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -127 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:210 not-equal[Int16] -127[Int8], 1[Int16] -> [Boolean] Var $overflow on
+code auto:210 not-equal[Integer] -127[Int8], 1[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = -127;
-  var  b: Int16 = 1;
+  var  b: Integer = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:211 not-equal[Int16] -127[Int8], 1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 1;
+code auto:211 not-equal[Integer] -127[Int8], 1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 1;
   var  r: Boolean;
   r := -127 <> b;
 endcode
 varvalue r True
 
-code auto:212 not-equal[Int16] -127[Int8], 1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:212 not-equal[Integer] -127[Int8], 1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -127;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:213 not-equal[compile-time] -127[Int8], 1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:213 not-equal[compile-time] -127[Int8], 1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -127 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:214 not-equal[Int16] -127[Int8], 127[Int16] -> [Boolean] Var $overflow on
+code auto:214 not-equal[Integer] -127[Int8], 127[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = -127;
-  var  b: Int16 = 127;
+  var  b: Integer = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:215 not-equal[Int16] -127[Int8], 127[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 127;
+code auto:215 not-equal[Integer] -127[Int8], 127[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 127;
   var  r: Boolean;
   r := -127 <> b;
 endcode
 varvalue r True
 
-code auto:216 not-equal[Int16] -127[Int8], 127[Int16] -> [Boolean] Right immediate $overflow on
+code auto:216 not-equal[Integer] -127[Int8], 127[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -127;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:217 not-equal[compile-time] -127[Int8], 127[Int16] -> [Boolean] Both immediate $overflow on
+code auto:217 not-equal[compile-time] -127[Int8], 127[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -127 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:218 not-equal[Int16] -127[Int8], 128[Int16] -> [Boolean] Var $overflow on
+code auto:218 not-equal[Integer] -127[Int8], 128[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = -127;
-  var  b: Int16 = 128;
+  var  b: Integer = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:219 not-equal[Int16] -127[Int8], 128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 128;
+code auto:219 not-equal[Integer] -127[Int8], 128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 128;
   var  r: Boolean;
   r := -127 <> b;
 endcode
 varvalue r True
 
-code auto:220 not-equal[Int16] -127[Int8], 128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:220 not-equal[Integer] -127[Int8], 128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -127;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r True
 
-code auto:221 not-equal[compile-time] -127[Int8], 128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:221 not-equal[compile-time] -127[Int8], 128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -127 <> 128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:222 not-equal[Int16] -127[Int8], 32767[Int16] -> [Boolean] Var $overflow on
+code auto:222 not-equal[Integer] -127[Int8], 32767[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = -127;
-  var  b: Int16 = 32767;
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:223 not-equal[Int16] -127[Int8], 32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 32767;
+code auto:223 not-equal[Integer] -127[Int8], 32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := -127 <> b;
 endcode
 varvalue r True
 
-code auto:224 not-equal[Int16] -127[Int8], 32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:224 not-equal[Integer] -127[Int8], 32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -127;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:225 not-equal[compile-time] -127[Int8], 32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:225 not-equal[compile-time] -127[Int8], 32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -127 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:226 not-equal[Int16] -1[Int8], -32768[Int16] -> [Boolean] Var $overflow on
+code auto:226 not-equal[Integer] -1[Int8], -32768[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = -1;
-  var  b: Int16 = -32768;
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:227 not-equal[Int16] -1[Int8], -32768[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32768;
+code auto:227 not-equal[Integer] -1[Int8], -32768[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:228 not-equal[Int16] -1[Int8], -32768[Int16] -> [Boolean] Right immediate $overflow on
+code auto:228 not-equal[Integer] -1[Int8], -32768[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -1;
   var  r: Boolean;
   r := a <> -32768;
 endcode
 varvalue r True
 
-code auto:229 not-equal[compile-time] -1[Int8], -32768[Int16] -> [Boolean] Both immediate $overflow on
+code auto:229 not-equal[compile-time] -1[Int8], -32768[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> -32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:230 not-equal[Int16] -1[Int8], -32767[Int16] -> [Boolean] Var $overflow on
+code auto:230 not-equal[Integer] -1[Int8], -32767[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = -1;
-  var  b: Int16 = -32767;
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:231 not-equal[Int16] -1[Int8], -32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32767;
+code auto:231 not-equal[Integer] -1[Int8], -32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:232 not-equal[Int16] -1[Int8], -32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:232 not-equal[Integer] -1[Int8], -32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -1;
   var  r: Boolean;
   r := a <> -32767;
 endcode
 varvalue r True
 
-code auto:233 not-equal[compile-time] -1[Int8], -32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:233 not-equal[compile-time] -1[Int8], -32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> -32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:234 not-equal[Int16] -1[Int8], -129[Int16] -> [Boolean] Var $overflow on
+code auto:234 not-equal[Integer] -1[Int8], -129[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = -1;
-  var  b: Int16 = -129;
+  var  b: Integer = -129;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:235 not-equal[Int16] -1[Int8], -129[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -129;
+code auto:235 not-equal[Integer] -1[Int8], -129[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -129;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:236 not-equal[Int16] -1[Int8], -129[Int16] -> [Boolean] Right immediate $overflow on
+code auto:236 not-equal[Integer] -1[Int8], -129[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -1;
   var  r: Boolean;
   r := a <> -129;
 endcode
 varvalue r True
 
-code auto:237 not-equal[compile-time] -1[Int8], -129[Int16] -> [Boolean] Both immediate $overflow on
+code auto:237 not-equal[compile-time] -1[Int8], -129[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> -129;
 endcode
 varvalue r True
 
 $overflow on
-code auto:238 not-equal[Int16] -1[Int8], -128[Int16] -> [Boolean] Var $overflow on
+code auto:238 not-equal[Integer] -1[Int8], -128[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = -1;
-  var  b: Int16 = -128;
+  var  b: Integer = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:239 not-equal[Int16] -1[Int8], -128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -128;
+code auto:239 not-equal[Integer] -1[Int8], -128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -128;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:240 not-equal[Int16] -1[Int8], -128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:240 not-equal[Integer] -1[Int8], -128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -1;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r True
 
-code auto:241 not-equal[compile-time] -1[Int8], -128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:241 not-equal[compile-time] -1[Int8], -128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> -128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:242 not-equal[Int16] -1[Int8], -1[Int16] -> [Boolean] Var $overflow on
+code auto:242 not-equal[Integer] -1[Int8], -1[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = -1;
-  var  b: Int16 = -1;
+  var  b: Integer = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r False
 
-code auto:243 not-equal[Int16] -1[Int8], -1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -1;
+code auto:243 not-equal[Integer] -1[Int8], -1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -1;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r False
 
-code auto:244 not-equal[Int16] -1[Int8], -1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:244 not-equal[Integer] -1[Int8], -1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -1;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r False
 
-code auto:245 not-equal[compile-time] -1[Int8], -1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:245 not-equal[compile-time] -1[Int8], -1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> -1;
 endcode
 varvalue r False
 
 $overflow on
-code auto:246 not-equal[Int16] -1[Int8], 0[Int16] -> [Boolean] Var $overflow on
+code auto:246 not-equal[Integer] -1[Int8], 0[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = -1;
-  var  b: Int16 = 0;
+  var  b: Integer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:247 not-equal[Int16] -1[Int8], 0[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 0;
+code auto:247 not-equal[Integer] -1[Int8], 0[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 0;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:248 not-equal[Int16] -1[Int8], 0[Int16] -> [Boolean] Right immediate $overflow on
+code auto:248 not-equal[Integer] -1[Int8], 0[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -1;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:249 not-equal[compile-time] -1[Int8], 0[Int16] -> [Boolean] Both immediate $overflow on
+code auto:249 not-equal[compile-time] -1[Int8], 0[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:250 not-equal[Int16] -1[Int8], 1[Int16] -> [Boolean] Var $overflow on
+code auto:250 not-equal[Integer] -1[Int8], 1[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = -1;
-  var  b: Int16 = 1;
+  var  b: Integer = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:251 not-equal[Int16] -1[Int8], 1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 1;
+code auto:251 not-equal[Integer] -1[Int8], 1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 1;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:252 not-equal[Int16] -1[Int8], 1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:252 not-equal[Integer] -1[Int8], 1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -1;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:253 not-equal[compile-time] -1[Int8], 1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:253 not-equal[compile-time] -1[Int8], 1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:254 not-equal[Int16] -1[Int8], 127[Int16] -> [Boolean] Var $overflow on
+code auto:254 not-equal[Integer] -1[Int8], 127[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = -1;
-  var  b: Int16 = 127;
+  var  b: Integer = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:255 not-equal[Int16] -1[Int8], 127[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 127;
+code auto:255 not-equal[Integer] -1[Int8], 127[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 127;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:256 not-equal[Int16] -1[Int8], 127[Int16] -> [Boolean] Right immediate $overflow on
+code auto:256 not-equal[Integer] -1[Int8], 127[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -1;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:257 not-equal[compile-time] -1[Int8], 127[Int16] -> [Boolean] Both immediate $overflow on
+code auto:257 not-equal[compile-time] -1[Int8], 127[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:258 not-equal[Int16] -1[Int8], 128[Int16] -> [Boolean] Var $overflow on
+code auto:258 not-equal[Integer] -1[Int8], 128[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = -1;
-  var  b: Int16 = 128;
+  var  b: Integer = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:259 not-equal[Int16] -1[Int8], 128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 128;
+code auto:259 not-equal[Integer] -1[Int8], 128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 128;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:260 not-equal[Int16] -1[Int8], 128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:260 not-equal[Integer] -1[Int8], 128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -1;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r True
 
-code auto:261 not-equal[compile-time] -1[Int8], 128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:261 not-equal[compile-time] -1[Int8], 128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> 128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:262 not-equal[Int16] -1[Int8], 32767[Int16] -> [Boolean] Var $overflow on
+code auto:262 not-equal[Integer] -1[Int8], 32767[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = -1;
-  var  b: Int16 = 32767;
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:263 not-equal[Int16] -1[Int8], 32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 32767;
+code auto:263 not-equal[Integer] -1[Int8], 32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:264 not-equal[Int16] -1[Int8], 32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:264 not-equal[Integer] -1[Int8], 32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -1;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:265 not-equal[compile-time] -1[Int8], 32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:265 not-equal[compile-time] -1[Int8], 32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:266 not-equal[Int16] 0[Int8], -32768[Int16] -> [Boolean] Var $overflow on
+code auto:266 not-equal[Integer] 0[Int8], -32768[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = 0;
-  var  b: Int16 = -32768;
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:267 not-equal[Int16] 0[Int8], -32768[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32768;
+code auto:267 not-equal[Integer] 0[Int8], -32768[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:268 not-equal[Int16] 0[Int8], -32768[Int16] -> [Boolean] Right immediate $overflow on
+code auto:268 not-equal[Integer] 0[Int8], -32768[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 0;
   var  r: Boolean;
   r := a <> -32768;
 endcode
 varvalue r True
 
-code auto:269 not-equal[compile-time] 0[Int8], -32768[Int16] -> [Boolean] Both immediate $overflow on
+code auto:269 not-equal[compile-time] 0[Int8], -32768[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> -32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:270 not-equal[Int16] 0[Int8], -32767[Int16] -> [Boolean] Var $overflow on
+code auto:270 not-equal[Integer] 0[Int8], -32767[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = 0;
-  var  b: Int16 = -32767;
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:271 not-equal[Int16] 0[Int8], -32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32767;
+code auto:271 not-equal[Integer] 0[Int8], -32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:272 not-equal[Int16] 0[Int8], -32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:272 not-equal[Integer] 0[Int8], -32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 0;
   var  r: Boolean;
   r := a <> -32767;
 endcode
 varvalue r True
 
-code auto:273 not-equal[compile-time] 0[Int8], -32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:273 not-equal[compile-time] 0[Int8], -32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> -32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:274 not-equal[Int16] 0[Int8], -129[Int16] -> [Boolean] Var $overflow on
+code auto:274 not-equal[Integer] 0[Int8], -129[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = 0;
-  var  b: Int16 = -129;
+  var  b: Integer = -129;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:275 not-equal[Int16] 0[Int8], -129[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -129;
+code auto:275 not-equal[Integer] 0[Int8], -129[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -129;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:276 not-equal[Int16] 0[Int8], -129[Int16] -> [Boolean] Right immediate $overflow on
+code auto:276 not-equal[Integer] 0[Int8], -129[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 0;
   var  r: Boolean;
   r := a <> -129;
 endcode
 varvalue r True
 
-code auto:277 not-equal[compile-time] 0[Int8], -129[Int16] -> [Boolean] Both immediate $overflow on
+code auto:277 not-equal[compile-time] 0[Int8], -129[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> -129;
 endcode
 varvalue r True
 
 $overflow on
-code auto:278 not-equal[Int16] 0[Int8], -128[Int16] -> [Boolean] Var $overflow on
+code auto:278 not-equal[Integer] 0[Int8], -128[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = 0;
-  var  b: Int16 = -128;
+  var  b: Integer = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:279 not-equal[Int16] 0[Int8], -128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -128;
+code auto:279 not-equal[Integer] 0[Int8], -128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -128;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:280 not-equal[Int16] 0[Int8], -128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:280 not-equal[Integer] 0[Int8], -128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 0;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r True
 
-code auto:281 not-equal[compile-time] 0[Int8], -128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:281 not-equal[compile-time] 0[Int8], -128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> -128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:282 not-equal[Int16] 0[Int8], -1[Int16] -> [Boolean] Var $overflow on
+code auto:282 not-equal[Integer] 0[Int8], -1[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = 0;
-  var  b: Int16 = -1;
+  var  b: Integer = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:283 not-equal[Int16] 0[Int8], -1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -1;
+code auto:283 not-equal[Integer] 0[Int8], -1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -1;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:284 not-equal[Int16] 0[Int8], -1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:284 not-equal[Integer] 0[Int8], -1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 0;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r True
 
-code auto:285 not-equal[compile-time] 0[Int8], -1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:285 not-equal[compile-time] 0[Int8], -1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> -1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:286 not-equal[Int16] 0[Int8], 0[Int16] -> [Boolean] Var $overflow on
+code auto:286 not-equal[Integer] 0[Int8], 0[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = 0;
-  var  b: Int16 = 0;
+  var  b: Integer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r False
 
-code auto:287 not-equal[Int16] 0[Int8], 0[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 0;
+code auto:287 not-equal[Integer] 0[Int8], 0[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 0;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r False
 
-code auto:288 not-equal[Int16] 0[Int8], 0[Int16] -> [Boolean] Right immediate $overflow on
+code auto:288 not-equal[Integer] 0[Int8], 0[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 0;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r False
 
-code auto:289 not-equal[compile-time] 0[Int8], 0[Int16] -> [Boolean] Both immediate $overflow on
+code auto:289 not-equal[compile-time] 0[Int8], 0[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 0;
 endcode
 varvalue r False
 
 $overflow on
-code auto:290 not-equal[Int16] 0[Int8], 1[Int16] -> [Boolean] Var $overflow on
+code auto:290 not-equal[Integer] 0[Int8], 1[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = 0;
-  var  b: Int16 = 1;
+  var  b: Integer = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:291 not-equal[Int16] 0[Int8], 1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 1;
+code auto:291 not-equal[Integer] 0[Int8], 1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 1;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:292 not-equal[Int16] 0[Int8], 1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:292 not-equal[Integer] 0[Int8], 1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 0;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:293 not-equal[compile-time] 0[Int8], 1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:293 not-equal[compile-time] 0[Int8], 1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:294 not-equal[Int16] 0[Int8], 127[Int16] -> [Boolean] Var $overflow on
+code auto:294 not-equal[Integer] 0[Int8], 127[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = 0;
-  var  b: Int16 = 127;
+  var  b: Integer = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:295 not-equal[Int16] 0[Int8], 127[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 127;
+code auto:295 not-equal[Integer] 0[Int8], 127[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 127;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:296 not-equal[Int16] 0[Int8], 127[Int16] -> [Boolean] Right immediate $overflow on
+code auto:296 not-equal[Integer] 0[Int8], 127[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 0;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:297 not-equal[compile-time] 0[Int8], 127[Int16] -> [Boolean] Both immediate $overflow on
+code auto:297 not-equal[compile-time] 0[Int8], 127[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:298 not-equal[Int16] 0[Int8], 128[Int16] -> [Boolean] Var $overflow on
+code auto:298 not-equal[Integer] 0[Int8], 128[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = 0;
-  var  b: Int16 = 128;
+  var  b: Integer = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:299 not-equal[Int16] 0[Int8], 128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 128;
+code auto:299 not-equal[Integer] 0[Int8], 128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 128;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:300 not-equal[Int16] 0[Int8], 128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:300 not-equal[Integer] 0[Int8], 128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 0;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r True
 
-code auto:301 not-equal[compile-time] 0[Int8], 128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:301 not-equal[compile-time] 0[Int8], 128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:302 not-equal[Int16] 0[Int8], 32767[Int16] -> [Boolean] Var $overflow on
+code auto:302 not-equal[Integer] 0[Int8], 32767[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = 0;
-  var  b: Int16 = 32767;
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:303 not-equal[Int16] 0[Int8], 32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 32767;
+code auto:303 not-equal[Integer] 0[Int8], 32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:304 not-equal[Int16] 0[Int8], 32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:304 not-equal[Integer] 0[Int8], 32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 0;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:305 not-equal[compile-time] 0[Int8], 32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:305 not-equal[compile-time] 0[Int8], 32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:306 not-equal[Int16] 1[Int8], -32768[Int16] -> [Boolean] Var $overflow on
+code auto:306 not-equal[Integer] 1[Int8], -32768[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = 1;
-  var  b: Int16 = -32768;
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:307 not-equal[Int16] 1[Int8], -32768[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32768;
+code auto:307 not-equal[Integer] 1[Int8], -32768[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:308 not-equal[Int16] 1[Int8], -32768[Int16] -> [Boolean] Right immediate $overflow on
+code auto:308 not-equal[Integer] 1[Int8], -32768[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 1;
   var  r: Boolean;
   r := a <> -32768;
 endcode
 varvalue r True
 
-code auto:309 not-equal[compile-time] 1[Int8], -32768[Int16] -> [Boolean] Both immediate $overflow on
+code auto:309 not-equal[compile-time] 1[Int8], -32768[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> -32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:310 not-equal[Int16] 1[Int8], -32767[Int16] -> [Boolean] Var $overflow on
+code auto:310 not-equal[Integer] 1[Int8], -32767[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = 1;
-  var  b: Int16 = -32767;
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:311 not-equal[Int16] 1[Int8], -32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32767;
+code auto:311 not-equal[Integer] 1[Int8], -32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:312 not-equal[Int16] 1[Int8], -32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:312 not-equal[Integer] 1[Int8], -32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 1;
   var  r: Boolean;
   r := a <> -32767;
 endcode
 varvalue r True
 
-code auto:313 not-equal[compile-time] 1[Int8], -32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:313 not-equal[compile-time] 1[Int8], -32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> -32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:314 not-equal[Int16] 1[Int8], -129[Int16] -> [Boolean] Var $overflow on
+code auto:314 not-equal[Integer] 1[Int8], -129[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = 1;
-  var  b: Int16 = -129;
+  var  b: Integer = -129;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:315 not-equal[Int16] 1[Int8], -129[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -129;
+code auto:315 not-equal[Integer] 1[Int8], -129[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -129;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:316 not-equal[Int16] 1[Int8], -129[Int16] -> [Boolean] Right immediate $overflow on
+code auto:316 not-equal[Integer] 1[Int8], -129[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 1;
   var  r: Boolean;
   r := a <> -129;
 endcode
 varvalue r True
 
-code auto:317 not-equal[compile-time] 1[Int8], -129[Int16] -> [Boolean] Both immediate $overflow on
+code auto:317 not-equal[compile-time] 1[Int8], -129[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> -129;
 endcode
 varvalue r True
 
 $overflow on
-code auto:318 not-equal[Int16] 1[Int8], -128[Int16] -> [Boolean] Var $overflow on
+code auto:318 not-equal[Integer] 1[Int8], -128[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = 1;
-  var  b: Int16 = -128;
+  var  b: Integer = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:319 not-equal[Int16] 1[Int8], -128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -128;
+code auto:319 not-equal[Integer] 1[Int8], -128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -128;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:320 not-equal[Int16] 1[Int8], -128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:320 not-equal[Integer] 1[Int8], -128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 1;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r True
 
-code auto:321 not-equal[compile-time] 1[Int8], -128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:321 not-equal[compile-time] 1[Int8], -128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> -128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:322 not-equal[Int16] 1[Int8], -1[Int16] -> [Boolean] Var $overflow on
+code auto:322 not-equal[Integer] 1[Int8], -1[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = 1;
-  var  b: Int16 = -1;
+  var  b: Integer = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:323 not-equal[Int16] 1[Int8], -1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -1;
+code auto:323 not-equal[Integer] 1[Int8], -1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -1;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:324 not-equal[Int16] 1[Int8], -1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:324 not-equal[Integer] 1[Int8], -1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 1;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r True
 
-code auto:325 not-equal[compile-time] 1[Int8], -1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:325 not-equal[compile-time] 1[Int8], -1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> -1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:326 not-equal[Int16] 1[Int8], 0[Int16] -> [Boolean] Var $overflow on
+code auto:326 not-equal[Integer] 1[Int8], 0[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = 1;
-  var  b: Int16 = 0;
+  var  b: Integer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:327 not-equal[Int16] 1[Int8], 0[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 0;
+code auto:327 not-equal[Integer] 1[Int8], 0[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 0;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:328 not-equal[Int16] 1[Int8], 0[Int16] -> [Boolean] Right immediate $overflow on
+code auto:328 not-equal[Integer] 1[Int8], 0[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 1;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:329 not-equal[compile-time] 1[Int8], 0[Int16] -> [Boolean] Both immediate $overflow on
+code auto:329 not-equal[compile-time] 1[Int8], 0[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:330 not-equal[Int16] 1[Int8], 1[Int16] -> [Boolean] Var $overflow on
+code auto:330 not-equal[Integer] 1[Int8], 1[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = 1;
-  var  b: Int16 = 1;
+  var  b: Integer = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r False
 
-code auto:331 not-equal[Int16] 1[Int8], 1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 1;
+code auto:331 not-equal[Integer] 1[Int8], 1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 1;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r False
 
-code auto:332 not-equal[Int16] 1[Int8], 1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:332 not-equal[Integer] 1[Int8], 1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 1;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r False
 
-code auto:333 not-equal[compile-time] 1[Int8], 1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:333 not-equal[compile-time] 1[Int8], 1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> 1;
 endcode
 varvalue r False
 
 $overflow on
-code auto:334 not-equal[Int16] 1[Int8], 127[Int16] -> [Boolean] Var $overflow on
+code auto:334 not-equal[Integer] 1[Int8], 127[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = 1;
-  var  b: Int16 = 127;
+  var  b: Integer = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:335 not-equal[Int16] 1[Int8], 127[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 127;
+code auto:335 not-equal[Integer] 1[Int8], 127[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 127;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:336 not-equal[Int16] 1[Int8], 127[Int16] -> [Boolean] Right immediate $overflow on
+code auto:336 not-equal[Integer] 1[Int8], 127[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 1;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:337 not-equal[compile-time] 1[Int8], 127[Int16] -> [Boolean] Both immediate $overflow on
+code auto:337 not-equal[compile-time] 1[Int8], 127[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:338 not-equal[Int16] 1[Int8], 128[Int16] -> [Boolean] Var $overflow on
+code auto:338 not-equal[Integer] 1[Int8], 128[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = 1;
-  var  b: Int16 = 128;
+  var  b: Integer = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:339 not-equal[Int16] 1[Int8], 128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 128;
+code auto:339 not-equal[Integer] 1[Int8], 128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 128;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:340 not-equal[Int16] 1[Int8], 128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:340 not-equal[Integer] 1[Int8], 128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 1;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r True
 
-code auto:341 not-equal[compile-time] 1[Int8], 128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:341 not-equal[compile-time] 1[Int8], 128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> 128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:342 not-equal[Int16] 1[Int8], 32767[Int16] -> [Boolean] Var $overflow on
+code auto:342 not-equal[Integer] 1[Int8], 32767[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = 1;
-  var  b: Int16 = 32767;
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:343 not-equal[Int16] 1[Int8], 32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 32767;
+code auto:343 not-equal[Integer] 1[Int8], 32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:344 not-equal[Int16] 1[Int8], 32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:344 not-equal[Integer] 1[Int8], 32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 1;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:345 not-equal[compile-time] 1[Int8], 32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:345 not-equal[compile-time] 1[Int8], 32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:346 not-equal[Int16] 127[Int8], -32768[Int16] -> [Boolean] Var $overflow on
+code auto:346 not-equal[Integer] 127[Int8], -32768[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = 127;
-  var  b: Int16 = -32768;
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:347 not-equal[Int16] 127[Int8], -32768[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32768;
+code auto:347 not-equal[Integer] 127[Int8], -32768[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:348 not-equal[Int16] 127[Int8], -32768[Int16] -> [Boolean] Right immediate $overflow on
+code auto:348 not-equal[Integer] 127[Int8], -32768[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 127;
   var  r: Boolean;
   r := a <> -32768;
 endcode
 varvalue r True
 
-code auto:349 not-equal[compile-time] 127[Int8], -32768[Int16] -> [Boolean] Both immediate $overflow on
+code auto:349 not-equal[compile-time] 127[Int8], -32768[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> -32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:350 not-equal[Int16] 127[Int8], -32767[Int16] -> [Boolean] Var $overflow on
+code auto:350 not-equal[Integer] 127[Int8], -32767[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = 127;
-  var  b: Int16 = -32767;
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:351 not-equal[Int16] 127[Int8], -32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32767;
+code auto:351 not-equal[Integer] 127[Int8], -32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:352 not-equal[Int16] 127[Int8], -32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:352 not-equal[Integer] 127[Int8], -32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 127;
   var  r: Boolean;
   r := a <> -32767;
 endcode
 varvalue r True
 
-code auto:353 not-equal[compile-time] 127[Int8], -32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:353 not-equal[compile-time] 127[Int8], -32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> -32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:354 not-equal[Int16] 127[Int8], -129[Int16] -> [Boolean] Var $overflow on
+code auto:354 not-equal[Integer] 127[Int8], -129[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = 127;
-  var  b: Int16 = -129;
+  var  b: Integer = -129;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:355 not-equal[Int16] 127[Int8], -129[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -129;
+code auto:355 not-equal[Integer] 127[Int8], -129[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -129;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:356 not-equal[Int16] 127[Int8], -129[Int16] -> [Boolean] Right immediate $overflow on
+code auto:356 not-equal[Integer] 127[Int8], -129[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 127;
   var  r: Boolean;
   r := a <> -129;
 endcode
 varvalue r True
 
-code auto:357 not-equal[compile-time] 127[Int8], -129[Int16] -> [Boolean] Both immediate $overflow on
+code auto:357 not-equal[compile-time] 127[Int8], -129[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> -129;
 endcode
 varvalue r True
 
 $overflow on
-code auto:358 not-equal[Int16] 127[Int8], -128[Int16] -> [Boolean] Var $overflow on
+code auto:358 not-equal[Integer] 127[Int8], -128[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = 127;
-  var  b: Int16 = -128;
+  var  b: Integer = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:359 not-equal[Int16] 127[Int8], -128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -128;
+code auto:359 not-equal[Integer] 127[Int8], -128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -128;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:360 not-equal[Int16] 127[Int8], -128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:360 not-equal[Integer] 127[Int8], -128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 127;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r True
 
-code auto:361 not-equal[compile-time] 127[Int8], -128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:361 not-equal[compile-time] 127[Int8], -128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> -128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:362 not-equal[Int16] 127[Int8], -1[Int16] -> [Boolean] Var $overflow on
+code auto:362 not-equal[Integer] 127[Int8], -1[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = 127;
-  var  b: Int16 = -1;
+  var  b: Integer = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:363 not-equal[Int16] 127[Int8], -1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -1;
+code auto:363 not-equal[Integer] 127[Int8], -1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -1;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:364 not-equal[Int16] 127[Int8], -1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:364 not-equal[Integer] 127[Int8], -1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 127;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r True
 
-code auto:365 not-equal[compile-time] 127[Int8], -1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:365 not-equal[compile-time] 127[Int8], -1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> -1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:366 not-equal[Int16] 127[Int8], 0[Int16] -> [Boolean] Var $overflow on
+code auto:366 not-equal[Integer] 127[Int8], 0[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = 127;
-  var  b: Int16 = 0;
+  var  b: Integer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:367 not-equal[Int16] 127[Int8], 0[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 0;
+code auto:367 not-equal[Integer] 127[Int8], 0[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 0;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:368 not-equal[Int16] 127[Int8], 0[Int16] -> [Boolean] Right immediate $overflow on
+code auto:368 not-equal[Integer] 127[Int8], 0[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 127;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:369 not-equal[compile-time] 127[Int8], 0[Int16] -> [Boolean] Both immediate $overflow on
+code auto:369 not-equal[compile-time] 127[Int8], 0[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:370 not-equal[Int16] 127[Int8], 1[Int16] -> [Boolean] Var $overflow on
+code auto:370 not-equal[Integer] 127[Int8], 1[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = 127;
-  var  b: Int16 = 1;
+  var  b: Integer = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:371 not-equal[Int16] 127[Int8], 1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 1;
+code auto:371 not-equal[Integer] 127[Int8], 1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 1;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:372 not-equal[Int16] 127[Int8], 1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:372 not-equal[Integer] 127[Int8], 1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 127;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:373 not-equal[compile-time] 127[Int8], 1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:373 not-equal[compile-time] 127[Int8], 1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:374 not-equal[Int16] 127[Int8], 127[Int16] -> [Boolean] Var $overflow on
+code auto:374 not-equal[Integer] 127[Int8], 127[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = 127;
-  var  b: Int16 = 127;
+  var  b: Integer = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r False
 
-code auto:375 not-equal[Int16] 127[Int8], 127[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 127;
+code auto:375 not-equal[Integer] 127[Int8], 127[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 127;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r False
 
-code auto:376 not-equal[Int16] 127[Int8], 127[Int16] -> [Boolean] Right immediate $overflow on
+code auto:376 not-equal[Integer] 127[Int8], 127[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 127;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r False
 
-code auto:377 not-equal[compile-time] 127[Int8], 127[Int16] -> [Boolean] Both immediate $overflow on
+code auto:377 not-equal[compile-time] 127[Int8], 127[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> 127;
 endcode
 varvalue r False
 
 $overflow on
-code auto:378 not-equal[Int16] 127[Int8], 128[Int16] -> [Boolean] Var $overflow on
+code auto:378 not-equal[Integer] 127[Int8], 128[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = 127;
-  var  b: Int16 = 128;
+  var  b: Integer = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:379 not-equal[Int16] 127[Int8], 128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 128;
+code auto:379 not-equal[Integer] 127[Int8], 128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 128;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:380 not-equal[Int16] 127[Int8], 128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:380 not-equal[Integer] 127[Int8], 128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 127;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r True
 
-code auto:381 not-equal[compile-time] 127[Int8], 128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:381 not-equal[compile-time] 127[Int8], 128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> 128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:382 not-equal[Int16] 127[Int8], 32767[Int16] -> [Boolean] Var $overflow on
+code auto:382 not-equal[Integer] 127[Int8], 32767[Integer] -> [Boolean] Var $overflow on
   var  a: Int8 = 127;
-  var  b: Int16 = 32767;
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:383 not-equal[Int16] 127[Int8], 32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 32767;
+code auto:383 not-equal[Integer] 127[Int8], 32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:384 not-equal[Int16] 127[Int8], 32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:384 not-equal[Integer] 127[Int8], 32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 127;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:385 not-equal[compile-time] 127[Int8], 32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:385 not-equal[compile-time] 127[Int8], 32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:386 not-equal[Int16] -128[Int8], 0[Byte] -> [Boolean] Var $overflow on
+code auto:386 not-equal[Integer] -128[Int8], 0[Byte] -> [Boolean] Var $overflow on
   var  a: Int8 = -128;
   var  b: Byte = 0;
   var  r: Boolean;
@@ -2796,14 +2796,14 @@ code auto:386 not-equal[Int16] -128[Int8], 0[Byte] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:387 not-equal[Int16] -128[Int8], 0[Byte] -> [Boolean] Left immediate $overflow on
+code auto:387 not-equal[Integer] -128[Int8], 0[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 0;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:388 not-equal[Int16] -128[Int8], 0[Byte] -> [Boolean] Right immediate $overflow on
+code auto:388 not-equal[Integer] -128[Int8], 0[Byte] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -128;
   var  r: Boolean;
   r := a <> 0;
@@ -2817,7 +2817,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:390 not-equal[Int16] -128[Int8], 1[Byte] -> [Boolean] Var $overflow on
+code auto:390 not-equal[Integer] -128[Int8], 1[Byte] -> [Boolean] Var $overflow on
   var  a: Int8 = -128;
   var  b: Byte = 1;
   var  r: Boolean;
@@ -2825,14 +2825,14 @@ code auto:390 not-equal[Int16] -128[Int8], 1[Byte] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:391 not-equal[Int16] -128[Int8], 1[Byte] -> [Boolean] Left immediate $overflow on
+code auto:391 not-equal[Integer] -128[Int8], 1[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 1;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:392 not-equal[Int16] -128[Int8], 1[Byte] -> [Boolean] Right immediate $overflow on
+code auto:392 not-equal[Integer] -128[Int8], 1[Byte] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -128;
   var  r: Boolean;
   r := a <> 1;
@@ -2846,7 +2846,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:394 not-equal[Int16] -128[Int8], 127[Byte] -> [Boolean] Var $overflow on
+code auto:394 not-equal[Integer] -128[Int8], 127[Byte] -> [Boolean] Var $overflow on
   var  a: Int8 = -128;
   var  b: Byte = 127;
   var  r: Boolean;
@@ -2854,14 +2854,14 @@ code auto:394 not-equal[Int16] -128[Int8], 127[Byte] -> [Boolean] Var $overflow 
 endcode
 varvalue r True
 
-code auto:395 not-equal[Int16] -128[Int8], 127[Byte] -> [Boolean] Left immediate $overflow on
+code auto:395 not-equal[Integer] -128[Int8], 127[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 127;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:396 not-equal[Int16] -128[Int8], 127[Byte] -> [Boolean] Right immediate $overflow on
+code auto:396 not-equal[Integer] -128[Int8], 127[Byte] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -128;
   var  r: Boolean;
   r := a <> 127;
@@ -2875,7 +2875,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:398 not-equal[Int16] -128[Int8], 128[Byte] -> [Boolean] Var $overflow on
+code auto:398 not-equal[Integer] -128[Int8], 128[Byte] -> [Boolean] Var $overflow on
   var  a: Int8 = -128;
   var  b: Byte = 128;
   var  r: Boolean;
@@ -2883,14 +2883,14 @@ code auto:398 not-equal[Int16] -128[Int8], 128[Byte] -> [Boolean] Var $overflow 
 endcode
 varvalue r True
 
-code auto:399 not-equal[Int16] -128[Int8], 128[Byte] -> [Boolean] Left immediate $overflow on
+code auto:399 not-equal[Integer] -128[Int8], 128[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 128;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:400 not-equal[Int16] -128[Int8], 128[Byte] -> [Boolean] Right immediate $overflow on
+code auto:400 not-equal[Integer] -128[Int8], 128[Byte] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -128;
   var  r: Boolean;
   r := a <> 128;
@@ -2904,7 +2904,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:402 not-equal[Int16] -128[Int8], 255[Byte] -> [Boolean] Var $overflow on
+code auto:402 not-equal[Integer] -128[Int8], 255[Byte] -> [Boolean] Var $overflow on
   var  a: Int8 = -128;
   var  b: Byte = 255;
   var  r: Boolean;
@@ -2912,14 +2912,14 @@ code auto:402 not-equal[Int16] -128[Int8], 255[Byte] -> [Boolean] Var $overflow 
 endcode
 varvalue r True
 
-code auto:403 not-equal[Int16] -128[Int8], 255[Byte] -> [Boolean] Left immediate $overflow on
+code auto:403 not-equal[Integer] -128[Int8], 255[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 255;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:404 not-equal[Int16] -128[Int8], 255[Byte] -> [Boolean] Right immediate $overflow on
+code auto:404 not-equal[Integer] -128[Int8], 255[Byte] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -128;
   var  r: Boolean;
   r := a <> 255;
@@ -2933,7 +2933,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:406 not-equal[Int16] -127[Int8], 0[Byte] -> [Boolean] Var $overflow on
+code auto:406 not-equal[Integer] -127[Int8], 0[Byte] -> [Boolean] Var $overflow on
   var  a: Int8 = -127;
   var  b: Byte = 0;
   var  r: Boolean;
@@ -2941,14 +2941,14 @@ code auto:406 not-equal[Int16] -127[Int8], 0[Byte] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:407 not-equal[Int16] -127[Int8], 0[Byte] -> [Boolean] Left immediate $overflow on
+code auto:407 not-equal[Integer] -127[Int8], 0[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 0;
   var  r: Boolean;
   r := -127 <> b;
 endcode
 varvalue r True
 
-code auto:408 not-equal[Int16] -127[Int8], 0[Byte] -> [Boolean] Right immediate $overflow on
+code auto:408 not-equal[Integer] -127[Int8], 0[Byte] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -127;
   var  r: Boolean;
   r := a <> 0;
@@ -2962,7 +2962,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:410 not-equal[Int16] -127[Int8], 1[Byte] -> [Boolean] Var $overflow on
+code auto:410 not-equal[Integer] -127[Int8], 1[Byte] -> [Boolean] Var $overflow on
   var  a: Int8 = -127;
   var  b: Byte = 1;
   var  r: Boolean;
@@ -2970,14 +2970,14 @@ code auto:410 not-equal[Int16] -127[Int8], 1[Byte] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:411 not-equal[Int16] -127[Int8], 1[Byte] -> [Boolean] Left immediate $overflow on
+code auto:411 not-equal[Integer] -127[Int8], 1[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 1;
   var  r: Boolean;
   r := -127 <> b;
 endcode
 varvalue r True
 
-code auto:412 not-equal[Int16] -127[Int8], 1[Byte] -> [Boolean] Right immediate $overflow on
+code auto:412 not-equal[Integer] -127[Int8], 1[Byte] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -127;
   var  r: Boolean;
   r := a <> 1;
@@ -2991,7 +2991,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:414 not-equal[Int16] -127[Int8], 127[Byte] -> [Boolean] Var $overflow on
+code auto:414 not-equal[Integer] -127[Int8], 127[Byte] -> [Boolean] Var $overflow on
   var  a: Int8 = -127;
   var  b: Byte = 127;
   var  r: Boolean;
@@ -2999,14 +2999,14 @@ code auto:414 not-equal[Int16] -127[Int8], 127[Byte] -> [Boolean] Var $overflow 
 endcode
 varvalue r True
 
-code auto:415 not-equal[Int16] -127[Int8], 127[Byte] -> [Boolean] Left immediate $overflow on
+code auto:415 not-equal[Integer] -127[Int8], 127[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 127;
   var  r: Boolean;
   r := -127 <> b;
 endcode
 varvalue r True
 
-code auto:416 not-equal[Int16] -127[Int8], 127[Byte] -> [Boolean] Right immediate $overflow on
+code auto:416 not-equal[Integer] -127[Int8], 127[Byte] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -127;
   var  r: Boolean;
   r := a <> 127;
@@ -3020,7 +3020,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:418 not-equal[Int16] -127[Int8], 128[Byte] -> [Boolean] Var $overflow on
+code auto:418 not-equal[Integer] -127[Int8], 128[Byte] -> [Boolean] Var $overflow on
   var  a: Int8 = -127;
   var  b: Byte = 128;
   var  r: Boolean;
@@ -3028,14 +3028,14 @@ code auto:418 not-equal[Int16] -127[Int8], 128[Byte] -> [Boolean] Var $overflow 
 endcode
 varvalue r True
 
-code auto:419 not-equal[Int16] -127[Int8], 128[Byte] -> [Boolean] Left immediate $overflow on
+code auto:419 not-equal[Integer] -127[Int8], 128[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 128;
   var  r: Boolean;
   r := -127 <> b;
 endcode
 varvalue r True
 
-code auto:420 not-equal[Int16] -127[Int8], 128[Byte] -> [Boolean] Right immediate $overflow on
+code auto:420 not-equal[Integer] -127[Int8], 128[Byte] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -127;
   var  r: Boolean;
   r := a <> 128;
@@ -3049,7 +3049,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:422 not-equal[Int16] -127[Int8], 255[Byte] -> [Boolean] Var $overflow on
+code auto:422 not-equal[Integer] -127[Int8], 255[Byte] -> [Boolean] Var $overflow on
   var  a: Int8 = -127;
   var  b: Byte = 255;
   var  r: Boolean;
@@ -3057,14 +3057,14 @@ code auto:422 not-equal[Int16] -127[Int8], 255[Byte] -> [Boolean] Var $overflow 
 endcode
 varvalue r True
 
-code auto:423 not-equal[Int16] -127[Int8], 255[Byte] -> [Boolean] Left immediate $overflow on
+code auto:423 not-equal[Integer] -127[Int8], 255[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 255;
   var  r: Boolean;
   r := -127 <> b;
 endcode
 varvalue r True
 
-code auto:424 not-equal[Int16] -127[Int8], 255[Byte] -> [Boolean] Right immediate $overflow on
+code auto:424 not-equal[Integer] -127[Int8], 255[Byte] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -127;
   var  r: Boolean;
   r := a <> 255;
@@ -3078,7 +3078,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:426 not-equal[Int16] -1[Int8], 0[Byte] -> [Boolean] Var $overflow on
+code auto:426 not-equal[Integer] -1[Int8], 0[Byte] -> [Boolean] Var $overflow on
   var  a: Int8 = -1;
   var  b: Byte = 0;
   var  r: Boolean;
@@ -3086,14 +3086,14 @@ code auto:426 not-equal[Int16] -1[Int8], 0[Byte] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:427 not-equal[Int16] -1[Int8], 0[Byte] -> [Boolean] Left immediate $overflow on
+code auto:427 not-equal[Integer] -1[Int8], 0[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 0;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:428 not-equal[Int16] -1[Int8], 0[Byte] -> [Boolean] Right immediate $overflow on
+code auto:428 not-equal[Integer] -1[Int8], 0[Byte] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -1;
   var  r: Boolean;
   r := a <> 0;
@@ -3107,7 +3107,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:430 not-equal[Int16] -1[Int8], 1[Byte] -> [Boolean] Var $overflow on
+code auto:430 not-equal[Integer] -1[Int8], 1[Byte] -> [Boolean] Var $overflow on
   var  a: Int8 = -1;
   var  b: Byte = 1;
   var  r: Boolean;
@@ -3115,14 +3115,14 @@ code auto:430 not-equal[Int16] -1[Int8], 1[Byte] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:431 not-equal[Int16] -1[Int8], 1[Byte] -> [Boolean] Left immediate $overflow on
+code auto:431 not-equal[Integer] -1[Int8], 1[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 1;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:432 not-equal[Int16] -1[Int8], 1[Byte] -> [Boolean] Right immediate $overflow on
+code auto:432 not-equal[Integer] -1[Int8], 1[Byte] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -1;
   var  r: Boolean;
   r := a <> 1;
@@ -3136,7 +3136,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:434 not-equal[Int16] -1[Int8], 127[Byte] -> [Boolean] Var $overflow on
+code auto:434 not-equal[Integer] -1[Int8], 127[Byte] -> [Boolean] Var $overflow on
   var  a: Int8 = -1;
   var  b: Byte = 127;
   var  r: Boolean;
@@ -3144,14 +3144,14 @@ code auto:434 not-equal[Int16] -1[Int8], 127[Byte] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:435 not-equal[Int16] -1[Int8], 127[Byte] -> [Boolean] Left immediate $overflow on
+code auto:435 not-equal[Integer] -1[Int8], 127[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 127;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:436 not-equal[Int16] -1[Int8], 127[Byte] -> [Boolean] Right immediate $overflow on
+code auto:436 not-equal[Integer] -1[Int8], 127[Byte] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -1;
   var  r: Boolean;
   r := a <> 127;
@@ -3165,7 +3165,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:438 not-equal[Int16] -1[Int8], 128[Byte] -> [Boolean] Var $overflow on
+code auto:438 not-equal[Integer] -1[Int8], 128[Byte] -> [Boolean] Var $overflow on
   var  a: Int8 = -1;
   var  b: Byte = 128;
   var  r: Boolean;
@@ -3173,14 +3173,14 @@ code auto:438 not-equal[Int16] -1[Int8], 128[Byte] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:439 not-equal[Int16] -1[Int8], 128[Byte] -> [Boolean] Left immediate $overflow on
+code auto:439 not-equal[Integer] -1[Int8], 128[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 128;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:440 not-equal[Int16] -1[Int8], 128[Byte] -> [Boolean] Right immediate $overflow on
+code auto:440 not-equal[Integer] -1[Int8], 128[Byte] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -1;
   var  r: Boolean;
   r := a <> 128;
@@ -3194,7 +3194,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:442 not-equal[Int16] -1[Int8], 255[Byte] -> [Boolean] Var $overflow on
+code auto:442 not-equal[Integer] -1[Int8], 255[Byte] -> [Boolean] Var $overflow on
   var  a: Int8 = -1;
   var  b: Byte = 255;
   var  r: Boolean;
@@ -3202,14 +3202,14 @@ code auto:442 not-equal[Int16] -1[Int8], 255[Byte] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:443 not-equal[Int16] -1[Int8], 255[Byte] -> [Boolean] Left immediate $overflow on
+code auto:443 not-equal[Integer] -1[Int8], 255[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 255;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:444 not-equal[Int16] -1[Int8], 255[Byte] -> [Boolean] Right immediate $overflow on
+code auto:444 not-equal[Integer] -1[Int8], 255[Byte] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -1;
   var  r: Boolean;
   r := a <> 255;
@@ -3223,7 +3223,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:446 not-equal[Int16] 0[Int8], 0[Byte] -> [Boolean] Var $overflow on
+code auto:446 not-equal[Integer] 0[Int8], 0[Byte] -> [Boolean] Var $overflow on
   var  a: Int8 = 0;
   var  b: Byte = 0;
   var  r: Boolean;
@@ -3231,14 +3231,14 @@ code auto:446 not-equal[Int16] 0[Int8], 0[Byte] -> [Boolean] Var $overflow on
 endcode
 varvalue r False
 
-code auto:447 not-equal[Int16] 0[Int8], 0[Byte] -> [Boolean] Left immediate $overflow on
+code auto:447 not-equal[Integer] 0[Int8], 0[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 0;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r False
 
-code auto:448 not-equal[Int16] 0[Int8], 0[Byte] -> [Boolean] Right immediate $overflow on
+code auto:448 not-equal[Integer] 0[Int8], 0[Byte] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 0;
   var  r: Boolean;
   r := a <> 0;
@@ -3252,7 +3252,7 @@ endcode
 varvalue r False
 
 $overflow on
-code auto:450 not-equal[Int16] 0[Int8], 1[Byte] -> [Boolean] Var $overflow on
+code auto:450 not-equal[Integer] 0[Int8], 1[Byte] -> [Boolean] Var $overflow on
   var  a: Int8 = 0;
   var  b: Byte = 1;
   var  r: Boolean;
@@ -3260,14 +3260,14 @@ code auto:450 not-equal[Int16] 0[Int8], 1[Byte] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:451 not-equal[Int16] 0[Int8], 1[Byte] -> [Boolean] Left immediate $overflow on
+code auto:451 not-equal[Integer] 0[Int8], 1[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 1;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:452 not-equal[Int16] 0[Int8], 1[Byte] -> [Boolean] Right immediate $overflow on
+code auto:452 not-equal[Integer] 0[Int8], 1[Byte] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 0;
   var  r: Boolean;
   r := a <> 1;
@@ -3281,7 +3281,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:454 not-equal[Int16] 0[Int8], 127[Byte] -> [Boolean] Var $overflow on
+code auto:454 not-equal[Integer] 0[Int8], 127[Byte] -> [Boolean] Var $overflow on
   var  a: Int8 = 0;
   var  b: Byte = 127;
   var  r: Boolean;
@@ -3289,14 +3289,14 @@ code auto:454 not-equal[Int16] 0[Int8], 127[Byte] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:455 not-equal[Int16] 0[Int8], 127[Byte] -> [Boolean] Left immediate $overflow on
+code auto:455 not-equal[Integer] 0[Int8], 127[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 127;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:456 not-equal[Int16] 0[Int8], 127[Byte] -> [Boolean] Right immediate $overflow on
+code auto:456 not-equal[Integer] 0[Int8], 127[Byte] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 0;
   var  r: Boolean;
   r := a <> 127;
@@ -3310,7 +3310,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:458 not-equal[Int16] 0[Int8], 128[Byte] -> [Boolean] Var $overflow on
+code auto:458 not-equal[Integer] 0[Int8], 128[Byte] -> [Boolean] Var $overflow on
   var  a: Int8 = 0;
   var  b: Byte = 128;
   var  r: Boolean;
@@ -3318,14 +3318,14 @@ code auto:458 not-equal[Int16] 0[Int8], 128[Byte] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:459 not-equal[Int16] 0[Int8], 128[Byte] -> [Boolean] Left immediate $overflow on
+code auto:459 not-equal[Integer] 0[Int8], 128[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 128;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:460 not-equal[Int16] 0[Int8], 128[Byte] -> [Boolean] Right immediate $overflow on
+code auto:460 not-equal[Integer] 0[Int8], 128[Byte] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 0;
   var  r: Boolean;
   r := a <> 128;
@@ -3339,7 +3339,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:462 not-equal[Int16] 0[Int8], 255[Byte] -> [Boolean] Var $overflow on
+code auto:462 not-equal[Integer] 0[Int8], 255[Byte] -> [Boolean] Var $overflow on
   var  a: Int8 = 0;
   var  b: Byte = 255;
   var  r: Boolean;
@@ -3347,14 +3347,14 @@ code auto:462 not-equal[Int16] 0[Int8], 255[Byte] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:463 not-equal[Int16] 0[Int8], 255[Byte] -> [Boolean] Left immediate $overflow on
+code auto:463 not-equal[Integer] 0[Int8], 255[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 255;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:464 not-equal[Int16] 0[Int8], 255[Byte] -> [Boolean] Right immediate $overflow on
+code auto:464 not-equal[Integer] 0[Int8], 255[Byte] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 0;
   var  r: Boolean;
   r := a <> 255;
@@ -3368,7 +3368,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:466 not-equal[Int16] 1[Int8], 0[Byte] -> [Boolean] Var $overflow on
+code auto:466 not-equal[Integer] 1[Int8], 0[Byte] -> [Boolean] Var $overflow on
   var  a: Int8 = 1;
   var  b: Byte = 0;
   var  r: Boolean;
@@ -3376,14 +3376,14 @@ code auto:466 not-equal[Int16] 1[Int8], 0[Byte] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:467 not-equal[Int16] 1[Int8], 0[Byte] -> [Boolean] Left immediate $overflow on
+code auto:467 not-equal[Integer] 1[Int8], 0[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 0;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:468 not-equal[Int16] 1[Int8], 0[Byte] -> [Boolean] Right immediate $overflow on
+code auto:468 not-equal[Integer] 1[Int8], 0[Byte] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 1;
   var  r: Boolean;
   r := a <> 0;
@@ -3397,7 +3397,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:470 not-equal[Int16] 1[Int8], 1[Byte] -> [Boolean] Var $overflow on
+code auto:470 not-equal[Integer] 1[Int8], 1[Byte] -> [Boolean] Var $overflow on
   var  a: Int8 = 1;
   var  b: Byte = 1;
   var  r: Boolean;
@@ -3405,14 +3405,14 @@ code auto:470 not-equal[Int16] 1[Int8], 1[Byte] -> [Boolean] Var $overflow on
 endcode
 varvalue r False
 
-code auto:471 not-equal[Int16] 1[Int8], 1[Byte] -> [Boolean] Left immediate $overflow on
+code auto:471 not-equal[Integer] 1[Int8], 1[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 1;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r False
 
-code auto:472 not-equal[Int16] 1[Int8], 1[Byte] -> [Boolean] Right immediate $overflow on
+code auto:472 not-equal[Integer] 1[Int8], 1[Byte] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 1;
   var  r: Boolean;
   r := a <> 1;
@@ -3426,7 +3426,7 @@ endcode
 varvalue r False
 
 $overflow on
-code auto:474 not-equal[Int16] 1[Int8], 127[Byte] -> [Boolean] Var $overflow on
+code auto:474 not-equal[Integer] 1[Int8], 127[Byte] -> [Boolean] Var $overflow on
   var  a: Int8 = 1;
   var  b: Byte = 127;
   var  r: Boolean;
@@ -3434,14 +3434,14 @@ code auto:474 not-equal[Int16] 1[Int8], 127[Byte] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:475 not-equal[Int16] 1[Int8], 127[Byte] -> [Boolean] Left immediate $overflow on
+code auto:475 not-equal[Integer] 1[Int8], 127[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 127;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:476 not-equal[Int16] 1[Int8], 127[Byte] -> [Boolean] Right immediate $overflow on
+code auto:476 not-equal[Integer] 1[Int8], 127[Byte] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 1;
   var  r: Boolean;
   r := a <> 127;
@@ -3455,7 +3455,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:478 not-equal[Int16] 1[Int8], 128[Byte] -> [Boolean] Var $overflow on
+code auto:478 not-equal[Integer] 1[Int8], 128[Byte] -> [Boolean] Var $overflow on
   var  a: Int8 = 1;
   var  b: Byte = 128;
   var  r: Boolean;
@@ -3463,14 +3463,14 @@ code auto:478 not-equal[Int16] 1[Int8], 128[Byte] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:479 not-equal[Int16] 1[Int8], 128[Byte] -> [Boolean] Left immediate $overflow on
+code auto:479 not-equal[Integer] 1[Int8], 128[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 128;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:480 not-equal[Int16] 1[Int8], 128[Byte] -> [Boolean] Right immediate $overflow on
+code auto:480 not-equal[Integer] 1[Int8], 128[Byte] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 1;
   var  r: Boolean;
   r := a <> 128;
@@ -3484,7 +3484,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:482 not-equal[Int16] 1[Int8], 255[Byte] -> [Boolean] Var $overflow on
+code auto:482 not-equal[Integer] 1[Int8], 255[Byte] -> [Boolean] Var $overflow on
   var  a: Int8 = 1;
   var  b: Byte = 255;
   var  r: Boolean;
@@ -3492,14 +3492,14 @@ code auto:482 not-equal[Int16] 1[Int8], 255[Byte] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:483 not-equal[Int16] 1[Int8], 255[Byte] -> [Boolean] Left immediate $overflow on
+code auto:483 not-equal[Integer] 1[Int8], 255[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 255;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:484 not-equal[Int16] 1[Int8], 255[Byte] -> [Boolean] Right immediate $overflow on
+code auto:484 not-equal[Integer] 1[Int8], 255[Byte] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 1;
   var  r: Boolean;
   r := a <> 255;
@@ -3513,7 +3513,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:486 not-equal[Int16] 127[Int8], 0[Byte] -> [Boolean] Var $overflow on
+code auto:486 not-equal[Integer] 127[Int8], 0[Byte] -> [Boolean] Var $overflow on
   var  a: Int8 = 127;
   var  b: Byte = 0;
   var  r: Boolean;
@@ -3521,14 +3521,14 @@ code auto:486 not-equal[Int16] 127[Int8], 0[Byte] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:487 not-equal[Int16] 127[Int8], 0[Byte] -> [Boolean] Left immediate $overflow on
+code auto:487 not-equal[Integer] 127[Int8], 0[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 0;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:488 not-equal[Int16] 127[Int8], 0[Byte] -> [Boolean] Right immediate $overflow on
+code auto:488 not-equal[Integer] 127[Int8], 0[Byte] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 127;
   var  r: Boolean;
   r := a <> 0;
@@ -3542,7 +3542,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:490 not-equal[Int16] 127[Int8], 1[Byte] -> [Boolean] Var $overflow on
+code auto:490 not-equal[Integer] 127[Int8], 1[Byte] -> [Boolean] Var $overflow on
   var  a: Int8 = 127;
   var  b: Byte = 1;
   var  r: Boolean;
@@ -3550,14 +3550,14 @@ code auto:490 not-equal[Int16] 127[Int8], 1[Byte] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:491 not-equal[Int16] 127[Int8], 1[Byte] -> [Boolean] Left immediate $overflow on
+code auto:491 not-equal[Integer] 127[Int8], 1[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 1;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:492 not-equal[Int16] 127[Int8], 1[Byte] -> [Boolean] Right immediate $overflow on
+code auto:492 not-equal[Integer] 127[Int8], 1[Byte] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 127;
   var  r: Boolean;
   r := a <> 1;
@@ -3571,7 +3571,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:494 not-equal[Int16] 127[Int8], 127[Byte] -> [Boolean] Var $overflow on
+code auto:494 not-equal[Integer] 127[Int8], 127[Byte] -> [Boolean] Var $overflow on
   var  a: Int8 = 127;
   var  b: Byte = 127;
   var  r: Boolean;
@@ -3579,14 +3579,14 @@ code auto:494 not-equal[Int16] 127[Int8], 127[Byte] -> [Boolean] Var $overflow o
 endcode
 varvalue r False
 
-code auto:495 not-equal[Int16] 127[Int8], 127[Byte] -> [Boolean] Left immediate $overflow on
+code auto:495 not-equal[Integer] 127[Int8], 127[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 127;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r False
 
-code auto:496 not-equal[Int16] 127[Int8], 127[Byte] -> [Boolean] Right immediate $overflow on
+code auto:496 not-equal[Integer] 127[Int8], 127[Byte] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 127;
   var  r: Boolean;
   r := a <> 127;
@@ -3600,7 +3600,7 @@ endcode
 varvalue r False
 
 $overflow on
-code auto:498 not-equal[Int16] 127[Int8], 128[Byte] -> [Boolean] Var $overflow on
+code auto:498 not-equal[Integer] 127[Int8], 128[Byte] -> [Boolean] Var $overflow on
   var  a: Int8 = 127;
   var  b: Byte = 128;
   var  r: Boolean;
@@ -3608,14 +3608,14 @@ code auto:498 not-equal[Int16] 127[Int8], 128[Byte] -> [Boolean] Var $overflow o
 endcode
 varvalue r True
 
-code auto:499 not-equal[Int16] 127[Int8], 128[Byte] -> [Boolean] Left immediate $overflow on
+code auto:499 not-equal[Integer] 127[Int8], 128[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 128;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:500 not-equal[Int16] 127[Int8], 128[Byte] -> [Boolean] Right immediate $overflow on
+code auto:500 not-equal[Integer] 127[Int8], 128[Byte] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 127;
   var  r: Boolean;
   r := a <> 128;
@@ -3629,7 +3629,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:502 not-equal[Int16] 127[Int8], 255[Byte] -> [Boolean] Var $overflow on
+code auto:502 not-equal[Integer] 127[Int8], 255[Byte] -> [Boolean] Var $overflow on
   var  a: Int8 = 127;
   var  b: Byte = 255;
   var  r: Boolean;
@@ -3637,14 +3637,14 @@ code auto:502 not-equal[Int16] 127[Int8], 255[Byte] -> [Boolean] Var $overflow o
 endcode
 varvalue r True
 
-code auto:503 not-equal[Int16] 127[Int8], 255[Byte] -> [Boolean] Left immediate $overflow on
+code auto:503 not-equal[Integer] 127[Int8], 255[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 255;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:504 not-equal[Int16] 127[Int8], 255[Byte] -> [Boolean] Right immediate $overflow on
+code auto:504 not-equal[Integer] 127[Int8], 255[Byte] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 127;
   var  r: Boolean;
   r := a <> 255;
@@ -3658,7 +3658,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:506 not-equal[Int16] -128[Int8], 0[Word] -> [Boolean] Var $overflow on
+code auto:506 not-equal[Integer] -128[Int8], 0[Word] -> [Boolean] Var $overflow on
   var  a: Int8 = -128;
   var  b: Word = 0;
   var  r: Boolean;
@@ -3666,14 +3666,14 @@ code auto:506 not-equal[Int16] -128[Int8], 0[Word] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:507 not-equal[Int16] -128[Int8], 0[Word] -> [Boolean] Left immediate $overflow on
+code auto:507 not-equal[Integer] -128[Int8], 0[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 0;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:508 not-equal[Int16] -128[Int8], 0[Word] -> [Boolean] Right immediate $overflow on
+code auto:508 not-equal[Integer] -128[Int8], 0[Word] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -128;
   var  r: Boolean;
   r := a <> 0;
@@ -3687,7 +3687,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:510 not-equal[Int16] -128[Int8], 255[Word] -> [Boolean] Var $overflow on
+code auto:510 not-equal[Integer] -128[Int8], 255[Word] -> [Boolean] Var $overflow on
   var  a: Int8 = -128;
   var  b: Word = 255;
   var  r: Boolean;
@@ -3695,14 +3695,14 @@ code auto:510 not-equal[Int16] -128[Int8], 255[Word] -> [Boolean] Var $overflow 
 endcode
 varvalue r True
 
-code auto:511 not-equal[Int16] -128[Int8], 255[Word] -> [Boolean] Left immediate $overflow on
+code auto:511 not-equal[Integer] -128[Int8], 255[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 255;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:512 not-equal[Int16] -128[Int8], 255[Word] -> [Boolean] Right immediate $overflow on
+code auto:512 not-equal[Integer] -128[Int8], 255[Word] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -128;
   var  r: Boolean;
   r := a <> 255;
@@ -3716,7 +3716,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:514 not-equal[Int16] -128[Int8], 32767[Word] -> [Boolean] Var $overflow on
+code auto:514 not-equal[Integer] -128[Int8], 32767[Word] -> [Boolean] Var $overflow on
   var  a: Int8 = -128;
   var  b: Word = 32767;
   var  r: Boolean;
@@ -3724,14 +3724,14 @@ code auto:514 not-equal[Int16] -128[Int8], 32767[Word] -> [Boolean] Var $overflo
 endcode
 varvalue r True
 
-code auto:515 not-equal[Int16] -128[Int8], 32767[Word] -> [Boolean] Left immediate $overflow on
+code auto:515 not-equal[Integer] -128[Int8], 32767[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 32767;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:516 not-equal[Int16] -128[Int8], 32767[Word] -> [Boolean] Right immediate $overflow on
+code auto:516 not-equal[Integer] -128[Int8], 32767[Word] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -128;
   var  r: Boolean;
   r := a <> 32767;
@@ -3745,7 +3745,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:518 not-equal[Int16] -128[Int8], 32768[Word] -> [Boolean] Var $overflow on
+code auto:518 not-equal[Integer] -128[Int8], 32768[Word] -> [Boolean] Var $overflow on
   var  a: Int8 = -128;
   var  b: Word = 32768;
   var  r: Boolean;
@@ -3753,14 +3753,14 @@ code auto:518 not-equal[Int16] -128[Int8], 32768[Word] -> [Boolean] Var $overflo
 endcode
 varvalue r True
 
-code auto:519 not-equal[Int16] -128[Int8], 32768[Word] -> [Boolean] Left immediate $overflow on
+code auto:519 not-equal[Integer] -128[Int8], 32768[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 32768;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:520 not-equal[Int16] -128[Int8], 32768[Word] -> [Boolean] Right immediate $overflow on
+code auto:520 not-equal[Integer] -128[Int8], 32768[Word] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -128;
   var  r: Boolean;
   r := a <> 32768;
@@ -3774,7 +3774,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:522 not-equal[Int16] -128[Int8], 65535[Word] -> [Boolean] Var $overflow on
+code auto:522 not-equal[Integer] -128[Int8], 65535[Word] -> [Boolean] Var $overflow on
   var  a: Int8 = -128;
   var  b: Word = 65535;
   var  r: Boolean;
@@ -3782,14 +3782,14 @@ code auto:522 not-equal[Int16] -128[Int8], 65535[Word] -> [Boolean] Var $overflo
 endcode
 varvalue r True
 
-code auto:523 not-equal[Int16] -128[Int8], 65535[Word] -> [Boolean] Left immediate $overflow on
+code auto:523 not-equal[Integer] -128[Int8], 65535[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 65535;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:524 not-equal[Int16] -128[Int8], 65535[Word] -> [Boolean] Right immediate $overflow on
+code auto:524 not-equal[Integer] -128[Int8], 65535[Word] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -128;
   var  r: Boolean;
   r := a <> 65535;
@@ -3803,7 +3803,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:526 not-equal[Int16] -127[Int8], 0[Word] -> [Boolean] Var $overflow on
+code auto:526 not-equal[Integer] -127[Int8], 0[Word] -> [Boolean] Var $overflow on
   var  a: Int8 = -127;
   var  b: Word = 0;
   var  r: Boolean;
@@ -3811,14 +3811,14 @@ code auto:526 not-equal[Int16] -127[Int8], 0[Word] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:527 not-equal[Int16] -127[Int8], 0[Word] -> [Boolean] Left immediate $overflow on
+code auto:527 not-equal[Integer] -127[Int8], 0[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 0;
   var  r: Boolean;
   r := -127 <> b;
 endcode
 varvalue r True
 
-code auto:528 not-equal[Int16] -127[Int8], 0[Word] -> [Boolean] Right immediate $overflow on
+code auto:528 not-equal[Integer] -127[Int8], 0[Word] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -127;
   var  r: Boolean;
   r := a <> 0;
@@ -3832,7 +3832,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:530 not-equal[Int16] -127[Int8], 255[Word] -> [Boolean] Var $overflow on
+code auto:530 not-equal[Integer] -127[Int8], 255[Word] -> [Boolean] Var $overflow on
   var  a: Int8 = -127;
   var  b: Word = 255;
   var  r: Boolean;
@@ -3840,14 +3840,14 @@ code auto:530 not-equal[Int16] -127[Int8], 255[Word] -> [Boolean] Var $overflow 
 endcode
 varvalue r True
 
-code auto:531 not-equal[Int16] -127[Int8], 255[Word] -> [Boolean] Left immediate $overflow on
+code auto:531 not-equal[Integer] -127[Int8], 255[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 255;
   var  r: Boolean;
   r := -127 <> b;
 endcode
 varvalue r True
 
-code auto:532 not-equal[Int16] -127[Int8], 255[Word] -> [Boolean] Right immediate $overflow on
+code auto:532 not-equal[Integer] -127[Int8], 255[Word] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -127;
   var  r: Boolean;
   r := a <> 255;
@@ -3861,7 +3861,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:534 not-equal[Int16] -127[Int8], 32767[Word] -> [Boolean] Var $overflow on
+code auto:534 not-equal[Integer] -127[Int8], 32767[Word] -> [Boolean] Var $overflow on
   var  a: Int8 = -127;
   var  b: Word = 32767;
   var  r: Boolean;
@@ -3869,14 +3869,14 @@ code auto:534 not-equal[Int16] -127[Int8], 32767[Word] -> [Boolean] Var $overflo
 endcode
 varvalue r True
 
-code auto:535 not-equal[Int16] -127[Int8], 32767[Word] -> [Boolean] Left immediate $overflow on
+code auto:535 not-equal[Integer] -127[Int8], 32767[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 32767;
   var  r: Boolean;
   r := -127 <> b;
 endcode
 varvalue r True
 
-code auto:536 not-equal[Int16] -127[Int8], 32767[Word] -> [Boolean] Right immediate $overflow on
+code auto:536 not-equal[Integer] -127[Int8], 32767[Word] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -127;
   var  r: Boolean;
   r := a <> 32767;
@@ -3890,7 +3890,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:538 not-equal[Int16] -127[Int8], 32768[Word] -> [Boolean] Var $overflow on
+code auto:538 not-equal[Integer] -127[Int8], 32768[Word] -> [Boolean] Var $overflow on
   var  a: Int8 = -127;
   var  b: Word = 32768;
   var  r: Boolean;
@@ -3898,14 +3898,14 @@ code auto:538 not-equal[Int16] -127[Int8], 32768[Word] -> [Boolean] Var $overflo
 endcode
 varvalue r True
 
-code auto:539 not-equal[Int16] -127[Int8], 32768[Word] -> [Boolean] Left immediate $overflow on
+code auto:539 not-equal[Integer] -127[Int8], 32768[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 32768;
   var  r: Boolean;
   r := -127 <> b;
 endcode
 varvalue r True
 
-code auto:540 not-equal[Int16] -127[Int8], 32768[Word] -> [Boolean] Right immediate $overflow on
+code auto:540 not-equal[Integer] -127[Int8], 32768[Word] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -127;
   var  r: Boolean;
   r := a <> 32768;
@@ -3919,7 +3919,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:542 not-equal[Int16] -127[Int8], 65535[Word] -> [Boolean] Var $overflow on
+code auto:542 not-equal[Integer] -127[Int8], 65535[Word] -> [Boolean] Var $overflow on
   var  a: Int8 = -127;
   var  b: Word = 65535;
   var  r: Boolean;
@@ -3927,14 +3927,14 @@ code auto:542 not-equal[Int16] -127[Int8], 65535[Word] -> [Boolean] Var $overflo
 endcode
 varvalue r True
 
-code auto:543 not-equal[Int16] -127[Int8], 65535[Word] -> [Boolean] Left immediate $overflow on
+code auto:543 not-equal[Integer] -127[Int8], 65535[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 65535;
   var  r: Boolean;
   r := -127 <> b;
 endcode
 varvalue r True
 
-code auto:544 not-equal[Int16] -127[Int8], 65535[Word] -> [Boolean] Right immediate $overflow on
+code auto:544 not-equal[Integer] -127[Int8], 65535[Word] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -127;
   var  r: Boolean;
   r := a <> 65535;
@@ -3948,7 +3948,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:546 not-equal[Int16] -1[Int8], 0[Word] -> [Boolean] Var $overflow on
+code auto:546 not-equal[Integer] -1[Int8], 0[Word] -> [Boolean] Var $overflow on
   var  a: Int8 = -1;
   var  b: Word = 0;
   var  r: Boolean;
@@ -3956,14 +3956,14 @@ code auto:546 not-equal[Int16] -1[Int8], 0[Word] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:547 not-equal[Int16] -1[Int8], 0[Word] -> [Boolean] Left immediate $overflow on
+code auto:547 not-equal[Integer] -1[Int8], 0[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 0;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:548 not-equal[Int16] -1[Int8], 0[Word] -> [Boolean] Right immediate $overflow on
+code auto:548 not-equal[Integer] -1[Int8], 0[Word] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -1;
   var  r: Boolean;
   r := a <> 0;
@@ -3977,7 +3977,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:550 not-equal[Int16] -1[Int8], 255[Word] -> [Boolean] Var $overflow on
+code auto:550 not-equal[Integer] -1[Int8], 255[Word] -> [Boolean] Var $overflow on
   var  a: Int8 = -1;
   var  b: Word = 255;
   var  r: Boolean;
@@ -3985,14 +3985,14 @@ code auto:550 not-equal[Int16] -1[Int8], 255[Word] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:551 not-equal[Int16] -1[Int8], 255[Word] -> [Boolean] Left immediate $overflow on
+code auto:551 not-equal[Integer] -1[Int8], 255[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 255;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:552 not-equal[Int16] -1[Int8], 255[Word] -> [Boolean] Right immediate $overflow on
+code auto:552 not-equal[Integer] -1[Int8], 255[Word] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -1;
   var  r: Boolean;
   r := a <> 255;
@@ -4006,7 +4006,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:554 not-equal[Int16] -1[Int8], 32767[Word] -> [Boolean] Var $overflow on
+code auto:554 not-equal[Integer] -1[Int8], 32767[Word] -> [Boolean] Var $overflow on
   var  a: Int8 = -1;
   var  b: Word = 32767;
   var  r: Boolean;
@@ -4014,14 +4014,14 @@ code auto:554 not-equal[Int16] -1[Int8], 32767[Word] -> [Boolean] Var $overflow 
 endcode
 varvalue r True
 
-code auto:555 not-equal[Int16] -1[Int8], 32767[Word] -> [Boolean] Left immediate $overflow on
+code auto:555 not-equal[Integer] -1[Int8], 32767[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 32767;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:556 not-equal[Int16] -1[Int8], 32767[Word] -> [Boolean] Right immediate $overflow on
+code auto:556 not-equal[Integer] -1[Int8], 32767[Word] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -1;
   var  r: Boolean;
   r := a <> 32767;
@@ -4035,7 +4035,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:558 not-equal[Int16] -1[Int8], 32768[Word] -> [Boolean] Var $overflow on
+code auto:558 not-equal[Integer] -1[Int8], 32768[Word] -> [Boolean] Var $overflow on
   var  a: Int8 = -1;
   var  b: Word = 32768;
   var  r: Boolean;
@@ -4043,14 +4043,14 @@ code auto:558 not-equal[Int16] -1[Int8], 32768[Word] -> [Boolean] Var $overflow 
 endcode
 varvalue r True
 
-code auto:559 not-equal[Int16] -1[Int8], 32768[Word] -> [Boolean] Left immediate $overflow on
+code auto:559 not-equal[Integer] -1[Int8], 32768[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 32768;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:560 not-equal[Int16] -1[Int8], 32768[Word] -> [Boolean] Right immediate $overflow on
+code auto:560 not-equal[Integer] -1[Int8], 32768[Word] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -1;
   var  r: Boolean;
   r := a <> 32768;
@@ -4064,7 +4064,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:562 not-equal[Int16] -1[Int8], 65535[Word] -> [Boolean] Var $overflow on
+code auto:562 not-equal[Integer] -1[Int8], 65535[Word] -> [Boolean] Var $overflow on
   var  a: Int8 = -1;
   var  b: Word = 65535;
   var  r: Boolean;
@@ -4072,14 +4072,14 @@ code auto:562 not-equal[Int16] -1[Int8], 65535[Word] -> [Boolean] Var $overflow 
 endcode
 varvalue r True
 
-code auto:563 not-equal[Int16] -1[Int8], 65535[Word] -> [Boolean] Left immediate $overflow on
+code auto:563 not-equal[Integer] -1[Int8], 65535[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 65535;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:564 not-equal[Int16] -1[Int8], 65535[Word] -> [Boolean] Right immediate $overflow on
+code auto:564 not-equal[Integer] -1[Int8], 65535[Word] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = -1;
   var  r: Boolean;
   r := a <> 65535;
@@ -4093,7 +4093,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:566 not-equal[Int16] 0[Int8], 0[Word] -> [Boolean] Var $overflow on
+code auto:566 not-equal[Integer] 0[Int8], 0[Word] -> [Boolean] Var $overflow on
   var  a: Int8 = 0;
   var  b: Word = 0;
   var  r: Boolean;
@@ -4101,14 +4101,14 @@ code auto:566 not-equal[Int16] 0[Int8], 0[Word] -> [Boolean] Var $overflow on
 endcode
 varvalue r False
 
-code auto:567 not-equal[Int16] 0[Int8], 0[Word] -> [Boolean] Left immediate $overflow on
+code auto:567 not-equal[Integer] 0[Int8], 0[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 0;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r False
 
-code auto:568 not-equal[Int16] 0[Int8], 0[Word] -> [Boolean] Right immediate $overflow on
+code auto:568 not-equal[Integer] 0[Int8], 0[Word] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 0;
   var  r: Boolean;
   r := a <> 0;
@@ -4122,7 +4122,7 @@ endcode
 varvalue r False
 
 $overflow on
-code auto:570 not-equal[Int16] 0[Int8], 255[Word] -> [Boolean] Var $overflow on
+code auto:570 not-equal[Integer] 0[Int8], 255[Word] -> [Boolean] Var $overflow on
   var  a: Int8 = 0;
   var  b: Word = 255;
   var  r: Boolean;
@@ -4130,14 +4130,14 @@ code auto:570 not-equal[Int16] 0[Int8], 255[Word] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:571 not-equal[Int16] 0[Int8], 255[Word] -> [Boolean] Left immediate $overflow on
+code auto:571 not-equal[Integer] 0[Int8], 255[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 255;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:572 not-equal[Int16] 0[Int8], 255[Word] -> [Boolean] Right immediate $overflow on
+code auto:572 not-equal[Integer] 0[Int8], 255[Word] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 0;
   var  r: Boolean;
   r := a <> 255;
@@ -4151,7 +4151,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:574 not-equal[Int16] 0[Int8], 32767[Word] -> [Boolean] Var $overflow on
+code auto:574 not-equal[Integer] 0[Int8], 32767[Word] -> [Boolean] Var $overflow on
   var  a: Int8 = 0;
   var  b: Word = 32767;
   var  r: Boolean;
@@ -4159,14 +4159,14 @@ code auto:574 not-equal[Int16] 0[Int8], 32767[Word] -> [Boolean] Var $overflow o
 endcode
 varvalue r True
 
-code auto:575 not-equal[Int16] 0[Int8], 32767[Word] -> [Boolean] Left immediate $overflow on
+code auto:575 not-equal[Integer] 0[Int8], 32767[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 32767;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:576 not-equal[Int16] 0[Int8], 32767[Word] -> [Boolean] Right immediate $overflow on
+code auto:576 not-equal[Integer] 0[Int8], 32767[Word] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 0;
   var  r: Boolean;
   r := a <> 32767;
@@ -4180,7 +4180,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:578 not-equal[Int16] 0[Int8], 32768[Word] -> [Boolean] Var $overflow on
+code auto:578 not-equal[Integer] 0[Int8], 32768[Word] -> [Boolean] Var $overflow on
   var  a: Int8 = 0;
   var  b: Word = 32768;
   var  r: Boolean;
@@ -4188,14 +4188,14 @@ code auto:578 not-equal[Int16] 0[Int8], 32768[Word] -> [Boolean] Var $overflow o
 endcode
 varvalue r True
 
-code auto:579 not-equal[Int16] 0[Int8], 32768[Word] -> [Boolean] Left immediate $overflow on
+code auto:579 not-equal[Integer] 0[Int8], 32768[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 32768;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:580 not-equal[Int16] 0[Int8], 32768[Word] -> [Boolean] Right immediate $overflow on
+code auto:580 not-equal[Integer] 0[Int8], 32768[Word] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 0;
   var  r: Boolean;
   r := a <> 32768;
@@ -4209,7 +4209,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:582 not-equal[Int16] 0[Int8], 65535[Word] -> [Boolean] Var $overflow on
+code auto:582 not-equal[Integer] 0[Int8], 65535[Word] -> [Boolean] Var $overflow on
   var  a: Int8 = 0;
   var  b: Word = 65535;
   var  r: Boolean;
@@ -4217,14 +4217,14 @@ code auto:582 not-equal[Int16] 0[Int8], 65535[Word] -> [Boolean] Var $overflow o
 endcode
 varvalue r True
 
-code auto:583 not-equal[Int16] 0[Int8], 65535[Word] -> [Boolean] Left immediate $overflow on
+code auto:583 not-equal[Integer] 0[Int8], 65535[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 65535;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:584 not-equal[Int16] 0[Int8], 65535[Word] -> [Boolean] Right immediate $overflow on
+code auto:584 not-equal[Integer] 0[Int8], 65535[Word] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 0;
   var  r: Boolean;
   r := a <> 65535;
@@ -4238,7 +4238,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:586 not-equal[Int16] 1[Int8], 0[Word] -> [Boolean] Var $overflow on
+code auto:586 not-equal[Integer] 1[Int8], 0[Word] -> [Boolean] Var $overflow on
   var  a: Int8 = 1;
   var  b: Word = 0;
   var  r: Boolean;
@@ -4246,14 +4246,14 @@ code auto:586 not-equal[Int16] 1[Int8], 0[Word] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:587 not-equal[Int16] 1[Int8], 0[Word] -> [Boolean] Left immediate $overflow on
+code auto:587 not-equal[Integer] 1[Int8], 0[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 0;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:588 not-equal[Int16] 1[Int8], 0[Word] -> [Boolean] Right immediate $overflow on
+code auto:588 not-equal[Integer] 1[Int8], 0[Word] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 1;
   var  r: Boolean;
   r := a <> 0;
@@ -4267,7 +4267,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:590 not-equal[Int16] 1[Int8], 255[Word] -> [Boolean] Var $overflow on
+code auto:590 not-equal[Integer] 1[Int8], 255[Word] -> [Boolean] Var $overflow on
   var  a: Int8 = 1;
   var  b: Word = 255;
   var  r: Boolean;
@@ -4275,14 +4275,14 @@ code auto:590 not-equal[Int16] 1[Int8], 255[Word] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:591 not-equal[Int16] 1[Int8], 255[Word] -> [Boolean] Left immediate $overflow on
+code auto:591 not-equal[Integer] 1[Int8], 255[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 255;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:592 not-equal[Int16] 1[Int8], 255[Word] -> [Boolean] Right immediate $overflow on
+code auto:592 not-equal[Integer] 1[Int8], 255[Word] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 1;
   var  r: Boolean;
   r := a <> 255;
@@ -4296,7 +4296,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:594 not-equal[Int16] 1[Int8], 32767[Word] -> [Boolean] Var $overflow on
+code auto:594 not-equal[Integer] 1[Int8], 32767[Word] -> [Boolean] Var $overflow on
   var  a: Int8 = 1;
   var  b: Word = 32767;
   var  r: Boolean;
@@ -4304,14 +4304,14 @@ code auto:594 not-equal[Int16] 1[Int8], 32767[Word] -> [Boolean] Var $overflow o
 endcode
 varvalue r True
 
-code auto:595 not-equal[Int16] 1[Int8], 32767[Word] -> [Boolean] Left immediate $overflow on
+code auto:595 not-equal[Integer] 1[Int8], 32767[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 32767;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:596 not-equal[Int16] 1[Int8], 32767[Word] -> [Boolean] Right immediate $overflow on
+code auto:596 not-equal[Integer] 1[Int8], 32767[Word] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 1;
   var  r: Boolean;
   r := a <> 32767;
@@ -4325,7 +4325,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:598 not-equal[Int16] 1[Int8], 32768[Word] -> [Boolean] Var $overflow on
+code auto:598 not-equal[Integer] 1[Int8], 32768[Word] -> [Boolean] Var $overflow on
   var  a: Int8 = 1;
   var  b: Word = 32768;
   var  r: Boolean;
@@ -4333,14 +4333,14 @@ code auto:598 not-equal[Int16] 1[Int8], 32768[Word] -> [Boolean] Var $overflow o
 endcode
 varvalue r True
 
-code auto:599 not-equal[Int16] 1[Int8], 32768[Word] -> [Boolean] Left immediate $overflow on
+code auto:599 not-equal[Integer] 1[Int8], 32768[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 32768;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:600 not-equal[Int16] 1[Int8], 32768[Word] -> [Boolean] Right immediate $overflow on
+code auto:600 not-equal[Integer] 1[Int8], 32768[Word] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 1;
   var  r: Boolean;
   r := a <> 32768;
@@ -4354,7 +4354,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:602 not-equal[Int16] 1[Int8], 65535[Word] -> [Boolean] Var $overflow on
+code auto:602 not-equal[Integer] 1[Int8], 65535[Word] -> [Boolean] Var $overflow on
   var  a: Int8 = 1;
   var  b: Word = 65535;
   var  r: Boolean;
@@ -4362,14 +4362,14 @@ code auto:602 not-equal[Int16] 1[Int8], 65535[Word] -> [Boolean] Var $overflow o
 endcode
 varvalue r True
 
-code auto:603 not-equal[Int16] 1[Int8], 65535[Word] -> [Boolean] Left immediate $overflow on
+code auto:603 not-equal[Integer] 1[Int8], 65535[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 65535;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:604 not-equal[Int16] 1[Int8], 65535[Word] -> [Boolean] Right immediate $overflow on
+code auto:604 not-equal[Integer] 1[Int8], 65535[Word] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 1;
   var  r: Boolean;
   r := a <> 65535;
@@ -4383,7 +4383,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:606 not-equal[Int16] 127[Int8], 0[Word] -> [Boolean] Var $overflow on
+code auto:606 not-equal[Integer] 127[Int8], 0[Word] -> [Boolean] Var $overflow on
   var  a: Int8 = 127;
   var  b: Word = 0;
   var  r: Boolean;
@@ -4391,14 +4391,14 @@ code auto:606 not-equal[Int16] 127[Int8], 0[Word] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:607 not-equal[Int16] 127[Int8], 0[Word] -> [Boolean] Left immediate $overflow on
+code auto:607 not-equal[Integer] 127[Int8], 0[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 0;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:608 not-equal[Int16] 127[Int8], 0[Word] -> [Boolean] Right immediate $overflow on
+code auto:608 not-equal[Integer] 127[Int8], 0[Word] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 127;
   var  r: Boolean;
   r := a <> 0;
@@ -4412,7 +4412,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:610 not-equal[Int16] 127[Int8], 255[Word] -> [Boolean] Var $overflow on
+code auto:610 not-equal[Integer] 127[Int8], 255[Word] -> [Boolean] Var $overflow on
   var  a: Int8 = 127;
   var  b: Word = 255;
   var  r: Boolean;
@@ -4420,14 +4420,14 @@ code auto:610 not-equal[Int16] 127[Int8], 255[Word] -> [Boolean] Var $overflow o
 endcode
 varvalue r True
 
-code auto:611 not-equal[Int16] 127[Int8], 255[Word] -> [Boolean] Left immediate $overflow on
+code auto:611 not-equal[Integer] 127[Int8], 255[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 255;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:612 not-equal[Int16] 127[Int8], 255[Word] -> [Boolean] Right immediate $overflow on
+code auto:612 not-equal[Integer] 127[Int8], 255[Word] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 127;
   var  r: Boolean;
   r := a <> 255;
@@ -4441,7 +4441,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:614 not-equal[Int16] 127[Int8], 32767[Word] -> [Boolean] Var $overflow on
+code auto:614 not-equal[Integer] 127[Int8], 32767[Word] -> [Boolean] Var $overflow on
   var  a: Int8 = 127;
   var  b: Word = 32767;
   var  r: Boolean;
@@ -4449,14 +4449,14 @@ code auto:614 not-equal[Int16] 127[Int8], 32767[Word] -> [Boolean] Var $overflow
 endcode
 varvalue r True
 
-code auto:615 not-equal[Int16] 127[Int8], 32767[Word] -> [Boolean] Left immediate $overflow on
+code auto:615 not-equal[Integer] 127[Int8], 32767[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 32767;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:616 not-equal[Int16] 127[Int8], 32767[Word] -> [Boolean] Right immediate $overflow on
+code auto:616 not-equal[Integer] 127[Int8], 32767[Word] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 127;
   var  r: Boolean;
   r := a <> 32767;
@@ -4470,7 +4470,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:618 not-equal[Int16] 127[Int8], 32768[Word] -> [Boolean] Var $overflow on
+code auto:618 not-equal[Integer] 127[Int8], 32768[Word] -> [Boolean] Var $overflow on
   var  a: Int8 = 127;
   var  b: Word = 32768;
   var  r: Boolean;
@@ -4478,14 +4478,14 @@ code auto:618 not-equal[Int16] 127[Int8], 32768[Word] -> [Boolean] Var $overflow
 endcode
 varvalue r True
 
-code auto:619 not-equal[Int16] 127[Int8], 32768[Word] -> [Boolean] Left immediate $overflow on
+code auto:619 not-equal[Integer] 127[Int8], 32768[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 32768;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:620 not-equal[Int16] 127[Int8], 32768[Word] -> [Boolean] Right immediate $overflow on
+code auto:620 not-equal[Integer] 127[Int8], 32768[Word] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 127;
   var  r: Boolean;
   r := a <> 32768;
@@ -4499,7 +4499,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:622 not-equal[Int16] 127[Int8], 65535[Word] -> [Boolean] Var $overflow on
+code auto:622 not-equal[Integer] 127[Int8], 65535[Word] -> [Boolean] Var $overflow on
   var  a: Int8 = 127;
   var  b: Word = 65535;
   var  r: Boolean;
@@ -4507,14 +4507,14 @@ code auto:622 not-equal[Int16] 127[Int8], 65535[Word] -> [Boolean] Var $overflow
 endcode
 varvalue r True
 
-code auto:623 not-equal[Int16] 127[Int8], 65535[Word] -> [Boolean] Left immediate $overflow on
+code auto:623 not-equal[Integer] 127[Int8], 65535[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 65535;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:624 not-equal[Int16] 127[Int8], 65535[Word] -> [Boolean] Right immediate $overflow on
+code auto:624 not-equal[Integer] 127[Int8], 65535[Word] -> [Boolean] Right immediate $overflow on
   var  a: Int8 = 127;
   var  r: Boolean;
   r := a <> 65535;
@@ -5398,8997 +5398,8997 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:746 not-equal[Int16] -32768[Int16], -128[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32768;
+code auto:746 not-equal[Integer] -32768[Integer], -128[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = -32768;
   var  b: Int8 = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:747 not-equal[Int16] -32768[Int16], -128[Int8] -> [Boolean] Left immediate $overflow on
+code auto:747 not-equal[Integer] -32768[Integer], -128[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -128;
   var  r: Boolean;
   r := -32768 <> b;
 endcode
 varvalue r True
 
-code auto:748 not-equal[Int16] -32768[Int16], -128[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32768;
+code auto:748 not-equal[Integer] -32768[Integer], -128[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32768;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r True
 
-code auto:749 not-equal[compile-time] -32768[Int16], -128[Int8] -> [Boolean] Both immediate $overflow on
+code auto:749 not-equal[compile-time] -32768[Integer], -128[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32768 <> -128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:750 not-equal[Int16] -32768[Int16], -127[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32768;
+code auto:750 not-equal[Integer] -32768[Integer], -127[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = -32768;
   var  b: Int8 = -127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:751 not-equal[Int16] -32768[Int16], -127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:751 not-equal[Integer] -32768[Integer], -127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -127;
   var  r: Boolean;
   r := -32768 <> b;
 endcode
 varvalue r True
 
-code auto:752 not-equal[Int16] -32768[Int16], -127[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32768;
+code auto:752 not-equal[Integer] -32768[Integer], -127[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32768;
   var  r: Boolean;
   r := a <> -127;
 endcode
 varvalue r True
 
-code auto:753 not-equal[compile-time] -32768[Int16], -127[Int8] -> [Boolean] Both immediate $overflow on
+code auto:753 not-equal[compile-time] -32768[Integer], -127[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32768 <> -127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:754 not-equal[Int16] -32768[Int16], -1[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32768;
+code auto:754 not-equal[Integer] -32768[Integer], -1[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = -32768;
   var  b: Int8 = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:755 not-equal[Int16] -32768[Int16], -1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:755 not-equal[Integer] -32768[Integer], -1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -1;
   var  r: Boolean;
   r := -32768 <> b;
 endcode
 varvalue r True
 
-code auto:756 not-equal[Int16] -32768[Int16], -1[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32768;
+code auto:756 not-equal[Integer] -32768[Integer], -1[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32768;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r True
 
-code auto:757 not-equal[compile-time] -32768[Int16], -1[Int8] -> [Boolean] Both immediate $overflow on
+code auto:757 not-equal[compile-time] -32768[Integer], -1[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32768 <> -1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:758 not-equal[Int16] -32768[Int16], 0[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32768;
+code auto:758 not-equal[Integer] -32768[Integer], 0[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = -32768;
   var  b: Int8 = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:759 not-equal[Int16] -32768[Int16], 0[Int8] -> [Boolean] Left immediate $overflow on
+code auto:759 not-equal[Integer] -32768[Integer], 0[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 0;
   var  r: Boolean;
   r := -32768 <> b;
 endcode
 varvalue r True
 
-code auto:760 not-equal[Int16] -32768[Int16], 0[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32768;
+code auto:760 not-equal[Integer] -32768[Integer], 0[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32768;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:761 not-equal[compile-time] -32768[Int16], 0[Int8] -> [Boolean] Both immediate $overflow on
+code auto:761 not-equal[compile-time] -32768[Integer], 0[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32768 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:762 not-equal[Int16] -32768[Int16], 1[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32768;
+code auto:762 not-equal[Integer] -32768[Integer], 1[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = -32768;
   var  b: Int8 = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:763 not-equal[Int16] -32768[Int16], 1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:763 not-equal[Integer] -32768[Integer], 1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 1;
   var  r: Boolean;
   r := -32768 <> b;
 endcode
 varvalue r True
 
-code auto:764 not-equal[Int16] -32768[Int16], 1[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32768;
+code auto:764 not-equal[Integer] -32768[Integer], 1[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32768;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:765 not-equal[compile-time] -32768[Int16], 1[Int8] -> [Boolean] Both immediate $overflow on
+code auto:765 not-equal[compile-time] -32768[Integer], 1[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32768 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:766 not-equal[Int16] -32768[Int16], 127[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32768;
+code auto:766 not-equal[Integer] -32768[Integer], 127[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = -32768;
   var  b: Int8 = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:767 not-equal[Int16] -32768[Int16], 127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:767 not-equal[Integer] -32768[Integer], 127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 127;
   var  r: Boolean;
   r := -32768 <> b;
 endcode
 varvalue r True
 
-code auto:768 not-equal[Int16] -32768[Int16], 127[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32768;
+code auto:768 not-equal[Integer] -32768[Integer], 127[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32768;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:769 not-equal[compile-time] -32768[Int16], 127[Int8] -> [Boolean] Both immediate $overflow on
+code auto:769 not-equal[compile-time] -32768[Integer], 127[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32768 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:770 not-equal[Int16] -32767[Int16], -128[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32767;
+code auto:770 not-equal[Integer] -32767[Integer], -128[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = -32767;
   var  b: Int8 = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:771 not-equal[Int16] -32767[Int16], -128[Int8] -> [Boolean] Left immediate $overflow on
+code auto:771 not-equal[Integer] -32767[Integer], -128[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -128;
   var  r: Boolean;
   r := -32767 <> b;
 endcode
 varvalue r True
 
-code auto:772 not-equal[Int16] -32767[Int16], -128[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32767;
+code auto:772 not-equal[Integer] -32767[Integer], -128[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32767;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r True
 
-code auto:773 not-equal[compile-time] -32767[Int16], -128[Int8] -> [Boolean] Both immediate $overflow on
+code auto:773 not-equal[compile-time] -32767[Integer], -128[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32767 <> -128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:774 not-equal[Int16] -32767[Int16], -127[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32767;
+code auto:774 not-equal[Integer] -32767[Integer], -127[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = -32767;
   var  b: Int8 = -127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:775 not-equal[Int16] -32767[Int16], -127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:775 not-equal[Integer] -32767[Integer], -127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -127;
   var  r: Boolean;
   r := -32767 <> b;
 endcode
 varvalue r True
 
-code auto:776 not-equal[Int16] -32767[Int16], -127[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32767;
+code auto:776 not-equal[Integer] -32767[Integer], -127[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32767;
   var  r: Boolean;
   r := a <> -127;
 endcode
 varvalue r True
 
-code auto:777 not-equal[compile-time] -32767[Int16], -127[Int8] -> [Boolean] Both immediate $overflow on
+code auto:777 not-equal[compile-time] -32767[Integer], -127[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32767 <> -127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:778 not-equal[Int16] -32767[Int16], -1[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32767;
+code auto:778 not-equal[Integer] -32767[Integer], -1[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = -32767;
   var  b: Int8 = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:779 not-equal[Int16] -32767[Int16], -1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:779 not-equal[Integer] -32767[Integer], -1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -1;
   var  r: Boolean;
   r := -32767 <> b;
 endcode
 varvalue r True
 
-code auto:780 not-equal[Int16] -32767[Int16], -1[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32767;
+code auto:780 not-equal[Integer] -32767[Integer], -1[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32767;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r True
 
-code auto:781 not-equal[compile-time] -32767[Int16], -1[Int8] -> [Boolean] Both immediate $overflow on
+code auto:781 not-equal[compile-time] -32767[Integer], -1[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32767 <> -1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:782 not-equal[Int16] -32767[Int16], 0[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32767;
+code auto:782 not-equal[Integer] -32767[Integer], 0[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = -32767;
   var  b: Int8 = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:783 not-equal[Int16] -32767[Int16], 0[Int8] -> [Boolean] Left immediate $overflow on
+code auto:783 not-equal[Integer] -32767[Integer], 0[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 0;
   var  r: Boolean;
   r := -32767 <> b;
 endcode
 varvalue r True
 
-code auto:784 not-equal[Int16] -32767[Int16], 0[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32767;
+code auto:784 not-equal[Integer] -32767[Integer], 0[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32767;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:785 not-equal[compile-time] -32767[Int16], 0[Int8] -> [Boolean] Both immediate $overflow on
+code auto:785 not-equal[compile-time] -32767[Integer], 0[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32767 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:786 not-equal[Int16] -32767[Int16], 1[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32767;
+code auto:786 not-equal[Integer] -32767[Integer], 1[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = -32767;
   var  b: Int8 = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:787 not-equal[Int16] -32767[Int16], 1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:787 not-equal[Integer] -32767[Integer], 1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 1;
   var  r: Boolean;
   r := -32767 <> b;
 endcode
 varvalue r True
 
-code auto:788 not-equal[Int16] -32767[Int16], 1[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32767;
+code auto:788 not-equal[Integer] -32767[Integer], 1[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32767;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:789 not-equal[compile-time] -32767[Int16], 1[Int8] -> [Boolean] Both immediate $overflow on
+code auto:789 not-equal[compile-time] -32767[Integer], 1[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32767 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:790 not-equal[Int16] -32767[Int16], 127[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32767;
+code auto:790 not-equal[Integer] -32767[Integer], 127[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = -32767;
   var  b: Int8 = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:791 not-equal[Int16] -32767[Int16], 127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:791 not-equal[Integer] -32767[Integer], 127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 127;
   var  r: Boolean;
   r := -32767 <> b;
 endcode
 varvalue r True
 
-code auto:792 not-equal[Int16] -32767[Int16], 127[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32767;
+code auto:792 not-equal[Integer] -32767[Integer], 127[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32767;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:793 not-equal[compile-time] -32767[Int16], 127[Int8] -> [Boolean] Both immediate $overflow on
+code auto:793 not-equal[compile-time] -32767[Integer], 127[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32767 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:794 not-equal[Int16] -129[Int16], -128[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = -129;
+code auto:794 not-equal[Integer] -129[Integer], -128[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = -129;
   var  b: Int8 = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:795 not-equal[Int16] -129[Int16], -128[Int8] -> [Boolean] Left immediate $overflow on
+code auto:795 not-equal[Integer] -129[Integer], -128[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -128;
   var  r: Boolean;
   r := -129 <> b;
 endcode
 varvalue r True
 
-code auto:796 not-equal[Int16] -129[Int16], -128[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -129;
+code auto:796 not-equal[Integer] -129[Integer], -128[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -129;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r True
 
-code auto:797 not-equal[compile-time] -129[Int16], -128[Int8] -> [Boolean] Both immediate $overflow on
+code auto:797 not-equal[compile-time] -129[Integer], -128[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -129 <> -128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:798 not-equal[Int16] -129[Int16], -127[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = -129;
+code auto:798 not-equal[Integer] -129[Integer], -127[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = -129;
   var  b: Int8 = -127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:799 not-equal[Int16] -129[Int16], -127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:799 not-equal[Integer] -129[Integer], -127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -127;
   var  r: Boolean;
   r := -129 <> b;
 endcode
 varvalue r True
 
-code auto:800 not-equal[Int16] -129[Int16], -127[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -129;
+code auto:800 not-equal[Integer] -129[Integer], -127[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -129;
   var  r: Boolean;
   r := a <> -127;
 endcode
 varvalue r True
 
-code auto:801 not-equal[compile-time] -129[Int16], -127[Int8] -> [Boolean] Both immediate $overflow on
+code auto:801 not-equal[compile-time] -129[Integer], -127[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -129 <> -127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:802 not-equal[Int16] -129[Int16], -1[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = -129;
+code auto:802 not-equal[Integer] -129[Integer], -1[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = -129;
   var  b: Int8 = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:803 not-equal[Int16] -129[Int16], -1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:803 not-equal[Integer] -129[Integer], -1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -1;
   var  r: Boolean;
   r := -129 <> b;
 endcode
 varvalue r True
 
-code auto:804 not-equal[Int16] -129[Int16], -1[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -129;
+code auto:804 not-equal[Integer] -129[Integer], -1[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -129;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r True
 
-code auto:805 not-equal[compile-time] -129[Int16], -1[Int8] -> [Boolean] Both immediate $overflow on
+code auto:805 not-equal[compile-time] -129[Integer], -1[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -129 <> -1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:806 not-equal[Int16] -129[Int16], 0[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = -129;
+code auto:806 not-equal[Integer] -129[Integer], 0[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = -129;
   var  b: Int8 = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:807 not-equal[Int16] -129[Int16], 0[Int8] -> [Boolean] Left immediate $overflow on
+code auto:807 not-equal[Integer] -129[Integer], 0[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 0;
   var  r: Boolean;
   r := -129 <> b;
 endcode
 varvalue r True
 
-code auto:808 not-equal[Int16] -129[Int16], 0[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -129;
+code auto:808 not-equal[Integer] -129[Integer], 0[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -129;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:809 not-equal[compile-time] -129[Int16], 0[Int8] -> [Boolean] Both immediate $overflow on
+code auto:809 not-equal[compile-time] -129[Integer], 0[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -129 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:810 not-equal[Int16] -129[Int16], 1[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = -129;
+code auto:810 not-equal[Integer] -129[Integer], 1[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = -129;
   var  b: Int8 = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:811 not-equal[Int16] -129[Int16], 1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:811 not-equal[Integer] -129[Integer], 1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 1;
   var  r: Boolean;
   r := -129 <> b;
 endcode
 varvalue r True
 
-code auto:812 not-equal[Int16] -129[Int16], 1[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -129;
+code auto:812 not-equal[Integer] -129[Integer], 1[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -129;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:813 not-equal[compile-time] -129[Int16], 1[Int8] -> [Boolean] Both immediate $overflow on
+code auto:813 not-equal[compile-time] -129[Integer], 1[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -129 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:814 not-equal[Int16] -129[Int16], 127[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = -129;
+code auto:814 not-equal[Integer] -129[Integer], 127[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = -129;
   var  b: Int8 = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:815 not-equal[Int16] -129[Int16], 127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:815 not-equal[Integer] -129[Integer], 127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 127;
   var  r: Boolean;
   r := -129 <> b;
 endcode
 varvalue r True
 
-code auto:816 not-equal[Int16] -129[Int16], 127[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -129;
+code auto:816 not-equal[Integer] -129[Integer], 127[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -129;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:817 not-equal[compile-time] -129[Int16], 127[Int8] -> [Boolean] Both immediate $overflow on
+code auto:817 not-equal[compile-time] -129[Integer], 127[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -129 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:818 not-equal[Int16] -128[Int16], -128[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = -128;
+code auto:818 not-equal[Integer] -128[Integer], -128[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = -128;
   var  b: Int8 = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r False
 
-code auto:819 not-equal[Int16] -128[Int16], -128[Int8] -> [Boolean] Left immediate $overflow on
+code auto:819 not-equal[Integer] -128[Integer], -128[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -128;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r False
 
-code auto:820 not-equal[Int16] -128[Int16], -128[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -128;
+code auto:820 not-equal[Integer] -128[Integer], -128[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -128;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r False
 
-code auto:821 not-equal[compile-time] -128[Int16], -128[Int8] -> [Boolean] Both immediate $overflow on
+code auto:821 not-equal[compile-time] -128[Integer], -128[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> -128;
 endcode
 varvalue r False
 
 $overflow on
-code auto:822 not-equal[Int16] -128[Int16], -127[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = -128;
+code auto:822 not-equal[Integer] -128[Integer], -127[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = -128;
   var  b: Int8 = -127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:823 not-equal[Int16] -128[Int16], -127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:823 not-equal[Integer] -128[Integer], -127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -127;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:824 not-equal[Int16] -128[Int16], -127[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -128;
+code auto:824 not-equal[Integer] -128[Integer], -127[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -128;
   var  r: Boolean;
   r := a <> -127;
 endcode
 varvalue r True
 
-code auto:825 not-equal[compile-time] -128[Int16], -127[Int8] -> [Boolean] Both immediate $overflow on
+code auto:825 not-equal[compile-time] -128[Integer], -127[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> -127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:826 not-equal[Int16] -128[Int16], -1[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = -128;
+code auto:826 not-equal[Integer] -128[Integer], -1[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = -128;
   var  b: Int8 = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:827 not-equal[Int16] -128[Int16], -1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:827 not-equal[Integer] -128[Integer], -1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -1;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:828 not-equal[Int16] -128[Int16], -1[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -128;
+code auto:828 not-equal[Integer] -128[Integer], -1[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -128;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r True
 
-code auto:829 not-equal[compile-time] -128[Int16], -1[Int8] -> [Boolean] Both immediate $overflow on
+code auto:829 not-equal[compile-time] -128[Integer], -1[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> -1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:830 not-equal[Int16] -128[Int16], 0[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = -128;
+code auto:830 not-equal[Integer] -128[Integer], 0[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = -128;
   var  b: Int8 = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:831 not-equal[Int16] -128[Int16], 0[Int8] -> [Boolean] Left immediate $overflow on
+code auto:831 not-equal[Integer] -128[Integer], 0[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 0;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:832 not-equal[Int16] -128[Int16], 0[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -128;
+code auto:832 not-equal[Integer] -128[Integer], 0[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -128;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:833 not-equal[compile-time] -128[Int16], 0[Int8] -> [Boolean] Both immediate $overflow on
+code auto:833 not-equal[compile-time] -128[Integer], 0[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:834 not-equal[Int16] -128[Int16], 1[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = -128;
+code auto:834 not-equal[Integer] -128[Integer], 1[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = -128;
   var  b: Int8 = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:835 not-equal[Int16] -128[Int16], 1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:835 not-equal[Integer] -128[Integer], 1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 1;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:836 not-equal[Int16] -128[Int16], 1[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -128;
+code auto:836 not-equal[Integer] -128[Integer], 1[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -128;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:837 not-equal[compile-time] -128[Int16], 1[Int8] -> [Boolean] Both immediate $overflow on
+code auto:837 not-equal[compile-time] -128[Integer], 1[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:838 not-equal[Int16] -128[Int16], 127[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = -128;
+code auto:838 not-equal[Integer] -128[Integer], 127[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = -128;
   var  b: Int8 = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:839 not-equal[Int16] -128[Int16], 127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:839 not-equal[Integer] -128[Integer], 127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 127;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:840 not-equal[Int16] -128[Int16], 127[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -128;
+code auto:840 not-equal[Integer] -128[Integer], 127[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -128;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:841 not-equal[compile-time] -128[Int16], 127[Int8] -> [Boolean] Both immediate $overflow on
+code auto:841 not-equal[compile-time] -128[Integer], 127[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:842 not-equal[Int16] -1[Int16], -128[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = -1;
+code auto:842 not-equal[Integer] -1[Integer], -128[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = -1;
   var  b: Int8 = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:843 not-equal[Int16] -1[Int16], -128[Int8] -> [Boolean] Left immediate $overflow on
+code auto:843 not-equal[Integer] -1[Integer], -128[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -128;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:844 not-equal[Int16] -1[Int16], -128[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -1;
+code auto:844 not-equal[Integer] -1[Integer], -128[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -1;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r True
 
-code auto:845 not-equal[compile-time] -1[Int16], -128[Int8] -> [Boolean] Both immediate $overflow on
+code auto:845 not-equal[compile-time] -1[Integer], -128[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> -128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:846 not-equal[Int16] -1[Int16], -127[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = -1;
+code auto:846 not-equal[Integer] -1[Integer], -127[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = -1;
   var  b: Int8 = -127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:847 not-equal[Int16] -1[Int16], -127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:847 not-equal[Integer] -1[Integer], -127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -127;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:848 not-equal[Int16] -1[Int16], -127[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -1;
+code auto:848 not-equal[Integer] -1[Integer], -127[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -1;
   var  r: Boolean;
   r := a <> -127;
 endcode
 varvalue r True
 
-code auto:849 not-equal[compile-time] -1[Int16], -127[Int8] -> [Boolean] Both immediate $overflow on
+code auto:849 not-equal[compile-time] -1[Integer], -127[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> -127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:850 not-equal[Int16] -1[Int16], -1[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = -1;
+code auto:850 not-equal[Integer] -1[Integer], -1[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = -1;
   var  b: Int8 = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r False
 
-code auto:851 not-equal[Int16] -1[Int16], -1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:851 not-equal[Integer] -1[Integer], -1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -1;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r False
 
-code auto:852 not-equal[Int16] -1[Int16], -1[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -1;
+code auto:852 not-equal[Integer] -1[Integer], -1[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -1;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r False
 
-code auto:853 not-equal[compile-time] -1[Int16], -1[Int8] -> [Boolean] Both immediate $overflow on
+code auto:853 not-equal[compile-time] -1[Integer], -1[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> -1;
 endcode
 varvalue r False
 
 $overflow on
-code auto:854 not-equal[Int16] -1[Int16], 0[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = -1;
+code auto:854 not-equal[Integer] -1[Integer], 0[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = -1;
   var  b: Int8 = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:855 not-equal[Int16] -1[Int16], 0[Int8] -> [Boolean] Left immediate $overflow on
+code auto:855 not-equal[Integer] -1[Integer], 0[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 0;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:856 not-equal[Int16] -1[Int16], 0[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -1;
+code auto:856 not-equal[Integer] -1[Integer], 0[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -1;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:857 not-equal[compile-time] -1[Int16], 0[Int8] -> [Boolean] Both immediate $overflow on
+code auto:857 not-equal[compile-time] -1[Integer], 0[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:858 not-equal[Int16] -1[Int16], 1[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = -1;
+code auto:858 not-equal[Integer] -1[Integer], 1[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = -1;
   var  b: Int8 = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:859 not-equal[Int16] -1[Int16], 1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:859 not-equal[Integer] -1[Integer], 1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 1;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:860 not-equal[Int16] -1[Int16], 1[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -1;
+code auto:860 not-equal[Integer] -1[Integer], 1[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -1;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:861 not-equal[compile-time] -1[Int16], 1[Int8] -> [Boolean] Both immediate $overflow on
+code auto:861 not-equal[compile-time] -1[Integer], 1[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:862 not-equal[Int16] -1[Int16], 127[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = -1;
+code auto:862 not-equal[Integer] -1[Integer], 127[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = -1;
   var  b: Int8 = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:863 not-equal[Int16] -1[Int16], 127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:863 not-equal[Integer] -1[Integer], 127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 127;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:864 not-equal[Int16] -1[Int16], 127[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -1;
+code auto:864 not-equal[Integer] -1[Integer], 127[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -1;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:865 not-equal[compile-time] -1[Int16], 127[Int8] -> [Boolean] Both immediate $overflow on
+code auto:865 not-equal[compile-time] -1[Integer], 127[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:866 not-equal[Int16] 0[Int16], -128[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = 0;
+code auto:866 not-equal[Integer] 0[Integer], -128[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = 0;
   var  b: Int8 = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:867 not-equal[Int16] 0[Int16], -128[Int8] -> [Boolean] Left immediate $overflow on
+code auto:867 not-equal[Integer] 0[Integer], -128[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -128;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:868 not-equal[Int16] 0[Int16], -128[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 0;
+code auto:868 not-equal[Integer] 0[Integer], -128[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 0;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r True
 
-code auto:869 not-equal[compile-time] 0[Int16], -128[Int8] -> [Boolean] Both immediate $overflow on
+code auto:869 not-equal[compile-time] 0[Integer], -128[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> -128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:870 not-equal[Int16] 0[Int16], -127[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = 0;
+code auto:870 not-equal[Integer] 0[Integer], -127[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = 0;
   var  b: Int8 = -127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:871 not-equal[Int16] 0[Int16], -127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:871 not-equal[Integer] 0[Integer], -127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -127;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:872 not-equal[Int16] 0[Int16], -127[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 0;
+code auto:872 not-equal[Integer] 0[Integer], -127[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 0;
   var  r: Boolean;
   r := a <> -127;
 endcode
 varvalue r True
 
-code auto:873 not-equal[compile-time] 0[Int16], -127[Int8] -> [Boolean] Both immediate $overflow on
+code auto:873 not-equal[compile-time] 0[Integer], -127[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> -127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:874 not-equal[Int16] 0[Int16], -1[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = 0;
+code auto:874 not-equal[Integer] 0[Integer], -1[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = 0;
   var  b: Int8 = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:875 not-equal[Int16] 0[Int16], -1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:875 not-equal[Integer] 0[Integer], -1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -1;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:876 not-equal[Int16] 0[Int16], -1[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 0;
+code auto:876 not-equal[Integer] 0[Integer], -1[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 0;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r True
 
-code auto:877 not-equal[compile-time] 0[Int16], -1[Int8] -> [Boolean] Both immediate $overflow on
+code auto:877 not-equal[compile-time] 0[Integer], -1[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> -1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:878 not-equal[Int16] 0[Int16], 0[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = 0;
+code auto:878 not-equal[Integer] 0[Integer], 0[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = 0;
   var  b: Int8 = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r False
 
-code auto:879 not-equal[Int16] 0[Int16], 0[Int8] -> [Boolean] Left immediate $overflow on
+code auto:879 not-equal[Integer] 0[Integer], 0[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 0;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r False
 
-code auto:880 not-equal[Int16] 0[Int16], 0[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 0;
+code auto:880 not-equal[Integer] 0[Integer], 0[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 0;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r False
 
-code auto:881 not-equal[compile-time] 0[Int16], 0[Int8] -> [Boolean] Both immediate $overflow on
+code auto:881 not-equal[compile-time] 0[Integer], 0[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 0;
 endcode
 varvalue r False
 
 $overflow on
-code auto:882 not-equal[Int16] 0[Int16], 1[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = 0;
+code auto:882 not-equal[Integer] 0[Integer], 1[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = 0;
   var  b: Int8 = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:883 not-equal[Int16] 0[Int16], 1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:883 not-equal[Integer] 0[Integer], 1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 1;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:884 not-equal[Int16] 0[Int16], 1[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 0;
+code auto:884 not-equal[Integer] 0[Integer], 1[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 0;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:885 not-equal[compile-time] 0[Int16], 1[Int8] -> [Boolean] Both immediate $overflow on
+code auto:885 not-equal[compile-time] 0[Integer], 1[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:886 not-equal[Int16] 0[Int16], 127[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = 0;
+code auto:886 not-equal[Integer] 0[Integer], 127[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = 0;
   var  b: Int8 = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:887 not-equal[Int16] 0[Int16], 127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:887 not-equal[Integer] 0[Integer], 127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 127;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:888 not-equal[Int16] 0[Int16], 127[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 0;
+code auto:888 not-equal[Integer] 0[Integer], 127[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 0;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:889 not-equal[compile-time] 0[Int16], 127[Int8] -> [Boolean] Both immediate $overflow on
+code auto:889 not-equal[compile-time] 0[Integer], 127[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:890 not-equal[Int16] 1[Int16], -128[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = 1;
+code auto:890 not-equal[Integer] 1[Integer], -128[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = 1;
   var  b: Int8 = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:891 not-equal[Int16] 1[Int16], -128[Int8] -> [Boolean] Left immediate $overflow on
+code auto:891 not-equal[Integer] 1[Integer], -128[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -128;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:892 not-equal[Int16] 1[Int16], -128[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 1;
+code auto:892 not-equal[Integer] 1[Integer], -128[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 1;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r True
 
-code auto:893 not-equal[compile-time] 1[Int16], -128[Int8] -> [Boolean] Both immediate $overflow on
+code auto:893 not-equal[compile-time] 1[Integer], -128[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> -128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:894 not-equal[Int16] 1[Int16], -127[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = 1;
+code auto:894 not-equal[Integer] 1[Integer], -127[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = 1;
   var  b: Int8 = -127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:895 not-equal[Int16] 1[Int16], -127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:895 not-equal[Integer] 1[Integer], -127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -127;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:896 not-equal[Int16] 1[Int16], -127[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 1;
+code auto:896 not-equal[Integer] 1[Integer], -127[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 1;
   var  r: Boolean;
   r := a <> -127;
 endcode
 varvalue r True
 
-code auto:897 not-equal[compile-time] 1[Int16], -127[Int8] -> [Boolean] Both immediate $overflow on
+code auto:897 not-equal[compile-time] 1[Integer], -127[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> -127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:898 not-equal[Int16] 1[Int16], -1[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = 1;
+code auto:898 not-equal[Integer] 1[Integer], -1[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = 1;
   var  b: Int8 = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:899 not-equal[Int16] 1[Int16], -1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:899 not-equal[Integer] 1[Integer], -1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -1;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:900 not-equal[Int16] 1[Int16], -1[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 1;
+code auto:900 not-equal[Integer] 1[Integer], -1[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 1;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r True
 
-code auto:901 not-equal[compile-time] 1[Int16], -1[Int8] -> [Boolean] Both immediate $overflow on
+code auto:901 not-equal[compile-time] 1[Integer], -1[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> -1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:902 not-equal[Int16] 1[Int16], 0[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = 1;
+code auto:902 not-equal[Integer] 1[Integer], 0[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = 1;
   var  b: Int8 = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:903 not-equal[Int16] 1[Int16], 0[Int8] -> [Boolean] Left immediate $overflow on
+code auto:903 not-equal[Integer] 1[Integer], 0[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 0;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:904 not-equal[Int16] 1[Int16], 0[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 1;
+code auto:904 not-equal[Integer] 1[Integer], 0[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 1;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:905 not-equal[compile-time] 1[Int16], 0[Int8] -> [Boolean] Both immediate $overflow on
+code auto:905 not-equal[compile-time] 1[Integer], 0[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:906 not-equal[Int16] 1[Int16], 1[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = 1;
+code auto:906 not-equal[Integer] 1[Integer], 1[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = 1;
   var  b: Int8 = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r False
 
-code auto:907 not-equal[Int16] 1[Int16], 1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:907 not-equal[Integer] 1[Integer], 1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 1;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r False
 
-code auto:908 not-equal[Int16] 1[Int16], 1[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 1;
+code auto:908 not-equal[Integer] 1[Integer], 1[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 1;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r False
 
-code auto:909 not-equal[compile-time] 1[Int16], 1[Int8] -> [Boolean] Both immediate $overflow on
+code auto:909 not-equal[compile-time] 1[Integer], 1[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> 1;
 endcode
 varvalue r False
 
 $overflow on
-code auto:910 not-equal[Int16] 1[Int16], 127[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = 1;
+code auto:910 not-equal[Integer] 1[Integer], 127[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = 1;
   var  b: Int8 = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:911 not-equal[Int16] 1[Int16], 127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:911 not-equal[Integer] 1[Integer], 127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 127;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:912 not-equal[Int16] 1[Int16], 127[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 1;
+code auto:912 not-equal[Integer] 1[Integer], 127[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 1;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:913 not-equal[compile-time] 1[Int16], 127[Int8] -> [Boolean] Both immediate $overflow on
+code auto:913 not-equal[compile-time] 1[Integer], 127[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:914 not-equal[Int16] 127[Int16], -128[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = 127;
+code auto:914 not-equal[Integer] 127[Integer], -128[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = 127;
   var  b: Int8 = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:915 not-equal[Int16] 127[Int16], -128[Int8] -> [Boolean] Left immediate $overflow on
+code auto:915 not-equal[Integer] 127[Integer], -128[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -128;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:916 not-equal[Int16] 127[Int16], -128[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 127;
+code auto:916 not-equal[Integer] 127[Integer], -128[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 127;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r True
 
-code auto:917 not-equal[compile-time] 127[Int16], -128[Int8] -> [Boolean] Both immediate $overflow on
+code auto:917 not-equal[compile-time] 127[Integer], -128[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> -128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:918 not-equal[Int16] 127[Int16], -127[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = 127;
+code auto:918 not-equal[Integer] 127[Integer], -127[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = 127;
   var  b: Int8 = -127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:919 not-equal[Int16] 127[Int16], -127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:919 not-equal[Integer] 127[Integer], -127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -127;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:920 not-equal[Int16] 127[Int16], -127[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 127;
+code auto:920 not-equal[Integer] 127[Integer], -127[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 127;
   var  r: Boolean;
   r := a <> -127;
 endcode
 varvalue r True
 
-code auto:921 not-equal[compile-time] 127[Int16], -127[Int8] -> [Boolean] Both immediate $overflow on
+code auto:921 not-equal[compile-time] 127[Integer], -127[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> -127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:922 not-equal[Int16] 127[Int16], -1[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = 127;
+code auto:922 not-equal[Integer] 127[Integer], -1[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = 127;
   var  b: Int8 = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:923 not-equal[Int16] 127[Int16], -1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:923 not-equal[Integer] 127[Integer], -1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -1;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:924 not-equal[Int16] 127[Int16], -1[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 127;
+code auto:924 not-equal[Integer] 127[Integer], -1[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 127;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r True
 
-code auto:925 not-equal[compile-time] 127[Int16], -1[Int8] -> [Boolean] Both immediate $overflow on
+code auto:925 not-equal[compile-time] 127[Integer], -1[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> -1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:926 not-equal[Int16] 127[Int16], 0[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = 127;
+code auto:926 not-equal[Integer] 127[Integer], 0[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = 127;
   var  b: Int8 = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:927 not-equal[Int16] 127[Int16], 0[Int8] -> [Boolean] Left immediate $overflow on
+code auto:927 not-equal[Integer] 127[Integer], 0[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 0;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:928 not-equal[Int16] 127[Int16], 0[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 127;
+code auto:928 not-equal[Integer] 127[Integer], 0[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 127;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:929 not-equal[compile-time] 127[Int16], 0[Int8] -> [Boolean] Both immediate $overflow on
+code auto:929 not-equal[compile-time] 127[Integer], 0[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:930 not-equal[Int16] 127[Int16], 1[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = 127;
+code auto:930 not-equal[Integer] 127[Integer], 1[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = 127;
   var  b: Int8 = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:931 not-equal[Int16] 127[Int16], 1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:931 not-equal[Integer] 127[Integer], 1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 1;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:932 not-equal[Int16] 127[Int16], 1[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 127;
+code auto:932 not-equal[Integer] 127[Integer], 1[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 127;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:933 not-equal[compile-time] 127[Int16], 1[Int8] -> [Boolean] Both immediate $overflow on
+code auto:933 not-equal[compile-time] 127[Integer], 1[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:934 not-equal[Int16] 127[Int16], 127[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = 127;
+code auto:934 not-equal[Integer] 127[Integer], 127[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = 127;
   var  b: Int8 = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r False
 
-code auto:935 not-equal[Int16] 127[Int16], 127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:935 not-equal[Integer] 127[Integer], 127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 127;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r False
 
-code auto:936 not-equal[Int16] 127[Int16], 127[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 127;
+code auto:936 not-equal[Integer] 127[Integer], 127[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 127;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r False
 
-code auto:937 not-equal[compile-time] 127[Int16], 127[Int8] -> [Boolean] Both immediate $overflow on
+code auto:937 not-equal[compile-time] 127[Integer], 127[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> 127;
 endcode
 varvalue r False
 
 $overflow on
-code auto:938 not-equal[Int16] 128[Int16], -128[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = 128;
+code auto:938 not-equal[Integer] 128[Integer], -128[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = 128;
   var  b: Int8 = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:939 not-equal[Int16] 128[Int16], -128[Int8] -> [Boolean] Left immediate $overflow on
+code auto:939 not-equal[Integer] 128[Integer], -128[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -128;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:940 not-equal[Int16] 128[Int16], -128[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 128;
+code auto:940 not-equal[Integer] 128[Integer], -128[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 128;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r True
 
-code auto:941 not-equal[compile-time] 128[Int16], -128[Int8] -> [Boolean] Both immediate $overflow on
+code auto:941 not-equal[compile-time] 128[Integer], -128[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> -128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:942 not-equal[Int16] 128[Int16], -127[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = 128;
+code auto:942 not-equal[Integer] 128[Integer], -127[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = 128;
   var  b: Int8 = -127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:943 not-equal[Int16] 128[Int16], -127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:943 not-equal[Integer] 128[Integer], -127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -127;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:944 not-equal[Int16] 128[Int16], -127[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 128;
+code auto:944 not-equal[Integer] 128[Integer], -127[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 128;
   var  r: Boolean;
   r := a <> -127;
 endcode
 varvalue r True
 
-code auto:945 not-equal[compile-time] 128[Int16], -127[Int8] -> [Boolean] Both immediate $overflow on
+code auto:945 not-equal[compile-time] 128[Integer], -127[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> -127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:946 not-equal[Int16] 128[Int16], -1[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = 128;
+code auto:946 not-equal[Integer] 128[Integer], -1[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = 128;
   var  b: Int8 = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:947 not-equal[Int16] 128[Int16], -1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:947 not-equal[Integer] 128[Integer], -1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -1;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:948 not-equal[Int16] 128[Int16], -1[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 128;
+code auto:948 not-equal[Integer] 128[Integer], -1[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 128;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r True
 
-code auto:949 not-equal[compile-time] 128[Int16], -1[Int8] -> [Boolean] Both immediate $overflow on
+code auto:949 not-equal[compile-time] 128[Integer], -1[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> -1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:950 not-equal[Int16] 128[Int16], 0[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = 128;
+code auto:950 not-equal[Integer] 128[Integer], 0[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = 128;
   var  b: Int8 = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:951 not-equal[Int16] 128[Int16], 0[Int8] -> [Boolean] Left immediate $overflow on
+code auto:951 not-equal[Integer] 128[Integer], 0[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 0;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:952 not-equal[Int16] 128[Int16], 0[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 128;
+code auto:952 not-equal[Integer] 128[Integer], 0[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 128;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:953 not-equal[compile-time] 128[Int16], 0[Int8] -> [Boolean] Both immediate $overflow on
+code auto:953 not-equal[compile-time] 128[Integer], 0[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:954 not-equal[Int16] 128[Int16], 1[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = 128;
+code auto:954 not-equal[Integer] 128[Integer], 1[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = 128;
   var  b: Int8 = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:955 not-equal[Int16] 128[Int16], 1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:955 not-equal[Integer] 128[Integer], 1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 1;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:956 not-equal[Int16] 128[Int16], 1[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 128;
+code auto:956 not-equal[Integer] 128[Integer], 1[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 128;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:957 not-equal[compile-time] 128[Int16], 1[Int8] -> [Boolean] Both immediate $overflow on
+code auto:957 not-equal[compile-time] 128[Integer], 1[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:958 not-equal[Int16] 128[Int16], 127[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = 128;
+code auto:958 not-equal[Integer] 128[Integer], 127[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = 128;
   var  b: Int8 = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:959 not-equal[Int16] 128[Int16], 127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:959 not-equal[Integer] 128[Integer], 127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 127;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:960 not-equal[Int16] 128[Int16], 127[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 128;
+code auto:960 not-equal[Integer] 128[Integer], 127[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 128;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:961 not-equal[compile-time] 128[Int16], 127[Int8] -> [Boolean] Both immediate $overflow on
+code auto:961 not-equal[compile-time] 128[Integer], 127[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:962 not-equal[Int16] 32767[Int16], -128[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = 32767;
+code auto:962 not-equal[Integer] 32767[Integer], -128[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = 32767;
   var  b: Int8 = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:963 not-equal[Int16] 32767[Int16], -128[Int8] -> [Boolean] Left immediate $overflow on
+code auto:963 not-equal[Integer] 32767[Integer], -128[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -128;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:964 not-equal[Int16] 32767[Int16], -128[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 32767;
+code auto:964 not-equal[Integer] 32767[Integer], -128[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 32767;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r True
 
-code auto:965 not-equal[compile-time] 32767[Int16], -128[Int8] -> [Boolean] Both immediate $overflow on
+code auto:965 not-equal[compile-time] 32767[Integer], -128[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> -128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:966 not-equal[Int16] 32767[Int16], -127[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = 32767;
+code auto:966 not-equal[Integer] 32767[Integer], -127[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = 32767;
   var  b: Int8 = -127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:967 not-equal[Int16] 32767[Int16], -127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:967 not-equal[Integer] 32767[Integer], -127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -127;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:968 not-equal[Int16] 32767[Int16], -127[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 32767;
+code auto:968 not-equal[Integer] 32767[Integer], -127[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 32767;
   var  r: Boolean;
   r := a <> -127;
 endcode
 varvalue r True
 
-code auto:969 not-equal[compile-time] 32767[Int16], -127[Int8] -> [Boolean] Both immediate $overflow on
+code auto:969 not-equal[compile-time] 32767[Integer], -127[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> -127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:970 not-equal[Int16] 32767[Int16], -1[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = 32767;
+code auto:970 not-equal[Integer] 32767[Integer], -1[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = 32767;
   var  b: Int8 = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:971 not-equal[Int16] 32767[Int16], -1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:971 not-equal[Integer] 32767[Integer], -1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -1;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:972 not-equal[Int16] 32767[Int16], -1[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 32767;
+code auto:972 not-equal[Integer] 32767[Integer], -1[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 32767;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r True
 
-code auto:973 not-equal[compile-time] 32767[Int16], -1[Int8] -> [Boolean] Both immediate $overflow on
+code auto:973 not-equal[compile-time] 32767[Integer], -1[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> -1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:974 not-equal[Int16] 32767[Int16], 0[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = 32767;
+code auto:974 not-equal[Integer] 32767[Integer], 0[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = 32767;
   var  b: Int8 = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:975 not-equal[Int16] 32767[Int16], 0[Int8] -> [Boolean] Left immediate $overflow on
+code auto:975 not-equal[Integer] 32767[Integer], 0[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 0;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:976 not-equal[Int16] 32767[Int16], 0[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 32767;
+code auto:976 not-equal[Integer] 32767[Integer], 0[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 32767;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:977 not-equal[compile-time] 32767[Int16], 0[Int8] -> [Boolean] Both immediate $overflow on
+code auto:977 not-equal[compile-time] 32767[Integer], 0[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:978 not-equal[Int16] 32767[Int16], 1[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = 32767;
+code auto:978 not-equal[Integer] 32767[Integer], 1[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = 32767;
   var  b: Int8 = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:979 not-equal[Int16] 32767[Int16], 1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:979 not-equal[Integer] 32767[Integer], 1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 1;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:980 not-equal[Int16] 32767[Int16], 1[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 32767;
+code auto:980 not-equal[Integer] 32767[Integer], 1[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 32767;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:981 not-equal[compile-time] 32767[Int16], 1[Int8] -> [Boolean] Both immediate $overflow on
+code auto:981 not-equal[compile-time] 32767[Integer], 1[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:982 not-equal[Int16] 32767[Int16], 127[Int8] -> [Boolean] Var $overflow on
-  var  a: Int16 = 32767;
+code auto:982 not-equal[Integer] 32767[Integer], 127[Int8] -> [Boolean] Var $overflow on
+  var  a: Integer = 32767;
   var  b: Int8 = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:983 not-equal[Int16] 32767[Int16], 127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:983 not-equal[Integer] 32767[Integer], 127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 127;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:984 not-equal[Int16] 32767[Int16], 127[Int8] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 32767;
+code auto:984 not-equal[Integer] 32767[Integer], 127[Int8] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 32767;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:985 not-equal[compile-time] 32767[Int16], 127[Int8] -> [Boolean] Both immediate $overflow on
+code auto:985 not-equal[compile-time] 32767[Integer], 127[Int8] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:986 not-equal[Int16] -32768[Int16], -32768[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32768;
-  var  b: Int16 = -32768;
+code auto:986 not-equal[Integer] -32768[Integer], -32768[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -32768;
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r False
 
-code auto:987 not-equal[Int16] -32768[Int16], -32768[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32768;
+code auto:987 not-equal[Integer] -32768[Integer], -32768[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := -32768 <> b;
 endcode
 varvalue r False
 
-code auto:988 not-equal[Int16] -32768[Int16], -32768[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32768;
+code auto:988 not-equal[Integer] -32768[Integer], -32768[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32768;
   var  r: Boolean;
   r := a <> -32768;
 endcode
 varvalue r False
 
-code auto:989 not-equal[compile-time] -32768[Int16], -32768[Int16] -> [Boolean] Both immediate $overflow on
+code auto:989 not-equal[compile-time] -32768[Integer], -32768[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32768 <> -32768;
 endcode
 varvalue r False
 
 $overflow on
-code auto:990 not-equal[Int16] -32768[Int16], -32767[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32768;
-  var  b: Int16 = -32767;
+code auto:990 not-equal[Integer] -32768[Integer], -32767[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -32768;
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:991 not-equal[Int16] -32768[Int16], -32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32767;
+code auto:991 not-equal[Integer] -32768[Integer], -32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := -32768 <> b;
 endcode
 varvalue r True
 
-code auto:992 not-equal[Int16] -32768[Int16], -32767[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32768;
+code auto:992 not-equal[Integer] -32768[Integer], -32767[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32768;
   var  r: Boolean;
   r := a <> -32767;
 endcode
 varvalue r True
 
-code auto:993 not-equal[compile-time] -32768[Int16], -32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:993 not-equal[compile-time] -32768[Integer], -32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32768 <> -32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:994 not-equal[Int16] -32768[Int16], -129[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32768;
-  var  b: Int16 = -129;
+code auto:994 not-equal[Integer] -32768[Integer], -129[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -32768;
+  var  b: Integer = -129;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:995 not-equal[Int16] -32768[Int16], -129[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -129;
+code auto:995 not-equal[Integer] -32768[Integer], -129[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -129;
   var  r: Boolean;
   r := -32768 <> b;
 endcode
 varvalue r True
 
-code auto:996 not-equal[Int16] -32768[Int16], -129[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32768;
+code auto:996 not-equal[Integer] -32768[Integer], -129[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32768;
   var  r: Boolean;
   r := a <> -129;
 endcode
 varvalue r True
 
-code auto:997 not-equal[compile-time] -32768[Int16], -129[Int16] -> [Boolean] Both immediate $overflow on
+code auto:997 not-equal[compile-time] -32768[Integer], -129[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32768 <> -129;
 endcode
 varvalue r True
 
 $overflow on
-code auto:998 not-equal[Int16] -32768[Int16], -128[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32768;
-  var  b: Int16 = -128;
+code auto:998 not-equal[Integer] -32768[Integer], -128[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -32768;
+  var  b: Integer = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:999 not-equal[Int16] -32768[Int16], -128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -128;
+code auto:999 not-equal[Integer] -32768[Integer], -128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -128;
   var  r: Boolean;
   r := -32768 <> b;
 endcode
 varvalue r True
 
-code auto:1000 not-equal[Int16] -32768[Int16], -128[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32768;
+code auto:1000 not-equal[Integer] -32768[Integer], -128[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32768;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r True
 
-code auto:1001 not-equal[compile-time] -32768[Int16], -128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1001 not-equal[compile-time] -32768[Integer], -128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32768 <> -128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1002 not-equal[Int16] -32768[Int16], -1[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32768;
-  var  b: Int16 = -1;
+code auto:1002 not-equal[Integer] -32768[Integer], -1[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -32768;
+  var  b: Integer = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1003 not-equal[Int16] -32768[Int16], -1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -1;
+code auto:1003 not-equal[Integer] -32768[Integer], -1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -1;
   var  r: Boolean;
   r := -32768 <> b;
 endcode
 varvalue r True
 
-code auto:1004 not-equal[Int16] -32768[Int16], -1[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32768;
+code auto:1004 not-equal[Integer] -32768[Integer], -1[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32768;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r True
 
-code auto:1005 not-equal[compile-time] -32768[Int16], -1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1005 not-equal[compile-time] -32768[Integer], -1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32768 <> -1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1006 not-equal[Int16] -32768[Int16], 0[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32768;
-  var  b: Int16 = 0;
+code auto:1006 not-equal[Integer] -32768[Integer], 0[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -32768;
+  var  b: Integer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1007 not-equal[Int16] -32768[Int16], 0[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 0;
+code auto:1007 not-equal[Integer] -32768[Integer], 0[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 0;
   var  r: Boolean;
   r := -32768 <> b;
 endcode
 varvalue r True
 
-code auto:1008 not-equal[Int16] -32768[Int16], 0[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32768;
+code auto:1008 not-equal[Integer] -32768[Integer], 0[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32768;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:1009 not-equal[compile-time] -32768[Int16], 0[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1009 not-equal[compile-time] -32768[Integer], 0[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32768 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1010 not-equal[Int16] -32768[Int16], 1[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32768;
-  var  b: Int16 = 1;
+code auto:1010 not-equal[Integer] -32768[Integer], 1[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -32768;
+  var  b: Integer = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1011 not-equal[Int16] -32768[Int16], 1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 1;
+code auto:1011 not-equal[Integer] -32768[Integer], 1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 1;
   var  r: Boolean;
   r := -32768 <> b;
 endcode
 varvalue r True
 
-code auto:1012 not-equal[Int16] -32768[Int16], 1[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32768;
+code auto:1012 not-equal[Integer] -32768[Integer], 1[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32768;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:1013 not-equal[compile-time] -32768[Int16], 1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1013 not-equal[compile-time] -32768[Integer], 1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32768 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1014 not-equal[Int16] -32768[Int16], 127[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32768;
-  var  b: Int16 = 127;
+code auto:1014 not-equal[Integer] -32768[Integer], 127[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -32768;
+  var  b: Integer = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1015 not-equal[Int16] -32768[Int16], 127[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 127;
+code auto:1015 not-equal[Integer] -32768[Integer], 127[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 127;
   var  r: Boolean;
   r := -32768 <> b;
 endcode
 varvalue r True
 
-code auto:1016 not-equal[Int16] -32768[Int16], 127[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32768;
+code auto:1016 not-equal[Integer] -32768[Integer], 127[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32768;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:1017 not-equal[compile-time] -32768[Int16], 127[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1017 not-equal[compile-time] -32768[Integer], 127[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32768 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1018 not-equal[Int16] -32768[Int16], 128[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32768;
-  var  b: Int16 = 128;
+code auto:1018 not-equal[Integer] -32768[Integer], 128[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -32768;
+  var  b: Integer = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1019 not-equal[Int16] -32768[Int16], 128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 128;
+code auto:1019 not-equal[Integer] -32768[Integer], 128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 128;
   var  r: Boolean;
   r := -32768 <> b;
 endcode
 varvalue r True
 
-code auto:1020 not-equal[Int16] -32768[Int16], 128[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32768;
+code auto:1020 not-equal[Integer] -32768[Integer], 128[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32768;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r True
 
-code auto:1021 not-equal[compile-time] -32768[Int16], 128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1021 not-equal[compile-time] -32768[Integer], 128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32768 <> 128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1022 not-equal[Int16] -32768[Int16], 32767[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32768;
-  var  b: Int16 = 32767;
+code auto:1022 not-equal[Integer] -32768[Integer], 32767[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -32768;
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1023 not-equal[Int16] -32768[Int16], 32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 32767;
+code auto:1023 not-equal[Integer] -32768[Integer], 32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := -32768 <> b;
 endcode
 varvalue r True
 
-code auto:1024 not-equal[Int16] -32768[Int16], 32767[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32768;
+code auto:1024 not-equal[Integer] -32768[Integer], 32767[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32768;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:1025 not-equal[compile-time] -32768[Int16], 32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1025 not-equal[compile-time] -32768[Integer], 32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32768 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1026 not-equal[Int16] -32767[Int16], -32768[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32767;
-  var  b: Int16 = -32768;
+code auto:1026 not-equal[Integer] -32767[Integer], -32768[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -32767;
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1027 not-equal[Int16] -32767[Int16], -32768[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32768;
+code auto:1027 not-equal[Integer] -32767[Integer], -32768[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := -32767 <> b;
 endcode
 varvalue r True
 
-code auto:1028 not-equal[Int16] -32767[Int16], -32768[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32767;
+code auto:1028 not-equal[Integer] -32767[Integer], -32768[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32767;
   var  r: Boolean;
   r := a <> -32768;
 endcode
 varvalue r True
 
-code auto:1029 not-equal[compile-time] -32767[Int16], -32768[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1029 not-equal[compile-time] -32767[Integer], -32768[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32767 <> -32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1030 not-equal[Int16] -32767[Int16], -32767[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32767;
-  var  b: Int16 = -32767;
+code auto:1030 not-equal[Integer] -32767[Integer], -32767[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -32767;
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r False
 
-code auto:1031 not-equal[Int16] -32767[Int16], -32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32767;
+code auto:1031 not-equal[Integer] -32767[Integer], -32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := -32767 <> b;
 endcode
 varvalue r False
 
-code auto:1032 not-equal[Int16] -32767[Int16], -32767[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32767;
+code auto:1032 not-equal[Integer] -32767[Integer], -32767[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32767;
   var  r: Boolean;
   r := a <> -32767;
 endcode
 varvalue r False
 
-code auto:1033 not-equal[compile-time] -32767[Int16], -32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1033 not-equal[compile-time] -32767[Integer], -32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32767 <> -32767;
 endcode
 varvalue r False
 
 $overflow on
-code auto:1034 not-equal[Int16] -32767[Int16], -129[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32767;
-  var  b: Int16 = -129;
+code auto:1034 not-equal[Integer] -32767[Integer], -129[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -32767;
+  var  b: Integer = -129;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1035 not-equal[Int16] -32767[Int16], -129[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -129;
+code auto:1035 not-equal[Integer] -32767[Integer], -129[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -129;
   var  r: Boolean;
   r := -32767 <> b;
 endcode
 varvalue r True
 
-code auto:1036 not-equal[Int16] -32767[Int16], -129[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32767;
+code auto:1036 not-equal[Integer] -32767[Integer], -129[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32767;
   var  r: Boolean;
   r := a <> -129;
 endcode
 varvalue r True
 
-code auto:1037 not-equal[compile-time] -32767[Int16], -129[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1037 not-equal[compile-time] -32767[Integer], -129[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32767 <> -129;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1038 not-equal[Int16] -32767[Int16], -128[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32767;
-  var  b: Int16 = -128;
+code auto:1038 not-equal[Integer] -32767[Integer], -128[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -32767;
+  var  b: Integer = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1039 not-equal[Int16] -32767[Int16], -128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -128;
+code auto:1039 not-equal[Integer] -32767[Integer], -128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -128;
   var  r: Boolean;
   r := -32767 <> b;
 endcode
 varvalue r True
 
-code auto:1040 not-equal[Int16] -32767[Int16], -128[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32767;
+code auto:1040 not-equal[Integer] -32767[Integer], -128[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32767;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r True
 
-code auto:1041 not-equal[compile-time] -32767[Int16], -128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1041 not-equal[compile-time] -32767[Integer], -128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32767 <> -128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1042 not-equal[Int16] -32767[Int16], -1[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32767;
-  var  b: Int16 = -1;
+code auto:1042 not-equal[Integer] -32767[Integer], -1[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -32767;
+  var  b: Integer = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1043 not-equal[Int16] -32767[Int16], -1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -1;
+code auto:1043 not-equal[Integer] -32767[Integer], -1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -1;
   var  r: Boolean;
   r := -32767 <> b;
 endcode
 varvalue r True
 
-code auto:1044 not-equal[Int16] -32767[Int16], -1[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32767;
+code auto:1044 not-equal[Integer] -32767[Integer], -1[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32767;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r True
 
-code auto:1045 not-equal[compile-time] -32767[Int16], -1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1045 not-equal[compile-time] -32767[Integer], -1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32767 <> -1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1046 not-equal[Int16] -32767[Int16], 0[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32767;
-  var  b: Int16 = 0;
+code auto:1046 not-equal[Integer] -32767[Integer], 0[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -32767;
+  var  b: Integer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1047 not-equal[Int16] -32767[Int16], 0[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 0;
+code auto:1047 not-equal[Integer] -32767[Integer], 0[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 0;
   var  r: Boolean;
   r := -32767 <> b;
 endcode
 varvalue r True
 
-code auto:1048 not-equal[Int16] -32767[Int16], 0[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32767;
+code auto:1048 not-equal[Integer] -32767[Integer], 0[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32767;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:1049 not-equal[compile-time] -32767[Int16], 0[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1049 not-equal[compile-time] -32767[Integer], 0[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32767 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1050 not-equal[Int16] -32767[Int16], 1[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32767;
-  var  b: Int16 = 1;
+code auto:1050 not-equal[Integer] -32767[Integer], 1[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -32767;
+  var  b: Integer = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1051 not-equal[Int16] -32767[Int16], 1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 1;
+code auto:1051 not-equal[Integer] -32767[Integer], 1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 1;
   var  r: Boolean;
   r := -32767 <> b;
 endcode
 varvalue r True
 
-code auto:1052 not-equal[Int16] -32767[Int16], 1[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32767;
+code auto:1052 not-equal[Integer] -32767[Integer], 1[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32767;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:1053 not-equal[compile-time] -32767[Int16], 1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1053 not-equal[compile-time] -32767[Integer], 1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32767 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1054 not-equal[Int16] -32767[Int16], 127[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32767;
-  var  b: Int16 = 127;
+code auto:1054 not-equal[Integer] -32767[Integer], 127[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -32767;
+  var  b: Integer = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1055 not-equal[Int16] -32767[Int16], 127[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 127;
+code auto:1055 not-equal[Integer] -32767[Integer], 127[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 127;
   var  r: Boolean;
   r := -32767 <> b;
 endcode
 varvalue r True
 
-code auto:1056 not-equal[Int16] -32767[Int16], 127[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32767;
+code auto:1056 not-equal[Integer] -32767[Integer], 127[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32767;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:1057 not-equal[compile-time] -32767[Int16], 127[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1057 not-equal[compile-time] -32767[Integer], 127[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32767 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1058 not-equal[Int16] -32767[Int16], 128[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32767;
-  var  b: Int16 = 128;
+code auto:1058 not-equal[Integer] -32767[Integer], 128[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -32767;
+  var  b: Integer = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1059 not-equal[Int16] -32767[Int16], 128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 128;
+code auto:1059 not-equal[Integer] -32767[Integer], 128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 128;
   var  r: Boolean;
   r := -32767 <> b;
 endcode
 varvalue r True
 
-code auto:1060 not-equal[Int16] -32767[Int16], 128[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32767;
+code auto:1060 not-equal[Integer] -32767[Integer], 128[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32767;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r True
 
-code auto:1061 not-equal[compile-time] -32767[Int16], 128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1061 not-equal[compile-time] -32767[Integer], 128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32767 <> 128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1062 not-equal[Int16] -32767[Int16], 32767[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32767;
-  var  b: Int16 = 32767;
+code auto:1062 not-equal[Integer] -32767[Integer], 32767[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -32767;
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1063 not-equal[Int16] -32767[Int16], 32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 32767;
+code auto:1063 not-equal[Integer] -32767[Integer], 32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := -32767 <> b;
 endcode
 varvalue r True
 
-code auto:1064 not-equal[Int16] -32767[Int16], 32767[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32767;
+code auto:1064 not-equal[Integer] -32767[Integer], 32767[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32767;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:1065 not-equal[compile-time] -32767[Int16], 32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1065 not-equal[compile-time] -32767[Integer], 32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32767 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1066 not-equal[Int16] -129[Int16], -32768[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -129;
-  var  b: Int16 = -32768;
+code auto:1066 not-equal[Integer] -129[Integer], -32768[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -129;
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1067 not-equal[Int16] -129[Int16], -32768[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32768;
+code auto:1067 not-equal[Integer] -129[Integer], -32768[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := -129 <> b;
 endcode
 varvalue r True
 
-code auto:1068 not-equal[Int16] -129[Int16], -32768[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -129;
+code auto:1068 not-equal[Integer] -129[Integer], -32768[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -129;
   var  r: Boolean;
   r := a <> -32768;
 endcode
 varvalue r True
 
-code auto:1069 not-equal[compile-time] -129[Int16], -32768[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1069 not-equal[compile-time] -129[Integer], -32768[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -129 <> -32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1070 not-equal[Int16] -129[Int16], -32767[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -129;
-  var  b: Int16 = -32767;
+code auto:1070 not-equal[Integer] -129[Integer], -32767[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -129;
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1071 not-equal[Int16] -129[Int16], -32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32767;
+code auto:1071 not-equal[Integer] -129[Integer], -32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := -129 <> b;
 endcode
 varvalue r True
 
-code auto:1072 not-equal[Int16] -129[Int16], -32767[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -129;
+code auto:1072 not-equal[Integer] -129[Integer], -32767[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -129;
   var  r: Boolean;
   r := a <> -32767;
 endcode
 varvalue r True
 
-code auto:1073 not-equal[compile-time] -129[Int16], -32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1073 not-equal[compile-time] -129[Integer], -32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -129 <> -32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1074 not-equal[Int16] -129[Int16], -129[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -129;
-  var  b: Int16 = -129;
+code auto:1074 not-equal[Integer] -129[Integer], -129[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -129;
+  var  b: Integer = -129;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r False
 
-code auto:1075 not-equal[Int16] -129[Int16], -129[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -129;
+code auto:1075 not-equal[Integer] -129[Integer], -129[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -129;
   var  r: Boolean;
   r := -129 <> b;
 endcode
 varvalue r False
 
-code auto:1076 not-equal[Int16] -129[Int16], -129[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -129;
+code auto:1076 not-equal[Integer] -129[Integer], -129[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -129;
   var  r: Boolean;
   r := a <> -129;
 endcode
 varvalue r False
 
-code auto:1077 not-equal[compile-time] -129[Int16], -129[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1077 not-equal[compile-time] -129[Integer], -129[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -129 <> -129;
 endcode
 varvalue r False
 
 $overflow on
-code auto:1078 not-equal[Int16] -129[Int16], -128[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -129;
-  var  b: Int16 = -128;
+code auto:1078 not-equal[Integer] -129[Integer], -128[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -129;
+  var  b: Integer = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1079 not-equal[Int16] -129[Int16], -128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -128;
+code auto:1079 not-equal[Integer] -129[Integer], -128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -128;
   var  r: Boolean;
   r := -129 <> b;
 endcode
 varvalue r True
 
-code auto:1080 not-equal[Int16] -129[Int16], -128[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -129;
+code auto:1080 not-equal[Integer] -129[Integer], -128[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -129;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r True
 
-code auto:1081 not-equal[compile-time] -129[Int16], -128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1081 not-equal[compile-time] -129[Integer], -128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -129 <> -128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1082 not-equal[Int16] -129[Int16], -1[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -129;
-  var  b: Int16 = -1;
+code auto:1082 not-equal[Integer] -129[Integer], -1[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -129;
+  var  b: Integer = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1083 not-equal[Int16] -129[Int16], -1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -1;
+code auto:1083 not-equal[Integer] -129[Integer], -1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -1;
   var  r: Boolean;
   r := -129 <> b;
 endcode
 varvalue r True
 
-code auto:1084 not-equal[Int16] -129[Int16], -1[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -129;
+code auto:1084 not-equal[Integer] -129[Integer], -1[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -129;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r True
 
-code auto:1085 not-equal[compile-time] -129[Int16], -1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1085 not-equal[compile-time] -129[Integer], -1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -129 <> -1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1086 not-equal[Int16] -129[Int16], 0[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -129;
-  var  b: Int16 = 0;
+code auto:1086 not-equal[Integer] -129[Integer], 0[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -129;
+  var  b: Integer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1087 not-equal[Int16] -129[Int16], 0[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 0;
+code auto:1087 not-equal[Integer] -129[Integer], 0[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 0;
   var  r: Boolean;
   r := -129 <> b;
 endcode
 varvalue r True
 
-code auto:1088 not-equal[Int16] -129[Int16], 0[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -129;
+code auto:1088 not-equal[Integer] -129[Integer], 0[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -129;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:1089 not-equal[compile-time] -129[Int16], 0[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1089 not-equal[compile-time] -129[Integer], 0[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -129 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1090 not-equal[Int16] -129[Int16], 1[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -129;
-  var  b: Int16 = 1;
+code auto:1090 not-equal[Integer] -129[Integer], 1[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -129;
+  var  b: Integer = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1091 not-equal[Int16] -129[Int16], 1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 1;
+code auto:1091 not-equal[Integer] -129[Integer], 1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 1;
   var  r: Boolean;
   r := -129 <> b;
 endcode
 varvalue r True
 
-code auto:1092 not-equal[Int16] -129[Int16], 1[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -129;
+code auto:1092 not-equal[Integer] -129[Integer], 1[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -129;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:1093 not-equal[compile-time] -129[Int16], 1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1093 not-equal[compile-time] -129[Integer], 1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -129 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1094 not-equal[Int16] -129[Int16], 127[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -129;
-  var  b: Int16 = 127;
+code auto:1094 not-equal[Integer] -129[Integer], 127[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -129;
+  var  b: Integer = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1095 not-equal[Int16] -129[Int16], 127[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 127;
+code auto:1095 not-equal[Integer] -129[Integer], 127[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 127;
   var  r: Boolean;
   r := -129 <> b;
 endcode
 varvalue r True
 
-code auto:1096 not-equal[Int16] -129[Int16], 127[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -129;
+code auto:1096 not-equal[Integer] -129[Integer], 127[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -129;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:1097 not-equal[compile-time] -129[Int16], 127[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1097 not-equal[compile-time] -129[Integer], 127[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -129 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1098 not-equal[Int16] -129[Int16], 128[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -129;
-  var  b: Int16 = 128;
+code auto:1098 not-equal[Integer] -129[Integer], 128[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -129;
+  var  b: Integer = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1099 not-equal[Int16] -129[Int16], 128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 128;
+code auto:1099 not-equal[Integer] -129[Integer], 128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 128;
   var  r: Boolean;
   r := -129 <> b;
 endcode
 varvalue r True
 
-code auto:1100 not-equal[Int16] -129[Int16], 128[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -129;
+code auto:1100 not-equal[Integer] -129[Integer], 128[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -129;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r True
 
-code auto:1101 not-equal[compile-time] -129[Int16], 128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1101 not-equal[compile-time] -129[Integer], 128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -129 <> 128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1102 not-equal[Int16] -129[Int16], 32767[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -129;
-  var  b: Int16 = 32767;
+code auto:1102 not-equal[Integer] -129[Integer], 32767[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -129;
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1103 not-equal[Int16] -129[Int16], 32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 32767;
+code auto:1103 not-equal[Integer] -129[Integer], 32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := -129 <> b;
 endcode
 varvalue r True
 
-code auto:1104 not-equal[Int16] -129[Int16], 32767[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -129;
+code auto:1104 not-equal[Integer] -129[Integer], 32767[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -129;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:1105 not-equal[compile-time] -129[Int16], 32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1105 not-equal[compile-time] -129[Integer], 32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -129 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1106 not-equal[Int16] -128[Int16], -32768[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -128;
-  var  b: Int16 = -32768;
+code auto:1106 not-equal[Integer] -128[Integer], -32768[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -128;
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1107 not-equal[Int16] -128[Int16], -32768[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32768;
+code auto:1107 not-equal[Integer] -128[Integer], -32768[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:1108 not-equal[Int16] -128[Int16], -32768[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -128;
+code auto:1108 not-equal[Integer] -128[Integer], -32768[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -128;
   var  r: Boolean;
   r := a <> -32768;
 endcode
 varvalue r True
 
-code auto:1109 not-equal[compile-time] -128[Int16], -32768[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1109 not-equal[compile-time] -128[Integer], -32768[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> -32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1110 not-equal[Int16] -128[Int16], -32767[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -128;
-  var  b: Int16 = -32767;
+code auto:1110 not-equal[Integer] -128[Integer], -32767[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -128;
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1111 not-equal[Int16] -128[Int16], -32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32767;
+code auto:1111 not-equal[Integer] -128[Integer], -32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:1112 not-equal[Int16] -128[Int16], -32767[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -128;
+code auto:1112 not-equal[Integer] -128[Integer], -32767[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -128;
   var  r: Boolean;
   r := a <> -32767;
 endcode
 varvalue r True
 
-code auto:1113 not-equal[compile-time] -128[Int16], -32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1113 not-equal[compile-time] -128[Integer], -32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> -32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1114 not-equal[Int16] -128[Int16], -129[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -128;
-  var  b: Int16 = -129;
+code auto:1114 not-equal[Integer] -128[Integer], -129[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -128;
+  var  b: Integer = -129;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1115 not-equal[Int16] -128[Int16], -129[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -129;
+code auto:1115 not-equal[Integer] -128[Integer], -129[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -129;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:1116 not-equal[Int16] -128[Int16], -129[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -128;
+code auto:1116 not-equal[Integer] -128[Integer], -129[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -128;
   var  r: Boolean;
   r := a <> -129;
 endcode
 varvalue r True
 
-code auto:1117 not-equal[compile-time] -128[Int16], -129[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1117 not-equal[compile-time] -128[Integer], -129[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> -129;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1118 not-equal[Int16] -128[Int16], -128[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -128;
-  var  b: Int16 = -128;
+code auto:1118 not-equal[Integer] -128[Integer], -128[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -128;
+  var  b: Integer = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r False
 
-code auto:1119 not-equal[Int16] -128[Int16], -128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -128;
+code auto:1119 not-equal[Integer] -128[Integer], -128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -128;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r False
 
-code auto:1120 not-equal[Int16] -128[Int16], -128[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -128;
+code auto:1120 not-equal[Integer] -128[Integer], -128[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -128;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r False
 
-code auto:1121 not-equal[compile-time] -128[Int16], -128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1121 not-equal[compile-time] -128[Integer], -128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> -128;
 endcode
 varvalue r False
 
 $overflow on
-code auto:1122 not-equal[Int16] -128[Int16], -1[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -128;
-  var  b: Int16 = -1;
+code auto:1122 not-equal[Integer] -128[Integer], -1[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -128;
+  var  b: Integer = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1123 not-equal[Int16] -128[Int16], -1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -1;
+code auto:1123 not-equal[Integer] -128[Integer], -1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -1;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:1124 not-equal[Int16] -128[Int16], -1[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -128;
+code auto:1124 not-equal[Integer] -128[Integer], -1[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -128;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r True
 
-code auto:1125 not-equal[compile-time] -128[Int16], -1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1125 not-equal[compile-time] -128[Integer], -1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> -1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1126 not-equal[Int16] -128[Int16], 0[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -128;
-  var  b: Int16 = 0;
+code auto:1126 not-equal[Integer] -128[Integer], 0[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -128;
+  var  b: Integer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1127 not-equal[Int16] -128[Int16], 0[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 0;
+code auto:1127 not-equal[Integer] -128[Integer], 0[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 0;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:1128 not-equal[Int16] -128[Int16], 0[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -128;
+code auto:1128 not-equal[Integer] -128[Integer], 0[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -128;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:1129 not-equal[compile-time] -128[Int16], 0[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1129 not-equal[compile-time] -128[Integer], 0[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1130 not-equal[Int16] -128[Int16], 1[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -128;
-  var  b: Int16 = 1;
+code auto:1130 not-equal[Integer] -128[Integer], 1[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -128;
+  var  b: Integer = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1131 not-equal[Int16] -128[Int16], 1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 1;
+code auto:1131 not-equal[Integer] -128[Integer], 1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 1;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:1132 not-equal[Int16] -128[Int16], 1[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -128;
+code auto:1132 not-equal[Integer] -128[Integer], 1[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -128;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:1133 not-equal[compile-time] -128[Int16], 1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1133 not-equal[compile-time] -128[Integer], 1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1134 not-equal[Int16] -128[Int16], 127[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -128;
-  var  b: Int16 = 127;
+code auto:1134 not-equal[Integer] -128[Integer], 127[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -128;
+  var  b: Integer = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1135 not-equal[Int16] -128[Int16], 127[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 127;
+code auto:1135 not-equal[Integer] -128[Integer], 127[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 127;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:1136 not-equal[Int16] -128[Int16], 127[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -128;
+code auto:1136 not-equal[Integer] -128[Integer], 127[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -128;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:1137 not-equal[compile-time] -128[Int16], 127[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1137 not-equal[compile-time] -128[Integer], 127[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1138 not-equal[Int16] -128[Int16], 128[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -128;
-  var  b: Int16 = 128;
+code auto:1138 not-equal[Integer] -128[Integer], 128[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -128;
+  var  b: Integer = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1139 not-equal[Int16] -128[Int16], 128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 128;
+code auto:1139 not-equal[Integer] -128[Integer], 128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 128;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:1140 not-equal[Int16] -128[Int16], 128[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -128;
+code auto:1140 not-equal[Integer] -128[Integer], 128[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -128;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r True
 
-code auto:1141 not-equal[compile-time] -128[Int16], 128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1141 not-equal[compile-time] -128[Integer], 128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> 128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1142 not-equal[Int16] -128[Int16], 32767[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -128;
-  var  b: Int16 = 32767;
+code auto:1142 not-equal[Integer] -128[Integer], 32767[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -128;
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1143 not-equal[Int16] -128[Int16], 32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 32767;
+code auto:1143 not-equal[Integer] -128[Integer], 32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:1144 not-equal[Int16] -128[Int16], 32767[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -128;
+code auto:1144 not-equal[Integer] -128[Integer], 32767[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -128;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:1145 not-equal[compile-time] -128[Int16], 32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1145 not-equal[compile-time] -128[Integer], 32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1146 not-equal[Int16] -1[Int16], -32768[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -1;
-  var  b: Int16 = -32768;
+code auto:1146 not-equal[Integer] -1[Integer], -32768[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -1;
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1147 not-equal[Int16] -1[Int16], -32768[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32768;
+code auto:1147 not-equal[Integer] -1[Integer], -32768[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:1148 not-equal[Int16] -1[Int16], -32768[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -1;
+code auto:1148 not-equal[Integer] -1[Integer], -32768[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -1;
   var  r: Boolean;
   r := a <> -32768;
 endcode
 varvalue r True
 
-code auto:1149 not-equal[compile-time] -1[Int16], -32768[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1149 not-equal[compile-time] -1[Integer], -32768[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> -32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1150 not-equal[Int16] -1[Int16], -32767[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -1;
-  var  b: Int16 = -32767;
+code auto:1150 not-equal[Integer] -1[Integer], -32767[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -1;
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1151 not-equal[Int16] -1[Int16], -32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32767;
+code auto:1151 not-equal[Integer] -1[Integer], -32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:1152 not-equal[Int16] -1[Int16], -32767[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -1;
+code auto:1152 not-equal[Integer] -1[Integer], -32767[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -1;
   var  r: Boolean;
   r := a <> -32767;
 endcode
 varvalue r True
 
-code auto:1153 not-equal[compile-time] -1[Int16], -32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1153 not-equal[compile-time] -1[Integer], -32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> -32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1154 not-equal[Int16] -1[Int16], -129[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -1;
-  var  b: Int16 = -129;
+code auto:1154 not-equal[Integer] -1[Integer], -129[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -1;
+  var  b: Integer = -129;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1155 not-equal[Int16] -1[Int16], -129[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -129;
+code auto:1155 not-equal[Integer] -1[Integer], -129[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -129;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:1156 not-equal[Int16] -1[Int16], -129[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -1;
+code auto:1156 not-equal[Integer] -1[Integer], -129[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -1;
   var  r: Boolean;
   r := a <> -129;
 endcode
 varvalue r True
 
-code auto:1157 not-equal[compile-time] -1[Int16], -129[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1157 not-equal[compile-time] -1[Integer], -129[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> -129;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1158 not-equal[Int16] -1[Int16], -128[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -1;
-  var  b: Int16 = -128;
+code auto:1158 not-equal[Integer] -1[Integer], -128[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -1;
+  var  b: Integer = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1159 not-equal[Int16] -1[Int16], -128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -128;
+code auto:1159 not-equal[Integer] -1[Integer], -128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -128;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:1160 not-equal[Int16] -1[Int16], -128[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -1;
+code auto:1160 not-equal[Integer] -1[Integer], -128[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -1;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r True
 
-code auto:1161 not-equal[compile-time] -1[Int16], -128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1161 not-equal[compile-time] -1[Integer], -128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> -128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1162 not-equal[Int16] -1[Int16], -1[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -1;
-  var  b: Int16 = -1;
+code auto:1162 not-equal[Integer] -1[Integer], -1[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -1;
+  var  b: Integer = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r False
 
-code auto:1163 not-equal[Int16] -1[Int16], -1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -1;
+code auto:1163 not-equal[Integer] -1[Integer], -1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -1;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r False
 
-code auto:1164 not-equal[Int16] -1[Int16], -1[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -1;
+code auto:1164 not-equal[Integer] -1[Integer], -1[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -1;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r False
 
-code auto:1165 not-equal[compile-time] -1[Int16], -1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1165 not-equal[compile-time] -1[Integer], -1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> -1;
 endcode
 varvalue r False
 
 $overflow on
-code auto:1166 not-equal[Int16] -1[Int16], 0[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -1;
-  var  b: Int16 = 0;
+code auto:1166 not-equal[Integer] -1[Integer], 0[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -1;
+  var  b: Integer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1167 not-equal[Int16] -1[Int16], 0[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 0;
+code auto:1167 not-equal[Integer] -1[Integer], 0[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 0;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:1168 not-equal[Int16] -1[Int16], 0[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -1;
+code auto:1168 not-equal[Integer] -1[Integer], 0[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -1;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:1169 not-equal[compile-time] -1[Int16], 0[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1169 not-equal[compile-time] -1[Integer], 0[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1170 not-equal[Int16] -1[Int16], 1[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -1;
-  var  b: Int16 = 1;
+code auto:1170 not-equal[Integer] -1[Integer], 1[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -1;
+  var  b: Integer = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1171 not-equal[Int16] -1[Int16], 1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 1;
+code auto:1171 not-equal[Integer] -1[Integer], 1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 1;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:1172 not-equal[Int16] -1[Int16], 1[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -1;
+code auto:1172 not-equal[Integer] -1[Integer], 1[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -1;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:1173 not-equal[compile-time] -1[Int16], 1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1173 not-equal[compile-time] -1[Integer], 1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1174 not-equal[Int16] -1[Int16], 127[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -1;
-  var  b: Int16 = 127;
+code auto:1174 not-equal[Integer] -1[Integer], 127[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -1;
+  var  b: Integer = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1175 not-equal[Int16] -1[Int16], 127[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 127;
+code auto:1175 not-equal[Integer] -1[Integer], 127[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 127;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:1176 not-equal[Int16] -1[Int16], 127[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -1;
+code auto:1176 not-equal[Integer] -1[Integer], 127[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -1;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:1177 not-equal[compile-time] -1[Int16], 127[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1177 not-equal[compile-time] -1[Integer], 127[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1178 not-equal[Int16] -1[Int16], 128[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -1;
-  var  b: Int16 = 128;
+code auto:1178 not-equal[Integer] -1[Integer], 128[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -1;
+  var  b: Integer = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1179 not-equal[Int16] -1[Int16], 128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 128;
+code auto:1179 not-equal[Integer] -1[Integer], 128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 128;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:1180 not-equal[Int16] -1[Int16], 128[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -1;
+code auto:1180 not-equal[Integer] -1[Integer], 128[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -1;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r True
 
-code auto:1181 not-equal[compile-time] -1[Int16], 128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1181 not-equal[compile-time] -1[Integer], 128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> 128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1182 not-equal[Int16] -1[Int16], 32767[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = -1;
-  var  b: Int16 = 32767;
+code auto:1182 not-equal[Integer] -1[Integer], 32767[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = -1;
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1183 not-equal[Int16] -1[Int16], 32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 32767;
+code auto:1183 not-equal[Integer] -1[Integer], 32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:1184 not-equal[Int16] -1[Int16], 32767[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -1;
+code auto:1184 not-equal[Integer] -1[Integer], 32767[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -1;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:1185 not-equal[compile-time] -1[Int16], 32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1185 not-equal[compile-time] -1[Integer], 32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1186 not-equal[Int16] 0[Int16], -32768[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 0;
-  var  b: Int16 = -32768;
+code auto:1186 not-equal[Integer] 0[Integer], -32768[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 0;
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1187 not-equal[Int16] 0[Int16], -32768[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32768;
+code auto:1187 not-equal[Integer] 0[Integer], -32768[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:1188 not-equal[Int16] 0[Int16], -32768[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 0;
+code auto:1188 not-equal[Integer] 0[Integer], -32768[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 0;
   var  r: Boolean;
   r := a <> -32768;
 endcode
 varvalue r True
 
-code auto:1189 not-equal[compile-time] 0[Int16], -32768[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1189 not-equal[compile-time] 0[Integer], -32768[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> -32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1190 not-equal[Int16] 0[Int16], -32767[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 0;
-  var  b: Int16 = -32767;
+code auto:1190 not-equal[Integer] 0[Integer], -32767[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 0;
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1191 not-equal[Int16] 0[Int16], -32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32767;
+code auto:1191 not-equal[Integer] 0[Integer], -32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:1192 not-equal[Int16] 0[Int16], -32767[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 0;
+code auto:1192 not-equal[Integer] 0[Integer], -32767[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 0;
   var  r: Boolean;
   r := a <> -32767;
 endcode
 varvalue r True
 
-code auto:1193 not-equal[compile-time] 0[Int16], -32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1193 not-equal[compile-time] 0[Integer], -32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> -32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1194 not-equal[Int16] 0[Int16], -129[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 0;
-  var  b: Int16 = -129;
+code auto:1194 not-equal[Integer] 0[Integer], -129[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 0;
+  var  b: Integer = -129;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1195 not-equal[Int16] 0[Int16], -129[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -129;
+code auto:1195 not-equal[Integer] 0[Integer], -129[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -129;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:1196 not-equal[Int16] 0[Int16], -129[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 0;
+code auto:1196 not-equal[Integer] 0[Integer], -129[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 0;
   var  r: Boolean;
   r := a <> -129;
 endcode
 varvalue r True
 
-code auto:1197 not-equal[compile-time] 0[Int16], -129[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1197 not-equal[compile-time] 0[Integer], -129[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> -129;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1198 not-equal[Int16] 0[Int16], -128[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 0;
-  var  b: Int16 = -128;
+code auto:1198 not-equal[Integer] 0[Integer], -128[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 0;
+  var  b: Integer = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1199 not-equal[Int16] 0[Int16], -128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -128;
+code auto:1199 not-equal[Integer] 0[Integer], -128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -128;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:1200 not-equal[Int16] 0[Int16], -128[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 0;
+code auto:1200 not-equal[Integer] 0[Integer], -128[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 0;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r True
 
-code auto:1201 not-equal[compile-time] 0[Int16], -128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1201 not-equal[compile-time] 0[Integer], -128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> -128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1202 not-equal[Int16] 0[Int16], -1[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 0;
-  var  b: Int16 = -1;
+code auto:1202 not-equal[Integer] 0[Integer], -1[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 0;
+  var  b: Integer = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1203 not-equal[Int16] 0[Int16], -1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -1;
+code auto:1203 not-equal[Integer] 0[Integer], -1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -1;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:1204 not-equal[Int16] 0[Int16], -1[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 0;
+code auto:1204 not-equal[Integer] 0[Integer], -1[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 0;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r True
 
-code auto:1205 not-equal[compile-time] 0[Int16], -1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1205 not-equal[compile-time] 0[Integer], -1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> -1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1206 not-equal[Int16] 0[Int16], 0[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 0;
-  var  b: Int16 = 0;
+code auto:1206 not-equal[Integer] 0[Integer], 0[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 0;
+  var  b: Integer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r False
 
-code auto:1207 not-equal[Int16] 0[Int16], 0[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 0;
+code auto:1207 not-equal[Integer] 0[Integer], 0[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 0;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r False
 
-code auto:1208 not-equal[Int16] 0[Int16], 0[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 0;
+code auto:1208 not-equal[Integer] 0[Integer], 0[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 0;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r False
 
-code auto:1209 not-equal[compile-time] 0[Int16], 0[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1209 not-equal[compile-time] 0[Integer], 0[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 0;
 endcode
 varvalue r False
 
 $overflow on
-code auto:1210 not-equal[Int16] 0[Int16], 1[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 0;
-  var  b: Int16 = 1;
+code auto:1210 not-equal[Integer] 0[Integer], 1[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 0;
+  var  b: Integer = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1211 not-equal[Int16] 0[Int16], 1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 1;
+code auto:1211 not-equal[Integer] 0[Integer], 1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 1;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:1212 not-equal[Int16] 0[Int16], 1[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 0;
+code auto:1212 not-equal[Integer] 0[Integer], 1[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 0;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:1213 not-equal[compile-time] 0[Int16], 1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1213 not-equal[compile-time] 0[Integer], 1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1214 not-equal[Int16] 0[Int16], 127[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 0;
-  var  b: Int16 = 127;
+code auto:1214 not-equal[Integer] 0[Integer], 127[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 0;
+  var  b: Integer = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1215 not-equal[Int16] 0[Int16], 127[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 127;
+code auto:1215 not-equal[Integer] 0[Integer], 127[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 127;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:1216 not-equal[Int16] 0[Int16], 127[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 0;
+code auto:1216 not-equal[Integer] 0[Integer], 127[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 0;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:1217 not-equal[compile-time] 0[Int16], 127[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1217 not-equal[compile-time] 0[Integer], 127[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1218 not-equal[Int16] 0[Int16], 128[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 0;
-  var  b: Int16 = 128;
+code auto:1218 not-equal[Integer] 0[Integer], 128[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 0;
+  var  b: Integer = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1219 not-equal[Int16] 0[Int16], 128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 128;
+code auto:1219 not-equal[Integer] 0[Integer], 128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 128;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:1220 not-equal[Int16] 0[Int16], 128[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 0;
+code auto:1220 not-equal[Integer] 0[Integer], 128[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 0;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r True
 
-code auto:1221 not-equal[compile-time] 0[Int16], 128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1221 not-equal[compile-time] 0[Integer], 128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1222 not-equal[Int16] 0[Int16], 32767[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 0;
-  var  b: Int16 = 32767;
+code auto:1222 not-equal[Integer] 0[Integer], 32767[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 0;
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1223 not-equal[Int16] 0[Int16], 32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 32767;
+code auto:1223 not-equal[Integer] 0[Integer], 32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:1224 not-equal[Int16] 0[Int16], 32767[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 0;
+code auto:1224 not-equal[Integer] 0[Integer], 32767[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 0;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:1225 not-equal[compile-time] 0[Int16], 32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1225 not-equal[compile-time] 0[Integer], 32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1226 not-equal[Int16] 1[Int16], -32768[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 1;
-  var  b: Int16 = -32768;
+code auto:1226 not-equal[Integer] 1[Integer], -32768[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 1;
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1227 not-equal[Int16] 1[Int16], -32768[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32768;
+code auto:1227 not-equal[Integer] 1[Integer], -32768[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:1228 not-equal[Int16] 1[Int16], -32768[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 1;
+code auto:1228 not-equal[Integer] 1[Integer], -32768[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 1;
   var  r: Boolean;
   r := a <> -32768;
 endcode
 varvalue r True
 
-code auto:1229 not-equal[compile-time] 1[Int16], -32768[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1229 not-equal[compile-time] 1[Integer], -32768[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> -32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1230 not-equal[Int16] 1[Int16], -32767[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 1;
-  var  b: Int16 = -32767;
+code auto:1230 not-equal[Integer] 1[Integer], -32767[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 1;
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1231 not-equal[Int16] 1[Int16], -32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32767;
+code auto:1231 not-equal[Integer] 1[Integer], -32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:1232 not-equal[Int16] 1[Int16], -32767[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 1;
+code auto:1232 not-equal[Integer] 1[Integer], -32767[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 1;
   var  r: Boolean;
   r := a <> -32767;
 endcode
 varvalue r True
 
-code auto:1233 not-equal[compile-time] 1[Int16], -32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1233 not-equal[compile-time] 1[Integer], -32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> -32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1234 not-equal[Int16] 1[Int16], -129[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 1;
-  var  b: Int16 = -129;
+code auto:1234 not-equal[Integer] 1[Integer], -129[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 1;
+  var  b: Integer = -129;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1235 not-equal[Int16] 1[Int16], -129[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -129;
+code auto:1235 not-equal[Integer] 1[Integer], -129[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -129;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:1236 not-equal[Int16] 1[Int16], -129[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 1;
+code auto:1236 not-equal[Integer] 1[Integer], -129[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 1;
   var  r: Boolean;
   r := a <> -129;
 endcode
 varvalue r True
 
-code auto:1237 not-equal[compile-time] 1[Int16], -129[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1237 not-equal[compile-time] 1[Integer], -129[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> -129;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1238 not-equal[Int16] 1[Int16], -128[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 1;
-  var  b: Int16 = -128;
+code auto:1238 not-equal[Integer] 1[Integer], -128[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 1;
+  var  b: Integer = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1239 not-equal[Int16] 1[Int16], -128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -128;
+code auto:1239 not-equal[Integer] 1[Integer], -128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -128;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:1240 not-equal[Int16] 1[Int16], -128[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 1;
+code auto:1240 not-equal[Integer] 1[Integer], -128[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 1;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r True
 
-code auto:1241 not-equal[compile-time] 1[Int16], -128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1241 not-equal[compile-time] 1[Integer], -128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> -128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1242 not-equal[Int16] 1[Int16], -1[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 1;
-  var  b: Int16 = -1;
+code auto:1242 not-equal[Integer] 1[Integer], -1[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 1;
+  var  b: Integer = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1243 not-equal[Int16] 1[Int16], -1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -1;
+code auto:1243 not-equal[Integer] 1[Integer], -1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -1;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:1244 not-equal[Int16] 1[Int16], -1[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 1;
+code auto:1244 not-equal[Integer] 1[Integer], -1[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 1;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r True
 
-code auto:1245 not-equal[compile-time] 1[Int16], -1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1245 not-equal[compile-time] 1[Integer], -1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> -1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1246 not-equal[Int16] 1[Int16], 0[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 1;
-  var  b: Int16 = 0;
+code auto:1246 not-equal[Integer] 1[Integer], 0[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 1;
+  var  b: Integer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1247 not-equal[Int16] 1[Int16], 0[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 0;
+code auto:1247 not-equal[Integer] 1[Integer], 0[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 0;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:1248 not-equal[Int16] 1[Int16], 0[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 1;
+code auto:1248 not-equal[Integer] 1[Integer], 0[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 1;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:1249 not-equal[compile-time] 1[Int16], 0[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1249 not-equal[compile-time] 1[Integer], 0[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1250 not-equal[Int16] 1[Int16], 1[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 1;
-  var  b: Int16 = 1;
+code auto:1250 not-equal[Integer] 1[Integer], 1[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 1;
+  var  b: Integer = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r False
 
-code auto:1251 not-equal[Int16] 1[Int16], 1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 1;
+code auto:1251 not-equal[Integer] 1[Integer], 1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 1;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r False
 
-code auto:1252 not-equal[Int16] 1[Int16], 1[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 1;
+code auto:1252 not-equal[Integer] 1[Integer], 1[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 1;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r False
 
-code auto:1253 not-equal[compile-time] 1[Int16], 1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1253 not-equal[compile-time] 1[Integer], 1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> 1;
 endcode
 varvalue r False
 
 $overflow on
-code auto:1254 not-equal[Int16] 1[Int16], 127[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 1;
-  var  b: Int16 = 127;
+code auto:1254 not-equal[Integer] 1[Integer], 127[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 1;
+  var  b: Integer = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1255 not-equal[Int16] 1[Int16], 127[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 127;
+code auto:1255 not-equal[Integer] 1[Integer], 127[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 127;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:1256 not-equal[Int16] 1[Int16], 127[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 1;
+code auto:1256 not-equal[Integer] 1[Integer], 127[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 1;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:1257 not-equal[compile-time] 1[Int16], 127[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1257 not-equal[compile-time] 1[Integer], 127[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1258 not-equal[Int16] 1[Int16], 128[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 1;
-  var  b: Int16 = 128;
+code auto:1258 not-equal[Integer] 1[Integer], 128[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 1;
+  var  b: Integer = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1259 not-equal[Int16] 1[Int16], 128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 128;
+code auto:1259 not-equal[Integer] 1[Integer], 128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 128;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:1260 not-equal[Int16] 1[Int16], 128[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 1;
+code auto:1260 not-equal[Integer] 1[Integer], 128[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 1;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r True
 
-code auto:1261 not-equal[compile-time] 1[Int16], 128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1261 not-equal[compile-time] 1[Integer], 128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> 128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1262 not-equal[Int16] 1[Int16], 32767[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 1;
-  var  b: Int16 = 32767;
+code auto:1262 not-equal[Integer] 1[Integer], 32767[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 1;
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1263 not-equal[Int16] 1[Int16], 32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 32767;
+code auto:1263 not-equal[Integer] 1[Integer], 32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:1264 not-equal[Int16] 1[Int16], 32767[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 1;
+code auto:1264 not-equal[Integer] 1[Integer], 32767[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 1;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:1265 not-equal[compile-time] 1[Int16], 32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1265 not-equal[compile-time] 1[Integer], 32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1266 not-equal[Int16] 127[Int16], -32768[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 127;
-  var  b: Int16 = -32768;
+code auto:1266 not-equal[Integer] 127[Integer], -32768[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 127;
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1267 not-equal[Int16] 127[Int16], -32768[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32768;
+code auto:1267 not-equal[Integer] 127[Integer], -32768[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:1268 not-equal[Int16] 127[Int16], -32768[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 127;
+code auto:1268 not-equal[Integer] 127[Integer], -32768[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 127;
   var  r: Boolean;
   r := a <> -32768;
 endcode
 varvalue r True
 
-code auto:1269 not-equal[compile-time] 127[Int16], -32768[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1269 not-equal[compile-time] 127[Integer], -32768[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> -32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1270 not-equal[Int16] 127[Int16], -32767[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 127;
-  var  b: Int16 = -32767;
+code auto:1270 not-equal[Integer] 127[Integer], -32767[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 127;
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1271 not-equal[Int16] 127[Int16], -32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32767;
+code auto:1271 not-equal[Integer] 127[Integer], -32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:1272 not-equal[Int16] 127[Int16], -32767[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 127;
+code auto:1272 not-equal[Integer] 127[Integer], -32767[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 127;
   var  r: Boolean;
   r := a <> -32767;
 endcode
 varvalue r True
 
-code auto:1273 not-equal[compile-time] 127[Int16], -32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1273 not-equal[compile-time] 127[Integer], -32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> -32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1274 not-equal[Int16] 127[Int16], -129[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 127;
-  var  b: Int16 = -129;
+code auto:1274 not-equal[Integer] 127[Integer], -129[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 127;
+  var  b: Integer = -129;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1275 not-equal[Int16] 127[Int16], -129[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -129;
+code auto:1275 not-equal[Integer] 127[Integer], -129[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -129;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:1276 not-equal[Int16] 127[Int16], -129[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 127;
+code auto:1276 not-equal[Integer] 127[Integer], -129[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 127;
   var  r: Boolean;
   r := a <> -129;
 endcode
 varvalue r True
 
-code auto:1277 not-equal[compile-time] 127[Int16], -129[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1277 not-equal[compile-time] 127[Integer], -129[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> -129;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1278 not-equal[Int16] 127[Int16], -128[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 127;
-  var  b: Int16 = -128;
+code auto:1278 not-equal[Integer] 127[Integer], -128[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 127;
+  var  b: Integer = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1279 not-equal[Int16] 127[Int16], -128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -128;
+code auto:1279 not-equal[Integer] 127[Integer], -128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -128;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:1280 not-equal[Int16] 127[Int16], -128[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 127;
+code auto:1280 not-equal[Integer] 127[Integer], -128[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 127;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r True
 
-code auto:1281 not-equal[compile-time] 127[Int16], -128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1281 not-equal[compile-time] 127[Integer], -128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> -128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1282 not-equal[Int16] 127[Int16], -1[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 127;
-  var  b: Int16 = -1;
+code auto:1282 not-equal[Integer] 127[Integer], -1[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 127;
+  var  b: Integer = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1283 not-equal[Int16] 127[Int16], -1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -1;
+code auto:1283 not-equal[Integer] 127[Integer], -1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -1;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:1284 not-equal[Int16] 127[Int16], -1[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 127;
+code auto:1284 not-equal[Integer] 127[Integer], -1[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 127;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r True
 
-code auto:1285 not-equal[compile-time] 127[Int16], -1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1285 not-equal[compile-time] 127[Integer], -1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> -1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1286 not-equal[Int16] 127[Int16], 0[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 127;
-  var  b: Int16 = 0;
+code auto:1286 not-equal[Integer] 127[Integer], 0[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 127;
+  var  b: Integer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1287 not-equal[Int16] 127[Int16], 0[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 0;
+code auto:1287 not-equal[Integer] 127[Integer], 0[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 0;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:1288 not-equal[Int16] 127[Int16], 0[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 127;
+code auto:1288 not-equal[Integer] 127[Integer], 0[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 127;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:1289 not-equal[compile-time] 127[Int16], 0[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1289 not-equal[compile-time] 127[Integer], 0[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1290 not-equal[Int16] 127[Int16], 1[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 127;
-  var  b: Int16 = 1;
+code auto:1290 not-equal[Integer] 127[Integer], 1[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 127;
+  var  b: Integer = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1291 not-equal[Int16] 127[Int16], 1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 1;
+code auto:1291 not-equal[Integer] 127[Integer], 1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 1;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:1292 not-equal[Int16] 127[Int16], 1[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 127;
+code auto:1292 not-equal[Integer] 127[Integer], 1[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 127;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:1293 not-equal[compile-time] 127[Int16], 1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1293 not-equal[compile-time] 127[Integer], 1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1294 not-equal[Int16] 127[Int16], 127[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 127;
-  var  b: Int16 = 127;
+code auto:1294 not-equal[Integer] 127[Integer], 127[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 127;
+  var  b: Integer = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r False
 
-code auto:1295 not-equal[Int16] 127[Int16], 127[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 127;
+code auto:1295 not-equal[Integer] 127[Integer], 127[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 127;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r False
 
-code auto:1296 not-equal[Int16] 127[Int16], 127[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 127;
+code auto:1296 not-equal[Integer] 127[Integer], 127[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 127;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r False
 
-code auto:1297 not-equal[compile-time] 127[Int16], 127[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1297 not-equal[compile-time] 127[Integer], 127[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> 127;
 endcode
 varvalue r False
 
 $overflow on
-code auto:1298 not-equal[Int16] 127[Int16], 128[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 127;
-  var  b: Int16 = 128;
+code auto:1298 not-equal[Integer] 127[Integer], 128[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 127;
+  var  b: Integer = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1299 not-equal[Int16] 127[Int16], 128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 128;
+code auto:1299 not-equal[Integer] 127[Integer], 128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 128;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:1300 not-equal[Int16] 127[Int16], 128[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 127;
+code auto:1300 not-equal[Integer] 127[Integer], 128[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 127;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r True
 
-code auto:1301 not-equal[compile-time] 127[Int16], 128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1301 not-equal[compile-time] 127[Integer], 128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> 128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1302 not-equal[Int16] 127[Int16], 32767[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 127;
-  var  b: Int16 = 32767;
+code auto:1302 not-equal[Integer] 127[Integer], 32767[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 127;
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1303 not-equal[Int16] 127[Int16], 32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 32767;
+code auto:1303 not-equal[Integer] 127[Integer], 32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:1304 not-equal[Int16] 127[Int16], 32767[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 127;
+code auto:1304 not-equal[Integer] 127[Integer], 32767[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 127;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:1305 not-equal[compile-time] 127[Int16], 32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1305 not-equal[compile-time] 127[Integer], 32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1306 not-equal[Int16] 128[Int16], -32768[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 128;
-  var  b: Int16 = -32768;
+code auto:1306 not-equal[Integer] 128[Integer], -32768[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 128;
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1307 not-equal[Int16] 128[Int16], -32768[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32768;
+code auto:1307 not-equal[Integer] 128[Integer], -32768[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:1308 not-equal[Int16] 128[Int16], -32768[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 128;
+code auto:1308 not-equal[Integer] 128[Integer], -32768[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 128;
   var  r: Boolean;
   r := a <> -32768;
 endcode
 varvalue r True
 
-code auto:1309 not-equal[compile-time] 128[Int16], -32768[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1309 not-equal[compile-time] 128[Integer], -32768[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> -32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1310 not-equal[Int16] 128[Int16], -32767[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 128;
-  var  b: Int16 = -32767;
+code auto:1310 not-equal[Integer] 128[Integer], -32767[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 128;
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1311 not-equal[Int16] 128[Int16], -32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32767;
+code auto:1311 not-equal[Integer] 128[Integer], -32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:1312 not-equal[Int16] 128[Int16], -32767[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 128;
+code auto:1312 not-equal[Integer] 128[Integer], -32767[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 128;
   var  r: Boolean;
   r := a <> -32767;
 endcode
 varvalue r True
 
-code auto:1313 not-equal[compile-time] 128[Int16], -32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1313 not-equal[compile-time] 128[Integer], -32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> -32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1314 not-equal[Int16] 128[Int16], -129[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 128;
-  var  b: Int16 = -129;
+code auto:1314 not-equal[Integer] 128[Integer], -129[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 128;
+  var  b: Integer = -129;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1315 not-equal[Int16] 128[Int16], -129[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -129;
+code auto:1315 not-equal[Integer] 128[Integer], -129[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -129;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:1316 not-equal[Int16] 128[Int16], -129[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 128;
+code auto:1316 not-equal[Integer] 128[Integer], -129[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 128;
   var  r: Boolean;
   r := a <> -129;
 endcode
 varvalue r True
 
-code auto:1317 not-equal[compile-time] 128[Int16], -129[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1317 not-equal[compile-time] 128[Integer], -129[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> -129;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1318 not-equal[Int16] 128[Int16], -128[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 128;
-  var  b: Int16 = -128;
+code auto:1318 not-equal[Integer] 128[Integer], -128[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 128;
+  var  b: Integer = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1319 not-equal[Int16] 128[Int16], -128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -128;
+code auto:1319 not-equal[Integer] 128[Integer], -128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -128;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:1320 not-equal[Int16] 128[Int16], -128[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 128;
+code auto:1320 not-equal[Integer] 128[Integer], -128[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 128;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r True
 
-code auto:1321 not-equal[compile-time] 128[Int16], -128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1321 not-equal[compile-time] 128[Integer], -128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> -128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1322 not-equal[Int16] 128[Int16], -1[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 128;
-  var  b: Int16 = -1;
+code auto:1322 not-equal[Integer] 128[Integer], -1[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 128;
+  var  b: Integer = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1323 not-equal[Int16] 128[Int16], -1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -1;
+code auto:1323 not-equal[Integer] 128[Integer], -1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -1;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:1324 not-equal[Int16] 128[Int16], -1[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 128;
+code auto:1324 not-equal[Integer] 128[Integer], -1[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 128;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r True
 
-code auto:1325 not-equal[compile-time] 128[Int16], -1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1325 not-equal[compile-time] 128[Integer], -1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> -1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1326 not-equal[Int16] 128[Int16], 0[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 128;
-  var  b: Int16 = 0;
+code auto:1326 not-equal[Integer] 128[Integer], 0[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 128;
+  var  b: Integer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1327 not-equal[Int16] 128[Int16], 0[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 0;
+code auto:1327 not-equal[Integer] 128[Integer], 0[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 0;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:1328 not-equal[Int16] 128[Int16], 0[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 128;
+code auto:1328 not-equal[Integer] 128[Integer], 0[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 128;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:1329 not-equal[compile-time] 128[Int16], 0[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1329 not-equal[compile-time] 128[Integer], 0[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1330 not-equal[Int16] 128[Int16], 1[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 128;
-  var  b: Int16 = 1;
+code auto:1330 not-equal[Integer] 128[Integer], 1[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 128;
+  var  b: Integer = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1331 not-equal[Int16] 128[Int16], 1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 1;
+code auto:1331 not-equal[Integer] 128[Integer], 1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 1;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:1332 not-equal[Int16] 128[Int16], 1[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 128;
+code auto:1332 not-equal[Integer] 128[Integer], 1[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 128;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:1333 not-equal[compile-time] 128[Int16], 1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1333 not-equal[compile-time] 128[Integer], 1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1334 not-equal[Int16] 128[Int16], 127[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 128;
-  var  b: Int16 = 127;
+code auto:1334 not-equal[Integer] 128[Integer], 127[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 128;
+  var  b: Integer = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1335 not-equal[Int16] 128[Int16], 127[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 127;
+code auto:1335 not-equal[Integer] 128[Integer], 127[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 127;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:1336 not-equal[Int16] 128[Int16], 127[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 128;
+code auto:1336 not-equal[Integer] 128[Integer], 127[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 128;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:1337 not-equal[compile-time] 128[Int16], 127[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1337 not-equal[compile-time] 128[Integer], 127[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1338 not-equal[Int16] 128[Int16], 128[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 128;
-  var  b: Int16 = 128;
+code auto:1338 not-equal[Integer] 128[Integer], 128[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 128;
+  var  b: Integer = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r False
 
-code auto:1339 not-equal[Int16] 128[Int16], 128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 128;
+code auto:1339 not-equal[Integer] 128[Integer], 128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 128;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r False
 
-code auto:1340 not-equal[Int16] 128[Int16], 128[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 128;
+code auto:1340 not-equal[Integer] 128[Integer], 128[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 128;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r False
 
-code auto:1341 not-equal[compile-time] 128[Int16], 128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1341 not-equal[compile-time] 128[Integer], 128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> 128;
 endcode
 varvalue r False
 
 $overflow on
-code auto:1342 not-equal[Int16] 128[Int16], 32767[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 128;
-  var  b: Int16 = 32767;
+code auto:1342 not-equal[Integer] 128[Integer], 32767[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 128;
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1343 not-equal[Int16] 128[Int16], 32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 32767;
+code auto:1343 not-equal[Integer] 128[Integer], 32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:1344 not-equal[Int16] 128[Int16], 32767[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 128;
+code auto:1344 not-equal[Integer] 128[Integer], 32767[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 128;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:1345 not-equal[compile-time] 128[Int16], 32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1345 not-equal[compile-time] 128[Integer], 32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1346 not-equal[Int16] 32767[Int16], -32768[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 32767;
-  var  b: Int16 = -32768;
+code auto:1346 not-equal[Integer] 32767[Integer], -32768[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 32767;
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1347 not-equal[Int16] 32767[Int16], -32768[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32768;
+code auto:1347 not-equal[Integer] 32767[Integer], -32768[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:1348 not-equal[Int16] 32767[Int16], -32768[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 32767;
+code auto:1348 not-equal[Integer] 32767[Integer], -32768[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 32767;
   var  r: Boolean;
   r := a <> -32768;
 endcode
 varvalue r True
 
-code auto:1349 not-equal[compile-time] 32767[Int16], -32768[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1349 not-equal[compile-time] 32767[Integer], -32768[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> -32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1350 not-equal[Int16] 32767[Int16], -32767[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 32767;
-  var  b: Int16 = -32767;
+code auto:1350 not-equal[Integer] 32767[Integer], -32767[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 32767;
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1351 not-equal[Int16] 32767[Int16], -32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32767;
+code auto:1351 not-equal[Integer] 32767[Integer], -32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:1352 not-equal[Int16] 32767[Int16], -32767[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 32767;
+code auto:1352 not-equal[Integer] 32767[Integer], -32767[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 32767;
   var  r: Boolean;
   r := a <> -32767;
 endcode
 varvalue r True
 
-code auto:1353 not-equal[compile-time] 32767[Int16], -32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1353 not-equal[compile-time] 32767[Integer], -32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> -32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1354 not-equal[Int16] 32767[Int16], -129[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 32767;
-  var  b: Int16 = -129;
+code auto:1354 not-equal[Integer] 32767[Integer], -129[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 32767;
+  var  b: Integer = -129;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1355 not-equal[Int16] 32767[Int16], -129[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -129;
+code auto:1355 not-equal[Integer] 32767[Integer], -129[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -129;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:1356 not-equal[Int16] 32767[Int16], -129[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 32767;
+code auto:1356 not-equal[Integer] 32767[Integer], -129[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 32767;
   var  r: Boolean;
   r := a <> -129;
 endcode
 varvalue r True
 
-code auto:1357 not-equal[compile-time] 32767[Int16], -129[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1357 not-equal[compile-time] 32767[Integer], -129[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> -129;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1358 not-equal[Int16] 32767[Int16], -128[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 32767;
-  var  b: Int16 = -128;
+code auto:1358 not-equal[Integer] 32767[Integer], -128[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 32767;
+  var  b: Integer = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1359 not-equal[Int16] 32767[Int16], -128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -128;
+code auto:1359 not-equal[Integer] 32767[Integer], -128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -128;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:1360 not-equal[Int16] 32767[Int16], -128[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 32767;
+code auto:1360 not-equal[Integer] 32767[Integer], -128[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 32767;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r True
 
-code auto:1361 not-equal[compile-time] 32767[Int16], -128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1361 not-equal[compile-time] 32767[Integer], -128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> -128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1362 not-equal[Int16] 32767[Int16], -1[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 32767;
-  var  b: Int16 = -1;
+code auto:1362 not-equal[Integer] 32767[Integer], -1[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 32767;
+  var  b: Integer = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1363 not-equal[Int16] 32767[Int16], -1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -1;
+code auto:1363 not-equal[Integer] 32767[Integer], -1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -1;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:1364 not-equal[Int16] 32767[Int16], -1[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 32767;
+code auto:1364 not-equal[Integer] 32767[Integer], -1[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 32767;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r True
 
-code auto:1365 not-equal[compile-time] 32767[Int16], -1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1365 not-equal[compile-time] 32767[Integer], -1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> -1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1366 not-equal[Int16] 32767[Int16], 0[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 32767;
-  var  b: Int16 = 0;
+code auto:1366 not-equal[Integer] 32767[Integer], 0[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 32767;
+  var  b: Integer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1367 not-equal[Int16] 32767[Int16], 0[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 0;
+code auto:1367 not-equal[Integer] 32767[Integer], 0[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 0;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:1368 not-equal[Int16] 32767[Int16], 0[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 32767;
+code auto:1368 not-equal[Integer] 32767[Integer], 0[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 32767;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:1369 not-equal[compile-time] 32767[Int16], 0[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1369 not-equal[compile-time] 32767[Integer], 0[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1370 not-equal[Int16] 32767[Int16], 1[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 32767;
-  var  b: Int16 = 1;
+code auto:1370 not-equal[Integer] 32767[Integer], 1[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 32767;
+  var  b: Integer = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1371 not-equal[Int16] 32767[Int16], 1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 1;
+code auto:1371 not-equal[Integer] 32767[Integer], 1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 1;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:1372 not-equal[Int16] 32767[Int16], 1[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 32767;
+code auto:1372 not-equal[Integer] 32767[Integer], 1[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 32767;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:1373 not-equal[compile-time] 32767[Int16], 1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1373 not-equal[compile-time] 32767[Integer], 1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1374 not-equal[Int16] 32767[Int16], 127[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 32767;
-  var  b: Int16 = 127;
+code auto:1374 not-equal[Integer] 32767[Integer], 127[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 32767;
+  var  b: Integer = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1375 not-equal[Int16] 32767[Int16], 127[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 127;
+code auto:1375 not-equal[Integer] 32767[Integer], 127[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 127;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:1376 not-equal[Int16] 32767[Int16], 127[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 32767;
+code auto:1376 not-equal[Integer] 32767[Integer], 127[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 32767;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:1377 not-equal[compile-time] 32767[Int16], 127[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1377 not-equal[compile-time] 32767[Integer], 127[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1378 not-equal[Int16] 32767[Int16], 128[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 32767;
-  var  b: Int16 = 128;
+code auto:1378 not-equal[Integer] 32767[Integer], 128[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 32767;
+  var  b: Integer = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1379 not-equal[Int16] 32767[Int16], 128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 128;
+code auto:1379 not-equal[Integer] 32767[Integer], 128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 128;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:1380 not-equal[Int16] 32767[Int16], 128[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 32767;
+code auto:1380 not-equal[Integer] 32767[Integer], 128[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 32767;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r True
 
-code auto:1381 not-equal[compile-time] 32767[Int16], 128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1381 not-equal[compile-time] 32767[Integer], 128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> 128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1382 not-equal[Int16] 32767[Int16], 32767[Int16] -> [Boolean] Var $overflow on
-  var  a: Int16 = 32767;
-  var  b: Int16 = 32767;
+code auto:1382 not-equal[Integer] 32767[Integer], 32767[Integer] -> [Boolean] Var $overflow on
+  var  a: Integer = 32767;
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r False
 
-code auto:1383 not-equal[Int16] 32767[Int16], 32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 32767;
+code auto:1383 not-equal[Integer] 32767[Integer], 32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r False
 
-code auto:1384 not-equal[Int16] 32767[Int16], 32767[Int16] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 32767;
+code auto:1384 not-equal[Integer] 32767[Integer], 32767[Integer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 32767;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r False
 
-code auto:1385 not-equal[compile-time] 32767[Int16], 32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:1385 not-equal[compile-time] 32767[Integer], 32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> 32767;
 endcode
 varvalue r False
 
 $overflow on
-code auto:1386 not-equal[Int16] -32768[Int16], 0[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32768;
+code auto:1386 not-equal[Integer] -32768[Integer], 0[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = -32768;
   var  b: Byte = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1387 not-equal[Int16] -32768[Int16], 0[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1387 not-equal[Integer] -32768[Integer], 0[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 0;
   var  r: Boolean;
   r := -32768 <> b;
 endcode
 varvalue r True
 
-code auto:1388 not-equal[Int16] -32768[Int16], 0[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32768;
+code auto:1388 not-equal[Integer] -32768[Integer], 0[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32768;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:1389 not-equal[compile-time] -32768[Int16], 0[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1389 not-equal[compile-time] -32768[Integer], 0[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32768 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1390 not-equal[Int16] -32768[Int16], 1[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32768;
+code auto:1390 not-equal[Integer] -32768[Integer], 1[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = -32768;
   var  b: Byte = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1391 not-equal[Int16] -32768[Int16], 1[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1391 not-equal[Integer] -32768[Integer], 1[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 1;
   var  r: Boolean;
   r := -32768 <> b;
 endcode
 varvalue r True
 
-code auto:1392 not-equal[Int16] -32768[Int16], 1[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32768;
+code auto:1392 not-equal[Integer] -32768[Integer], 1[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32768;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:1393 not-equal[compile-time] -32768[Int16], 1[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1393 not-equal[compile-time] -32768[Integer], 1[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32768 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1394 not-equal[Int16] -32768[Int16], 127[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32768;
+code auto:1394 not-equal[Integer] -32768[Integer], 127[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = -32768;
   var  b: Byte = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1395 not-equal[Int16] -32768[Int16], 127[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1395 not-equal[Integer] -32768[Integer], 127[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 127;
   var  r: Boolean;
   r := -32768 <> b;
 endcode
 varvalue r True
 
-code auto:1396 not-equal[Int16] -32768[Int16], 127[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32768;
+code auto:1396 not-equal[Integer] -32768[Integer], 127[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32768;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:1397 not-equal[compile-time] -32768[Int16], 127[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1397 not-equal[compile-time] -32768[Integer], 127[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32768 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1398 not-equal[Int16] -32768[Int16], 128[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32768;
+code auto:1398 not-equal[Integer] -32768[Integer], 128[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = -32768;
   var  b: Byte = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1399 not-equal[Int16] -32768[Int16], 128[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1399 not-equal[Integer] -32768[Integer], 128[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 128;
   var  r: Boolean;
   r := -32768 <> b;
 endcode
 varvalue r True
 
-code auto:1400 not-equal[Int16] -32768[Int16], 128[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32768;
+code auto:1400 not-equal[Integer] -32768[Integer], 128[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32768;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r True
 
-code auto:1401 not-equal[compile-time] -32768[Int16], 128[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1401 not-equal[compile-time] -32768[Integer], 128[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32768 <> 128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1402 not-equal[Int16] -32768[Int16], 255[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32768;
+code auto:1402 not-equal[Integer] -32768[Integer], 255[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = -32768;
   var  b: Byte = 255;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1403 not-equal[Int16] -32768[Int16], 255[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1403 not-equal[Integer] -32768[Integer], 255[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 255;
   var  r: Boolean;
   r := -32768 <> b;
 endcode
 varvalue r True
 
-code auto:1404 not-equal[Int16] -32768[Int16], 255[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32768;
+code auto:1404 not-equal[Integer] -32768[Integer], 255[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32768;
   var  r: Boolean;
   r := a <> 255;
 endcode
 varvalue r True
 
-code auto:1405 not-equal[compile-time] -32768[Int16], 255[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1405 not-equal[compile-time] -32768[Integer], 255[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32768 <> 255;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1406 not-equal[Int16] -32767[Int16], 0[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32767;
+code auto:1406 not-equal[Integer] -32767[Integer], 0[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = -32767;
   var  b: Byte = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1407 not-equal[Int16] -32767[Int16], 0[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1407 not-equal[Integer] -32767[Integer], 0[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 0;
   var  r: Boolean;
   r := -32767 <> b;
 endcode
 varvalue r True
 
-code auto:1408 not-equal[Int16] -32767[Int16], 0[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32767;
+code auto:1408 not-equal[Integer] -32767[Integer], 0[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32767;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:1409 not-equal[compile-time] -32767[Int16], 0[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1409 not-equal[compile-time] -32767[Integer], 0[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32767 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1410 not-equal[Int16] -32767[Int16], 1[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32767;
+code auto:1410 not-equal[Integer] -32767[Integer], 1[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = -32767;
   var  b: Byte = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1411 not-equal[Int16] -32767[Int16], 1[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1411 not-equal[Integer] -32767[Integer], 1[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 1;
   var  r: Boolean;
   r := -32767 <> b;
 endcode
 varvalue r True
 
-code auto:1412 not-equal[Int16] -32767[Int16], 1[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32767;
+code auto:1412 not-equal[Integer] -32767[Integer], 1[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32767;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:1413 not-equal[compile-time] -32767[Int16], 1[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1413 not-equal[compile-time] -32767[Integer], 1[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32767 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1414 not-equal[Int16] -32767[Int16], 127[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32767;
+code auto:1414 not-equal[Integer] -32767[Integer], 127[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = -32767;
   var  b: Byte = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1415 not-equal[Int16] -32767[Int16], 127[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1415 not-equal[Integer] -32767[Integer], 127[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 127;
   var  r: Boolean;
   r := -32767 <> b;
 endcode
 varvalue r True
 
-code auto:1416 not-equal[Int16] -32767[Int16], 127[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32767;
+code auto:1416 not-equal[Integer] -32767[Integer], 127[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32767;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:1417 not-equal[compile-time] -32767[Int16], 127[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1417 not-equal[compile-time] -32767[Integer], 127[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32767 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1418 not-equal[Int16] -32767[Int16], 128[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32767;
+code auto:1418 not-equal[Integer] -32767[Integer], 128[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = -32767;
   var  b: Byte = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1419 not-equal[Int16] -32767[Int16], 128[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1419 not-equal[Integer] -32767[Integer], 128[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 128;
   var  r: Boolean;
   r := -32767 <> b;
 endcode
 varvalue r True
 
-code auto:1420 not-equal[Int16] -32767[Int16], 128[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32767;
+code auto:1420 not-equal[Integer] -32767[Integer], 128[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32767;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r True
 
-code auto:1421 not-equal[compile-time] -32767[Int16], 128[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1421 not-equal[compile-time] -32767[Integer], 128[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32767 <> 128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1422 not-equal[Int16] -32767[Int16], 255[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32767;
+code auto:1422 not-equal[Integer] -32767[Integer], 255[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = -32767;
   var  b: Byte = 255;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1423 not-equal[Int16] -32767[Int16], 255[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1423 not-equal[Integer] -32767[Integer], 255[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 255;
   var  r: Boolean;
   r := -32767 <> b;
 endcode
 varvalue r True
 
-code auto:1424 not-equal[Int16] -32767[Int16], 255[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32767;
+code auto:1424 not-equal[Integer] -32767[Integer], 255[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32767;
   var  r: Boolean;
   r := a <> 255;
 endcode
 varvalue r True
 
-code auto:1425 not-equal[compile-time] -32767[Int16], 255[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1425 not-equal[compile-time] -32767[Integer], 255[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32767 <> 255;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1426 not-equal[Int16] -129[Int16], 0[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = -129;
+code auto:1426 not-equal[Integer] -129[Integer], 0[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = -129;
   var  b: Byte = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1427 not-equal[Int16] -129[Int16], 0[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1427 not-equal[Integer] -129[Integer], 0[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 0;
   var  r: Boolean;
   r := -129 <> b;
 endcode
 varvalue r True
 
-code auto:1428 not-equal[Int16] -129[Int16], 0[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -129;
+code auto:1428 not-equal[Integer] -129[Integer], 0[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -129;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:1429 not-equal[compile-time] -129[Int16], 0[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1429 not-equal[compile-time] -129[Integer], 0[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -129 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1430 not-equal[Int16] -129[Int16], 1[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = -129;
+code auto:1430 not-equal[Integer] -129[Integer], 1[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = -129;
   var  b: Byte = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1431 not-equal[Int16] -129[Int16], 1[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1431 not-equal[Integer] -129[Integer], 1[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 1;
   var  r: Boolean;
   r := -129 <> b;
 endcode
 varvalue r True
 
-code auto:1432 not-equal[Int16] -129[Int16], 1[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -129;
+code auto:1432 not-equal[Integer] -129[Integer], 1[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -129;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:1433 not-equal[compile-time] -129[Int16], 1[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1433 not-equal[compile-time] -129[Integer], 1[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -129 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1434 not-equal[Int16] -129[Int16], 127[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = -129;
+code auto:1434 not-equal[Integer] -129[Integer], 127[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = -129;
   var  b: Byte = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1435 not-equal[Int16] -129[Int16], 127[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1435 not-equal[Integer] -129[Integer], 127[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 127;
   var  r: Boolean;
   r := -129 <> b;
 endcode
 varvalue r True
 
-code auto:1436 not-equal[Int16] -129[Int16], 127[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -129;
+code auto:1436 not-equal[Integer] -129[Integer], 127[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -129;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:1437 not-equal[compile-time] -129[Int16], 127[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1437 not-equal[compile-time] -129[Integer], 127[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -129 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1438 not-equal[Int16] -129[Int16], 128[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = -129;
+code auto:1438 not-equal[Integer] -129[Integer], 128[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = -129;
   var  b: Byte = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1439 not-equal[Int16] -129[Int16], 128[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1439 not-equal[Integer] -129[Integer], 128[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 128;
   var  r: Boolean;
   r := -129 <> b;
 endcode
 varvalue r True
 
-code auto:1440 not-equal[Int16] -129[Int16], 128[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -129;
+code auto:1440 not-equal[Integer] -129[Integer], 128[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -129;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r True
 
-code auto:1441 not-equal[compile-time] -129[Int16], 128[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1441 not-equal[compile-time] -129[Integer], 128[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -129 <> 128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1442 not-equal[Int16] -129[Int16], 255[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = -129;
+code auto:1442 not-equal[Integer] -129[Integer], 255[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = -129;
   var  b: Byte = 255;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1443 not-equal[Int16] -129[Int16], 255[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1443 not-equal[Integer] -129[Integer], 255[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 255;
   var  r: Boolean;
   r := -129 <> b;
 endcode
 varvalue r True
 
-code auto:1444 not-equal[Int16] -129[Int16], 255[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -129;
+code auto:1444 not-equal[Integer] -129[Integer], 255[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -129;
   var  r: Boolean;
   r := a <> 255;
 endcode
 varvalue r True
 
-code auto:1445 not-equal[compile-time] -129[Int16], 255[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1445 not-equal[compile-time] -129[Integer], 255[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -129 <> 255;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1446 not-equal[Int16] -128[Int16], 0[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = -128;
+code auto:1446 not-equal[Integer] -128[Integer], 0[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = -128;
   var  b: Byte = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1447 not-equal[Int16] -128[Int16], 0[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1447 not-equal[Integer] -128[Integer], 0[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 0;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:1448 not-equal[Int16] -128[Int16], 0[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -128;
+code auto:1448 not-equal[Integer] -128[Integer], 0[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -128;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:1449 not-equal[compile-time] -128[Int16], 0[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1449 not-equal[compile-time] -128[Integer], 0[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1450 not-equal[Int16] -128[Int16], 1[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = -128;
+code auto:1450 not-equal[Integer] -128[Integer], 1[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = -128;
   var  b: Byte = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1451 not-equal[Int16] -128[Int16], 1[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1451 not-equal[Integer] -128[Integer], 1[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 1;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:1452 not-equal[Int16] -128[Int16], 1[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -128;
+code auto:1452 not-equal[Integer] -128[Integer], 1[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -128;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:1453 not-equal[compile-time] -128[Int16], 1[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1453 not-equal[compile-time] -128[Integer], 1[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1454 not-equal[Int16] -128[Int16], 127[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = -128;
+code auto:1454 not-equal[Integer] -128[Integer], 127[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = -128;
   var  b: Byte = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1455 not-equal[Int16] -128[Int16], 127[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1455 not-equal[Integer] -128[Integer], 127[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 127;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:1456 not-equal[Int16] -128[Int16], 127[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -128;
+code auto:1456 not-equal[Integer] -128[Integer], 127[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -128;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:1457 not-equal[compile-time] -128[Int16], 127[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1457 not-equal[compile-time] -128[Integer], 127[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1458 not-equal[Int16] -128[Int16], 128[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = -128;
+code auto:1458 not-equal[Integer] -128[Integer], 128[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = -128;
   var  b: Byte = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1459 not-equal[Int16] -128[Int16], 128[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1459 not-equal[Integer] -128[Integer], 128[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 128;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:1460 not-equal[Int16] -128[Int16], 128[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -128;
+code auto:1460 not-equal[Integer] -128[Integer], 128[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -128;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r True
 
-code auto:1461 not-equal[compile-time] -128[Int16], 128[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1461 not-equal[compile-time] -128[Integer], 128[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> 128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1462 not-equal[Int16] -128[Int16], 255[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = -128;
+code auto:1462 not-equal[Integer] -128[Integer], 255[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = -128;
   var  b: Byte = 255;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1463 not-equal[Int16] -128[Int16], 255[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1463 not-equal[Integer] -128[Integer], 255[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 255;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:1464 not-equal[Int16] -128[Int16], 255[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -128;
+code auto:1464 not-equal[Integer] -128[Integer], 255[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -128;
   var  r: Boolean;
   r := a <> 255;
 endcode
 varvalue r True
 
-code auto:1465 not-equal[compile-time] -128[Int16], 255[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1465 not-equal[compile-time] -128[Integer], 255[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> 255;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1466 not-equal[Int16] -1[Int16], 0[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = -1;
+code auto:1466 not-equal[Integer] -1[Integer], 0[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = -1;
   var  b: Byte = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1467 not-equal[Int16] -1[Int16], 0[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1467 not-equal[Integer] -1[Integer], 0[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 0;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:1468 not-equal[Int16] -1[Int16], 0[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -1;
+code auto:1468 not-equal[Integer] -1[Integer], 0[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -1;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:1469 not-equal[compile-time] -1[Int16], 0[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1469 not-equal[compile-time] -1[Integer], 0[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1470 not-equal[Int16] -1[Int16], 1[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = -1;
+code auto:1470 not-equal[Integer] -1[Integer], 1[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = -1;
   var  b: Byte = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1471 not-equal[Int16] -1[Int16], 1[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1471 not-equal[Integer] -1[Integer], 1[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 1;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:1472 not-equal[Int16] -1[Int16], 1[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -1;
+code auto:1472 not-equal[Integer] -1[Integer], 1[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -1;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:1473 not-equal[compile-time] -1[Int16], 1[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1473 not-equal[compile-time] -1[Integer], 1[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1474 not-equal[Int16] -1[Int16], 127[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = -1;
+code auto:1474 not-equal[Integer] -1[Integer], 127[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = -1;
   var  b: Byte = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1475 not-equal[Int16] -1[Int16], 127[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1475 not-equal[Integer] -1[Integer], 127[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 127;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:1476 not-equal[Int16] -1[Int16], 127[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -1;
+code auto:1476 not-equal[Integer] -1[Integer], 127[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -1;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:1477 not-equal[compile-time] -1[Int16], 127[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1477 not-equal[compile-time] -1[Integer], 127[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1478 not-equal[Int16] -1[Int16], 128[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = -1;
+code auto:1478 not-equal[Integer] -1[Integer], 128[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = -1;
   var  b: Byte = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1479 not-equal[Int16] -1[Int16], 128[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1479 not-equal[Integer] -1[Integer], 128[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 128;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:1480 not-equal[Int16] -1[Int16], 128[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -1;
+code auto:1480 not-equal[Integer] -1[Integer], 128[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -1;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r True
 
-code auto:1481 not-equal[compile-time] -1[Int16], 128[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1481 not-equal[compile-time] -1[Integer], 128[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> 128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1482 not-equal[Int16] -1[Int16], 255[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = -1;
+code auto:1482 not-equal[Integer] -1[Integer], 255[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = -1;
   var  b: Byte = 255;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1483 not-equal[Int16] -1[Int16], 255[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1483 not-equal[Integer] -1[Integer], 255[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 255;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:1484 not-equal[Int16] -1[Int16], 255[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -1;
+code auto:1484 not-equal[Integer] -1[Integer], 255[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -1;
   var  r: Boolean;
   r := a <> 255;
 endcode
 varvalue r True
 
-code auto:1485 not-equal[compile-time] -1[Int16], 255[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1485 not-equal[compile-time] -1[Integer], 255[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> 255;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1486 not-equal[Int16] 0[Int16], 0[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = 0;
+code auto:1486 not-equal[Integer] 0[Integer], 0[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = 0;
   var  b: Byte = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r False
 
-code auto:1487 not-equal[Int16] 0[Int16], 0[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1487 not-equal[Integer] 0[Integer], 0[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 0;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r False
 
-code auto:1488 not-equal[Int16] 0[Int16], 0[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 0;
+code auto:1488 not-equal[Integer] 0[Integer], 0[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 0;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r False
 
-code auto:1489 not-equal[compile-time] 0[Int16], 0[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1489 not-equal[compile-time] 0[Integer], 0[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 0;
 endcode
 varvalue r False
 
 $overflow on
-code auto:1490 not-equal[Int16] 0[Int16], 1[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = 0;
+code auto:1490 not-equal[Integer] 0[Integer], 1[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = 0;
   var  b: Byte = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1491 not-equal[Int16] 0[Int16], 1[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1491 not-equal[Integer] 0[Integer], 1[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 1;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:1492 not-equal[Int16] 0[Int16], 1[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 0;
+code auto:1492 not-equal[Integer] 0[Integer], 1[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 0;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:1493 not-equal[compile-time] 0[Int16], 1[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1493 not-equal[compile-time] 0[Integer], 1[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1494 not-equal[Int16] 0[Int16], 127[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = 0;
+code auto:1494 not-equal[Integer] 0[Integer], 127[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = 0;
   var  b: Byte = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1495 not-equal[Int16] 0[Int16], 127[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1495 not-equal[Integer] 0[Integer], 127[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 127;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:1496 not-equal[Int16] 0[Int16], 127[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 0;
+code auto:1496 not-equal[Integer] 0[Integer], 127[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 0;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:1497 not-equal[compile-time] 0[Int16], 127[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1497 not-equal[compile-time] 0[Integer], 127[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1498 not-equal[Int16] 0[Int16], 128[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = 0;
+code auto:1498 not-equal[Integer] 0[Integer], 128[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = 0;
   var  b: Byte = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1499 not-equal[Int16] 0[Int16], 128[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1499 not-equal[Integer] 0[Integer], 128[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 128;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:1500 not-equal[Int16] 0[Int16], 128[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 0;
+code auto:1500 not-equal[Integer] 0[Integer], 128[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 0;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r True
 
-code auto:1501 not-equal[compile-time] 0[Int16], 128[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1501 not-equal[compile-time] 0[Integer], 128[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1502 not-equal[Int16] 0[Int16], 255[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = 0;
+code auto:1502 not-equal[Integer] 0[Integer], 255[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = 0;
   var  b: Byte = 255;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1503 not-equal[Int16] 0[Int16], 255[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1503 not-equal[Integer] 0[Integer], 255[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 255;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:1504 not-equal[Int16] 0[Int16], 255[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 0;
+code auto:1504 not-equal[Integer] 0[Integer], 255[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 0;
   var  r: Boolean;
   r := a <> 255;
 endcode
 varvalue r True
 
-code auto:1505 not-equal[compile-time] 0[Int16], 255[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1505 not-equal[compile-time] 0[Integer], 255[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 255;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1506 not-equal[Int16] 1[Int16], 0[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = 1;
+code auto:1506 not-equal[Integer] 1[Integer], 0[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = 1;
   var  b: Byte = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1507 not-equal[Int16] 1[Int16], 0[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1507 not-equal[Integer] 1[Integer], 0[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 0;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:1508 not-equal[Int16] 1[Int16], 0[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 1;
+code auto:1508 not-equal[Integer] 1[Integer], 0[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 1;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:1509 not-equal[compile-time] 1[Int16], 0[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1509 not-equal[compile-time] 1[Integer], 0[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1510 not-equal[Int16] 1[Int16], 1[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = 1;
+code auto:1510 not-equal[Integer] 1[Integer], 1[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = 1;
   var  b: Byte = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r False
 
-code auto:1511 not-equal[Int16] 1[Int16], 1[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1511 not-equal[Integer] 1[Integer], 1[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 1;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r False
 
-code auto:1512 not-equal[Int16] 1[Int16], 1[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 1;
+code auto:1512 not-equal[Integer] 1[Integer], 1[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 1;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r False
 
-code auto:1513 not-equal[compile-time] 1[Int16], 1[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1513 not-equal[compile-time] 1[Integer], 1[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> 1;
 endcode
 varvalue r False
 
 $overflow on
-code auto:1514 not-equal[Int16] 1[Int16], 127[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = 1;
+code auto:1514 not-equal[Integer] 1[Integer], 127[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = 1;
   var  b: Byte = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1515 not-equal[Int16] 1[Int16], 127[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1515 not-equal[Integer] 1[Integer], 127[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 127;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:1516 not-equal[Int16] 1[Int16], 127[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 1;
+code auto:1516 not-equal[Integer] 1[Integer], 127[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 1;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:1517 not-equal[compile-time] 1[Int16], 127[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1517 not-equal[compile-time] 1[Integer], 127[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1518 not-equal[Int16] 1[Int16], 128[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = 1;
+code auto:1518 not-equal[Integer] 1[Integer], 128[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = 1;
   var  b: Byte = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1519 not-equal[Int16] 1[Int16], 128[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1519 not-equal[Integer] 1[Integer], 128[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 128;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:1520 not-equal[Int16] 1[Int16], 128[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 1;
+code auto:1520 not-equal[Integer] 1[Integer], 128[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 1;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r True
 
-code auto:1521 not-equal[compile-time] 1[Int16], 128[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1521 not-equal[compile-time] 1[Integer], 128[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> 128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1522 not-equal[Int16] 1[Int16], 255[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = 1;
+code auto:1522 not-equal[Integer] 1[Integer], 255[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = 1;
   var  b: Byte = 255;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1523 not-equal[Int16] 1[Int16], 255[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1523 not-equal[Integer] 1[Integer], 255[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 255;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:1524 not-equal[Int16] 1[Int16], 255[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 1;
+code auto:1524 not-equal[Integer] 1[Integer], 255[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 1;
   var  r: Boolean;
   r := a <> 255;
 endcode
 varvalue r True
 
-code auto:1525 not-equal[compile-time] 1[Int16], 255[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1525 not-equal[compile-time] 1[Integer], 255[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> 255;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1526 not-equal[Int16] 127[Int16], 0[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = 127;
+code auto:1526 not-equal[Integer] 127[Integer], 0[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = 127;
   var  b: Byte = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1527 not-equal[Int16] 127[Int16], 0[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1527 not-equal[Integer] 127[Integer], 0[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 0;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:1528 not-equal[Int16] 127[Int16], 0[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 127;
+code auto:1528 not-equal[Integer] 127[Integer], 0[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 127;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:1529 not-equal[compile-time] 127[Int16], 0[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1529 not-equal[compile-time] 127[Integer], 0[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1530 not-equal[Int16] 127[Int16], 1[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = 127;
+code auto:1530 not-equal[Integer] 127[Integer], 1[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = 127;
   var  b: Byte = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1531 not-equal[Int16] 127[Int16], 1[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1531 not-equal[Integer] 127[Integer], 1[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 1;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:1532 not-equal[Int16] 127[Int16], 1[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 127;
+code auto:1532 not-equal[Integer] 127[Integer], 1[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 127;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:1533 not-equal[compile-time] 127[Int16], 1[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1533 not-equal[compile-time] 127[Integer], 1[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1534 not-equal[Int16] 127[Int16], 127[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = 127;
+code auto:1534 not-equal[Integer] 127[Integer], 127[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = 127;
   var  b: Byte = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r False
 
-code auto:1535 not-equal[Int16] 127[Int16], 127[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1535 not-equal[Integer] 127[Integer], 127[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 127;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r False
 
-code auto:1536 not-equal[Int16] 127[Int16], 127[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 127;
+code auto:1536 not-equal[Integer] 127[Integer], 127[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 127;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r False
 
-code auto:1537 not-equal[compile-time] 127[Int16], 127[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1537 not-equal[compile-time] 127[Integer], 127[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> 127;
 endcode
 varvalue r False
 
 $overflow on
-code auto:1538 not-equal[Int16] 127[Int16], 128[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = 127;
+code auto:1538 not-equal[Integer] 127[Integer], 128[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = 127;
   var  b: Byte = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1539 not-equal[Int16] 127[Int16], 128[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1539 not-equal[Integer] 127[Integer], 128[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 128;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:1540 not-equal[Int16] 127[Int16], 128[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 127;
+code auto:1540 not-equal[Integer] 127[Integer], 128[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 127;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r True
 
-code auto:1541 not-equal[compile-time] 127[Int16], 128[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1541 not-equal[compile-time] 127[Integer], 128[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> 128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1542 not-equal[Int16] 127[Int16], 255[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = 127;
+code auto:1542 not-equal[Integer] 127[Integer], 255[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = 127;
   var  b: Byte = 255;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1543 not-equal[Int16] 127[Int16], 255[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1543 not-equal[Integer] 127[Integer], 255[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 255;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:1544 not-equal[Int16] 127[Int16], 255[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 127;
+code auto:1544 not-equal[Integer] 127[Integer], 255[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 127;
   var  r: Boolean;
   r := a <> 255;
 endcode
 varvalue r True
 
-code auto:1545 not-equal[compile-time] 127[Int16], 255[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1545 not-equal[compile-time] 127[Integer], 255[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> 255;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1546 not-equal[Int16] 128[Int16], 0[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = 128;
+code auto:1546 not-equal[Integer] 128[Integer], 0[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = 128;
   var  b: Byte = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1547 not-equal[Int16] 128[Int16], 0[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1547 not-equal[Integer] 128[Integer], 0[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 0;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:1548 not-equal[Int16] 128[Int16], 0[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 128;
+code auto:1548 not-equal[Integer] 128[Integer], 0[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 128;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:1549 not-equal[compile-time] 128[Int16], 0[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1549 not-equal[compile-time] 128[Integer], 0[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1550 not-equal[Int16] 128[Int16], 1[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = 128;
+code auto:1550 not-equal[Integer] 128[Integer], 1[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = 128;
   var  b: Byte = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1551 not-equal[Int16] 128[Int16], 1[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1551 not-equal[Integer] 128[Integer], 1[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 1;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:1552 not-equal[Int16] 128[Int16], 1[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 128;
+code auto:1552 not-equal[Integer] 128[Integer], 1[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 128;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:1553 not-equal[compile-time] 128[Int16], 1[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1553 not-equal[compile-time] 128[Integer], 1[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1554 not-equal[Int16] 128[Int16], 127[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = 128;
+code auto:1554 not-equal[Integer] 128[Integer], 127[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = 128;
   var  b: Byte = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1555 not-equal[Int16] 128[Int16], 127[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1555 not-equal[Integer] 128[Integer], 127[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 127;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:1556 not-equal[Int16] 128[Int16], 127[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 128;
+code auto:1556 not-equal[Integer] 128[Integer], 127[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 128;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:1557 not-equal[compile-time] 128[Int16], 127[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1557 not-equal[compile-time] 128[Integer], 127[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1558 not-equal[Int16] 128[Int16], 128[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = 128;
+code auto:1558 not-equal[Integer] 128[Integer], 128[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = 128;
   var  b: Byte = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r False
 
-code auto:1559 not-equal[Int16] 128[Int16], 128[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1559 not-equal[Integer] 128[Integer], 128[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 128;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r False
 
-code auto:1560 not-equal[Int16] 128[Int16], 128[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 128;
+code auto:1560 not-equal[Integer] 128[Integer], 128[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 128;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r False
 
-code auto:1561 not-equal[compile-time] 128[Int16], 128[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1561 not-equal[compile-time] 128[Integer], 128[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> 128;
 endcode
 varvalue r False
 
 $overflow on
-code auto:1562 not-equal[Int16] 128[Int16], 255[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = 128;
+code auto:1562 not-equal[Integer] 128[Integer], 255[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = 128;
   var  b: Byte = 255;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1563 not-equal[Int16] 128[Int16], 255[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1563 not-equal[Integer] 128[Integer], 255[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 255;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:1564 not-equal[Int16] 128[Int16], 255[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 128;
+code auto:1564 not-equal[Integer] 128[Integer], 255[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 128;
   var  r: Boolean;
   r := a <> 255;
 endcode
 varvalue r True
 
-code auto:1565 not-equal[compile-time] 128[Int16], 255[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1565 not-equal[compile-time] 128[Integer], 255[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> 255;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1566 not-equal[Int16] 32767[Int16], 0[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = 32767;
+code auto:1566 not-equal[Integer] 32767[Integer], 0[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = 32767;
   var  b: Byte = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1567 not-equal[Int16] 32767[Int16], 0[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1567 not-equal[Integer] 32767[Integer], 0[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 0;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:1568 not-equal[Int16] 32767[Int16], 0[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 32767;
+code auto:1568 not-equal[Integer] 32767[Integer], 0[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 32767;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:1569 not-equal[compile-time] 32767[Int16], 0[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1569 not-equal[compile-time] 32767[Integer], 0[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1570 not-equal[Int16] 32767[Int16], 1[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = 32767;
+code auto:1570 not-equal[Integer] 32767[Integer], 1[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = 32767;
   var  b: Byte = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1571 not-equal[Int16] 32767[Int16], 1[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1571 not-equal[Integer] 32767[Integer], 1[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 1;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:1572 not-equal[Int16] 32767[Int16], 1[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 32767;
+code auto:1572 not-equal[Integer] 32767[Integer], 1[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 32767;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:1573 not-equal[compile-time] 32767[Int16], 1[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1573 not-equal[compile-time] 32767[Integer], 1[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1574 not-equal[Int16] 32767[Int16], 127[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = 32767;
+code auto:1574 not-equal[Integer] 32767[Integer], 127[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = 32767;
   var  b: Byte = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1575 not-equal[Int16] 32767[Int16], 127[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1575 not-equal[Integer] 32767[Integer], 127[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 127;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:1576 not-equal[Int16] 32767[Int16], 127[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 32767;
+code auto:1576 not-equal[Integer] 32767[Integer], 127[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 32767;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:1577 not-equal[compile-time] 32767[Int16], 127[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1577 not-equal[compile-time] 32767[Integer], 127[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1578 not-equal[Int16] 32767[Int16], 128[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = 32767;
+code auto:1578 not-equal[Integer] 32767[Integer], 128[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = 32767;
   var  b: Byte = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1579 not-equal[Int16] 32767[Int16], 128[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1579 not-equal[Integer] 32767[Integer], 128[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 128;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:1580 not-equal[Int16] 32767[Int16], 128[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 32767;
+code auto:1580 not-equal[Integer] 32767[Integer], 128[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 32767;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r True
 
-code auto:1581 not-equal[compile-time] 32767[Int16], 128[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1581 not-equal[compile-time] 32767[Integer], 128[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> 128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1582 not-equal[Int16] 32767[Int16], 255[Byte] -> [Boolean] Var $overflow on
-  var  a: Int16 = 32767;
+code auto:1582 not-equal[Integer] 32767[Integer], 255[Byte] -> [Boolean] Var $overflow on
+  var  a: Integer = 32767;
   var  b: Byte = 255;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1583 not-equal[Int16] 32767[Int16], 255[Byte] -> [Boolean] Left immediate $overflow on
+code auto:1583 not-equal[Integer] 32767[Integer], 255[Byte] -> [Boolean] Left immediate $overflow on
   var  b: Byte = 255;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:1584 not-equal[Int16] 32767[Int16], 255[Byte] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 32767;
+code auto:1584 not-equal[Integer] 32767[Integer], 255[Byte] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 32767;
   var  r: Boolean;
   r := a <> 255;
 endcode
 varvalue r True
 
-code auto:1585 not-equal[compile-time] 32767[Int16], 255[Byte] -> [Boolean] Both immediate $overflow on
+code auto:1585 not-equal[compile-time] 32767[Integer], 255[Byte] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> 255;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1586 not-equal[Int16] -32768[Int16], 0[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32768;
+code auto:1586 not-equal[Integer] -32768[Integer], 0[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = -32768;
   var  b: Word = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1587 not-equal[Int16] -32768[Int16], 0[Word] -> [Boolean] Left immediate $overflow on
+code auto:1587 not-equal[Integer] -32768[Integer], 0[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 0;
   var  r: Boolean;
   r := -32768 <> b;
 endcode
 varvalue r True
 
-code auto:1588 not-equal[Int16] -32768[Int16], 0[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32768;
+code auto:1588 not-equal[Integer] -32768[Integer], 0[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32768;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:1589 not-equal[compile-time] -32768[Int16], 0[Word] -> [Boolean] Both immediate $overflow on
+code auto:1589 not-equal[compile-time] -32768[Integer], 0[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32768 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1590 not-equal[Int16] -32768[Int16], 255[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32768;
+code auto:1590 not-equal[Integer] -32768[Integer], 255[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = -32768;
   var  b: Word = 255;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1591 not-equal[Int16] -32768[Int16], 255[Word] -> [Boolean] Left immediate $overflow on
+code auto:1591 not-equal[Integer] -32768[Integer], 255[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 255;
   var  r: Boolean;
   r := -32768 <> b;
 endcode
 varvalue r True
 
-code auto:1592 not-equal[Int16] -32768[Int16], 255[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32768;
+code auto:1592 not-equal[Integer] -32768[Integer], 255[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32768;
   var  r: Boolean;
   r := a <> 255;
 endcode
 varvalue r True
 
-code auto:1593 not-equal[compile-time] -32768[Int16], 255[Word] -> [Boolean] Both immediate $overflow on
+code auto:1593 not-equal[compile-time] -32768[Integer], 255[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32768 <> 255;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1594 not-equal[Int16] -32768[Int16], 32767[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32768;
+code auto:1594 not-equal[Integer] -32768[Integer], 32767[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = -32768;
   var  b: Word = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1595 not-equal[Int16] -32768[Int16], 32767[Word] -> [Boolean] Left immediate $overflow on
+code auto:1595 not-equal[Integer] -32768[Integer], 32767[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 32767;
   var  r: Boolean;
   r := -32768 <> b;
 endcode
 varvalue r True
 
-code auto:1596 not-equal[Int16] -32768[Int16], 32767[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32768;
+code auto:1596 not-equal[Integer] -32768[Integer], 32767[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32768;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:1597 not-equal[compile-time] -32768[Int16], 32767[Word] -> [Boolean] Both immediate $overflow on
+code auto:1597 not-equal[compile-time] -32768[Integer], 32767[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32768 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1598 not-equal[Int16] -32768[Int16], 32768[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32768;
+code auto:1598 not-equal[Integer] -32768[Integer], 32768[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = -32768;
   var  b: Word = 32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1599 not-equal[Int16] -32768[Int16], 32768[Word] -> [Boolean] Left immediate $overflow on
+code auto:1599 not-equal[Integer] -32768[Integer], 32768[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 32768;
   var  r: Boolean;
   r := -32768 <> b;
 endcode
 varvalue r True
 
-code auto:1600 not-equal[Int16] -32768[Int16], 32768[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32768;
+code auto:1600 not-equal[Integer] -32768[Integer], 32768[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32768;
   var  r: Boolean;
   r := a <> 32768;
 endcode
 varvalue r True
 
-code auto:1601 not-equal[compile-time] -32768[Int16], 32768[Word] -> [Boolean] Both immediate $overflow on
+code auto:1601 not-equal[compile-time] -32768[Integer], 32768[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32768 <> 32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1602 not-equal[Int16] -32768[Int16], 65535[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32768;
+code auto:1602 not-equal[Integer] -32768[Integer], 65535[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = -32768;
   var  b: Word = 65535;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1603 not-equal[Int16] -32768[Int16], 65535[Word] -> [Boolean] Left immediate $overflow on
+code auto:1603 not-equal[Integer] -32768[Integer], 65535[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 65535;
   var  r: Boolean;
   r := -32768 <> b;
 endcode
 varvalue r True
 
-code auto:1604 not-equal[Int16] -32768[Int16], 65535[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32768;
+code auto:1604 not-equal[Integer] -32768[Integer], 65535[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32768;
   var  r: Boolean;
   r := a <> 65535;
 endcode
 varvalue r True
 
-code auto:1605 not-equal[compile-time] -32768[Int16], 65535[Word] -> [Boolean] Both immediate $overflow on
+code auto:1605 not-equal[compile-time] -32768[Integer], 65535[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32768 <> 65535;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1606 not-equal[Int16] -32767[Int16], 0[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32767;
+code auto:1606 not-equal[Integer] -32767[Integer], 0[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = -32767;
   var  b: Word = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1607 not-equal[Int16] -32767[Int16], 0[Word] -> [Boolean] Left immediate $overflow on
+code auto:1607 not-equal[Integer] -32767[Integer], 0[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 0;
   var  r: Boolean;
   r := -32767 <> b;
 endcode
 varvalue r True
 
-code auto:1608 not-equal[Int16] -32767[Int16], 0[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32767;
+code auto:1608 not-equal[Integer] -32767[Integer], 0[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32767;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:1609 not-equal[compile-time] -32767[Int16], 0[Word] -> [Boolean] Both immediate $overflow on
+code auto:1609 not-equal[compile-time] -32767[Integer], 0[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32767 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1610 not-equal[Int16] -32767[Int16], 255[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32767;
+code auto:1610 not-equal[Integer] -32767[Integer], 255[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = -32767;
   var  b: Word = 255;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1611 not-equal[Int16] -32767[Int16], 255[Word] -> [Boolean] Left immediate $overflow on
+code auto:1611 not-equal[Integer] -32767[Integer], 255[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 255;
   var  r: Boolean;
   r := -32767 <> b;
 endcode
 varvalue r True
 
-code auto:1612 not-equal[Int16] -32767[Int16], 255[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32767;
+code auto:1612 not-equal[Integer] -32767[Integer], 255[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32767;
   var  r: Boolean;
   r := a <> 255;
 endcode
 varvalue r True
 
-code auto:1613 not-equal[compile-time] -32767[Int16], 255[Word] -> [Boolean] Both immediate $overflow on
+code auto:1613 not-equal[compile-time] -32767[Integer], 255[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32767 <> 255;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1614 not-equal[Int16] -32767[Int16], 32767[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32767;
+code auto:1614 not-equal[Integer] -32767[Integer], 32767[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = -32767;
   var  b: Word = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1615 not-equal[Int16] -32767[Int16], 32767[Word] -> [Boolean] Left immediate $overflow on
+code auto:1615 not-equal[Integer] -32767[Integer], 32767[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 32767;
   var  r: Boolean;
   r := -32767 <> b;
 endcode
 varvalue r True
 
-code auto:1616 not-equal[Int16] -32767[Int16], 32767[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32767;
+code auto:1616 not-equal[Integer] -32767[Integer], 32767[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32767;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:1617 not-equal[compile-time] -32767[Int16], 32767[Word] -> [Boolean] Both immediate $overflow on
+code auto:1617 not-equal[compile-time] -32767[Integer], 32767[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32767 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1618 not-equal[Int16] -32767[Int16], 32768[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32767;
+code auto:1618 not-equal[Integer] -32767[Integer], 32768[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = -32767;
   var  b: Word = 32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1619 not-equal[Int16] -32767[Int16], 32768[Word] -> [Boolean] Left immediate $overflow on
+code auto:1619 not-equal[Integer] -32767[Integer], 32768[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 32768;
   var  r: Boolean;
   r := -32767 <> b;
 endcode
 varvalue r True
 
-code auto:1620 not-equal[Int16] -32767[Int16], 32768[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32767;
+code auto:1620 not-equal[Integer] -32767[Integer], 32768[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32767;
   var  r: Boolean;
   r := a <> 32768;
 endcode
 varvalue r True
 
-code auto:1621 not-equal[compile-time] -32767[Int16], 32768[Word] -> [Boolean] Both immediate $overflow on
+code auto:1621 not-equal[compile-time] -32767[Integer], 32768[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32767 <> 32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1622 not-equal[Int16] -32767[Int16], 65535[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32767;
+code auto:1622 not-equal[Integer] -32767[Integer], 65535[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = -32767;
   var  b: Word = 65535;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1623 not-equal[Int16] -32767[Int16], 65535[Word] -> [Boolean] Left immediate $overflow on
+code auto:1623 not-equal[Integer] -32767[Integer], 65535[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 65535;
   var  r: Boolean;
   r := -32767 <> b;
 endcode
 varvalue r True
 
-code auto:1624 not-equal[Int16] -32767[Int16], 65535[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32767;
+code auto:1624 not-equal[Integer] -32767[Integer], 65535[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32767;
   var  r: Boolean;
   r := a <> 65535;
 endcode
 varvalue r True
 
-code auto:1625 not-equal[compile-time] -32767[Int16], 65535[Word] -> [Boolean] Both immediate $overflow on
+code auto:1625 not-equal[compile-time] -32767[Integer], 65535[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32767 <> 65535;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1626 not-equal[Int16] -129[Int16], 0[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = -129;
+code auto:1626 not-equal[Integer] -129[Integer], 0[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = -129;
   var  b: Word = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1627 not-equal[Int16] -129[Int16], 0[Word] -> [Boolean] Left immediate $overflow on
+code auto:1627 not-equal[Integer] -129[Integer], 0[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 0;
   var  r: Boolean;
   r := -129 <> b;
 endcode
 varvalue r True
 
-code auto:1628 not-equal[Int16] -129[Int16], 0[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -129;
+code auto:1628 not-equal[Integer] -129[Integer], 0[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -129;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:1629 not-equal[compile-time] -129[Int16], 0[Word] -> [Boolean] Both immediate $overflow on
+code auto:1629 not-equal[compile-time] -129[Integer], 0[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -129 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1630 not-equal[Int16] -129[Int16], 255[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = -129;
+code auto:1630 not-equal[Integer] -129[Integer], 255[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = -129;
   var  b: Word = 255;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1631 not-equal[Int16] -129[Int16], 255[Word] -> [Boolean] Left immediate $overflow on
+code auto:1631 not-equal[Integer] -129[Integer], 255[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 255;
   var  r: Boolean;
   r := -129 <> b;
 endcode
 varvalue r True
 
-code auto:1632 not-equal[Int16] -129[Int16], 255[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -129;
+code auto:1632 not-equal[Integer] -129[Integer], 255[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -129;
   var  r: Boolean;
   r := a <> 255;
 endcode
 varvalue r True
 
-code auto:1633 not-equal[compile-time] -129[Int16], 255[Word] -> [Boolean] Both immediate $overflow on
+code auto:1633 not-equal[compile-time] -129[Integer], 255[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -129 <> 255;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1634 not-equal[Int16] -129[Int16], 32767[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = -129;
+code auto:1634 not-equal[Integer] -129[Integer], 32767[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = -129;
   var  b: Word = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1635 not-equal[Int16] -129[Int16], 32767[Word] -> [Boolean] Left immediate $overflow on
+code auto:1635 not-equal[Integer] -129[Integer], 32767[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 32767;
   var  r: Boolean;
   r := -129 <> b;
 endcode
 varvalue r True
 
-code auto:1636 not-equal[Int16] -129[Int16], 32767[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -129;
+code auto:1636 not-equal[Integer] -129[Integer], 32767[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -129;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:1637 not-equal[compile-time] -129[Int16], 32767[Word] -> [Boolean] Both immediate $overflow on
+code auto:1637 not-equal[compile-time] -129[Integer], 32767[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -129 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1638 not-equal[Int16] -129[Int16], 32768[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = -129;
+code auto:1638 not-equal[Integer] -129[Integer], 32768[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = -129;
   var  b: Word = 32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1639 not-equal[Int16] -129[Int16], 32768[Word] -> [Boolean] Left immediate $overflow on
+code auto:1639 not-equal[Integer] -129[Integer], 32768[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 32768;
   var  r: Boolean;
   r := -129 <> b;
 endcode
 varvalue r True
 
-code auto:1640 not-equal[Int16] -129[Int16], 32768[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -129;
+code auto:1640 not-equal[Integer] -129[Integer], 32768[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -129;
   var  r: Boolean;
   r := a <> 32768;
 endcode
 varvalue r True
 
-code auto:1641 not-equal[compile-time] -129[Int16], 32768[Word] -> [Boolean] Both immediate $overflow on
+code auto:1641 not-equal[compile-time] -129[Integer], 32768[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -129 <> 32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1642 not-equal[Int16] -129[Int16], 65535[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = -129;
+code auto:1642 not-equal[Integer] -129[Integer], 65535[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = -129;
   var  b: Word = 65535;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1643 not-equal[Int16] -129[Int16], 65535[Word] -> [Boolean] Left immediate $overflow on
+code auto:1643 not-equal[Integer] -129[Integer], 65535[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 65535;
   var  r: Boolean;
   r := -129 <> b;
 endcode
 varvalue r True
 
-code auto:1644 not-equal[Int16] -129[Int16], 65535[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -129;
+code auto:1644 not-equal[Integer] -129[Integer], 65535[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -129;
   var  r: Boolean;
   r := a <> 65535;
 endcode
 varvalue r True
 
-code auto:1645 not-equal[compile-time] -129[Int16], 65535[Word] -> [Boolean] Both immediate $overflow on
+code auto:1645 not-equal[compile-time] -129[Integer], 65535[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -129 <> 65535;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1646 not-equal[Int16] -128[Int16], 0[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = -128;
+code auto:1646 not-equal[Integer] -128[Integer], 0[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = -128;
   var  b: Word = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1647 not-equal[Int16] -128[Int16], 0[Word] -> [Boolean] Left immediate $overflow on
+code auto:1647 not-equal[Integer] -128[Integer], 0[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 0;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:1648 not-equal[Int16] -128[Int16], 0[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -128;
+code auto:1648 not-equal[Integer] -128[Integer], 0[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -128;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:1649 not-equal[compile-time] -128[Int16], 0[Word] -> [Boolean] Both immediate $overflow on
+code auto:1649 not-equal[compile-time] -128[Integer], 0[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1650 not-equal[Int16] -128[Int16], 255[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = -128;
+code auto:1650 not-equal[Integer] -128[Integer], 255[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = -128;
   var  b: Word = 255;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1651 not-equal[Int16] -128[Int16], 255[Word] -> [Boolean] Left immediate $overflow on
+code auto:1651 not-equal[Integer] -128[Integer], 255[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 255;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:1652 not-equal[Int16] -128[Int16], 255[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -128;
+code auto:1652 not-equal[Integer] -128[Integer], 255[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -128;
   var  r: Boolean;
   r := a <> 255;
 endcode
 varvalue r True
 
-code auto:1653 not-equal[compile-time] -128[Int16], 255[Word] -> [Boolean] Both immediate $overflow on
+code auto:1653 not-equal[compile-time] -128[Integer], 255[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> 255;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1654 not-equal[Int16] -128[Int16], 32767[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = -128;
+code auto:1654 not-equal[Integer] -128[Integer], 32767[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = -128;
   var  b: Word = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1655 not-equal[Int16] -128[Int16], 32767[Word] -> [Boolean] Left immediate $overflow on
+code auto:1655 not-equal[Integer] -128[Integer], 32767[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 32767;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:1656 not-equal[Int16] -128[Int16], 32767[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -128;
+code auto:1656 not-equal[Integer] -128[Integer], 32767[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -128;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:1657 not-equal[compile-time] -128[Int16], 32767[Word] -> [Boolean] Both immediate $overflow on
+code auto:1657 not-equal[compile-time] -128[Integer], 32767[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1658 not-equal[Int16] -128[Int16], 32768[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = -128;
+code auto:1658 not-equal[Integer] -128[Integer], 32768[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = -128;
   var  b: Word = 32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1659 not-equal[Int16] -128[Int16], 32768[Word] -> [Boolean] Left immediate $overflow on
+code auto:1659 not-equal[Integer] -128[Integer], 32768[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 32768;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:1660 not-equal[Int16] -128[Int16], 32768[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -128;
+code auto:1660 not-equal[Integer] -128[Integer], 32768[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -128;
   var  r: Boolean;
   r := a <> 32768;
 endcode
 varvalue r True
 
-code auto:1661 not-equal[compile-time] -128[Int16], 32768[Word] -> [Boolean] Both immediate $overflow on
+code auto:1661 not-equal[compile-time] -128[Integer], 32768[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> 32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1662 not-equal[Int16] -128[Int16], 65535[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = -128;
+code auto:1662 not-equal[Integer] -128[Integer], 65535[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = -128;
   var  b: Word = 65535;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1663 not-equal[Int16] -128[Int16], 65535[Word] -> [Boolean] Left immediate $overflow on
+code auto:1663 not-equal[Integer] -128[Integer], 65535[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 65535;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:1664 not-equal[Int16] -128[Int16], 65535[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -128;
+code auto:1664 not-equal[Integer] -128[Integer], 65535[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -128;
   var  r: Boolean;
   r := a <> 65535;
 endcode
 varvalue r True
 
-code auto:1665 not-equal[compile-time] -128[Int16], 65535[Word] -> [Boolean] Both immediate $overflow on
+code auto:1665 not-equal[compile-time] -128[Integer], 65535[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> 65535;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1666 not-equal[Int16] -1[Int16], 0[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = -1;
+code auto:1666 not-equal[Integer] -1[Integer], 0[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = -1;
   var  b: Word = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1667 not-equal[Int16] -1[Int16], 0[Word] -> [Boolean] Left immediate $overflow on
+code auto:1667 not-equal[Integer] -1[Integer], 0[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 0;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:1668 not-equal[Int16] -1[Int16], 0[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -1;
+code auto:1668 not-equal[Integer] -1[Integer], 0[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -1;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:1669 not-equal[compile-time] -1[Int16], 0[Word] -> [Boolean] Both immediate $overflow on
+code auto:1669 not-equal[compile-time] -1[Integer], 0[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1670 not-equal[Int16] -1[Int16], 255[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = -1;
+code auto:1670 not-equal[Integer] -1[Integer], 255[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = -1;
   var  b: Word = 255;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1671 not-equal[Int16] -1[Int16], 255[Word] -> [Boolean] Left immediate $overflow on
+code auto:1671 not-equal[Integer] -1[Integer], 255[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 255;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:1672 not-equal[Int16] -1[Int16], 255[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -1;
+code auto:1672 not-equal[Integer] -1[Integer], 255[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -1;
   var  r: Boolean;
   r := a <> 255;
 endcode
 varvalue r True
 
-code auto:1673 not-equal[compile-time] -1[Int16], 255[Word] -> [Boolean] Both immediate $overflow on
+code auto:1673 not-equal[compile-time] -1[Integer], 255[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> 255;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1674 not-equal[Int16] -1[Int16], 32767[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = -1;
+code auto:1674 not-equal[Integer] -1[Integer], 32767[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = -1;
   var  b: Word = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1675 not-equal[Int16] -1[Int16], 32767[Word] -> [Boolean] Left immediate $overflow on
+code auto:1675 not-equal[Integer] -1[Integer], 32767[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 32767;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:1676 not-equal[Int16] -1[Int16], 32767[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -1;
+code auto:1676 not-equal[Integer] -1[Integer], 32767[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -1;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:1677 not-equal[compile-time] -1[Int16], 32767[Word] -> [Boolean] Both immediate $overflow on
+code auto:1677 not-equal[compile-time] -1[Integer], 32767[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1678 not-equal[Int16] -1[Int16], 32768[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = -1;
+code auto:1678 not-equal[Integer] -1[Integer], 32768[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = -1;
   var  b: Word = 32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1679 not-equal[Int16] -1[Int16], 32768[Word] -> [Boolean] Left immediate $overflow on
+code auto:1679 not-equal[Integer] -1[Integer], 32768[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 32768;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:1680 not-equal[Int16] -1[Int16], 32768[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -1;
+code auto:1680 not-equal[Integer] -1[Integer], 32768[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -1;
   var  r: Boolean;
   r := a <> 32768;
 endcode
 varvalue r True
 
-code auto:1681 not-equal[compile-time] -1[Int16], 32768[Word] -> [Boolean] Both immediate $overflow on
+code auto:1681 not-equal[compile-time] -1[Integer], 32768[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> 32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1682 not-equal[Int16] -1[Int16], 65535[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = -1;
+code auto:1682 not-equal[Integer] -1[Integer], 65535[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = -1;
   var  b: Word = 65535;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1683 not-equal[Int16] -1[Int16], 65535[Word] -> [Boolean] Left immediate $overflow on
+code auto:1683 not-equal[Integer] -1[Integer], 65535[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 65535;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:1684 not-equal[Int16] -1[Int16], 65535[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -1;
+code auto:1684 not-equal[Integer] -1[Integer], 65535[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -1;
   var  r: Boolean;
   r := a <> 65535;
 endcode
 varvalue r True
 
-code auto:1685 not-equal[compile-time] -1[Int16], 65535[Word] -> [Boolean] Both immediate $overflow on
+code auto:1685 not-equal[compile-time] -1[Integer], 65535[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> 65535;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1686 not-equal[Int16] 0[Int16], 0[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = 0;
+code auto:1686 not-equal[Integer] 0[Integer], 0[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = 0;
   var  b: Word = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r False
 
-code auto:1687 not-equal[Int16] 0[Int16], 0[Word] -> [Boolean] Left immediate $overflow on
+code auto:1687 not-equal[Integer] 0[Integer], 0[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 0;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r False
 
-code auto:1688 not-equal[Int16] 0[Int16], 0[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 0;
+code auto:1688 not-equal[Integer] 0[Integer], 0[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 0;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r False
 
-code auto:1689 not-equal[compile-time] 0[Int16], 0[Word] -> [Boolean] Both immediate $overflow on
+code auto:1689 not-equal[compile-time] 0[Integer], 0[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 0;
 endcode
 varvalue r False
 
 $overflow on
-code auto:1690 not-equal[Int16] 0[Int16], 255[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = 0;
+code auto:1690 not-equal[Integer] 0[Integer], 255[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = 0;
   var  b: Word = 255;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1691 not-equal[Int16] 0[Int16], 255[Word] -> [Boolean] Left immediate $overflow on
+code auto:1691 not-equal[Integer] 0[Integer], 255[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 255;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:1692 not-equal[Int16] 0[Int16], 255[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 0;
+code auto:1692 not-equal[Integer] 0[Integer], 255[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 0;
   var  r: Boolean;
   r := a <> 255;
 endcode
 varvalue r True
 
-code auto:1693 not-equal[compile-time] 0[Int16], 255[Word] -> [Boolean] Both immediate $overflow on
+code auto:1693 not-equal[compile-time] 0[Integer], 255[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 255;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1694 not-equal[Int16] 0[Int16], 32767[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = 0;
+code auto:1694 not-equal[Integer] 0[Integer], 32767[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = 0;
   var  b: Word = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1695 not-equal[Int16] 0[Int16], 32767[Word] -> [Boolean] Left immediate $overflow on
+code auto:1695 not-equal[Integer] 0[Integer], 32767[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 32767;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:1696 not-equal[Int16] 0[Int16], 32767[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 0;
+code auto:1696 not-equal[Integer] 0[Integer], 32767[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 0;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:1697 not-equal[compile-time] 0[Int16], 32767[Word] -> [Boolean] Both immediate $overflow on
+code auto:1697 not-equal[compile-time] 0[Integer], 32767[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1698 not-equal[Int16] 0[Int16], 32768[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = 0;
+code auto:1698 not-equal[Integer] 0[Integer], 32768[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = 0;
   var  b: Word = 32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1699 not-equal[Int16] 0[Int16], 32768[Word] -> [Boolean] Left immediate $overflow on
+code auto:1699 not-equal[Integer] 0[Integer], 32768[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 32768;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:1700 not-equal[Int16] 0[Int16], 32768[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 0;
+code auto:1700 not-equal[Integer] 0[Integer], 32768[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 0;
   var  r: Boolean;
   r := a <> 32768;
 endcode
 varvalue r True
 
-code auto:1701 not-equal[compile-time] 0[Int16], 32768[Word] -> [Boolean] Both immediate $overflow on
+code auto:1701 not-equal[compile-time] 0[Integer], 32768[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1702 not-equal[Int16] 0[Int16], 65535[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = 0;
+code auto:1702 not-equal[Integer] 0[Integer], 65535[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = 0;
   var  b: Word = 65535;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1703 not-equal[Int16] 0[Int16], 65535[Word] -> [Boolean] Left immediate $overflow on
+code auto:1703 not-equal[Integer] 0[Integer], 65535[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 65535;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:1704 not-equal[Int16] 0[Int16], 65535[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 0;
+code auto:1704 not-equal[Integer] 0[Integer], 65535[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 0;
   var  r: Boolean;
   r := a <> 65535;
 endcode
 varvalue r True
 
-code auto:1705 not-equal[compile-time] 0[Int16], 65535[Word] -> [Boolean] Both immediate $overflow on
+code auto:1705 not-equal[compile-time] 0[Integer], 65535[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 65535;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1706 not-equal[Int16] 1[Int16], 0[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = 1;
+code auto:1706 not-equal[Integer] 1[Integer], 0[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = 1;
   var  b: Word = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1707 not-equal[Int16] 1[Int16], 0[Word] -> [Boolean] Left immediate $overflow on
+code auto:1707 not-equal[Integer] 1[Integer], 0[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 0;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:1708 not-equal[Int16] 1[Int16], 0[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 1;
+code auto:1708 not-equal[Integer] 1[Integer], 0[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 1;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:1709 not-equal[compile-time] 1[Int16], 0[Word] -> [Boolean] Both immediate $overflow on
+code auto:1709 not-equal[compile-time] 1[Integer], 0[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1710 not-equal[Int16] 1[Int16], 255[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = 1;
+code auto:1710 not-equal[Integer] 1[Integer], 255[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = 1;
   var  b: Word = 255;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1711 not-equal[Int16] 1[Int16], 255[Word] -> [Boolean] Left immediate $overflow on
+code auto:1711 not-equal[Integer] 1[Integer], 255[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 255;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:1712 not-equal[Int16] 1[Int16], 255[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 1;
+code auto:1712 not-equal[Integer] 1[Integer], 255[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 1;
   var  r: Boolean;
   r := a <> 255;
 endcode
 varvalue r True
 
-code auto:1713 not-equal[compile-time] 1[Int16], 255[Word] -> [Boolean] Both immediate $overflow on
+code auto:1713 not-equal[compile-time] 1[Integer], 255[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> 255;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1714 not-equal[Int16] 1[Int16], 32767[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = 1;
+code auto:1714 not-equal[Integer] 1[Integer], 32767[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = 1;
   var  b: Word = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1715 not-equal[Int16] 1[Int16], 32767[Word] -> [Boolean] Left immediate $overflow on
+code auto:1715 not-equal[Integer] 1[Integer], 32767[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 32767;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:1716 not-equal[Int16] 1[Int16], 32767[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 1;
+code auto:1716 not-equal[Integer] 1[Integer], 32767[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 1;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:1717 not-equal[compile-time] 1[Int16], 32767[Word] -> [Boolean] Both immediate $overflow on
+code auto:1717 not-equal[compile-time] 1[Integer], 32767[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1718 not-equal[Int16] 1[Int16], 32768[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = 1;
+code auto:1718 not-equal[Integer] 1[Integer], 32768[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = 1;
   var  b: Word = 32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1719 not-equal[Int16] 1[Int16], 32768[Word] -> [Boolean] Left immediate $overflow on
+code auto:1719 not-equal[Integer] 1[Integer], 32768[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 32768;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:1720 not-equal[Int16] 1[Int16], 32768[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 1;
+code auto:1720 not-equal[Integer] 1[Integer], 32768[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 1;
   var  r: Boolean;
   r := a <> 32768;
 endcode
 varvalue r True
 
-code auto:1721 not-equal[compile-time] 1[Int16], 32768[Word] -> [Boolean] Both immediate $overflow on
+code auto:1721 not-equal[compile-time] 1[Integer], 32768[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> 32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1722 not-equal[Int16] 1[Int16], 65535[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = 1;
+code auto:1722 not-equal[Integer] 1[Integer], 65535[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = 1;
   var  b: Word = 65535;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1723 not-equal[Int16] 1[Int16], 65535[Word] -> [Boolean] Left immediate $overflow on
+code auto:1723 not-equal[Integer] 1[Integer], 65535[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 65535;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:1724 not-equal[Int16] 1[Int16], 65535[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 1;
+code auto:1724 not-equal[Integer] 1[Integer], 65535[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 1;
   var  r: Boolean;
   r := a <> 65535;
 endcode
 varvalue r True
 
-code auto:1725 not-equal[compile-time] 1[Int16], 65535[Word] -> [Boolean] Both immediate $overflow on
+code auto:1725 not-equal[compile-time] 1[Integer], 65535[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> 65535;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1726 not-equal[Int16] 127[Int16], 0[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = 127;
+code auto:1726 not-equal[Integer] 127[Integer], 0[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = 127;
   var  b: Word = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1727 not-equal[Int16] 127[Int16], 0[Word] -> [Boolean] Left immediate $overflow on
+code auto:1727 not-equal[Integer] 127[Integer], 0[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 0;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:1728 not-equal[Int16] 127[Int16], 0[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 127;
+code auto:1728 not-equal[Integer] 127[Integer], 0[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 127;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:1729 not-equal[compile-time] 127[Int16], 0[Word] -> [Boolean] Both immediate $overflow on
+code auto:1729 not-equal[compile-time] 127[Integer], 0[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1730 not-equal[Int16] 127[Int16], 255[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = 127;
+code auto:1730 not-equal[Integer] 127[Integer], 255[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = 127;
   var  b: Word = 255;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1731 not-equal[Int16] 127[Int16], 255[Word] -> [Boolean] Left immediate $overflow on
+code auto:1731 not-equal[Integer] 127[Integer], 255[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 255;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:1732 not-equal[Int16] 127[Int16], 255[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 127;
+code auto:1732 not-equal[Integer] 127[Integer], 255[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 127;
   var  r: Boolean;
   r := a <> 255;
 endcode
 varvalue r True
 
-code auto:1733 not-equal[compile-time] 127[Int16], 255[Word] -> [Boolean] Both immediate $overflow on
+code auto:1733 not-equal[compile-time] 127[Integer], 255[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> 255;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1734 not-equal[Int16] 127[Int16], 32767[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = 127;
+code auto:1734 not-equal[Integer] 127[Integer], 32767[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = 127;
   var  b: Word = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1735 not-equal[Int16] 127[Int16], 32767[Word] -> [Boolean] Left immediate $overflow on
+code auto:1735 not-equal[Integer] 127[Integer], 32767[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 32767;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:1736 not-equal[Int16] 127[Int16], 32767[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 127;
+code auto:1736 not-equal[Integer] 127[Integer], 32767[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 127;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:1737 not-equal[compile-time] 127[Int16], 32767[Word] -> [Boolean] Both immediate $overflow on
+code auto:1737 not-equal[compile-time] 127[Integer], 32767[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1738 not-equal[Int16] 127[Int16], 32768[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = 127;
+code auto:1738 not-equal[Integer] 127[Integer], 32768[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = 127;
   var  b: Word = 32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1739 not-equal[Int16] 127[Int16], 32768[Word] -> [Boolean] Left immediate $overflow on
+code auto:1739 not-equal[Integer] 127[Integer], 32768[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 32768;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:1740 not-equal[Int16] 127[Int16], 32768[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 127;
+code auto:1740 not-equal[Integer] 127[Integer], 32768[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 127;
   var  r: Boolean;
   r := a <> 32768;
 endcode
 varvalue r True
 
-code auto:1741 not-equal[compile-time] 127[Int16], 32768[Word] -> [Boolean] Both immediate $overflow on
+code auto:1741 not-equal[compile-time] 127[Integer], 32768[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> 32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1742 not-equal[Int16] 127[Int16], 65535[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = 127;
+code auto:1742 not-equal[Integer] 127[Integer], 65535[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = 127;
   var  b: Word = 65535;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1743 not-equal[Int16] 127[Int16], 65535[Word] -> [Boolean] Left immediate $overflow on
+code auto:1743 not-equal[Integer] 127[Integer], 65535[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 65535;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:1744 not-equal[Int16] 127[Int16], 65535[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 127;
+code auto:1744 not-equal[Integer] 127[Integer], 65535[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 127;
   var  r: Boolean;
   r := a <> 65535;
 endcode
 varvalue r True
 
-code auto:1745 not-equal[compile-time] 127[Int16], 65535[Word] -> [Boolean] Both immediate $overflow on
+code auto:1745 not-equal[compile-time] 127[Integer], 65535[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> 65535;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1746 not-equal[Int16] 128[Int16], 0[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = 128;
+code auto:1746 not-equal[Integer] 128[Integer], 0[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = 128;
   var  b: Word = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1747 not-equal[Int16] 128[Int16], 0[Word] -> [Boolean] Left immediate $overflow on
+code auto:1747 not-equal[Integer] 128[Integer], 0[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 0;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:1748 not-equal[Int16] 128[Int16], 0[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 128;
+code auto:1748 not-equal[Integer] 128[Integer], 0[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 128;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:1749 not-equal[compile-time] 128[Int16], 0[Word] -> [Boolean] Both immediate $overflow on
+code auto:1749 not-equal[compile-time] 128[Integer], 0[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1750 not-equal[Int16] 128[Int16], 255[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = 128;
+code auto:1750 not-equal[Integer] 128[Integer], 255[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = 128;
   var  b: Word = 255;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1751 not-equal[Int16] 128[Int16], 255[Word] -> [Boolean] Left immediate $overflow on
+code auto:1751 not-equal[Integer] 128[Integer], 255[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 255;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:1752 not-equal[Int16] 128[Int16], 255[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 128;
+code auto:1752 not-equal[Integer] 128[Integer], 255[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 128;
   var  r: Boolean;
   r := a <> 255;
 endcode
 varvalue r True
 
-code auto:1753 not-equal[compile-time] 128[Int16], 255[Word] -> [Boolean] Both immediate $overflow on
+code auto:1753 not-equal[compile-time] 128[Integer], 255[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> 255;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1754 not-equal[Int16] 128[Int16], 32767[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = 128;
+code auto:1754 not-equal[Integer] 128[Integer], 32767[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = 128;
   var  b: Word = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1755 not-equal[Int16] 128[Int16], 32767[Word] -> [Boolean] Left immediate $overflow on
+code auto:1755 not-equal[Integer] 128[Integer], 32767[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 32767;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:1756 not-equal[Int16] 128[Int16], 32767[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 128;
+code auto:1756 not-equal[Integer] 128[Integer], 32767[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 128;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:1757 not-equal[compile-time] 128[Int16], 32767[Word] -> [Boolean] Both immediate $overflow on
+code auto:1757 not-equal[compile-time] 128[Integer], 32767[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1758 not-equal[Int16] 128[Int16], 32768[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = 128;
+code auto:1758 not-equal[Integer] 128[Integer], 32768[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = 128;
   var  b: Word = 32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1759 not-equal[Int16] 128[Int16], 32768[Word] -> [Boolean] Left immediate $overflow on
+code auto:1759 not-equal[Integer] 128[Integer], 32768[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 32768;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:1760 not-equal[Int16] 128[Int16], 32768[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 128;
+code auto:1760 not-equal[Integer] 128[Integer], 32768[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 128;
   var  r: Boolean;
   r := a <> 32768;
 endcode
 varvalue r True
 
-code auto:1761 not-equal[compile-time] 128[Int16], 32768[Word] -> [Boolean] Both immediate $overflow on
+code auto:1761 not-equal[compile-time] 128[Integer], 32768[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> 32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1762 not-equal[Int16] 128[Int16], 65535[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = 128;
+code auto:1762 not-equal[Integer] 128[Integer], 65535[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = 128;
   var  b: Word = 65535;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1763 not-equal[Int16] 128[Int16], 65535[Word] -> [Boolean] Left immediate $overflow on
+code auto:1763 not-equal[Integer] 128[Integer], 65535[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 65535;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:1764 not-equal[Int16] 128[Int16], 65535[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 128;
+code auto:1764 not-equal[Integer] 128[Integer], 65535[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 128;
   var  r: Boolean;
   r := a <> 65535;
 endcode
 varvalue r True
 
-code auto:1765 not-equal[compile-time] 128[Int16], 65535[Word] -> [Boolean] Both immediate $overflow on
+code auto:1765 not-equal[compile-time] 128[Integer], 65535[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> 65535;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1766 not-equal[Int16] 32767[Int16], 0[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = 32767;
+code auto:1766 not-equal[Integer] 32767[Integer], 0[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = 32767;
   var  b: Word = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1767 not-equal[Int16] 32767[Int16], 0[Word] -> [Boolean] Left immediate $overflow on
+code auto:1767 not-equal[Integer] 32767[Integer], 0[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 0;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:1768 not-equal[Int16] 32767[Int16], 0[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 32767;
+code auto:1768 not-equal[Integer] 32767[Integer], 0[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 32767;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:1769 not-equal[compile-time] 32767[Int16], 0[Word] -> [Boolean] Both immediate $overflow on
+code auto:1769 not-equal[compile-time] 32767[Integer], 0[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1770 not-equal[Int16] 32767[Int16], 255[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = 32767;
+code auto:1770 not-equal[Integer] 32767[Integer], 255[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = 32767;
   var  b: Word = 255;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1771 not-equal[Int16] 32767[Int16], 255[Word] -> [Boolean] Left immediate $overflow on
+code auto:1771 not-equal[Integer] 32767[Integer], 255[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 255;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:1772 not-equal[Int16] 32767[Int16], 255[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 32767;
+code auto:1772 not-equal[Integer] 32767[Integer], 255[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 32767;
   var  r: Boolean;
   r := a <> 255;
 endcode
 varvalue r True
 
-code auto:1773 not-equal[compile-time] 32767[Int16], 255[Word] -> [Boolean] Both immediate $overflow on
+code auto:1773 not-equal[compile-time] 32767[Integer], 255[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> 255;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1774 not-equal[Int16] 32767[Int16], 32767[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = 32767;
+code auto:1774 not-equal[Integer] 32767[Integer], 32767[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = 32767;
   var  b: Word = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r False
 
-code auto:1775 not-equal[Int16] 32767[Int16], 32767[Word] -> [Boolean] Left immediate $overflow on
+code auto:1775 not-equal[Integer] 32767[Integer], 32767[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 32767;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r False
 
-code auto:1776 not-equal[Int16] 32767[Int16], 32767[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 32767;
+code auto:1776 not-equal[Integer] 32767[Integer], 32767[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 32767;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r False
 
-code auto:1777 not-equal[compile-time] 32767[Int16], 32767[Word] -> [Boolean] Both immediate $overflow on
+code auto:1777 not-equal[compile-time] 32767[Integer], 32767[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> 32767;
 endcode
 varvalue r False
 
 $overflow on
-code auto:1778 not-equal[Int16] 32767[Int16], 32768[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = 32767;
+code auto:1778 not-equal[Integer] 32767[Integer], 32768[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = 32767;
   var  b: Word = 32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1779 not-equal[Int16] 32767[Int16], 32768[Word] -> [Boolean] Left immediate $overflow on
+code auto:1779 not-equal[Integer] 32767[Integer], 32768[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 32768;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:1780 not-equal[Int16] 32767[Int16], 32768[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 32767;
+code auto:1780 not-equal[Integer] 32767[Integer], 32768[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 32767;
   var  r: Boolean;
   r := a <> 32768;
 endcode
 varvalue r True
 
-code auto:1781 not-equal[compile-time] 32767[Int16], 32768[Word] -> [Boolean] Both immediate $overflow on
+code auto:1781 not-equal[compile-time] 32767[Integer], 32768[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> 32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1782 not-equal[Int16] 32767[Int16], 65535[Word] -> [Boolean] Var $overflow on
-  var  a: Int16 = 32767;
+code auto:1782 not-equal[Integer] 32767[Integer], 65535[Word] -> [Boolean] Var $overflow on
+  var  a: Integer = 32767;
   var  b: Word = 65535;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1783 not-equal[Int16] 32767[Int16], 65535[Word] -> [Boolean] Left immediate $overflow on
+code auto:1783 not-equal[Integer] 32767[Integer], 65535[Word] -> [Boolean] Left immediate $overflow on
   var  b: Word = 65535;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:1784 not-equal[Int16] 32767[Int16], 65535[Word] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 32767;
+code auto:1784 not-equal[Integer] 32767[Integer], 65535[Word] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 32767;
   var  r: Boolean;
   r := a <> 65535;
 endcode
 varvalue r True
 
-code auto:1785 not-equal[compile-time] 32767[Int16], 65535[Word] -> [Boolean] Both immediate $overflow on
+code auto:1785 not-equal[compile-time] 32767[Integer], 65535[Word] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> 65535;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1786 not-equal[Pointer] -32768[Int16], 0[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32768;
+code auto:1786 not-equal[Pointer] -32768[Integer], 0[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = -32768;
   var  b: Pointer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1787 not-equal[Pointer] -32768[Int16], 0[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1787 not-equal[Pointer] -32768[Integer], 0[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 0;
   var  r: Boolean;
   r := -32768 <> b;
 endcode
 varvalue r True
 
-code auto:1788 not-equal[Pointer] -32768[Int16], 0[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32768;
+code auto:1788 not-equal[Pointer] -32768[Integer], 0[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32768;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:1789 not-equal[compile-time] -32768[Int16], 0[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1789 not-equal[compile-time] -32768[Integer], 0[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32768 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1790 not-equal[Pointer] -32768[Int16], 255[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32768;
+code auto:1790 not-equal[Pointer] -32768[Integer], 255[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = -32768;
   var  b: Pointer = 255;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1791 not-equal[Pointer] -32768[Int16], 255[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1791 not-equal[Pointer] -32768[Integer], 255[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 255;
   var  r: Boolean;
   r := -32768 <> b;
 endcode
 varvalue r True
 
-code auto:1792 not-equal[Pointer] -32768[Int16], 255[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32768;
+code auto:1792 not-equal[Pointer] -32768[Integer], 255[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32768;
   var  r: Boolean;
   r := a <> 255;
 endcode
 varvalue r True
 
-code auto:1793 not-equal[compile-time] -32768[Int16], 255[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1793 not-equal[compile-time] -32768[Integer], 255[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32768 <> 255;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1794 not-equal[Pointer] -32768[Int16], 32767[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32768;
+code auto:1794 not-equal[Pointer] -32768[Integer], 32767[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = -32768;
   var  b: Pointer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1795 not-equal[Pointer] -32768[Int16], 32767[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1795 not-equal[Pointer] -32768[Integer], 32767[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 32767;
   var  r: Boolean;
   r := -32768 <> b;
 endcode
 varvalue r True
 
-code auto:1796 not-equal[Pointer] -32768[Int16], 32767[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32768;
+code auto:1796 not-equal[Pointer] -32768[Integer], 32767[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32768;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:1797 not-equal[compile-time] -32768[Int16], 32767[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1797 not-equal[compile-time] -32768[Integer], 32767[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32768 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1798 not-equal[Pointer] -32768[Int16], 32768[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32768;
+code auto:1798 not-equal[Pointer] -32768[Integer], 32768[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = -32768;
   var  b: Pointer = 32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1799 not-equal[Pointer] -32768[Int16], 32768[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1799 not-equal[Pointer] -32768[Integer], 32768[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 32768;
   var  r: Boolean;
   r := -32768 <> b;
 endcode
 varvalue r True
 
-code auto:1800 not-equal[Pointer] -32768[Int16], 32768[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32768;
+code auto:1800 not-equal[Pointer] -32768[Integer], 32768[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32768;
   var  r: Boolean;
   r := a <> 32768;
 endcode
 varvalue r True
 
-code auto:1801 not-equal[compile-time] -32768[Int16], 32768[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1801 not-equal[compile-time] -32768[Integer], 32768[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32768 <> 32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1802 not-equal[Pointer] -32768[Int16], 65535[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32768;
+code auto:1802 not-equal[Pointer] -32768[Integer], 65535[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = -32768;
   var  b: Pointer = 65535;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1803 not-equal[Pointer] -32768[Int16], 65535[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1803 not-equal[Pointer] -32768[Integer], 65535[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 65535;
   var  r: Boolean;
   r := -32768 <> b;
 endcode
 varvalue r True
 
-code auto:1804 not-equal[Pointer] -32768[Int16], 65535[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32768;
+code auto:1804 not-equal[Pointer] -32768[Integer], 65535[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32768;
   var  r: Boolean;
   r := a <> 65535;
 endcode
 varvalue r True
 
-code auto:1805 not-equal[compile-time] -32768[Int16], 65535[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1805 not-equal[compile-time] -32768[Integer], 65535[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32768 <> 65535;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1806 not-equal[Pointer] -32767[Int16], 0[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32767;
+code auto:1806 not-equal[Pointer] -32767[Integer], 0[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = -32767;
   var  b: Pointer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1807 not-equal[Pointer] -32767[Int16], 0[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1807 not-equal[Pointer] -32767[Integer], 0[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 0;
   var  r: Boolean;
   r := -32767 <> b;
 endcode
 varvalue r True
 
-code auto:1808 not-equal[Pointer] -32767[Int16], 0[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32767;
+code auto:1808 not-equal[Pointer] -32767[Integer], 0[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32767;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:1809 not-equal[compile-time] -32767[Int16], 0[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1809 not-equal[compile-time] -32767[Integer], 0[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32767 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1810 not-equal[Pointer] -32767[Int16], 255[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32767;
+code auto:1810 not-equal[Pointer] -32767[Integer], 255[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = -32767;
   var  b: Pointer = 255;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1811 not-equal[Pointer] -32767[Int16], 255[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1811 not-equal[Pointer] -32767[Integer], 255[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 255;
   var  r: Boolean;
   r := -32767 <> b;
 endcode
 varvalue r True
 
-code auto:1812 not-equal[Pointer] -32767[Int16], 255[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32767;
+code auto:1812 not-equal[Pointer] -32767[Integer], 255[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32767;
   var  r: Boolean;
   r := a <> 255;
 endcode
 varvalue r True
 
-code auto:1813 not-equal[compile-time] -32767[Int16], 255[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1813 not-equal[compile-time] -32767[Integer], 255[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32767 <> 255;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1814 not-equal[Pointer] -32767[Int16], 32767[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32767;
+code auto:1814 not-equal[Pointer] -32767[Integer], 32767[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = -32767;
   var  b: Pointer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1815 not-equal[Pointer] -32767[Int16], 32767[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1815 not-equal[Pointer] -32767[Integer], 32767[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 32767;
   var  r: Boolean;
   r := -32767 <> b;
 endcode
 varvalue r True
 
-code auto:1816 not-equal[Pointer] -32767[Int16], 32767[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32767;
+code auto:1816 not-equal[Pointer] -32767[Integer], 32767[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32767;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:1817 not-equal[compile-time] -32767[Int16], 32767[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1817 not-equal[compile-time] -32767[Integer], 32767[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32767 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1818 not-equal[Pointer] -32767[Int16], 32768[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32767;
+code auto:1818 not-equal[Pointer] -32767[Integer], 32768[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = -32767;
   var  b: Pointer = 32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1819 not-equal[Pointer] -32767[Int16], 32768[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1819 not-equal[Pointer] -32767[Integer], 32768[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 32768;
   var  r: Boolean;
   r := -32767 <> b;
 endcode
 varvalue r True
 
-code auto:1820 not-equal[Pointer] -32767[Int16], 32768[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32767;
+code auto:1820 not-equal[Pointer] -32767[Integer], 32768[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32767;
   var  r: Boolean;
   r := a <> 32768;
 endcode
 varvalue r True
 
-code auto:1821 not-equal[compile-time] -32767[Int16], 32768[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1821 not-equal[compile-time] -32767[Integer], 32768[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32767 <> 32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1822 not-equal[Pointer] -32767[Int16], 65535[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = -32767;
+code auto:1822 not-equal[Pointer] -32767[Integer], 65535[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = -32767;
   var  b: Pointer = 65535;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1823 not-equal[Pointer] -32767[Int16], 65535[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1823 not-equal[Pointer] -32767[Integer], 65535[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 65535;
   var  r: Boolean;
   r := -32767 <> b;
 endcode
 varvalue r True
 
-code auto:1824 not-equal[Pointer] -32767[Int16], 65535[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -32767;
+code auto:1824 not-equal[Pointer] -32767[Integer], 65535[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -32767;
   var  r: Boolean;
   r := a <> 65535;
 endcode
 varvalue r True
 
-code auto:1825 not-equal[compile-time] -32767[Int16], 65535[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1825 not-equal[compile-time] -32767[Integer], 65535[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -32767 <> 65535;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1826 not-equal[Pointer] -129[Int16], 0[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = -129;
+code auto:1826 not-equal[Pointer] -129[Integer], 0[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = -129;
   var  b: Pointer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1827 not-equal[Pointer] -129[Int16], 0[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1827 not-equal[Pointer] -129[Integer], 0[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 0;
   var  r: Boolean;
   r := -129 <> b;
 endcode
 varvalue r True
 
-code auto:1828 not-equal[Pointer] -129[Int16], 0[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -129;
+code auto:1828 not-equal[Pointer] -129[Integer], 0[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -129;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:1829 not-equal[compile-time] -129[Int16], 0[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1829 not-equal[compile-time] -129[Integer], 0[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -129 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1830 not-equal[Pointer] -129[Int16], 255[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = -129;
+code auto:1830 not-equal[Pointer] -129[Integer], 255[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = -129;
   var  b: Pointer = 255;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1831 not-equal[Pointer] -129[Int16], 255[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1831 not-equal[Pointer] -129[Integer], 255[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 255;
   var  r: Boolean;
   r := -129 <> b;
 endcode
 varvalue r True
 
-code auto:1832 not-equal[Pointer] -129[Int16], 255[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -129;
+code auto:1832 not-equal[Pointer] -129[Integer], 255[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -129;
   var  r: Boolean;
   r := a <> 255;
 endcode
 varvalue r True
 
-code auto:1833 not-equal[compile-time] -129[Int16], 255[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1833 not-equal[compile-time] -129[Integer], 255[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -129 <> 255;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1834 not-equal[Pointer] -129[Int16], 32767[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = -129;
+code auto:1834 not-equal[Pointer] -129[Integer], 32767[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = -129;
   var  b: Pointer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1835 not-equal[Pointer] -129[Int16], 32767[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1835 not-equal[Pointer] -129[Integer], 32767[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 32767;
   var  r: Boolean;
   r := -129 <> b;
 endcode
 varvalue r True
 
-code auto:1836 not-equal[Pointer] -129[Int16], 32767[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -129;
+code auto:1836 not-equal[Pointer] -129[Integer], 32767[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -129;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:1837 not-equal[compile-time] -129[Int16], 32767[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1837 not-equal[compile-time] -129[Integer], 32767[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -129 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1838 not-equal[Pointer] -129[Int16], 32768[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = -129;
+code auto:1838 not-equal[Pointer] -129[Integer], 32768[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = -129;
   var  b: Pointer = 32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1839 not-equal[Pointer] -129[Int16], 32768[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1839 not-equal[Pointer] -129[Integer], 32768[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 32768;
   var  r: Boolean;
   r := -129 <> b;
 endcode
 varvalue r True
 
-code auto:1840 not-equal[Pointer] -129[Int16], 32768[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -129;
+code auto:1840 not-equal[Pointer] -129[Integer], 32768[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -129;
   var  r: Boolean;
   r := a <> 32768;
 endcode
 varvalue r True
 
-code auto:1841 not-equal[compile-time] -129[Int16], 32768[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1841 not-equal[compile-time] -129[Integer], 32768[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -129 <> 32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1842 not-equal[Pointer] -129[Int16], 65535[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = -129;
+code auto:1842 not-equal[Pointer] -129[Integer], 65535[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = -129;
   var  b: Pointer = 65535;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1843 not-equal[Pointer] -129[Int16], 65535[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1843 not-equal[Pointer] -129[Integer], 65535[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 65535;
   var  r: Boolean;
   r := -129 <> b;
 endcode
 varvalue r True
 
-code auto:1844 not-equal[Pointer] -129[Int16], 65535[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -129;
+code auto:1844 not-equal[Pointer] -129[Integer], 65535[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -129;
   var  r: Boolean;
   r := a <> 65535;
 endcode
 varvalue r True
 
-code auto:1845 not-equal[compile-time] -129[Int16], 65535[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1845 not-equal[compile-time] -129[Integer], 65535[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -129 <> 65535;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1846 not-equal[Pointer] -128[Int16], 0[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = -128;
+code auto:1846 not-equal[Pointer] -128[Integer], 0[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = -128;
   var  b: Pointer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1847 not-equal[Pointer] -128[Int16], 0[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1847 not-equal[Pointer] -128[Integer], 0[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 0;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:1848 not-equal[Pointer] -128[Int16], 0[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -128;
+code auto:1848 not-equal[Pointer] -128[Integer], 0[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -128;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:1849 not-equal[compile-time] -128[Int16], 0[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1849 not-equal[compile-time] -128[Integer], 0[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1850 not-equal[Pointer] -128[Int16], 255[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = -128;
+code auto:1850 not-equal[Pointer] -128[Integer], 255[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = -128;
   var  b: Pointer = 255;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1851 not-equal[Pointer] -128[Int16], 255[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1851 not-equal[Pointer] -128[Integer], 255[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 255;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:1852 not-equal[Pointer] -128[Int16], 255[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -128;
+code auto:1852 not-equal[Pointer] -128[Integer], 255[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -128;
   var  r: Boolean;
   r := a <> 255;
 endcode
 varvalue r True
 
-code auto:1853 not-equal[compile-time] -128[Int16], 255[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1853 not-equal[compile-time] -128[Integer], 255[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> 255;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1854 not-equal[Pointer] -128[Int16], 32767[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = -128;
+code auto:1854 not-equal[Pointer] -128[Integer], 32767[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = -128;
   var  b: Pointer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1855 not-equal[Pointer] -128[Int16], 32767[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1855 not-equal[Pointer] -128[Integer], 32767[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 32767;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:1856 not-equal[Pointer] -128[Int16], 32767[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -128;
+code auto:1856 not-equal[Pointer] -128[Integer], 32767[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -128;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:1857 not-equal[compile-time] -128[Int16], 32767[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1857 not-equal[compile-time] -128[Integer], 32767[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1858 not-equal[Pointer] -128[Int16], 32768[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = -128;
+code auto:1858 not-equal[Pointer] -128[Integer], 32768[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = -128;
   var  b: Pointer = 32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1859 not-equal[Pointer] -128[Int16], 32768[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1859 not-equal[Pointer] -128[Integer], 32768[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 32768;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:1860 not-equal[Pointer] -128[Int16], 32768[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -128;
+code auto:1860 not-equal[Pointer] -128[Integer], 32768[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -128;
   var  r: Boolean;
   r := a <> 32768;
 endcode
 varvalue r True
 
-code auto:1861 not-equal[compile-time] -128[Int16], 32768[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1861 not-equal[compile-time] -128[Integer], 32768[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> 32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1862 not-equal[Pointer] -128[Int16], 65535[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = -128;
+code auto:1862 not-equal[Pointer] -128[Integer], 65535[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = -128;
   var  b: Pointer = 65535;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1863 not-equal[Pointer] -128[Int16], 65535[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1863 not-equal[Pointer] -128[Integer], 65535[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 65535;
   var  r: Boolean;
   r := -128 <> b;
 endcode
 varvalue r True
 
-code auto:1864 not-equal[Pointer] -128[Int16], 65535[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -128;
+code auto:1864 not-equal[Pointer] -128[Integer], 65535[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -128;
   var  r: Boolean;
   r := a <> 65535;
 endcode
 varvalue r True
 
-code auto:1865 not-equal[compile-time] -128[Int16], 65535[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1865 not-equal[compile-time] -128[Integer], 65535[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -128 <> 65535;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1866 not-equal[Pointer] -1[Int16], 0[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = -1;
+code auto:1866 not-equal[Pointer] -1[Integer], 0[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = -1;
   var  b: Pointer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1867 not-equal[Pointer] -1[Int16], 0[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1867 not-equal[Pointer] -1[Integer], 0[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 0;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:1868 not-equal[Pointer] -1[Int16], 0[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -1;
+code auto:1868 not-equal[Pointer] -1[Integer], 0[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -1;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:1869 not-equal[compile-time] -1[Int16], 0[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1869 not-equal[compile-time] -1[Integer], 0[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1870 not-equal[Pointer] -1[Int16], 255[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = -1;
+code auto:1870 not-equal[Pointer] -1[Integer], 255[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = -1;
   var  b: Pointer = 255;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1871 not-equal[Pointer] -1[Int16], 255[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1871 not-equal[Pointer] -1[Integer], 255[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 255;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:1872 not-equal[Pointer] -1[Int16], 255[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -1;
+code auto:1872 not-equal[Pointer] -1[Integer], 255[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -1;
   var  r: Boolean;
   r := a <> 255;
 endcode
 varvalue r True
 
-code auto:1873 not-equal[compile-time] -1[Int16], 255[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1873 not-equal[compile-time] -1[Integer], 255[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> 255;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1874 not-equal[Pointer] -1[Int16], 32767[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = -1;
+code auto:1874 not-equal[Pointer] -1[Integer], 32767[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = -1;
   var  b: Pointer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1875 not-equal[Pointer] -1[Int16], 32767[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1875 not-equal[Pointer] -1[Integer], 32767[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 32767;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:1876 not-equal[Pointer] -1[Int16], 32767[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -1;
+code auto:1876 not-equal[Pointer] -1[Integer], 32767[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -1;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:1877 not-equal[compile-time] -1[Int16], 32767[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1877 not-equal[compile-time] -1[Integer], 32767[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1878 not-equal[Pointer] -1[Int16], 32768[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = -1;
+code auto:1878 not-equal[Pointer] -1[Integer], 32768[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = -1;
   var  b: Pointer = 32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1879 not-equal[Pointer] -1[Int16], 32768[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1879 not-equal[Pointer] -1[Integer], 32768[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 32768;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:1880 not-equal[Pointer] -1[Int16], 32768[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -1;
+code auto:1880 not-equal[Pointer] -1[Integer], 32768[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -1;
   var  r: Boolean;
   r := a <> 32768;
 endcode
 varvalue r True
 
-code auto:1881 not-equal[compile-time] -1[Int16], 32768[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1881 not-equal[compile-time] -1[Integer], 32768[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> 32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1882 not-equal[Pointer] -1[Int16], 65535[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = -1;
+code auto:1882 not-equal[Pointer] -1[Integer], 65535[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = -1;
   var  b: Pointer = 65535;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1883 not-equal[Pointer] -1[Int16], 65535[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1883 not-equal[Pointer] -1[Integer], 65535[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 65535;
   var  r: Boolean;
   r := -1 <> b;
 endcode
 varvalue r True
 
-code auto:1884 not-equal[Pointer] -1[Int16], 65535[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = -1;
+code auto:1884 not-equal[Pointer] -1[Integer], 65535[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = -1;
   var  r: Boolean;
   r := a <> 65535;
 endcode
 varvalue r True
 
-code auto:1885 not-equal[compile-time] -1[Int16], 65535[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1885 not-equal[compile-time] -1[Integer], 65535[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := -1 <> 65535;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1886 not-equal[Pointer] 0[Int16], 0[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = 0;
+code auto:1886 not-equal[Pointer] 0[Integer], 0[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = 0;
   var  b: Pointer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r False
 
-code auto:1887 not-equal[Pointer] 0[Int16], 0[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1887 not-equal[Pointer] 0[Integer], 0[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 0;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r False
 
-code auto:1888 not-equal[Pointer] 0[Int16], 0[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 0;
+code auto:1888 not-equal[Pointer] 0[Integer], 0[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 0;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r False
 
-code auto:1889 not-equal[compile-time] 0[Int16], 0[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1889 not-equal[compile-time] 0[Integer], 0[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 0;
 endcode
 varvalue r False
 
 $overflow on
-code auto:1890 not-equal[Pointer] 0[Int16], 255[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = 0;
+code auto:1890 not-equal[Pointer] 0[Integer], 255[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = 0;
   var  b: Pointer = 255;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1891 not-equal[Pointer] 0[Int16], 255[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1891 not-equal[Pointer] 0[Integer], 255[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 255;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:1892 not-equal[Pointer] 0[Int16], 255[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 0;
+code auto:1892 not-equal[Pointer] 0[Integer], 255[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 0;
   var  r: Boolean;
   r := a <> 255;
 endcode
 varvalue r True
 
-code auto:1893 not-equal[compile-time] 0[Int16], 255[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1893 not-equal[compile-time] 0[Integer], 255[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 255;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1894 not-equal[Pointer] 0[Int16], 32767[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = 0;
+code auto:1894 not-equal[Pointer] 0[Integer], 32767[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = 0;
   var  b: Pointer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1895 not-equal[Pointer] 0[Int16], 32767[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1895 not-equal[Pointer] 0[Integer], 32767[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 32767;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:1896 not-equal[Pointer] 0[Int16], 32767[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 0;
+code auto:1896 not-equal[Pointer] 0[Integer], 32767[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 0;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:1897 not-equal[compile-time] 0[Int16], 32767[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1897 not-equal[compile-time] 0[Integer], 32767[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1898 not-equal[Pointer] 0[Int16], 32768[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = 0;
+code auto:1898 not-equal[Pointer] 0[Integer], 32768[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = 0;
   var  b: Pointer = 32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1899 not-equal[Pointer] 0[Int16], 32768[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1899 not-equal[Pointer] 0[Integer], 32768[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 32768;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:1900 not-equal[Pointer] 0[Int16], 32768[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 0;
+code auto:1900 not-equal[Pointer] 0[Integer], 32768[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 0;
   var  r: Boolean;
   r := a <> 32768;
 endcode
 varvalue r True
 
-code auto:1901 not-equal[compile-time] 0[Int16], 32768[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1901 not-equal[compile-time] 0[Integer], 32768[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1902 not-equal[Pointer] 0[Int16], 65535[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = 0;
+code auto:1902 not-equal[Pointer] 0[Integer], 65535[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = 0;
   var  b: Pointer = 65535;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1903 not-equal[Pointer] 0[Int16], 65535[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1903 not-equal[Pointer] 0[Integer], 65535[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 65535;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:1904 not-equal[Pointer] 0[Int16], 65535[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 0;
+code auto:1904 not-equal[Pointer] 0[Integer], 65535[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 0;
   var  r: Boolean;
   r := a <> 65535;
 endcode
 varvalue r True
 
-code auto:1905 not-equal[compile-time] 0[Int16], 65535[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1905 not-equal[compile-time] 0[Integer], 65535[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 65535;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1906 not-equal[Pointer] 1[Int16], 0[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = 1;
+code auto:1906 not-equal[Pointer] 1[Integer], 0[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = 1;
   var  b: Pointer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1907 not-equal[Pointer] 1[Int16], 0[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1907 not-equal[Pointer] 1[Integer], 0[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 0;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:1908 not-equal[Pointer] 1[Int16], 0[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 1;
+code auto:1908 not-equal[Pointer] 1[Integer], 0[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 1;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:1909 not-equal[compile-time] 1[Int16], 0[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1909 not-equal[compile-time] 1[Integer], 0[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1910 not-equal[Pointer] 1[Int16], 255[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = 1;
+code auto:1910 not-equal[Pointer] 1[Integer], 255[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = 1;
   var  b: Pointer = 255;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1911 not-equal[Pointer] 1[Int16], 255[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1911 not-equal[Pointer] 1[Integer], 255[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 255;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:1912 not-equal[Pointer] 1[Int16], 255[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 1;
+code auto:1912 not-equal[Pointer] 1[Integer], 255[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 1;
   var  r: Boolean;
   r := a <> 255;
 endcode
 varvalue r True
 
-code auto:1913 not-equal[compile-time] 1[Int16], 255[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1913 not-equal[compile-time] 1[Integer], 255[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> 255;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1914 not-equal[Pointer] 1[Int16], 32767[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = 1;
+code auto:1914 not-equal[Pointer] 1[Integer], 32767[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = 1;
   var  b: Pointer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1915 not-equal[Pointer] 1[Int16], 32767[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1915 not-equal[Pointer] 1[Integer], 32767[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 32767;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:1916 not-equal[Pointer] 1[Int16], 32767[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 1;
+code auto:1916 not-equal[Pointer] 1[Integer], 32767[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 1;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:1917 not-equal[compile-time] 1[Int16], 32767[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1917 not-equal[compile-time] 1[Integer], 32767[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1918 not-equal[Pointer] 1[Int16], 32768[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = 1;
+code auto:1918 not-equal[Pointer] 1[Integer], 32768[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = 1;
   var  b: Pointer = 32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1919 not-equal[Pointer] 1[Int16], 32768[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1919 not-equal[Pointer] 1[Integer], 32768[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 32768;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:1920 not-equal[Pointer] 1[Int16], 32768[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 1;
+code auto:1920 not-equal[Pointer] 1[Integer], 32768[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 1;
   var  r: Boolean;
   r := a <> 32768;
 endcode
 varvalue r True
 
-code auto:1921 not-equal[compile-time] 1[Int16], 32768[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1921 not-equal[compile-time] 1[Integer], 32768[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> 32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1922 not-equal[Pointer] 1[Int16], 65535[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = 1;
+code auto:1922 not-equal[Pointer] 1[Integer], 65535[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = 1;
   var  b: Pointer = 65535;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1923 not-equal[Pointer] 1[Int16], 65535[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1923 not-equal[Pointer] 1[Integer], 65535[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 65535;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:1924 not-equal[Pointer] 1[Int16], 65535[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 1;
+code auto:1924 not-equal[Pointer] 1[Integer], 65535[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 1;
   var  r: Boolean;
   r := a <> 65535;
 endcode
 varvalue r True
 
-code auto:1925 not-equal[compile-time] 1[Int16], 65535[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1925 not-equal[compile-time] 1[Integer], 65535[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> 65535;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1926 not-equal[Pointer] 127[Int16], 0[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = 127;
+code auto:1926 not-equal[Pointer] 127[Integer], 0[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = 127;
   var  b: Pointer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1927 not-equal[Pointer] 127[Int16], 0[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1927 not-equal[Pointer] 127[Integer], 0[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 0;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:1928 not-equal[Pointer] 127[Int16], 0[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 127;
+code auto:1928 not-equal[Pointer] 127[Integer], 0[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 127;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:1929 not-equal[compile-time] 127[Int16], 0[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1929 not-equal[compile-time] 127[Integer], 0[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1930 not-equal[Pointer] 127[Int16], 255[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = 127;
+code auto:1930 not-equal[Pointer] 127[Integer], 255[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = 127;
   var  b: Pointer = 255;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1931 not-equal[Pointer] 127[Int16], 255[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1931 not-equal[Pointer] 127[Integer], 255[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 255;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:1932 not-equal[Pointer] 127[Int16], 255[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 127;
+code auto:1932 not-equal[Pointer] 127[Integer], 255[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 127;
   var  r: Boolean;
   r := a <> 255;
 endcode
 varvalue r True
 
-code auto:1933 not-equal[compile-time] 127[Int16], 255[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1933 not-equal[compile-time] 127[Integer], 255[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> 255;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1934 not-equal[Pointer] 127[Int16], 32767[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = 127;
+code auto:1934 not-equal[Pointer] 127[Integer], 32767[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = 127;
   var  b: Pointer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1935 not-equal[Pointer] 127[Int16], 32767[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1935 not-equal[Pointer] 127[Integer], 32767[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 32767;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:1936 not-equal[Pointer] 127[Int16], 32767[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 127;
+code auto:1936 not-equal[Pointer] 127[Integer], 32767[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 127;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:1937 not-equal[compile-time] 127[Int16], 32767[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1937 not-equal[compile-time] 127[Integer], 32767[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1938 not-equal[Pointer] 127[Int16], 32768[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = 127;
+code auto:1938 not-equal[Pointer] 127[Integer], 32768[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = 127;
   var  b: Pointer = 32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1939 not-equal[Pointer] 127[Int16], 32768[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1939 not-equal[Pointer] 127[Integer], 32768[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 32768;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:1940 not-equal[Pointer] 127[Int16], 32768[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 127;
+code auto:1940 not-equal[Pointer] 127[Integer], 32768[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 127;
   var  r: Boolean;
   r := a <> 32768;
 endcode
 varvalue r True
 
-code auto:1941 not-equal[compile-time] 127[Int16], 32768[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1941 not-equal[compile-time] 127[Integer], 32768[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> 32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1942 not-equal[Pointer] 127[Int16], 65535[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = 127;
+code auto:1942 not-equal[Pointer] 127[Integer], 65535[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = 127;
   var  b: Pointer = 65535;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1943 not-equal[Pointer] 127[Int16], 65535[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1943 not-equal[Pointer] 127[Integer], 65535[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 65535;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:1944 not-equal[Pointer] 127[Int16], 65535[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 127;
+code auto:1944 not-equal[Pointer] 127[Integer], 65535[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 127;
   var  r: Boolean;
   r := a <> 65535;
 endcode
 varvalue r True
 
-code auto:1945 not-equal[compile-time] 127[Int16], 65535[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1945 not-equal[compile-time] 127[Integer], 65535[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> 65535;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1946 not-equal[Pointer] 128[Int16], 0[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = 128;
+code auto:1946 not-equal[Pointer] 128[Integer], 0[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = 128;
   var  b: Pointer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1947 not-equal[Pointer] 128[Int16], 0[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1947 not-equal[Pointer] 128[Integer], 0[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 0;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:1948 not-equal[Pointer] 128[Int16], 0[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 128;
+code auto:1948 not-equal[Pointer] 128[Integer], 0[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 128;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:1949 not-equal[compile-time] 128[Int16], 0[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1949 not-equal[compile-time] 128[Integer], 0[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1950 not-equal[Pointer] 128[Int16], 255[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = 128;
+code auto:1950 not-equal[Pointer] 128[Integer], 255[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = 128;
   var  b: Pointer = 255;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1951 not-equal[Pointer] 128[Int16], 255[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1951 not-equal[Pointer] 128[Integer], 255[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 255;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:1952 not-equal[Pointer] 128[Int16], 255[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 128;
+code auto:1952 not-equal[Pointer] 128[Integer], 255[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 128;
   var  r: Boolean;
   r := a <> 255;
 endcode
 varvalue r True
 
-code auto:1953 not-equal[compile-time] 128[Int16], 255[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1953 not-equal[compile-time] 128[Integer], 255[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> 255;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1954 not-equal[Pointer] 128[Int16], 32767[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = 128;
+code auto:1954 not-equal[Pointer] 128[Integer], 32767[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = 128;
   var  b: Pointer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1955 not-equal[Pointer] 128[Int16], 32767[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1955 not-equal[Pointer] 128[Integer], 32767[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 32767;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:1956 not-equal[Pointer] 128[Int16], 32767[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 128;
+code auto:1956 not-equal[Pointer] 128[Integer], 32767[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 128;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:1957 not-equal[compile-time] 128[Int16], 32767[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1957 not-equal[compile-time] 128[Integer], 32767[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1958 not-equal[Pointer] 128[Int16], 32768[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = 128;
+code auto:1958 not-equal[Pointer] 128[Integer], 32768[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = 128;
   var  b: Pointer = 32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1959 not-equal[Pointer] 128[Int16], 32768[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1959 not-equal[Pointer] 128[Integer], 32768[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 32768;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:1960 not-equal[Pointer] 128[Int16], 32768[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 128;
+code auto:1960 not-equal[Pointer] 128[Integer], 32768[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 128;
   var  r: Boolean;
   r := a <> 32768;
 endcode
 varvalue r True
 
-code auto:1961 not-equal[compile-time] 128[Int16], 32768[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1961 not-equal[compile-time] 128[Integer], 32768[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> 32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1962 not-equal[Pointer] 128[Int16], 65535[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = 128;
+code auto:1962 not-equal[Pointer] 128[Integer], 65535[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = 128;
   var  b: Pointer = 65535;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1963 not-equal[Pointer] 128[Int16], 65535[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1963 not-equal[Pointer] 128[Integer], 65535[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 65535;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:1964 not-equal[Pointer] 128[Int16], 65535[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 128;
+code auto:1964 not-equal[Pointer] 128[Integer], 65535[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 128;
   var  r: Boolean;
   r := a <> 65535;
 endcode
 varvalue r True
 
-code auto:1965 not-equal[compile-time] 128[Int16], 65535[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1965 not-equal[compile-time] 128[Integer], 65535[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> 65535;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1966 not-equal[Pointer] 32767[Int16], 0[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = 32767;
+code auto:1966 not-equal[Pointer] 32767[Integer], 0[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = 32767;
   var  b: Pointer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1967 not-equal[Pointer] 32767[Int16], 0[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1967 not-equal[Pointer] 32767[Integer], 0[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 0;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:1968 not-equal[Pointer] 32767[Int16], 0[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 32767;
+code auto:1968 not-equal[Pointer] 32767[Integer], 0[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 32767;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:1969 not-equal[compile-time] 32767[Int16], 0[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1969 not-equal[compile-time] 32767[Integer], 0[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1970 not-equal[Pointer] 32767[Int16], 255[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = 32767;
+code auto:1970 not-equal[Pointer] 32767[Integer], 255[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = 32767;
   var  b: Pointer = 255;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1971 not-equal[Pointer] 32767[Int16], 255[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1971 not-equal[Pointer] 32767[Integer], 255[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 255;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:1972 not-equal[Pointer] 32767[Int16], 255[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 32767;
+code auto:1972 not-equal[Pointer] 32767[Integer], 255[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 32767;
   var  r: Boolean;
   r := a <> 255;
 endcode
 varvalue r True
 
-code auto:1973 not-equal[compile-time] 32767[Int16], 255[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1973 not-equal[compile-time] 32767[Integer], 255[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> 255;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1974 not-equal[Pointer] 32767[Int16], 32767[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = 32767;
+code auto:1974 not-equal[Pointer] 32767[Integer], 32767[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = 32767;
   var  b: Pointer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r False
 
-code auto:1975 not-equal[Pointer] 32767[Int16], 32767[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1975 not-equal[Pointer] 32767[Integer], 32767[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 32767;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r False
 
-code auto:1976 not-equal[Pointer] 32767[Int16], 32767[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 32767;
+code auto:1976 not-equal[Pointer] 32767[Integer], 32767[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 32767;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r False
 
-code auto:1977 not-equal[compile-time] 32767[Int16], 32767[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1977 not-equal[compile-time] 32767[Integer], 32767[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> 32767;
 endcode
 varvalue r False
 
 $overflow on
-code auto:1978 not-equal[Pointer] 32767[Int16], 32768[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = 32767;
+code auto:1978 not-equal[Pointer] 32767[Integer], 32768[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = 32767;
   var  b: Pointer = 32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1979 not-equal[Pointer] 32767[Int16], 32768[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1979 not-equal[Pointer] 32767[Integer], 32768[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 32768;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:1980 not-equal[Pointer] 32767[Int16], 32768[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 32767;
+code auto:1980 not-equal[Pointer] 32767[Integer], 32768[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 32767;
   var  r: Boolean;
   r := a <> 32768;
 endcode
 varvalue r True
 
-code auto:1981 not-equal[compile-time] 32767[Int16], 32768[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1981 not-equal[compile-time] 32767[Integer], 32768[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> 32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1982 not-equal[Pointer] 32767[Int16], 65535[Pointer] -> [Boolean] Var $overflow on
-  var  a: Int16 = 32767;
+code auto:1982 not-equal[Pointer] 32767[Integer], 65535[Pointer] -> [Boolean] Var $overflow on
+  var  a: Integer = 32767;
   var  b: Pointer = 65535;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:1983 not-equal[Pointer] 32767[Int16], 65535[Pointer] -> [Boolean] Left immediate $overflow on
+code auto:1983 not-equal[Pointer] 32767[Integer], 65535[Pointer] -> [Boolean] Left immediate $overflow on
   var  b: Pointer = 65535;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:1984 not-equal[Pointer] 32767[Int16], 65535[Pointer] -> [Boolean] Right immediate $overflow on
-  var  a: Int16 = 32767;
+code auto:1984 not-equal[Pointer] 32767[Integer], 65535[Pointer] -> [Boolean] Right immediate $overflow on
+  var  a: Integer = 32767;
   var  r: Boolean;
   r := a <> 65535;
 endcode
 varvalue r True
 
-code auto:1985 not-equal[compile-time] 32767[Int16], 65535[Pointer] -> [Boolean] Both immediate $overflow on
+code auto:1985 not-equal[compile-time] 32767[Integer], 65535[Pointer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> 65535;
 endcode
 varvalue r True
 
 $overflow on
-code auto:1986 not-equal[Int16] 0[Byte], -128[Int8] -> [Boolean] Var $overflow on
+code auto:1986 not-equal[Integer] 0[Byte], -128[Int8] -> [Boolean] Var $overflow on
   var  a: Byte = 0;
   var  b: Int8 = -128;
   var  r: Boolean;
@@ -14396,14 +14396,14 @@ code auto:1986 not-equal[Int16] 0[Byte], -128[Int8] -> [Boolean] Var $overflow o
 endcode
 varvalue r True
 
-code auto:1987 not-equal[Int16] 0[Byte], -128[Int8] -> [Boolean] Left immediate $overflow on
+code auto:1987 not-equal[Integer] 0[Byte], -128[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -128;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:1988 not-equal[Int16] 0[Byte], -128[Int8] -> [Boolean] Right immediate $overflow on
+code auto:1988 not-equal[Integer] 0[Byte], -128[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 0;
   var  r: Boolean;
   r := a <> -128;
@@ -14417,7 +14417,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:1990 not-equal[Int16] 0[Byte], -127[Int8] -> [Boolean] Var $overflow on
+code auto:1990 not-equal[Integer] 0[Byte], -127[Int8] -> [Boolean] Var $overflow on
   var  a: Byte = 0;
   var  b: Int8 = -127;
   var  r: Boolean;
@@ -14425,14 +14425,14 @@ code auto:1990 not-equal[Int16] 0[Byte], -127[Int8] -> [Boolean] Var $overflow o
 endcode
 varvalue r True
 
-code auto:1991 not-equal[Int16] 0[Byte], -127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:1991 not-equal[Integer] 0[Byte], -127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -127;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:1992 not-equal[Int16] 0[Byte], -127[Int8] -> [Boolean] Right immediate $overflow on
+code auto:1992 not-equal[Integer] 0[Byte], -127[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 0;
   var  r: Boolean;
   r := a <> -127;
@@ -14446,7 +14446,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:1994 not-equal[Int16] 0[Byte], -1[Int8] -> [Boolean] Var $overflow on
+code auto:1994 not-equal[Integer] 0[Byte], -1[Int8] -> [Boolean] Var $overflow on
   var  a: Byte = 0;
   var  b: Int8 = -1;
   var  r: Boolean;
@@ -14454,14 +14454,14 @@ code auto:1994 not-equal[Int16] 0[Byte], -1[Int8] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:1995 not-equal[Int16] 0[Byte], -1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:1995 not-equal[Integer] 0[Byte], -1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -1;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:1996 not-equal[Int16] 0[Byte], -1[Int8] -> [Boolean] Right immediate $overflow on
+code auto:1996 not-equal[Integer] 0[Byte], -1[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 0;
   var  r: Boolean;
   r := a <> -1;
@@ -14475,7 +14475,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:1998 not-equal[Int16] 0[Byte], 0[Int8] -> [Boolean] Var $overflow on
+code auto:1998 not-equal[Integer] 0[Byte], 0[Int8] -> [Boolean] Var $overflow on
   var  a: Byte = 0;
   var  b: Int8 = 0;
   var  r: Boolean;
@@ -14483,14 +14483,14 @@ code auto:1998 not-equal[Int16] 0[Byte], 0[Int8] -> [Boolean] Var $overflow on
 endcode
 varvalue r False
 
-code auto:1999 not-equal[Int16] 0[Byte], 0[Int8] -> [Boolean] Left immediate $overflow on
+code auto:1999 not-equal[Integer] 0[Byte], 0[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 0;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r False
 
-code auto:2000 not-equal[Int16] 0[Byte], 0[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2000 not-equal[Integer] 0[Byte], 0[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 0;
   var  r: Boolean;
   r := a <> 0;
@@ -14504,7 +14504,7 @@ endcode
 varvalue r False
 
 $overflow on
-code auto:2002 not-equal[Int16] 0[Byte], 1[Int8] -> [Boolean] Var $overflow on
+code auto:2002 not-equal[Integer] 0[Byte], 1[Int8] -> [Boolean] Var $overflow on
   var  a: Byte = 0;
   var  b: Int8 = 1;
   var  r: Boolean;
@@ -14512,14 +14512,14 @@ code auto:2002 not-equal[Int16] 0[Byte], 1[Int8] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:2003 not-equal[Int16] 0[Byte], 1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2003 not-equal[Integer] 0[Byte], 1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 1;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:2004 not-equal[Int16] 0[Byte], 1[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2004 not-equal[Integer] 0[Byte], 1[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 0;
   var  r: Boolean;
   r := a <> 1;
@@ -14533,7 +14533,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2006 not-equal[Int16] 0[Byte], 127[Int8] -> [Boolean] Var $overflow on
+code auto:2006 not-equal[Integer] 0[Byte], 127[Int8] -> [Boolean] Var $overflow on
   var  a: Byte = 0;
   var  b: Int8 = 127;
   var  r: Boolean;
@@ -14541,14 +14541,14 @@ code auto:2006 not-equal[Int16] 0[Byte], 127[Int8] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:2007 not-equal[Int16] 0[Byte], 127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2007 not-equal[Integer] 0[Byte], 127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 127;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:2008 not-equal[Int16] 0[Byte], 127[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2008 not-equal[Integer] 0[Byte], 127[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 0;
   var  r: Boolean;
   r := a <> 127;
@@ -14562,7 +14562,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2010 not-equal[Int16] 1[Byte], -128[Int8] -> [Boolean] Var $overflow on
+code auto:2010 not-equal[Integer] 1[Byte], -128[Int8] -> [Boolean] Var $overflow on
   var  a: Byte = 1;
   var  b: Int8 = -128;
   var  r: Boolean;
@@ -14570,14 +14570,14 @@ code auto:2010 not-equal[Int16] 1[Byte], -128[Int8] -> [Boolean] Var $overflow o
 endcode
 varvalue r True
 
-code auto:2011 not-equal[Int16] 1[Byte], -128[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2011 not-equal[Integer] 1[Byte], -128[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -128;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:2012 not-equal[Int16] 1[Byte], -128[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2012 not-equal[Integer] 1[Byte], -128[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 1;
   var  r: Boolean;
   r := a <> -128;
@@ -14591,7 +14591,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2014 not-equal[Int16] 1[Byte], -127[Int8] -> [Boolean] Var $overflow on
+code auto:2014 not-equal[Integer] 1[Byte], -127[Int8] -> [Boolean] Var $overflow on
   var  a: Byte = 1;
   var  b: Int8 = -127;
   var  r: Boolean;
@@ -14599,14 +14599,14 @@ code auto:2014 not-equal[Int16] 1[Byte], -127[Int8] -> [Boolean] Var $overflow o
 endcode
 varvalue r True
 
-code auto:2015 not-equal[Int16] 1[Byte], -127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2015 not-equal[Integer] 1[Byte], -127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -127;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:2016 not-equal[Int16] 1[Byte], -127[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2016 not-equal[Integer] 1[Byte], -127[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 1;
   var  r: Boolean;
   r := a <> -127;
@@ -14620,7 +14620,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2018 not-equal[Int16] 1[Byte], -1[Int8] -> [Boolean] Var $overflow on
+code auto:2018 not-equal[Integer] 1[Byte], -1[Int8] -> [Boolean] Var $overflow on
   var  a: Byte = 1;
   var  b: Int8 = -1;
   var  r: Boolean;
@@ -14628,14 +14628,14 @@ code auto:2018 not-equal[Int16] 1[Byte], -1[Int8] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:2019 not-equal[Int16] 1[Byte], -1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2019 not-equal[Integer] 1[Byte], -1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -1;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:2020 not-equal[Int16] 1[Byte], -1[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2020 not-equal[Integer] 1[Byte], -1[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 1;
   var  r: Boolean;
   r := a <> -1;
@@ -14649,7 +14649,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2022 not-equal[Int16] 1[Byte], 0[Int8] -> [Boolean] Var $overflow on
+code auto:2022 not-equal[Integer] 1[Byte], 0[Int8] -> [Boolean] Var $overflow on
   var  a: Byte = 1;
   var  b: Int8 = 0;
   var  r: Boolean;
@@ -14657,14 +14657,14 @@ code auto:2022 not-equal[Int16] 1[Byte], 0[Int8] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:2023 not-equal[Int16] 1[Byte], 0[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2023 not-equal[Integer] 1[Byte], 0[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 0;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:2024 not-equal[Int16] 1[Byte], 0[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2024 not-equal[Integer] 1[Byte], 0[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 1;
   var  r: Boolean;
   r := a <> 0;
@@ -14678,7 +14678,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2026 not-equal[Int16] 1[Byte], 1[Int8] -> [Boolean] Var $overflow on
+code auto:2026 not-equal[Integer] 1[Byte], 1[Int8] -> [Boolean] Var $overflow on
   var  a: Byte = 1;
   var  b: Int8 = 1;
   var  r: Boolean;
@@ -14686,14 +14686,14 @@ code auto:2026 not-equal[Int16] 1[Byte], 1[Int8] -> [Boolean] Var $overflow on
 endcode
 varvalue r False
 
-code auto:2027 not-equal[Int16] 1[Byte], 1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2027 not-equal[Integer] 1[Byte], 1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 1;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r False
 
-code auto:2028 not-equal[Int16] 1[Byte], 1[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2028 not-equal[Integer] 1[Byte], 1[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 1;
   var  r: Boolean;
   r := a <> 1;
@@ -14707,7 +14707,7 @@ endcode
 varvalue r False
 
 $overflow on
-code auto:2030 not-equal[Int16] 1[Byte], 127[Int8] -> [Boolean] Var $overflow on
+code auto:2030 not-equal[Integer] 1[Byte], 127[Int8] -> [Boolean] Var $overflow on
   var  a: Byte = 1;
   var  b: Int8 = 127;
   var  r: Boolean;
@@ -14715,14 +14715,14 @@ code auto:2030 not-equal[Int16] 1[Byte], 127[Int8] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:2031 not-equal[Int16] 1[Byte], 127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2031 not-equal[Integer] 1[Byte], 127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 127;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:2032 not-equal[Int16] 1[Byte], 127[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2032 not-equal[Integer] 1[Byte], 127[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 1;
   var  r: Boolean;
   r := a <> 127;
@@ -14736,7 +14736,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2034 not-equal[Int16] 127[Byte], -128[Int8] -> [Boolean] Var $overflow on
+code auto:2034 not-equal[Integer] 127[Byte], -128[Int8] -> [Boolean] Var $overflow on
   var  a: Byte = 127;
   var  b: Int8 = -128;
   var  r: Boolean;
@@ -14744,14 +14744,14 @@ code auto:2034 not-equal[Int16] 127[Byte], -128[Int8] -> [Boolean] Var $overflow
 endcode
 varvalue r True
 
-code auto:2035 not-equal[Int16] 127[Byte], -128[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2035 not-equal[Integer] 127[Byte], -128[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -128;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:2036 not-equal[Int16] 127[Byte], -128[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2036 not-equal[Integer] 127[Byte], -128[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 127;
   var  r: Boolean;
   r := a <> -128;
@@ -14765,7 +14765,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2038 not-equal[Int16] 127[Byte], -127[Int8] -> [Boolean] Var $overflow on
+code auto:2038 not-equal[Integer] 127[Byte], -127[Int8] -> [Boolean] Var $overflow on
   var  a: Byte = 127;
   var  b: Int8 = -127;
   var  r: Boolean;
@@ -14773,14 +14773,14 @@ code auto:2038 not-equal[Int16] 127[Byte], -127[Int8] -> [Boolean] Var $overflow
 endcode
 varvalue r True
 
-code auto:2039 not-equal[Int16] 127[Byte], -127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2039 not-equal[Integer] 127[Byte], -127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -127;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:2040 not-equal[Int16] 127[Byte], -127[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2040 not-equal[Integer] 127[Byte], -127[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 127;
   var  r: Boolean;
   r := a <> -127;
@@ -14794,7 +14794,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2042 not-equal[Int16] 127[Byte], -1[Int8] -> [Boolean] Var $overflow on
+code auto:2042 not-equal[Integer] 127[Byte], -1[Int8] -> [Boolean] Var $overflow on
   var  a: Byte = 127;
   var  b: Int8 = -1;
   var  r: Boolean;
@@ -14802,14 +14802,14 @@ code auto:2042 not-equal[Int16] 127[Byte], -1[Int8] -> [Boolean] Var $overflow o
 endcode
 varvalue r True
 
-code auto:2043 not-equal[Int16] 127[Byte], -1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2043 not-equal[Integer] 127[Byte], -1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -1;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:2044 not-equal[Int16] 127[Byte], -1[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2044 not-equal[Integer] 127[Byte], -1[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 127;
   var  r: Boolean;
   r := a <> -1;
@@ -14823,7 +14823,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2046 not-equal[Int16] 127[Byte], 0[Int8] -> [Boolean] Var $overflow on
+code auto:2046 not-equal[Integer] 127[Byte], 0[Int8] -> [Boolean] Var $overflow on
   var  a: Byte = 127;
   var  b: Int8 = 0;
   var  r: Boolean;
@@ -14831,14 +14831,14 @@ code auto:2046 not-equal[Int16] 127[Byte], 0[Int8] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:2047 not-equal[Int16] 127[Byte], 0[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2047 not-equal[Integer] 127[Byte], 0[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 0;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:2048 not-equal[Int16] 127[Byte], 0[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2048 not-equal[Integer] 127[Byte], 0[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 127;
   var  r: Boolean;
   r := a <> 0;
@@ -14852,7 +14852,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2050 not-equal[Int16] 127[Byte], 1[Int8] -> [Boolean] Var $overflow on
+code auto:2050 not-equal[Integer] 127[Byte], 1[Int8] -> [Boolean] Var $overflow on
   var  a: Byte = 127;
   var  b: Int8 = 1;
   var  r: Boolean;
@@ -14860,14 +14860,14 @@ code auto:2050 not-equal[Int16] 127[Byte], 1[Int8] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:2051 not-equal[Int16] 127[Byte], 1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2051 not-equal[Integer] 127[Byte], 1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 1;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:2052 not-equal[Int16] 127[Byte], 1[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2052 not-equal[Integer] 127[Byte], 1[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 127;
   var  r: Boolean;
   r := a <> 1;
@@ -14881,7 +14881,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2054 not-equal[Int16] 127[Byte], 127[Int8] -> [Boolean] Var $overflow on
+code auto:2054 not-equal[Integer] 127[Byte], 127[Int8] -> [Boolean] Var $overflow on
   var  a: Byte = 127;
   var  b: Int8 = 127;
   var  r: Boolean;
@@ -14889,14 +14889,14 @@ code auto:2054 not-equal[Int16] 127[Byte], 127[Int8] -> [Boolean] Var $overflow 
 endcode
 varvalue r False
 
-code auto:2055 not-equal[Int16] 127[Byte], 127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2055 not-equal[Integer] 127[Byte], 127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 127;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r False
 
-code auto:2056 not-equal[Int16] 127[Byte], 127[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2056 not-equal[Integer] 127[Byte], 127[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 127;
   var  r: Boolean;
   r := a <> 127;
@@ -14910,7 +14910,7 @@ endcode
 varvalue r False
 
 $overflow on
-code auto:2058 not-equal[Int16] 128[Byte], -128[Int8] -> [Boolean] Var $overflow on
+code auto:2058 not-equal[Integer] 128[Byte], -128[Int8] -> [Boolean] Var $overflow on
   var  a: Byte = 128;
   var  b: Int8 = -128;
   var  r: Boolean;
@@ -14918,14 +14918,14 @@ code auto:2058 not-equal[Int16] 128[Byte], -128[Int8] -> [Boolean] Var $overflow
 endcode
 varvalue r True
 
-code auto:2059 not-equal[Int16] 128[Byte], -128[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2059 not-equal[Integer] 128[Byte], -128[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -128;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:2060 not-equal[Int16] 128[Byte], -128[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2060 not-equal[Integer] 128[Byte], -128[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 128;
   var  r: Boolean;
   r := a <> -128;
@@ -14939,7 +14939,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2062 not-equal[Int16] 128[Byte], -127[Int8] -> [Boolean] Var $overflow on
+code auto:2062 not-equal[Integer] 128[Byte], -127[Int8] -> [Boolean] Var $overflow on
   var  a: Byte = 128;
   var  b: Int8 = -127;
   var  r: Boolean;
@@ -14947,14 +14947,14 @@ code auto:2062 not-equal[Int16] 128[Byte], -127[Int8] -> [Boolean] Var $overflow
 endcode
 varvalue r True
 
-code auto:2063 not-equal[Int16] 128[Byte], -127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2063 not-equal[Integer] 128[Byte], -127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -127;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:2064 not-equal[Int16] 128[Byte], -127[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2064 not-equal[Integer] 128[Byte], -127[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 128;
   var  r: Boolean;
   r := a <> -127;
@@ -14968,7 +14968,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2066 not-equal[Int16] 128[Byte], -1[Int8] -> [Boolean] Var $overflow on
+code auto:2066 not-equal[Integer] 128[Byte], -1[Int8] -> [Boolean] Var $overflow on
   var  a: Byte = 128;
   var  b: Int8 = -1;
   var  r: Boolean;
@@ -14976,14 +14976,14 @@ code auto:2066 not-equal[Int16] 128[Byte], -1[Int8] -> [Boolean] Var $overflow o
 endcode
 varvalue r True
 
-code auto:2067 not-equal[Int16] 128[Byte], -1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2067 not-equal[Integer] 128[Byte], -1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -1;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:2068 not-equal[Int16] 128[Byte], -1[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2068 not-equal[Integer] 128[Byte], -1[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 128;
   var  r: Boolean;
   r := a <> -1;
@@ -14997,7 +14997,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2070 not-equal[Int16] 128[Byte], 0[Int8] -> [Boolean] Var $overflow on
+code auto:2070 not-equal[Integer] 128[Byte], 0[Int8] -> [Boolean] Var $overflow on
   var  a: Byte = 128;
   var  b: Int8 = 0;
   var  r: Boolean;
@@ -15005,14 +15005,14 @@ code auto:2070 not-equal[Int16] 128[Byte], 0[Int8] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:2071 not-equal[Int16] 128[Byte], 0[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2071 not-equal[Integer] 128[Byte], 0[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 0;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:2072 not-equal[Int16] 128[Byte], 0[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2072 not-equal[Integer] 128[Byte], 0[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 128;
   var  r: Boolean;
   r := a <> 0;
@@ -15026,7 +15026,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2074 not-equal[Int16] 128[Byte], 1[Int8] -> [Boolean] Var $overflow on
+code auto:2074 not-equal[Integer] 128[Byte], 1[Int8] -> [Boolean] Var $overflow on
   var  a: Byte = 128;
   var  b: Int8 = 1;
   var  r: Boolean;
@@ -15034,14 +15034,14 @@ code auto:2074 not-equal[Int16] 128[Byte], 1[Int8] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:2075 not-equal[Int16] 128[Byte], 1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2075 not-equal[Integer] 128[Byte], 1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 1;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:2076 not-equal[Int16] 128[Byte], 1[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2076 not-equal[Integer] 128[Byte], 1[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 128;
   var  r: Boolean;
   r := a <> 1;
@@ -15055,7 +15055,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2078 not-equal[Int16] 128[Byte], 127[Int8] -> [Boolean] Var $overflow on
+code auto:2078 not-equal[Integer] 128[Byte], 127[Int8] -> [Boolean] Var $overflow on
   var  a: Byte = 128;
   var  b: Int8 = 127;
   var  r: Boolean;
@@ -15063,14 +15063,14 @@ code auto:2078 not-equal[Int16] 128[Byte], 127[Int8] -> [Boolean] Var $overflow 
 endcode
 varvalue r True
 
-code auto:2079 not-equal[Int16] 128[Byte], 127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2079 not-equal[Integer] 128[Byte], 127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 127;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:2080 not-equal[Int16] 128[Byte], 127[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2080 not-equal[Integer] 128[Byte], 127[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 128;
   var  r: Boolean;
   r := a <> 127;
@@ -15084,7 +15084,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2082 not-equal[Int16] 255[Byte], -128[Int8] -> [Boolean] Var $overflow on
+code auto:2082 not-equal[Integer] 255[Byte], -128[Int8] -> [Boolean] Var $overflow on
   var  a: Byte = 255;
   var  b: Int8 = -128;
   var  r: Boolean;
@@ -15092,14 +15092,14 @@ code auto:2082 not-equal[Int16] 255[Byte], -128[Int8] -> [Boolean] Var $overflow
 endcode
 varvalue r True
 
-code auto:2083 not-equal[Int16] 255[Byte], -128[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2083 not-equal[Integer] 255[Byte], -128[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -128;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:2084 not-equal[Int16] 255[Byte], -128[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2084 not-equal[Integer] 255[Byte], -128[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 255;
   var  r: Boolean;
   r := a <> -128;
@@ -15113,7 +15113,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2086 not-equal[Int16] 255[Byte], -127[Int8] -> [Boolean] Var $overflow on
+code auto:2086 not-equal[Integer] 255[Byte], -127[Int8] -> [Boolean] Var $overflow on
   var  a: Byte = 255;
   var  b: Int8 = -127;
   var  r: Boolean;
@@ -15121,14 +15121,14 @@ code auto:2086 not-equal[Int16] 255[Byte], -127[Int8] -> [Boolean] Var $overflow
 endcode
 varvalue r True
 
-code auto:2087 not-equal[Int16] 255[Byte], -127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2087 not-equal[Integer] 255[Byte], -127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -127;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:2088 not-equal[Int16] 255[Byte], -127[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2088 not-equal[Integer] 255[Byte], -127[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 255;
   var  r: Boolean;
   r := a <> -127;
@@ -15142,7 +15142,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2090 not-equal[Int16] 255[Byte], -1[Int8] -> [Boolean] Var $overflow on
+code auto:2090 not-equal[Integer] 255[Byte], -1[Int8] -> [Boolean] Var $overflow on
   var  a: Byte = 255;
   var  b: Int8 = -1;
   var  r: Boolean;
@@ -15150,14 +15150,14 @@ code auto:2090 not-equal[Int16] 255[Byte], -1[Int8] -> [Boolean] Var $overflow o
 endcode
 varvalue r True
 
-code auto:2091 not-equal[Int16] 255[Byte], -1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2091 not-equal[Integer] 255[Byte], -1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -1;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:2092 not-equal[Int16] 255[Byte], -1[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2092 not-equal[Integer] 255[Byte], -1[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 255;
   var  r: Boolean;
   r := a <> -1;
@@ -15171,7 +15171,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2094 not-equal[Int16] 255[Byte], 0[Int8] -> [Boolean] Var $overflow on
+code auto:2094 not-equal[Integer] 255[Byte], 0[Int8] -> [Boolean] Var $overflow on
   var  a: Byte = 255;
   var  b: Int8 = 0;
   var  r: Boolean;
@@ -15179,14 +15179,14 @@ code auto:2094 not-equal[Int16] 255[Byte], 0[Int8] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:2095 not-equal[Int16] 255[Byte], 0[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2095 not-equal[Integer] 255[Byte], 0[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 0;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:2096 not-equal[Int16] 255[Byte], 0[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2096 not-equal[Integer] 255[Byte], 0[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 255;
   var  r: Boolean;
   r := a <> 0;
@@ -15200,7 +15200,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2098 not-equal[Int16] 255[Byte], 1[Int8] -> [Boolean] Var $overflow on
+code auto:2098 not-equal[Integer] 255[Byte], 1[Int8] -> [Boolean] Var $overflow on
   var  a: Byte = 255;
   var  b: Int8 = 1;
   var  r: Boolean;
@@ -15208,14 +15208,14 @@ code auto:2098 not-equal[Int16] 255[Byte], 1[Int8] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:2099 not-equal[Int16] 255[Byte], 1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2099 not-equal[Integer] 255[Byte], 1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 1;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:2100 not-equal[Int16] 255[Byte], 1[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2100 not-equal[Integer] 255[Byte], 1[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 255;
   var  r: Boolean;
   r := a <> 1;
@@ -15229,7 +15229,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2102 not-equal[Int16] 255[Byte], 127[Int8] -> [Boolean] Var $overflow on
+code auto:2102 not-equal[Integer] 255[Byte], 127[Int8] -> [Boolean] Var $overflow on
   var  a: Byte = 255;
   var  b: Int8 = 127;
   var  r: Boolean;
@@ -15237,14 +15237,14 @@ code auto:2102 not-equal[Int16] 255[Byte], 127[Int8] -> [Boolean] Var $overflow 
 endcode
 varvalue r True
 
-code auto:2103 not-equal[Int16] 255[Byte], 127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2103 not-equal[Integer] 255[Byte], 127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 127;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:2104 not-equal[Int16] 255[Byte], 127[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2104 not-equal[Integer] 255[Byte], 127[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 255;
   var  r: Boolean;
   r := a <> 127;
@@ -15258,1450 +15258,1450 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2106 not-equal[Int16] 0[Byte], -32768[Int16] -> [Boolean] Var $overflow on
+code auto:2106 not-equal[Integer] 0[Byte], -32768[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 0;
-  var  b: Int16 = -32768;
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2107 not-equal[Int16] 0[Byte], -32768[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32768;
+code auto:2107 not-equal[Integer] 0[Byte], -32768[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:2108 not-equal[Int16] 0[Byte], -32768[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2108 not-equal[Integer] 0[Byte], -32768[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 0;
   var  r: Boolean;
   r := a <> -32768;
 endcode
 varvalue r True
 
-code auto:2109 not-equal[compile-time] 0[Byte], -32768[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2109 not-equal[compile-time] 0[Byte], -32768[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> -32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2110 not-equal[Int16] 0[Byte], -32767[Int16] -> [Boolean] Var $overflow on
+code auto:2110 not-equal[Integer] 0[Byte], -32767[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 0;
-  var  b: Int16 = -32767;
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2111 not-equal[Int16] 0[Byte], -32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32767;
+code auto:2111 not-equal[Integer] 0[Byte], -32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:2112 not-equal[Int16] 0[Byte], -32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2112 not-equal[Integer] 0[Byte], -32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 0;
   var  r: Boolean;
   r := a <> -32767;
 endcode
 varvalue r True
 
-code auto:2113 not-equal[compile-time] 0[Byte], -32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2113 not-equal[compile-time] 0[Byte], -32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> -32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2114 not-equal[Int16] 0[Byte], -129[Int16] -> [Boolean] Var $overflow on
+code auto:2114 not-equal[Integer] 0[Byte], -129[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 0;
-  var  b: Int16 = -129;
+  var  b: Integer = -129;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2115 not-equal[Int16] 0[Byte], -129[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -129;
+code auto:2115 not-equal[Integer] 0[Byte], -129[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -129;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:2116 not-equal[Int16] 0[Byte], -129[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2116 not-equal[Integer] 0[Byte], -129[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 0;
   var  r: Boolean;
   r := a <> -129;
 endcode
 varvalue r True
 
-code auto:2117 not-equal[compile-time] 0[Byte], -129[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2117 not-equal[compile-time] 0[Byte], -129[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> -129;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2118 not-equal[Int16] 0[Byte], -128[Int16] -> [Boolean] Var $overflow on
+code auto:2118 not-equal[Integer] 0[Byte], -128[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 0;
-  var  b: Int16 = -128;
+  var  b: Integer = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2119 not-equal[Int16] 0[Byte], -128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -128;
+code auto:2119 not-equal[Integer] 0[Byte], -128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -128;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:2120 not-equal[Int16] 0[Byte], -128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2120 not-equal[Integer] 0[Byte], -128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 0;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r True
 
-code auto:2121 not-equal[compile-time] 0[Byte], -128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2121 not-equal[compile-time] 0[Byte], -128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> -128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2122 not-equal[Int16] 0[Byte], -1[Int16] -> [Boolean] Var $overflow on
+code auto:2122 not-equal[Integer] 0[Byte], -1[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 0;
-  var  b: Int16 = -1;
+  var  b: Integer = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2123 not-equal[Int16] 0[Byte], -1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -1;
+code auto:2123 not-equal[Integer] 0[Byte], -1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -1;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:2124 not-equal[Int16] 0[Byte], -1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2124 not-equal[Integer] 0[Byte], -1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 0;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r True
 
-code auto:2125 not-equal[compile-time] 0[Byte], -1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2125 not-equal[compile-time] 0[Byte], -1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> -1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2126 not-equal[Int16] 0[Byte], 0[Int16] -> [Boolean] Var $overflow on
+code auto:2126 not-equal[Integer] 0[Byte], 0[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 0;
-  var  b: Int16 = 0;
+  var  b: Integer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r False
 
-code auto:2127 not-equal[Int16] 0[Byte], 0[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 0;
+code auto:2127 not-equal[Integer] 0[Byte], 0[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 0;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r False
 
-code auto:2128 not-equal[Int16] 0[Byte], 0[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2128 not-equal[Integer] 0[Byte], 0[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 0;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r False
 
-code auto:2129 not-equal[compile-time] 0[Byte], 0[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2129 not-equal[compile-time] 0[Byte], 0[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 0;
 endcode
 varvalue r False
 
 $overflow on
-code auto:2130 not-equal[Int16] 0[Byte], 1[Int16] -> [Boolean] Var $overflow on
+code auto:2130 not-equal[Integer] 0[Byte], 1[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 0;
-  var  b: Int16 = 1;
+  var  b: Integer = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2131 not-equal[Int16] 0[Byte], 1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 1;
+code auto:2131 not-equal[Integer] 0[Byte], 1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 1;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:2132 not-equal[Int16] 0[Byte], 1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2132 not-equal[Integer] 0[Byte], 1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 0;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:2133 not-equal[compile-time] 0[Byte], 1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2133 not-equal[compile-time] 0[Byte], 1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2134 not-equal[Int16] 0[Byte], 127[Int16] -> [Boolean] Var $overflow on
+code auto:2134 not-equal[Integer] 0[Byte], 127[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 0;
-  var  b: Int16 = 127;
+  var  b: Integer = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2135 not-equal[Int16] 0[Byte], 127[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 127;
+code auto:2135 not-equal[Integer] 0[Byte], 127[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 127;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:2136 not-equal[Int16] 0[Byte], 127[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2136 not-equal[Integer] 0[Byte], 127[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 0;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:2137 not-equal[compile-time] 0[Byte], 127[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2137 not-equal[compile-time] 0[Byte], 127[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2138 not-equal[Int16] 0[Byte], 128[Int16] -> [Boolean] Var $overflow on
+code auto:2138 not-equal[Integer] 0[Byte], 128[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 0;
-  var  b: Int16 = 128;
+  var  b: Integer = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2139 not-equal[Int16] 0[Byte], 128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 128;
+code auto:2139 not-equal[Integer] 0[Byte], 128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 128;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:2140 not-equal[Int16] 0[Byte], 128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2140 not-equal[Integer] 0[Byte], 128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 0;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r True
 
-code auto:2141 not-equal[compile-time] 0[Byte], 128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2141 not-equal[compile-time] 0[Byte], 128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2142 not-equal[Int16] 0[Byte], 32767[Int16] -> [Boolean] Var $overflow on
+code auto:2142 not-equal[Integer] 0[Byte], 32767[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 0;
-  var  b: Int16 = 32767;
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2143 not-equal[Int16] 0[Byte], 32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 32767;
+code auto:2143 not-equal[Integer] 0[Byte], 32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:2144 not-equal[Int16] 0[Byte], 32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2144 not-equal[Integer] 0[Byte], 32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 0;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:2145 not-equal[compile-time] 0[Byte], 32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2145 not-equal[compile-time] 0[Byte], 32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2146 not-equal[Int16] 1[Byte], -32768[Int16] -> [Boolean] Var $overflow on
+code auto:2146 not-equal[Integer] 1[Byte], -32768[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 1;
-  var  b: Int16 = -32768;
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2147 not-equal[Int16] 1[Byte], -32768[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32768;
+code auto:2147 not-equal[Integer] 1[Byte], -32768[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:2148 not-equal[Int16] 1[Byte], -32768[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2148 not-equal[Integer] 1[Byte], -32768[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 1;
   var  r: Boolean;
   r := a <> -32768;
 endcode
 varvalue r True
 
-code auto:2149 not-equal[compile-time] 1[Byte], -32768[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2149 not-equal[compile-time] 1[Byte], -32768[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> -32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2150 not-equal[Int16] 1[Byte], -32767[Int16] -> [Boolean] Var $overflow on
+code auto:2150 not-equal[Integer] 1[Byte], -32767[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 1;
-  var  b: Int16 = -32767;
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2151 not-equal[Int16] 1[Byte], -32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32767;
+code auto:2151 not-equal[Integer] 1[Byte], -32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:2152 not-equal[Int16] 1[Byte], -32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2152 not-equal[Integer] 1[Byte], -32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 1;
   var  r: Boolean;
   r := a <> -32767;
 endcode
 varvalue r True
 
-code auto:2153 not-equal[compile-time] 1[Byte], -32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2153 not-equal[compile-time] 1[Byte], -32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> -32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2154 not-equal[Int16] 1[Byte], -129[Int16] -> [Boolean] Var $overflow on
+code auto:2154 not-equal[Integer] 1[Byte], -129[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 1;
-  var  b: Int16 = -129;
+  var  b: Integer = -129;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2155 not-equal[Int16] 1[Byte], -129[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -129;
+code auto:2155 not-equal[Integer] 1[Byte], -129[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -129;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:2156 not-equal[Int16] 1[Byte], -129[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2156 not-equal[Integer] 1[Byte], -129[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 1;
   var  r: Boolean;
   r := a <> -129;
 endcode
 varvalue r True
 
-code auto:2157 not-equal[compile-time] 1[Byte], -129[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2157 not-equal[compile-time] 1[Byte], -129[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> -129;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2158 not-equal[Int16] 1[Byte], -128[Int16] -> [Boolean] Var $overflow on
+code auto:2158 not-equal[Integer] 1[Byte], -128[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 1;
-  var  b: Int16 = -128;
+  var  b: Integer = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2159 not-equal[Int16] 1[Byte], -128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -128;
+code auto:2159 not-equal[Integer] 1[Byte], -128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -128;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:2160 not-equal[Int16] 1[Byte], -128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2160 not-equal[Integer] 1[Byte], -128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 1;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r True
 
-code auto:2161 not-equal[compile-time] 1[Byte], -128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2161 not-equal[compile-time] 1[Byte], -128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> -128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2162 not-equal[Int16] 1[Byte], -1[Int16] -> [Boolean] Var $overflow on
+code auto:2162 not-equal[Integer] 1[Byte], -1[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 1;
-  var  b: Int16 = -1;
+  var  b: Integer = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2163 not-equal[Int16] 1[Byte], -1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -1;
+code auto:2163 not-equal[Integer] 1[Byte], -1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -1;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:2164 not-equal[Int16] 1[Byte], -1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2164 not-equal[Integer] 1[Byte], -1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 1;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r True
 
-code auto:2165 not-equal[compile-time] 1[Byte], -1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2165 not-equal[compile-time] 1[Byte], -1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> -1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2166 not-equal[Int16] 1[Byte], 0[Int16] -> [Boolean] Var $overflow on
+code auto:2166 not-equal[Integer] 1[Byte], 0[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 1;
-  var  b: Int16 = 0;
+  var  b: Integer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2167 not-equal[Int16] 1[Byte], 0[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 0;
+code auto:2167 not-equal[Integer] 1[Byte], 0[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 0;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:2168 not-equal[Int16] 1[Byte], 0[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2168 not-equal[Integer] 1[Byte], 0[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 1;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:2169 not-equal[compile-time] 1[Byte], 0[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2169 not-equal[compile-time] 1[Byte], 0[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2170 not-equal[Int16] 1[Byte], 1[Int16] -> [Boolean] Var $overflow on
+code auto:2170 not-equal[Integer] 1[Byte], 1[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 1;
-  var  b: Int16 = 1;
+  var  b: Integer = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r False
 
-code auto:2171 not-equal[Int16] 1[Byte], 1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 1;
+code auto:2171 not-equal[Integer] 1[Byte], 1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 1;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r False
 
-code auto:2172 not-equal[Int16] 1[Byte], 1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2172 not-equal[Integer] 1[Byte], 1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 1;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r False
 
-code auto:2173 not-equal[compile-time] 1[Byte], 1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2173 not-equal[compile-time] 1[Byte], 1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> 1;
 endcode
 varvalue r False
 
 $overflow on
-code auto:2174 not-equal[Int16] 1[Byte], 127[Int16] -> [Boolean] Var $overflow on
+code auto:2174 not-equal[Integer] 1[Byte], 127[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 1;
-  var  b: Int16 = 127;
+  var  b: Integer = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2175 not-equal[Int16] 1[Byte], 127[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 127;
+code auto:2175 not-equal[Integer] 1[Byte], 127[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 127;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:2176 not-equal[Int16] 1[Byte], 127[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2176 not-equal[Integer] 1[Byte], 127[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 1;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:2177 not-equal[compile-time] 1[Byte], 127[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2177 not-equal[compile-time] 1[Byte], 127[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2178 not-equal[Int16] 1[Byte], 128[Int16] -> [Boolean] Var $overflow on
+code auto:2178 not-equal[Integer] 1[Byte], 128[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 1;
-  var  b: Int16 = 128;
+  var  b: Integer = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2179 not-equal[Int16] 1[Byte], 128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 128;
+code auto:2179 not-equal[Integer] 1[Byte], 128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 128;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:2180 not-equal[Int16] 1[Byte], 128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2180 not-equal[Integer] 1[Byte], 128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 1;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r True
 
-code auto:2181 not-equal[compile-time] 1[Byte], 128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2181 not-equal[compile-time] 1[Byte], 128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> 128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2182 not-equal[Int16] 1[Byte], 32767[Int16] -> [Boolean] Var $overflow on
+code auto:2182 not-equal[Integer] 1[Byte], 32767[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 1;
-  var  b: Int16 = 32767;
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2183 not-equal[Int16] 1[Byte], 32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 32767;
+code auto:2183 not-equal[Integer] 1[Byte], 32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := 1 <> b;
 endcode
 varvalue r True
 
-code auto:2184 not-equal[Int16] 1[Byte], 32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2184 not-equal[Integer] 1[Byte], 32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 1;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:2185 not-equal[compile-time] 1[Byte], 32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2185 not-equal[compile-time] 1[Byte], 32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 1 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2186 not-equal[Int16] 127[Byte], -32768[Int16] -> [Boolean] Var $overflow on
+code auto:2186 not-equal[Integer] 127[Byte], -32768[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 127;
-  var  b: Int16 = -32768;
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2187 not-equal[Int16] 127[Byte], -32768[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32768;
+code auto:2187 not-equal[Integer] 127[Byte], -32768[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:2188 not-equal[Int16] 127[Byte], -32768[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2188 not-equal[Integer] 127[Byte], -32768[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 127;
   var  r: Boolean;
   r := a <> -32768;
 endcode
 varvalue r True
 
-code auto:2189 not-equal[compile-time] 127[Byte], -32768[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2189 not-equal[compile-time] 127[Byte], -32768[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> -32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2190 not-equal[Int16] 127[Byte], -32767[Int16] -> [Boolean] Var $overflow on
+code auto:2190 not-equal[Integer] 127[Byte], -32767[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 127;
-  var  b: Int16 = -32767;
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2191 not-equal[Int16] 127[Byte], -32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32767;
+code auto:2191 not-equal[Integer] 127[Byte], -32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:2192 not-equal[Int16] 127[Byte], -32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2192 not-equal[Integer] 127[Byte], -32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 127;
   var  r: Boolean;
   r := a <> -32767;
 endcode
 varvalue r True
 
-code auto:2193 not-equal[compile-time] 127[Byte], -32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2193 not-equal[compile-time] 127[Byte], -32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> -32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2194 not-equal[Int16] 127[Byte], -129[Int16] -> [Boolean] Var $overflow on
+code auto:2194 not-equal[Integer] 127[Byte], -129[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 127;
-  var  b: Int16 = -129;
+  var  b: Integer = -129;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2195 not-equal[Int16] 127[Byte], -129[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -129;
+code auto:2195 not-equal[Integer] 127[Byte], -129[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -129;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:2196 not-equal[Int16] 127[Byte], -129[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2196 not-equal[Integer] 127[Byte], -129[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 127;
   var  r: Boolean;
   r := a <> -129;
 endcode
 varvalue r True
 
-code auto:2197 not-equal[compile-time] 127[Byte], -129[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2197 not-equal[compile-time] 127[Byte], -129[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> -129;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2198 not-equal[Int16] 127[Byte], -128[Int16] -> [Boolean] Var $overflow on
+code auto:2198 not-equal[Integer] 127[Byte], -128[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 127;
-  var  b: Int16 = -128;
+  var  b: Integer = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2199 not-equal[Int16] 127[Byte], -128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -128;
+code auto:2199 not-equal[Integer] 127[Byte], -128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -128;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:2200 not-equal[Int16] 127[Byte], -128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2200 not-equal[Integer] 127[Byte], -128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 127;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r True
 
-code auto:2201 not-equal[compile-time] 127[Byte], -128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2201 not-equal[compile-time] 127[Byte], -128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> -128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2202 not-equal[Int16] 127[Byte], -1[Int16] -> [Boolean] Var $overflow on
+code auto:2202 not-equal[Integer] 127[Byte], -1[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 127;
-  var  b: Int16 = -1;
+  var  b: Integer = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2203 not-equal[Int16] 127[Byte], -1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -1;
+code auto:2203 not-equal[Integer] 127[Byte], -1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -1;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:2204 not-equal[Int16] 127[Byte], -1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2204 not-equal[Integer] 127[Byte], -1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 127;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r True
 
-code auto:2205 not-equal[compile-time] 127[Byte], -1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2205 not-equal[compile-time] 127[Byte], -1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> -1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2206 not-equal[Int16] 127[Byte], 0[Int16] -> [Boolean] Var $overflow on
+code auto:2206 not-equal[Integer] 127[Byte], 0[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 127;
-  var  b: Int16 = 0;
+  var  b: Integer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2207 not-equal[Int16] 127[Byte], 0[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 0;
+code auto:2207 not-equal[Integer] 127[Byte], 0[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 0;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:2208 not-equal[Int16] 127[Byte], 0[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2208 not-equal[Integer] 127[Byte], 0[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 127;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:2209 not-equal[compile-time] 127[Byte], 0[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2209 not-equal[compile-time] 127[Byte], 0[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2210 not-equal[Int16] 127[Byte], 1[Int16] -> [Boolean] Var $overflow on
+code auto:2210 not-equal[Integer] 127[Byte], 1[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 127;
-  var  b: Int16 = 1;
+  var  b: Integer = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2211 not-equal[Int16] 127[Byte], 1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 1;
+code auto:2211 not-equal[Integer] 127[Byte], 1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 1;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:2212 not-equal[Int16] 127[Byte], 1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2212 not-equal[Integer] 127[Byte], 1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 127;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:2213 not-equal[compile-time] 127[Byte], 1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2213 not-equal[compile-time] 127[Byte], 1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2214 not-equal[Int16] 127[Byte], 127[Int16] -> [Boolean] Var $overflow on
+code auto:2214 not-equal[Integer] 127[Byte], 127[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 127;
-  var  b: Int16 = 127;
+  var  b: Integer = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r False
 
-code auto:2215 not-equal[Int16] 127[Byte], 127[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 127;
+code auto:2215 not-equal[Integer] 127[Byte], 127[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 127;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r False
 
-code auto:2216 not-equal[Int16] 127[Byte], 127[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2216 not-equal[Integer] 127[Byte], 127[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 127;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r False
 
-code auto:2217 not-equal[compile-time] 127[Byte], 127[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2217 not-equal[compile-time] 127[Byte], 127[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> 127;
 endcode
 varvalue r False
 
 $overflow on
-code auto:2218 not-equal[Int16] 127[Byte], 128[Int16] -> [Boolean] Var $overflow on
+code auto:2218 not-equal[Integer] 127[Byte], 128[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 127;
-  var  b: Int16 = 128;
+  var  b: Integer = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2219 not-equal[Int16] 127[Byte], 128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 128;
+code auto:2219 not-equal[Integer] 127[Byte], 128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 128;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:2220 not-equal[Int16] 127[Byte], 128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2220 not-equal[Integer] 127[Byte], 128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 127;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r True
 
-code auto:2221 not-equal[compile-time] 127[Byte], 128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2221 not-equal[compile-time] 127[Byte], 128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> 128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2222 not-equal[Int16] 127[Byte], 32767[Int16] -> [Boolean] Var $overflow on
+code auto:2222 not-equal[Integer] 127[Byte], 32767[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 127;
-  var  b: Int16 = 32767;
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2223 not-equal[Int16] 127[Byte], 32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 32767;
+code auto:2223 not-equal[Integer] 127[Byte], 32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := 127 <> b;
 endcode
 varvalue r True
 
-code auto:2224 not-equal[Int16] 127[Byte], 32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2224 not-equal[Integer] 127[Byte], 32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 127;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:2225 not-equal[compile-time] 127[Byte], 32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2225 not-equal[compile-time] 127[Byte], 32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 127 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2226 not-equal[Int16] 128[Byte], -32768[Int16] -> [Boolean] Var $overflow on
+code auto:2226 not-equal[Integer] 128[Byte], -32768[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 128;
-  var  b: Int16 = -32768;
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2227 not-equal[Int16] 128[Byte], -32768[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32768;
+code auto:2227 not-equal[Integer] 128[Byte], -32768[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:2228 not-equal[Int16] 128[Byte], -32768[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2228 not-equal[Integer] 128[Byte], -32768[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 128;
   var  r: Boolean;
   r := a <> -32768;
 endcode
 varvalue r True
 
-code auto:2229 not-equal[compile-time] 128[Byte], -32768[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2229 not-equal[compile-time] 128[Byte], -32768[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> -32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2230 not-equal[Int16] 128[Byte], -32767[Int16] -> [Boolean] Var $overflow on
+code auto:2230 not-equal[Integer] 128[Byte], -32767[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 128;
-  var  b: Int16 = -32767;
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2231 not-equal[Int16] 128[Byte], -32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32767;
+code auto:2231 not-equal[Integer] 128[Byte], -32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:2232 not-equal[Int16] 128[Byte], -32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2232 not-equal[Integer] 128[Byte], -32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 128;
   var  r: Boolean;
   r := a <> -32767;
 endcode
 varvalue r True
 
-code auto:2233 not-equal[compile-time] 128[Byte], -32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2233 not-equal[compile-time] 128[Byte], -32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> -32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2234 not-equal[Int16] 128[Byte], -129[Int16] -> [Boolean] Var $overflow on
+code auto:2234 not-equal[Integer] 128[Byte], -129[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 128;
-  var  b: Int16 = -129;
+  var  b: Integer = -129;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2235 not-equal[Int16] 128[Byte], -129[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -129;
+code auto:2235 not-equal[Integer] 128[Byte], -129[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -129;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:2236 not-equal[Int16] 128[Byte], -129[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2236 not-equal[Integer] 128[Byte], -129[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 128;
   var  r: Boolean;
   r := a <> -129;
 endcode
 varvalue r True
 
-code auto:2237 not-equal[compile-time] 128[Byte], -129[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2237 not-equal[compile-time] 128[Byte], -129[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> -129;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2238 not-equal[Int16] 128[Byte], -128[Int16] -> [Boolean] Var $overflow on
+code auto:2238 not-equal[Integer] 128[Byte], -128[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 128;
-  var  b: Int16 = -128;
+  var  b: Integer = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2239 not-equal[Int16] 128[Byte], -128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -128;
+code auto:2239 not-equal[Integer] 128[Byte], -128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -128;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:2240 not-equal[Int16] 128[Byte], -128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2240 not-equal[Integer] 128[Byte], -128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 128;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r True
 
-code auto:2241 not-equal[compile-time] 128[Byte], -128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2241 not-equal[compile-time] 128[Byte], -128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> -128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2242 not-equal[Int16] 128[Byte], -1[Int16] -> [Boolean] Var $overflow on
+code auto:2242 not-equal[Integer] 128[Byte], -1[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 128;
-  var  b: Int16 = -1;
+  var  b: Integer = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2243 not-equal[Int16] 128[Byte], -1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -1;
+code auto:2243 not-equal[Integer] 128[Byte], -1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -1;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:2244 not-equal[Int16] 128[Byte], -1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2244 not-equal[Integer] 128[Byte], -1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 128;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r True
 
-code auto:2245 not-equal[compile-time] 128[Byte], -1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2245 not-equal[compile-time] 128[Byte], -1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> -1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2246 not-equal[Int16] 128[Byte], 0[Int16] -> [Boolean] Var $overflow on
+code auto:2246 not-equal[Integer] 128[Byte], 0[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 128;
-  var  b: Int16 = 0;
+  var  b: Integer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2247 not-equal[Int16] 128[Byte], 0[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 0;
+code auto:2247 not-equal[Integer] 128[Byte], 0[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 0;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:2248 not-equal[Int16] 128[Byte], 0[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2248 not-equal[Integer] 128[Byte], 0[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 128;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:2249 not-equal[compile-time] 128[Byte], 0[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2249 not-equal[compile-time] 128[Byte], 0[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2250 not-equal[Int16] 128[Byte], 1[Int16] -> [Boolean] Var $overflow on
+code auto:2250 not-equal[Integer] 128[Byte], 1[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 128;
-  var  b: Int16 = 1;
+  var  b: Integer = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2251 not-equal[Int16] 128[Byte], 1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 1;
+code auto:2251 not-equal[Integer] 128[Byte], 1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 1;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:2252 not-equal[Int16] 128[Byte], 1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2252 not-equal[Integer] 128[Byte], 1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 128;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:2253 not-equal[compile-time] 128[Byte], 1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2253 not-equal[compile-time] 128[Byte], 1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2254 not-equal[Int16] 128[Byte], 127[Int16] -> [Boolean] Var $overflow on
+code auto:2254 not-equal[Integer] 128[Byte], 127[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 128;
-  var  b: Int16 = 127;
+  var  b: Integer = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2255 not-equal[Int16] 128[Byte], 127[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 127;
+code auto:2255 not-equal[Integer] 128[Byte], 127[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 127;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:2256 not-equal[Int16] 128[Byte], 127[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2256 not-equal[Integer] 128[Byte], 127[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 128;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:2257 not-equal[compile-time] 128[Byte], 127[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2257 not-equal[compile-time] 128[Byte], 127[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2258 not-equal[Int16] 128[Byte], 128[Int16] -> [Boolean] Var $overflow on
+code auto:2258 not-equal[Integer] 128[Byte], 128[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 128;
-  var  b: Int16 = 128;
+  var  b: Integer = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r False
 
-code auto:2259 not-equal[Int16] 128[Byte], 128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 128;
+code auto:2259 not-equal[Integer] 128[Byte], 128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 128;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r False
 
-code auto:2260 not-equal[Int16] 128[Byte], 128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2260 not-equal[Integer] 128[Byte], 128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 128;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r False
 
-code auto:2261 not-equal[compile-time] 128[Byte], 128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2261 not-equal[compile-time] 128[Byte], 128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> 128;
 endcode
 varvalue r False
 
 $overflow on
-code auto:2262 not-equal[Int16] 128[Byte], 32767[Int16] -> [Boolean] Var $overflow on
+code auto:2262 not-equal[Integer] 128[Byte], 32767[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 128;
-  var  b: Int16 = 32767;
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2263 not-equal[Int16] 128[Byte], 32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 32767;
+code auto:2263 not-equal[Integer] 128[Byte], 32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := 128 <> b;
 endcode
 varvalue r True
 
-code auto:2264 not-equal[Int16] 128[Byte], 32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2264 not-equal[Integer] 128[Byte], 32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 128;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:2265 not-equal[compile-time] 128[Byte], 32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2265 not-equal[compile-time] 128[Byte], 32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 128 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2266 not-equal[Int16] 255[Byte], -32768[Int16] -> [Boolean] Var $overflow on
+code auto:2266 not-equal[Integer] 255[Byte], -32768[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 255;
-  var  b: Int16 = -32768;
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2267 not-equal[Int16] 255[Byte], -32768[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32768;
+code auto:2267 not-equal[Integer] 255[Byte], -32768[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:2268 not-equal[Int16] 255[Byte], -32768[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2268 not-equal[Integer] 255[Byte], -32768[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 255;
   var  r: Boolean;
   r := a <> -32768;
 endcode
 varvalue r True
 
-code auto:2269 not-equal[compile-time] 255[Byte], -32768[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2269 not-equal[compile-time] 255[Byte], -32768[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 255 <> -32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2270 not-equal[Int16] 255[Byte], -32767[Int16] -> [Boolean] Var $overflow on
+code auto:2270 not-equal[Integer] 255[Byte], -32767[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 255;
-  var  b: Int16 = -32767;
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2271 not-equal[Int16] 255[Byte], -32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32767;
+code auto:2271 not-equal[Integer] 255[Byte], -32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:2272 not-equal[Int16] 255[Byte], -32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2272 not-equal[Integer] 255[Byte], -32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 255;
   var  r: Boolean;
   r := a <> -32767;
 endcode
 varvalue r True
 
-code auto:2273 not-equal[compile-time] 255[Byte], -32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2273 not-equal[compile-time] 255[Byte], -32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 255 <> -32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2274 not-equal[Int16] 255[Byte], -129[Int16] -> [Boolean] Var $overflow on
+code auto:2274 not-equal[Integer] 255[Byte], -129[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 255;
-  var  b: Int16 = -129;
+  var  b: Integer = -129;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2275 not-equal[Int16] 255[Byte], -129[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -129;
+code auto:2275 not-equal[Integer] 255[Byte], -129[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -129;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:2276 not-equal[Int16] 255[Byte], -129[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2276 not-equal[Integer] 255[Byte], -129[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 255;
   var  r: Boolean;
   r := a <> -129;
 endcode
 varvalue r True
 
-code auto:2277 not-equal[compile-time] 255[Byte], -129[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2277 not-equal[compile-time] 255[Byte], -129[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 255 <> -129;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2278 not-equal[Int16] 255[Byte], -128[Int16] -> [Boolean] Var $overflow on
+code auto:2278 not-equal[Integer] 255[Byte], -128[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 255;
-  var  b: Int16 = -128;
+  var  b: Integer = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2279 not-equal[Int16] 255[Byte], -128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -128;
+code auto:2279 not-equal[Integer] 255[Byte], -128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -128;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:2280 not-equal[Int16] 255[Byte], -128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2280 not-equal[Integer] 255[Byte], -128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 255;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r True
 
-code auto:2281 not-equal[compile-time] 255[Byte], -128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2281 not-equal[compile-time] 255[Byte], -128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 255 <> -128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2282 not-equal[Int16] 255[Byte], -1[Int16] -> [Boolean] Var $overflow on
+code auto:2282 not-equal[Integer] 255[Byte], -1[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 255;
-  var  b: Int16 = -1;
+  var  b: Integer = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2283 not-equal[Int16] 255[Byte], -1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -1;
+code auto:2283 not-equal[Integer] 255[Byte], -1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -1;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:2284 not-equal[Int16] 255[Byte], -1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2284 not-equal[Integer] 255[Byte], -1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 255;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r True
 
-code auto:2285 not-equal[compile-time] 255[Byte], -1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2285 not-equal[compile-time] 255[Byte], -1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 255 <> -1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2286 not-equal[Int16] 255[Byte], 0[Int16] -> [Boolean] Var $overflow on
+code auto:2286 not-equal[Integer] 255[Byte], 0[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 255;
-  var  b: Int16 = 0;
+  var  b: Integer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2287 not-equal[Int16] 255[Byte], 0[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 0;
+code auto:2287 not-equal[Integer] 255[Byte], 0[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 0;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:2288 not-equal[Int16] 255[Byte], 0[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2288 not-equal[Integer] 255[Byte], 0[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 255;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:2289 not-equal[compile-time] 255[Byte], 0[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2289 not-equal[compile-time] 255[Byte], 0[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 255 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2290 not-equal[Int16] 255[Byte], 1[Int16] -> [Boolean] Var $overflow on
+code auto:2290 not-equal[Integer] 255[Byte], 1[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 255;
-  var  b: Int16 = 1;
+  var  b: Integer = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2291 not-equal[Int16] 255[Byte], 1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 1;
+code auto:2291 not-equal[Integer] 255[Byte], 1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 1;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:2292 not-equal[Int16] 255[Byte], 1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2292 not-equal[Integer] 255[Byte], 1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 255;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:2293 not-equal[compile-time] 255[Byte], 1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2293 not-equal[compile-time] 255[Byte], 1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 255 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2294 not-equal[Int16] 255[Byte], 127[Int16] -> [Boolean] Var $overflow on
+code auto:2294 not-equal[Integer] 255[Byte], 127[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 255;
-  var  b: Int16 = 127;
+  var  b: Integer = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2295 not-equal[Int16] 255[Byte], 127[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 127;
+code auto:2295 not-equal[Integer] 255[Byte], 127[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 127;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:2296 not-equal[Int16] 255[Byte], 127[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2296 not-equal[Integer] 255[Byte], 127[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 255;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:2297 not-equal[compile-time] 255[Byte], 127[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2297 not-equal[compile-time] 255[Byte], 127[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 255 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2298 not-equal[Int16] 255[Byte], 128[Int16] -> [Boolean] Var $overflow on
+code auto:2298 not-equal[Integer] 255[Byte], 128[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 255;
-  var  b: Int16 = 128;
+  var  b: Integer = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2299 not-equal[Int16] 255[Byte], 128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 128;
+code auto:2299 not-equal[Integer] 255[Byte], 128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 128;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:2300 not-equal[Int16] 255[Byte], 128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2300 not-equal[Integer] 255[Byte], 128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 255;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r True
 
-code auto:2301 not-equal[compile-time] 255[Byte], 128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2301 not-equal[compile-time] 255[Byte], 128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 255 <> 128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2302 not-equal[Int16] 255[Byte], 32767[Int16] -> [Boolean] Var $overflow on
+code auto:2302 not-equal[Integer] 255[Byte], 32767[Integer] -> [Boolean] Var $overflow on
   var  a: Byte = 255;
-  var  b: Int16 = 32767;
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2303 not-equal[Int16] 255[Byte], 32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 32767;
+code auto:2303 not-equal[Integer] 255[Byte], 32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:2304 not-equal[Int16] 255[Byte], 32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2304 not-equal[Integer] 255[Byte], 32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Byte = 255;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:2305 not-equal[compile-time] 255[Byte], 32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2305 not-equal[compile-time] 255[Byte], 32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 255 <> 32767;
 endcode
@@ -18883,7 +18883,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2606 not-equal[Int16] 0[Word], -128[Int8] -> [Boolean] Var $overflow on
+code auto:2606 not-equal[Integer] 0[Word], -128[Int8] -> [Boolean] Var $overflow on
   var  a: Word = 0;
   var  b: Int8 = -128;
   var  r: Boolean;
@@ -18891,14 +18891,14 @@ code auto:2606 not-equal[Int16] 0[Word], -128[Int8] -> [Boolean] Var $overflow o
 endcode
 varvalue r True
 
-code auto:2607 not-equal[Int16] 0[Word], -128[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2607 not-equal[Integer] 0[Word], -128[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -128;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:2608 not-equal[Int16] 0[Word], -128[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2608 not-equal[Integer] 0[Word], -128[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Word = 0;
   var  r: Boolean;
   r := a <> -128;
@@ -18912,7 +18912,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2610 not-equal[Int16] 0[Word], -127[Int8] -> [Boolean] Var $overflow on
+code auto:2610 not-equal[Integer] 0[Word], -127[Int8] -> [Boolean] Var $overflow on
   var  a: Word = 0;
   var  b: Int8 = -127;
   var  r: Boolean;
@@ -18920,14 +18920,14 @@ code auto:2610 not-equal[Int16] 0[Word], -127[Int8] -> [Boolean] Var $overflow o
 endcode
 varvalue r True
 
-code auto:2611 not-equal[Int16] 0[Word], -127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2611 not-equal[Integer] 0[Word], -127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -127;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:2612 not-equal[Int16] 0[Word], -127[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2612 not-equal[Integer] 0[Word], -127[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Word = 0;
   var  r: Boolean;
   r := a <> -127;
@@ -18941,7 +18941,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2614 not-equal[Int16] 0[Word], -1[Int8] -> [Boolean] Var $overflow on
+code auto:2614 not-equal[Integer] 0[Word], -1[Int8] -> [Boolean] Var $overflow on
   var  a: Word = 0;
   var  b: Int8 = -1;
   var  r: Boolean;
@@ -18949,14 +18949,14 @@ code auto:2614 not-equal[Int16] 0[Word], -1[Int8] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:2615 not-equal[Int16] 0[Word], -1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2615 not-equal[Integer] 0[Word], -1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -1;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:2616 not-equal[Int16] 0[Word], -1[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2616 not-equal[Integer] 0[Word], -1[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Word = 0;
   var  r: Boolean;
   r := a <> -1;
@@ -18970,7 +18970,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2618 not-equal[Int16] 0[Word], 0[Int8] -> [Boolean] Var $overflow on
+code auto:2618 not-equal[Integer] 0[Word], 0[Int8] -> [Boolean] Var $overflow on
   var  a: Word = 0;
   var  b: Int8 = 0;
   var  r: Boolean;
@@ -18978,14 +18978,14 @@ code auto:2618 not-equal[Int16] 0[Word], 0[Int8] -> [Boolean] Var $overflow on
 endcode
 varvalue r False
 
-code auto:2619 not-equal[Int16] 0[Word], 0[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2619 not-equal[Integer] 0[Word], 0[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 0;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r False
 
-code auto:2620 not-equal[Int16] 0[Word], 0[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2620 not-equal[Integer] 0[Word], 0[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Word = 0;
   var  r: Boolean;
   r := a <> 0;
@@ -18999,7 +18999,7 @@ endcode
 varvalue r False
 
 $overflow on
-code auto:2622 not-equal[Int16] 0[Word], 1[Int8] -> [Boolean] Var $overflow on
+code auto:2622 not-equal[Integer] 0[Word], 1[Int8] -> [Boolean] Var $overflow on
   var  a: Word = 0;
   var  b: Int8 = 1;
   var  r: Boolean;
@@ -19007,14 +19007,14 @@ code auto:2622 not-equal[Int16] 0[Word], 1[Int8] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:2623 not-equal[Int16] 0[Word], 1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2623 not-equal[Integer] 0[Word], 1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 1;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:2624 not-equal[Int16] 0[Word], 1[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2624 not-equal[Integer] 0[Word], 1[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Word = 0;
   var  r: Boolean;
   r := a <> 1;
@@ -19028,7 +19028,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2626 not-equal[Int16] 0[Word], 127[Int8] -> [Boolean] Var $overflow on
+code auto:2626 not-equal[Integer] 0[Word], 127[Int8] -> [Boolean] Var $overflow on
   var  a: Word = 0;
   var  b: Int8 = 127;
   var  r: Boolean;
@@ -19036,14 +19036,14 @@ code auto:2626 not-equal[Int16] 0[Word], 127[Int8] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:2627 not-equal[Int16] 0[Word], 127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2627 not-equal[Integer] 0[Word], 127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 127;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:2628 not-equal[Int16] 0[Word], 127[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2628 not-equal[Integer] 0[Word], 127[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Word = 0;
   var  r: Boolean;
   r := a <> 127;
@@ -19057,7 +19057,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2630 not-equal[Int16] 255[Word], -128[Int8] -> [Boolean] Var $overflow on
+code auto:2630 not-equal[Integer] 255[Word], -128[Int8] -> [Boolean] Var $overflow on
   var  a: Word = 255;
   var  b: Int8 = -128;
   var  r: Boolean;
@@ -19065,14 +19065,14 @@ code auto:2630 not-equal[Int16] 255[Word], -128[Int8] -> [Boolean] Var $overflow
 endcode
 varvalue r True
 
-code auto:2631 not-equal[Int16] 255[Word], -128[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2631 not-equal[Integer] 255[Word], -128[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -128;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:2632 not-equal[Int16] 255[Word], -128[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2632 not-equal[Integer] 255[Word], -128[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Word = 255;
   var  r: Boolean;
   r := a <> -128;
@@ -19086,7 +19086,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2634 not-equal[Int16] 255[Word], -127[Int8] -> [Boolean] Var $overflow on
+code auto:2634 not-equal[Integer] 255[Word], -127[Int8] -> [Boolean] Var $overflow on
   var  a: Word = 255;
   var  b: Int8 = -127;
   var  r: Boolean;
@@ -19094,14 +19094,14 @@ code auto:2634 not-equal[Int16] 255[Word], -127[Int8] -> [Boolean] Var $overflow
 endcode
 varvalue r True
 
-code auto:2635 not-equal[Int16] 255[Word], -127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2635 not-equal[Integer] 255[Word], -127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -127;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:2636 not-equal[Int16] 255[Word], -127[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2636 not-equal[Integer] 255[Word], -127[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Word = 255;
   var  r: Boolean;
   r := a <> -127;
@@ -19115,7 +19115,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2638 not-equal[Int16] 255[Word], -1[Int8] -> [Boolean] Var $overflow on
+code auto:2638 not-equal[Integer] 255[Word], -1[Int8] -> [Boolean] Var $overflow on
   var  a: Word = 255;
   var  b: Int8 = -1;
   var  r: Boolean;
@@ -19123,14 +19123,14 @@ code auto:2638 not-equal[Int16] 255[Word], -1[Int8] -> [Boolean] Var $overflow o
 endcode
 varvalue r True
 
-code auto:2639 not-equal[Int16] 255[Word], -1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2639 not-equal[Integer] 255[Word], -1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -1;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:2640 not-equal[Int16] 255[Word], -1[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2640 not-equal[Integer] 255[Word], -1[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Word = 255;
   var  r: Boolean;
   r := a <> -1;
@@ -19144,7 +19144,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2642 not-equal[Int16] 255[Word], 0[Int8] -> [Boolean] Var $overflow on
+code auto:2642 not-equal[Integer] 255[Word], 0[Int8] -> [Boolean] Var $overflow on
   var  a: Word = 255;
   var  b: Int8 = 0;
   var  r: Boolean;
@@ -19152,14 +19152,14 @@ code auto:2642 not-equal[Int16] 255[Word], 0[Int8] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:2643 not-equal[Int16] 255[Word], 0[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2643 not-equal[Integer] 255[Word], 0[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 0;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:2644 not-equal[Int16] 255[Word], 0[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2644 not-equal[Integer] 255[Word], 0[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Word = 255;
   var  r: Boolean;
   r := a <> 0;
@@ -19173,7 +19173,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2646 not-equal[Int16] 255[Word], 1[Int8] -> [Boolean] Var $overflow on
+code auto:2646 not-equal[Integer] 255[Word], 1[Int8] -> [Boolean] Var $overflow on
   var  a: Word = 255;
   var  b: Int8 = 1;
   var  r: Boolean;
@@ -19181,14 +19181,14 @@ code auto:2646 not-equal[Int16] 255[Word], 1[Int8] -> [Boolean] Var $overflow on
 endcode
 varvalue r True
 
-code auto:2647 not-equal[Int16] 255[Word], 1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2647 not-equal[Integer] 255[Word], 1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 1;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:2648 not-equal[Int16] 255[Word], 1[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2648 not-equal[Integer] 255[Word], 1[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Word = 255;
   var  r: Boolean;
   r := a <> 1;
@@ -19202,7 +19202,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2650 not-equal[Int16] 255[Word], 127[Int8] -> [Boolean] Var $overflow on
+code auto:2650 not-equal[Integer] 255[Word], 127[Int8] -> [Boolean] Var $overflow on
   var  a: Word = 255;
   var  b: Int8 = 127;
   var  r: Boolean;
@@ -19210,14 +19210,14 @@ code auto:2650 not-equal[Int16] 255[Word], 127[Int8] -> [Boolean] Var $overflow 
 endcode
 varvalue r True
 
-code auto:2651 not-equal[Int16] 255[Word], 127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2651 not-equal[Integer] 255[Word], 127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 127;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:2652 not-equal[Int16] 255[Word], 127[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2652 not-equal[Integer] 255[Word], 127[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Word = 255;
   var  r: Boolean;
   r := a <> 127;
@@ -19231,7 +19231,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2654 not-equal[Int16] 32767[Word], -128[Int8] -> [Boolean] Var $overflow on
+code auto:2654 not-equal[Integer] 32767[Word], -128[Int8] -> [Boolean] Var $overflow on
   var  a: Word = 32767;
   var  b: Int8 = -128;
   var  r: Boolean;
@@ -19239,14 +19239,14 @@ code auto:2654 not-equal[Int16] 32767[Word], -128[Int8] -> [Boolean] Var $overfl
 endcode
 varvalue r True
 
-code auto:2655 not-equal[Int16] 32767[Word], -128[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2655 not-equal[Integer] 32767[Word], -128[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -128;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:2656 not-equal[Int16] 32767[Word], -128[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2656 not-equal[Integer] 32767[Word], -128[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Word = 32767;
   var  r: Boolean;
   r := a <> -128;
@@ -19260,7 +19260,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2658 not-equal[Int16] 32767[Word], -127[Int8] -> [Boolean] Var $overflow on
+code auto:2658 not-equal[Integer] 32767[Word], -127[Int8] -> [Boolean] Var $overflow on
   var  a: Word = 32767;
   var  b: Int8 = -127;
   var  r: Boolean;
@@ -19268,14 +19268,14 @@ code auto:2658 not-equal[Int16] 32767[Word], -127[Int8] -> [Boolean] Var $overfl
 endcode
 varvalue r True
 
-code auto:2659 not-equal[Int16] 32767[Word], -127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2659 not-equal[Integer] 32767[Word], -127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -127;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:2660 not-equal[Int16] 32767[Word], -127[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2660 not-equal[Integer] 32767[Word], -127[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Word = 32767;
   var  r: Boolean;
   r := a <> -127;
@@ -19289,7 +19289,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2662 not-equal[Int16] 32767[Word], -1[Int8] -> [Boolean] Var $overflow on
+code auto:2662 not-equal[Integer] 32767[Word], -1[Int8] -> [Boolean] Var $overflow on
   var  a: Word = 32767;
   var  b: Int8 = -1;
   var  r: Boolean;
@@ -19297,14 +19297,14 @@ code auto:2662 not-equal[Int16] 32767[Word], -1[Int8] -> [Boolean] Var $overflow
 endcode
 varvalue r True
 
-code auto:2663 not-equal[Int16] 32767[Word], -1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2663 not-equal[Integer] 32767[Word], -1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -1;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:2664 not-equal[Int16] 32767[Word], -1[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2664 not-equal[Integer] 32767[Word], -1[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Word = 32767;
   var  r: Boolean;
   r := a <> -1;
@@ -19318,7 +19318,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2666 not-equal[Int16] 32767[Word], 0[Int8] -> [Boolean] Var $overflow on
+code auto:2666 not-equal[Integer] 32767[Word], 0[Int8] -> [Boolean] Var $overflow on
   var  a: Word = 32767;
   var  b: Int8 = 0;
   var  r: Boolean;
@@ -19326,14 +19326,14 @@ code auto:2666 not-equal[Int16] 32767[Word], 0[Int8] -> [Boolean] Var $overflow 
 endcode
 varvalue r True
 
-code auto:2667 not-equal[Int16] 32767[Word], 0[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2667 not-equal[Integer] 32767[Word], 0[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 0;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:2668 not-equal[Int16] 32767[Word], 0[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2668 not-equal[Integer] 32767[Word], 0[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Word = 32767;
   var  r: Boolean;
   r := a <> 0;
@@ -19347,7 +19347,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2670 not-equal[Int16] 32767[Word], 1[Int8] -> [Boolean] Var $overflow on
+code auto:2670 not-equal[Integer] 32767[Word], 1[Int8] -> [Boolean] Var $overflow on
   var  a: Word = 32767;
   var  b: Int8 = 1;
   var  r: Boolean;
@@ -19355,14 +19355,14 @@ code auto:2670 not-equal[Int16] 32767[Word], 1[Int8] -> [Boolean] Var $overflow 
 endcode
 varvalue r True
 
-code auto:2671 not-equal[Int16] 32767[Word], 1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2671 not-equal[Integer] 32767[Word], 1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 1;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:2672 not-equal[Int16] 32767[Word], 1[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2672 not-equal[Integer] 32767[Word], 1[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Word = 32767;
   var  r: Boolean;
   r := a <> 1;
@@ -19376,7 +19376,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2674 not-equal[Int16] 32767[Word], 127[Int8] -> [Boolean] Var $overflow on
+code auto:2674 not-equal[Integer] 32767[Word], 127[Int8] -> [Boolean] Var $overflow on
   var  a: Word = 32767;
   var  b: Int8 = 127;
   var  r: Boolean;
@@ -19384,14 +19384,14 @@ code auto:2674 not-equal[Int16] 32767[Word], 127[Int8] -> [Boolean] Var $overflo
 endcode
 varvalue r True
 
-code auto:2675 not-equal[Int16] 32767[Word], 127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2675 not-equal[Integer] 32767[Word], 127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 127;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:2676 not-equal[Int16] 32767[Word], 127[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2676 not-equal[Integer] 32767[Word], 127[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Word = 32767;
   var  r: Boolean;
   r := a <> 127;
@@ -19405,7 +19405,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2678 not-equal[Int16] 32768[Word], -128[Int8] -> [Boolean] Var $overflow on
+code auto:2678 not-equal[Integer] 32768[Word], -128[Int8] -> [Boolean] Var $overflow on
   var  a: Word = 32768;
   var  b: Int8 = -128;
   var  r: Boolean;
@@ -19413,14 +19413,14 @@ code auto:2678 not-equal[Int16] 32768[Word], -128[Int8] -> [Boolean] Var $overfl
 endcode
 varvalue r True
 
-code auto:2679 not-equal[Int16] 32768[Word], -128[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2679 not-equal[Integer] 32768[Word], -128[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -128;
   var  r: Boolean;
   r := 32768 <> b;
 endcode
 varvalue r True
 
-code auto:2680 not-equal[Int16] 32768[Word], -128[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2680 not-equal[Integer] 32768[Word], -128[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Word = 32768;
   var  r: Boolean;
   r := a <> -128;
@@ -19434,7 +19434,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2682 not-equal[Int16] 32768[Word], -127[Int8] -> [Boolean] Var $overflow on
+code auto:2682 not-equal[Integer] 32768[Word], -127[Int8] -> [Boolean] Var $overflow on
   var  a: Word = 32768;
   var  b: Int8 = -127;
   var  r: Boolean;
@@ -19442,14 +19442,14 @@ code auto:2682 not-equal[Int16] 32768[Word], -127[Int8] -> [Boolean] Var $overfl
 endcode
 varvalue r True
 
-code auto:2683 not-equal[Int16] 32768[Word], -127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2683 not-equal[Integer] 32768[Word], -127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -127;
   var  r: Boolean;
   r := 32768 <> b;
 endcode
 varvalue r True
 
-code auto:2684 not-equal[Int16] 32768[Word], -127[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2684 not-equal[Integer] 32768[Word], -127[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Word = 32768;
   var  r: Boolean;
   r := a <> -127;
@@ -19463,7 +19463,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2686 not-equal[Int16] 32768[Word], -1[Int8] -> [Boolean] Var $overflow on
+code auto:2686 not-equal[Integer] 32768[Word], -1[Int8] -> [Boolean] Var $overflow on
   var  a: Word = 32768;
   var  b: Int8 = -1;
   var  r: Boolean;
@@ -19471,14 +19471,14 @@ code auto:2686 not-equal[Int16] 32768[Word], -1[Int8] -> [Boolean] Var $overflow
 endcode
 varvalue r True
 
-code auto:2687 not-equal[Int16] 32768[Word], -1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2687 not-equal[Integer] 32768[Word], -1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -1;
   var  r: Boolean;
   r := 32768 <> b;
 endcode
 varvalue r True
 
-code auto:2688 not-equal[Int16] 32768[Word], -1[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2688 not-equal[Integer] 32768[Word], -1[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Word = 32768;
   var  r: Boolean;
   r := a <> -1;
@@ -19492,7 +19492,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2690 not-equal[Int16] 32768[Word], 0[Int8] -> [Boolean] Var $overflow on
+code auto:2690 not-equal[Integer] 32768[Word], 0[Int8] -> [Boolean] Var $overflow on
   var  a: Word = 32768;
   var  b: Int8 = 0;
   var  r: Boolean;
@@ -19500,14 +19500,14 @@ code auto:2690 not-equal[Int16] 32768[Word], 0[Int8] -> [Boolean] Var $overflow 
 endcode
 varvalue r True
 
-code auto:2691 not-equal[Int16] 32768[Word], 0[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2691 not-equal[Integer] 32768[Word], 0[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 0;
   var  r: Boolean;
   r := 32768 <> b;
 endcode
 varvalue r True
 
-code auto:2692 not-equal[Int16] 32768[Word], 0[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2692 not-equal[Integer] 32768[Word], 0[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Word = 32768;
   var  r: Boolean;
   r := a <> 0;
@@ -19521,7 +19521,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2694 not-equal[Int16] 32768[Word], 1[Int8] -> [Boolean] Var $overflow on
+code auto:2694 not-equal[Integer] 32768[Word], 1[Int8] -> [Boolean] Var $overflow on
   var  a: Word = 32768;
   var  b: Int8 = 1;
   var  r: Boolean;
@@ -19529,14 +19529,14 @@ code auto:2694 not-equal[Int16] 32768[Word], 1[Int8] -> [Boolean] Var $overflow 
 endcode
 varvalue r True
 
-code auto:2695 not-equal[Int16] 32768[Word], 1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2695 not-equal[Integer] 32768[Word], 1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 1;
   var  r: Boolean;
   r := 32768 <> b;
 endcode
 varvalue r True
 
-code auto:2696 not-equal[Int16] 32768[Word], 1[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2696 not-equal[Integer] 32768[Word], 1[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Word = 32768;
   var  r: Boolean;
   r := a <> 1;
@@ -19550,7 +19550,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2698 not-equal[Int16] 32768[Word], 127[Int8] -> [Boolean] Var $overflow on
+code auto:2698 not-equal[Integer] 32768[Word], 127[Int8] -> [Boolean] Var $overflow on
   var  a: Word = 32768;
   var  b: Int8 = 127;
   var  r: Boolean;
@@ -19558,14 +19558,14 @@ code auto:2698 not-equal[Int16] 32768[Word], 127[Int8] -> [Boolean] Var $overflo
 endcode
 varvalue r True
 
-code auto:2699 not-equal[Int16] 32768[Word], 127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2699 not-equal[Integer] 32768[Word], 127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 127;
   var  r: Boolean;
   r := 32768 <> b;
 endcode
 varvalue r True
 
-code auto:2700 not-equal[Int16] 32768[Word], 127[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2700 not-equal[Integer] 32768[Word], 127[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Word = 32768;
   var  r: Boolean;
   r := a <> 127;
@@ -19579,7 +19579,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2702 not-equal[Int16] 65535[Word], -128[Int8] -> [Boolean] Var $overflow on
+code auto:2702 not-equal[Integer] 65535[Word], -128[Int8] -> [Boolean] Var $overflow on
   var  a: Word = 65535;
   var  b: Int8 = -128;
   var  r: Boolean;
@@ -19587,14 +19587,14 @@ code auto:2702 not-equal[Int16] 65535[Word], -128[Int8] -> [Boolean] Var $overfl
 endcode
 varvalue r True
 
-code auto:2703 not-equal[Int16] 65535[Word], -128[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2703 not-equal[Integer] 65535[Word], -128[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -128;
   var  r: Boolean;
   r := 65535 <> b;
 endcode
 varvalue r True
 
-code auto:2704 not-equal[Int16] 65535[Word], -128[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2704 not-equal[Integer] 65535[Word], -128[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Word = 65535;
   var  r: Boolean;
   r := a <> -128;
@@ -19608,7 +19608,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2706 not-equal[Int16] 65535[Word], -127[Int8] -> [Boolean] Var $overflow on
+code auto:2706 not-equal[Integer] 65535[Word], -127[Int8] -> [Boolean] Var $overflow on
   var  a: Word = 65535;
   var  b: Int8 = -127;
   var  r: Boolean;
@@ -19616,14 +19616,14 @@ code auto:2706 not-equal[Int16] 65535[Word], -127[Int8] -> [Boolean] Var $overfl
 endcode
 varvalue r True
 
-code auto:2707 not-equal[Int16] 65535[Word], -127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2707 not-equal[Integer] 65535[Word], -127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -127;
   var  r: Boolean;
   r := 65535 <> b;
 endcode
 varvalue r True
 
-code auto:2708 not-equal[Int16] 65535[Word], -127[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2708 not-equal[Integer] 65535[Word], -127[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Word = 65535;
   var  r: Boolean;
   r := a <> -127;
@@ -19637,7 +19637,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2710 not-equal[Int16] 65535[Word], -1[Int8] -> [Boolean] Var $overflow on
+code auto:2710 not-equal[Integer] 65535[Word], -1[Int8] -> [Boolean] Var $overflow on
   var  a: Word = 65535;
   var  b: Int8 = -1;
   var  r: Boolean;
@@ -19645,14 +19645,14 @@ code auto:2710 not-equal[Int16] 65535[Word], -1[Int8] -> [Boolean] Var $overflow
 endcode
 varvalue r True
 
-code auto:2711 not-equal[Int16] 65535[Word], -1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2711 not-equal[Integer] 65535[Word], -1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = -1;
   var  r: Boolean;
   r := 65535 <> b;
 endcode
 varvalue r True
 
-code auto:2712 not-equal[Int16] 65535[Word], -1[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2712 not-equal[Integer] 65535[Word], -1[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Word = 65535;
   var  r: Boolean;
   r := a <> -1;
@@ -19666,7 +19666,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2714 not-equal[Int16] 65535[Word], 0[Int8] -> [Boolean] Var $overflow on
+code auto:2714 not-equal[Integer] 65535[Word], 0[Int8] -> [Boolean] Var $overflow on
   var  a: Word = 65535;
   var  b: Int8 = 0;
   var  r: Boolean;
@@ -19674,14 +19674,14 @@ code auto:2714 not-equal[Int16] 65535[Word], 0[Int8] -> [Boolean] Var $overflow 
 endcode
 varvalue r True
 
-code auto:2715 not-equal[Int16] 65535[Word], 0[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2715 not-equal[Integer] 65535[Word], 0[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 0;
   var  r: Boolean;
   r := 65535 <> b;
 endcode
 varvalue r True
 
-code auto:2716 not-equal[Int16] 65535[Word], 0[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2716 not-equal[Integer] 65535[Word], 0[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Word = 65535;
   var  r: Boolean;
   r := a <> 0;
@@ -19695,7 +19695,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2718 not-equal[Int16] 65535[Word], 1[Int8] -> [Boolean] Var $overflow on
+code auto:2718 not-equal[Integer] 65535[Word], 1[Int8] -> [Boolean] Var $overflow on
   var  a: Word = 65535;
   var  b: Int8 = 1;
   var  r: Boolean;
@@ -19703,14 +19703,14 @@ code auto:2718 not-equal[Int16] 65535[Word], 1[Int8] -> [Boolean] Var $overflow 
 endcode
 varvalue r True
 
-code auto:2719 not-equal[Int16] 65535[Word], 1[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2719 not-equal[Integer] 65535[Word], 1[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 1;
   var  r: Boolean;
   r := 65535 <> b;
 endcode
 varvalue r True
 
-code auto:2720 not-equal[Int16] 65535[Word], 1[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2720 not-equal[Integer] 65535[Word], 1[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Word = 65535;
   var  r: Boolean;
   r := a <> 1;
@@ -19724,7 +19724,7 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2722 not-equal[Int16] 65535[Word], 127[Int8] -> [Boolean] Var $overflow on
+code auto:2722 not-equal[Integer] 65535[Word], 127[Int8] -> [Boolean] Var $overflow on
   var  a: Word = 65535;
   var  b: Int8 = 127;
   var  r: Boolean;
@@ -19732,14 +19732,14 @@ code auto:2722 not-equal[Int16] 65535[Word], 127[Int8] -> [Boolean] Var $overflo
 endcode
 varvalue r True
 
-code auto:2723 not-equal[Int16] 65535[Word], 127[Int8] -> [Boolean] Left immediate $overflow on
+code auto:2723 not-equal[Integer] 65535[Word], 127[Int8] -> [Boolean] Left immediate $overflow on
   var  b: Int8 = 127;
   var  r: Boolean;
   r := 65535 <> b;
 endcode
 varvalue r True
 
-code auto:2724 not-equal[Int16] 65535[Word], 127[Int8] -> [Boolean] Right immediate $overflow on
+code auto:2724 not-equal[Integer] 65535[Word], 127[Int8] -> [Boolean] Right immediate $overflow on
   var  a: Word = 65535;
   var  r: Boolean;
   r := a <> 127;
@@ -19753,1450 +19753,1450 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:2726 not-equal[Int16] 0[Word], -32768[Int16] -> [Boolean] Var $overflow on
+code auto:2726 not-equal[Integer] 0[Word], -32768[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 0;
-  var  b: Int16 = -32768;
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2727 not-equal[Int16] 0[Word], -32768[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32768;
+code auto:2727 not-equal[Integer] 0[Word], -32768[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:2728 not-equal[Int16] 0[Word], -32768[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2728 not-equal[Integer] 0[Word], -32768[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 0;
   var  r: Boolean;
   r := a <> -32768;
 endcode
 varvalue r True
 
-code auto:2729 not-equal[compile-time] 0[Word], -32768[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2729 not-equal[compile-time] 0[Word], -32768[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> -32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2730 not-equal[Int16] 0[Word], -32767[Int16] -> [Boolean] Var $overflow on
+code auto:2730 not-equal[Integer] 0[Word], -32767[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 0;
-  var  b: Int16 = -32767;
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2731 not-equal[Int16] 0[Word], -32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32767;
+code auto:2731 not-equal[Integer] 0[Word], -32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:2732 not-equal[Int16] 0[Word], -32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2732 not-equal[Integer] 0[Word], -32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 0;
   var  r: Boolean;
   r := a <> -32767;
 endcode
 varvalue r True
 
-code auto:2733 not-equal[compile-time] 0[Word], -32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2733 not-equal[compile-time] 0[Word], -32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> -32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2734 not-equal[Int16] 0[Word], -129[Int16] -> [Boolean] Var $overflow on
+code auto:2734 not-equal[Integer] 0[Word], -129[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 0;
-  var  b: Int16 = -129;
+  var  b: Integer = -129;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2735 not-equal[Int16] 0[Word], -129[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -129;
+code auto:2735 not-equal[Integer] 0[Word], -129[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -129;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:2736 not-equal[Int16] 0[Word], -129[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2736 not-equal[Integer] 0[Word], -129[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 0;
   var  r: Boolean;
   r := a <> -129;
 endcode
 varvalue r True
 
-code auto:2737 not-equal[compile-time] 0[Word], -129[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2737 not-equal[compile-time] 0[Word], -129[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> -129;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2738 not-equal[Int16] 0[Word], -128[Int16] -> [Boolean] Var $overflow on
+code auto:2738 not-equal[Integer] 0[Word], -128[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 0;
-  var  b: Int16 = -128;
+  var  b: Integer = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2739 not-equal[Int16] 0[Word], -128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -128;
+code auto:2739 not-equal[Integer] 0[Word], -128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -128;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:2740 not-equal[Int16] 0[Word], -128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2740 not-equal[Integer] 0[Word], -128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 0;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r True
 
-code auto:2741 not-equal[compile-time] 0[Word], -128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2741 not-equal[compile-time] 0[Word], -128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> -128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2742 not-equal[Int16] 0[Word], -1[Int16] -> [Boolean] Var $overflow on
+code auto:2742 not-equal[Integer] 0[Word], -1[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 0;
-  var  b: Int16 = -1;
+  var  b: Integer = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2743 not-equal[Int16] 0[Word], -1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -1;
+code auto:2743 not-equal[Integer] 0[Word], -1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -1;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:2744 not-equal[Int16] 0[Word], -1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2744 not-equal[Integer] 0[Word], -1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 0;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r True
 
-code auto:2745 not-equal[compile-time] 0[Word], -1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2745 not-equal[compile-time] 0[Word], -1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> -1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2746 not-equal[Int16] 0[Word], 0[Int16] -> [Boolean] Var $overflow on
+code auto:2746 not-equal[Integer] 0[Word], 0[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 0;
-  var  b: Int16 = 0;
+  var  b: Integer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r False
 
-code auto:2747 not-equal[Int16] 0[Word], 0[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 0;
+code auto:2747 not-equal[Integer] 0[Word], 0[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 0;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r False
 
-code auto:2748 not-equal[Int16] 0[Word], 0[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2748 not-equal[Integer] 0[Word], 0[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 0;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r False
 
-code auto:2749 not-equal[compile-time] 0[Word], 0[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2749 not-equal[compile-time] 0[Word], 0[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 0;
 endcode
 varvalue r False
 
 $overflow on
-code auto:2750 not-equal[Int16] 0[Word], 1[Int16] -> [Boolean] Var $overflow on
+code auto:2750 not-equal[Integer] 0[Word], 1[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 0;
-  var  b: Int16 = 1;
+  var  b: Integer = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2751 not-equal[Int16] 0[Word], 1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 1;
+code auto:2751 not-equal[Integer] 0[Word], 1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 1;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:2752 not-equal[Int16] 0[Word], 1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2752 not-equal[Integer] 0[Word], 1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 0;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:2753 not-equal[compile-time] 0[Word], 1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2753 not-equal[compile-time] 0[Word], 1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2754 not-equal[Int16] 0[Word], 127[Int16] -> [Boolean] Var $overflow on
+code auto:2754 not-equal[Integer] 0[Word], 127[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 0;
-  var  b: Int16 = 127;
+  var  b: Integer = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2755 not-equal[Int16] 0[Word], 127[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 127;
+code auto:2755 not-equal[Integer] 0[Word], 127[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 127;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:2756 not-equal[Int16] 0[Word], 127[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2756 not-equal[Integer] 0[Word], 127[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 0;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:2757 not-equal[compile-time] 0[Word], 127[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2757 not-equal[compile-time] 0[Word], 127[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2758 not-equal[Int16] 0[Word], 128[Int16] -> [Boolean] Var $overflow on
+code auto:2758 not-equal[Integer] 0[Word], 128[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 0;
-  var  b: Int16 = 128;
+  var  b: Integer = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2759 not-equal[Int16] 0[Word], 128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 128;
+code auto:2759 not-equal[Integer] 0[Word], 128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 128;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:2760 not-equal[Int16] 0[Word], 128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2760 not-equal[Integer] 0[Word], 128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 0;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r True
 
-code auto:2761 not-equal[compile-time] 0[Word], 128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2761 not-equal[compile-time] 0[Word], 128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2762 not-equal[Int16] 0[Word], 32767[Int16] -> [Boolean] Var $overflow on
+code auto:2762 not-equal[Integer] 0[Word], 32767[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 0;
-  var  b: Int16 = 32767;
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2763 not-equal[Int16] 0[Word], 32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 32767;
+code auto:2763 not-equal[Integer] 0[Word], 32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:2764 not-equal[Int16] 0[Word], 32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2764 not-equal[Integer] 0[Word], 32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 0;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:2765 not-equal[compile-time] 0[Word], 32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2765 not-equal[compile-time] 0[Word], 32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2766 not-equal[Int16] 255[Word], -32768[Int16] -> [Boolean] Var $overflow on
+code auto:2766 not-equal[Integer] 255[Word], -32768[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 255;
-  var  b: Int16 = -32768;
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2767 not-equal[Int16] 255[Word], -32768[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32768;
+code auto:2767 not-equal[Integer] 255[Word], -32768[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:2768 not-equal[Int16] 255[Word], -32768[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2768 not-equal[Integer] 255[Word], -32768[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 255;
   var  r: Boolean;
   r := a <> -32768;
 endcode
 varvalue r True
 
-code auto:2769 not-equal[compile-time] 255[Word], -32768[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2769 not-equal[compile-time] 255[Word], -32768[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 255 <> -32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2770 not-equal[Int16] 255[Word], -32767[Int16] -> [Boolean] Var $overflow on
+code auto:2770 not-equal[Integer] 255[Word], -32767[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 255;
-  var  b: Int16 = -32767;
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2771 not-equal[Int16] 255[Word], -32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32767;
+code auto:2771 not-equal[Integer] 255[Word], -32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:2772 not-equal[Int16] 255[Word], -32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2772 not-equal[Integer] 255[Word], -32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 255;
   var  r: Boolean;
   r := a <> -32767;
 endcode
 varvalue r True
 
-code auto:2773 not-equal[compile-time] 255[Word], -32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2773 not-equal[compile-time] 255[Word], -32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 255 <> -32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2774 not-equal[Int16] 255[Word], -129[Int16] -> [Boolean] Var $overflow on
+code auto:2774 not-equal[Integer] 255[Word], -129[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 255;
-  var  b: Int16 = -129;
+  var  b: Integer = -129;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2775 not-equal[Int16] 255[Word], -129[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -129;
+code auto:2775 not-equal[Integer] 255[Word], -129[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -129;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:2776 not-equal[Int16] 255[Word], -129[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2776 not-equal[Integer] 255[Word], -129[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 255;
   var  r: Boolean;
   r := a <> -129;
 endcode
 varvalue r True
 
-code auto:2777 not-equal[compile-time] 255[Word], -129[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2777 not-equal[compile-time] 255[Word], -129[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 255 <> -129;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2778 not-equal[Int16] 255[Word], -128[Int16] -> [Boolean] Var $overflow on
+code auto:2778 not-equal[Integer] 255[Word], -128[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 255;
-  var  b: Int16 = -128;
+  var  b: Integer = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2779 not-equal[Int16] 255[Word], -128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -128;
+code auto:2779 not-equal[Integer] 255[Word], -128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -128;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:2780 not-equal[Int16] 255[Word], -128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2780 not-equal[Integer] 255[Word], -128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 255;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r True
 
-code auto:2781 not-equal[compile-time] 255[Word], -128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2781 not-equal[compile-time] 255[Word], -128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 255 <> -128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2782 not-equal[Int16] 255[Word], -1[Int16] -> [Boolean] Var $overflow on
+code auto:2782 not-equal[Integer] 255[Word], -1[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 255;
-  var  b: Int16 = -1;
+  var  b: Integer = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2783 not-equal[Int16] 255[Word], -1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -1;
+code auto:2783 not-equal[Integer] 255[Word], -1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -1;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:2784 not-equal[Int16] 255[Word], -1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2784 not-equal[Integer] 255[Word], -1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 255;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r True
 
-code auto:2785 not-equal[compile-time] 255[Word], -1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2785 not-equal[compile-time] 255[Word], -1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 255 <> -1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2786 not-equal[Int16] 255[Word], 0[Int16] -> [Boolean] Var $overflow on
+code auto:2786 not-equal[Integer] 255[Word], 0[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 255;
-  var  b: Int16 = 0;
+  var  b: Integer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2787 not-equal[Int16] 255[Word], 0[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 0;
+code auto:2787 not-equal[Integer] 255[Word], 0[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 0;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:2788 not-equal[Int16] 255[Word], 0[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2788 not-equal[Integer] 255[Word], 0[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 255;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:2789 not-equal[compile-time] 255[Word], 0[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2789 not-equal[compile-time] 255[Word], 0[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 255 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2790 not-equal[Int16] 255[Word], 1[Int16] -> [Boolean] Var $overflow on
+code auto:2790 not-equal[Integer] 255[Word], 1[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 255;
-  var  b: Int16 = 1;
+  var  b: Integer = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2791 not-equal[Int16] 255[Word], 1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 1;
+code auto:2791 not-equal[Integer] 255[Word], 1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 1;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:2792 not-equal[Int16] 255[Word], 1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2792 not-equal[Integer] 255[Word], 1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 255;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:2793 not-equal[compile-time] 255[Word], 1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2793 not-equal[compile-time] 255[Word], 1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 255 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2794 not-equal[Int16] 255[Word], 127[Int16] -> [Boolean] Var $overflow on
+code auto:2794 not-equal[Integer] 255[Word], 127[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 255;
-  var  b: Int16 = 127;
+  var  b: Integer = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2795 not-equal[Int16] 255[Word], 127[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 127;
+code auto:2795 not-equal[Integer] 255[Word], 127[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 127;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:2796 not-equal[Int16] 255[Word], 127[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2796 not-equal[Integer] 255[Word], 127[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 255;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:2797 not-equal[compile-time] 255[Word], 127[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2797 not-equal[compile-time] 255[Word], 127[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 255 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2798 not-equal[Int16] 255[Word], 128[Int16] -> [Boolean] Var $overflow on
+code auto:2798 not-equal[Integer] 255[Word], 128[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 255;
-  var  b: Int16 = 128;
+  var  b: Integer = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2799 not-equal[Int16] 255[Word], 128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 128;
+code auto:2799 not-equal[Integer] 255[Word], 128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 128;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:2800 not-equal[Int16] 255[Word], 128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2800 not-equal[Integer] 255[Word], 128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 255;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r True
 
-code auto:2801 not-equal[compile-time] 255[Word], 128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2801 not-equal[compile-time] 255[Word], 128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 255 <> 128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2802 not-equal[Int16] 255[Word], 32767[Int16] -> [Boolean] Var $overflow on
+code auto:2802 not-equal[Integer] 255[Word], 32767[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 255;
-  var  b: Int16 = 32767;
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2803 not-equal[Int16] 255[Word], 32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 32767;
+code auto:2803 not-equal[Integer] 255[Word], 32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:2804 not-equal[Int16] 255[Word], 32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2804 not-equal[Integer] 255[Word], 32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 255;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:2805 not-equal[compile-time] 255[Word], 32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2805 not-equal[compile-time] 255[Word], 32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 255 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2806 not-equal[Int16] 32767[Word], -32768[Int16] -> [Boolean] Var $overflow on
+code auto:2806 not-equal[Integer] 32767[Word], -32768[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 32767;
-  var  b: Int16 = -32768;
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2807 not-equal[Int16] 32767[Word], -32768[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32768;
+code auto:2807 not-equal[Integer] 32767[Word], -32768[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:2808 not-equal[Int16] 32767[Word], -32768[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2808 not-equal[Integer] 32767[Word], -32768[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 32767;
   var  r: Boolean;
   r := a <> -32768;
 endcode
 varvalue r True
 
-code auto:2809 not-equal[compile-time] 32767[Word], -32768[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2809 not-equal[compile-time] 32767[Word], -32768[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> -32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2810 not-equal[Int16] 32767[Word], -32767[Int16] -> [Boolean] Var $overflow on
+code auto:2810 not-equal[Integer] 32767[Word], -32767[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 32767;
-  var  b: Int16 = -32767;
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2811 not-equal[Int16] 32767[Word], -32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32767;
+code auto:2811 not-equal[Integer] 32767[Word], -32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:2812 not-equal[Int16] 32767[Word], -32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2812 not-equal[Integer] 32767[Word], -32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 32767;
   var  r: Boolean;
   r := a <> -32767;
 endcode
 varvalue r True
 
-code auto:2813 not-equal[compile-time] 32767[Word], -32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2813 not-equal[compile-time] 32767[Word], -32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> -32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2814 not-equal[Int16] 32767[Word], -129[Int16] -> [Boolean] Var $overflow on
+code auto:2814 not-equal[Integer] 32767[Word], -129[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 32767;
-  var  b: Int16 = -129;
+  var  b: Integer = -129;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2815 not-equal[Int16] 32767[Word], -129[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -129;
+code auto:2815 not-equal[Integer] 32767[Word], -129[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -129;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:2816 not-equal[Int16] 32767[Word], -129[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2816 not-equal[Integer] 32767[Word], -129[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 32767;
   var  r: Boolean;
   r := a <> -129;
 endcode
 varvalue r True
 
-code auto:2817 not-equal[compile-time] 32767[Word], -129[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2817 not-equal[compile-time] 32767[Word], -129[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> -129;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2818 not-equal[Int16] 32767[Word], -128[Int16] -> [Boolean] Var $overflow on
+code auto:2818 not-equal[Integer] 32767[Word], -128[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 32767;
-  var  b: Int16 = -128;
+  var  b: Integer = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2819 not-equal[Int16] 32767[Word], -128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -128;
+code auto:2819 not-equal[Integer] 32767[Word], -128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -128;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:2820 not-equal[Int16] 32767[Word], -128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2820 not-equal[Integer] 32767[Word], -128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 32767;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r True
 
-code auto:2821 not-equal[compile-time] 32767[Word], -128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2821 not-equal[compile-time] 32767[Word], -128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> -128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2822 not-equal[Int16] 32767[Word], -1[Int16] -> [Boolean] Var $overflow on
+code auto:2822 not-equal[Integer] 32767[Word], -1[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 32767;
-  var  b: Int16 = -1;
+  var  b: Integer = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2823 not-equal[Int16] 32767[Word], -1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -1;
+code auto:2823 not-equal[Integer] 32767[Word], -1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -1;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:2824 not-equal[Int16] 32767[Word], -1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2824 not-equal[Integer] 32767[Word], -1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 32767;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r True
 
-code auto:2825 not-equal[compile-time] 32767[Word], -1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2825 not-equal[compile-time] 32767[Word], -1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> -1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2826 not-equal[Int16] 32767[Word], 0[Int16] -> [Boolean] Var $overflow on
+code auto:2826 not-equal[Integer] 32767[Word], 0[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 32767;
-  var  b: Int16 = 0;
+  var  b: Integer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2827 not-equal[Int16] 32767[Word], 0[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 0;
+code auto:2827 not-equal[Integer] 32767[Word], 0[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 0;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:2828 not-equal[Int16] 32767[Word], 0[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2828 not-equal[Integer] 32767[Word], 0[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 32767;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:2829 not-equal[compile-time] 32767[Word], 0[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2829 not-equal[compile-time] 32767[Word], 0[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2830 not-equal[Int16] 32767[Word], 1[Int16] -> [Boolean] Var $overflow on
+code auto:2830 not-equal[Integer] 32767[Word], 1[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 32767;
-  var  b: Int16 = 1;
+  var  b: Integer = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2831 not-equal[Int16] 32767[Word], 1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 1;
+code auto:2831 not-equal[Integer] 32767[Word], 1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 1;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:2832 not-equal[Int16] 32767[Word], 1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2832 not-equal[Integer] 32767[Word], 1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 32767;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:2833 not-equal[compile-time] 32767[Word], 1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2833 not-equal[compile-time] 32767[Word], 1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2834 not-equal[Int16] 32767[Word], 127[Int16] -> [Boolean] Var $overflow on
+code auto:2834 not-equal[Integer] 32767[Word], 127[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 32767;
-  var  b: Int16 = 127;
+  var  b: Integer = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2835 not-equal[Int16] 32767[Word], 127[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 127;
+code auto:2835 not-equal[Integer] 32767[Word], 127[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 127;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:2836 not-equal[Int16] 32767[Word], 127[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2836 not-equal[Integer] 32767[Word], 127[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 32767;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:2837 not-equal[compile-time] 32767[Word], 127[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2837 not-equal[compile-time] 32767[Word], 127[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2838 not-equal[Int16] 32767[Word], 128[Int16] -> [Boolean] Var $overflow on
+code auto:2838 not-equal[Integer] 32767[Word], 128[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 32767;
-  var  b: Int16 = 128;
+  var  b: Integer = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2839 not-equal[Int16] 32767[Word], 128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 128;
+code auto:2839 not-equal[Integer] 32767[Word], 128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 128;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:2840 not-equal[Int16] 32767[Word], 128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2840 not-equal[Integer] 32767[Word], 128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 32767;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r True
 
-code auto:2841 not-equal[compile-time] 32767[Word], 128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2841 not-equal[compile-time] 32767[Word], 128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> 128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2842 not-equal[Int16] 32767[Word], 32767[Int16] -> [Boolean] Var $overflow on
+code auto:2842 not-equal[Integer] 32767[Word], 32767[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 32767;
-  var  b: Int16 = 32767;
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r False
 
-code auto:2843 not-equal[Int16] 32767[Word], 32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 32767;
+code auto:2843 not-equal[Integer] 32767[Word], 32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r False
 
-code auto:2844 not-equal[Int16] 32767[Word], 32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2844 not-equal[Integer] 32767[Word], 32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 32767;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r False
 
-code auto:2845 not-equal[compile-time] 32767[Word], 32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2845 not-equal[compile-time] 32767[Word], 32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> 32767;
 endcode
 varvalue r False
 
 $overflow on
-code auto:2846 not-equal[Int16] 32768[Word], -32768[Int16] -> [Boolean] Var $overflow on
+code auto:2846 not-equal[Integer] 32768[Word], -32768[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 32768;
-  var  b: Int16 = -32768;
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2847 not-equal[Int16] 32768[Word], -32768[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32768;
+code auto:2847 not-equal[Integer] 32768[Word], -32768[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := 32768 <> b;
 endcode
 varvalue r True
 
-code auto:2848 not-equal[Int16] 32768[Word], -32768[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2848 not-equal[Integer] 32768[Word], -32768[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 32768;
   var  r: Boolean;
   r := a <> -32768;
 endcode
 varvalue r True
 
-code auto:2849 not-equal[compile-time] 32768[Word], -32768[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2849 not-equal[compile-time] 32768[Word], -32768[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32768 <> -32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2850 not-equal[Int16] 32768[Word], -32767[Int16] -> [Boolean] Var $overflow on
+code auto:2850 not-equal[Integer] 32768[Word], -32767[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 32768;
-  var  b: Int16 = -32767;
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2851 not-equal[Int16] 32768[Word], -32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32767;
+code auto:2851 not-equal[Integer] 32768[Word], -32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := 32768 <> b;
 endcode
 varvalue r True
 
-code auto:2852 not-equal[Int16] 32768[Word], -32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2852 not-equal[Integer] 32768[Word], -32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 32768;
   var  r: Boolean;
   r := a <> -32767;
 endcode
 varvalue r True
 
-code auto:2853 not-equal[compile-time] 32768[Word], -32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2853 not-equal[compile-time] 32768[Word], -32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32768 <> -32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2854 not-equal[Int16] 32768[Word], -129[Int16] -> [Boolean] Var $overflow on
+code auto:2854 not-equal[Integer] 32768[Word], -129[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 32768;
-  var  b: Int16 = -129;
+  var  b: Integer = -129;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2855 not-equal[Int16] 32768[Word], -129[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -129;
+code auto:2855 not-equal[Integer] 32768[Word], -129[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -129;
   var  r: Boolean;
   r := 32768 <> b;
 endcode
 varvalue r True
 
-code auto:2856 not-equal[Int16] 32768[Word], -129[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2856 not-equal[Integer] 32768[Word], -129[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 32768;
   var  r: Boolean;
   r := a <> -129;
 endcode
 varvalue r True
 
-code auto:2857 not-equal[compile-time] 32768[Word], -129[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2857 not-equal[compile-time] 32768[Word], -129[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32768 <> -129;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2858 not-equal[Int16] 32768[Word], -128[Int16] -> [Boolean] Var $overflow on
+code auto:2858 not-equal[Integer] 32768[Word], -128[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 32768;
-  var  b: Int16 = -128;
+  var  b: Integer = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2859 not-equal[Int16] 32768[Word], -128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -128;
+code auto:2859 not-equal[Integer] 32768[Word], -128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -128;
   var  r: Boolean;
   r := 32768 <> b;
 endcode
 varvalue r True
 
-code auto:2860 not-equal[Int16] 32768[Word], -128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2860 not-equal[Integer] 32768[Word], -128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 32768;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r True
 
-code auto:2861 not-equal[compile-time] 32768[Word], -128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2861 not-equal[compile-time] 32768[Word], -128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32768 <> -128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2862 not-equal[Int16] 32768[Word], -1[Int16] -> [Boolean] Var $overflow on
+code auto:2862 not-equal[Integer] 32768[Word], -1[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 32768;
-  var  b: Int16 = -1;
+  var  b: Integer = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2863 not-equal[Int16] 32768[Word], -1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -1;
+code auto:2863 not-equal[Integer] 32768[Word], -1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -1;
   var  r: Boolean;
   r := 32768 <> b;
 endcode
 varvalue r True
 
-code auto:2864 not-equal[Int16] 32768[Word], -1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2864 not-equal[Integer] 32768[Word], -1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 32768;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r True
 
-code auto:2865 not-equal[compile-time] 32768[Word], -1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2865 not-equal[compile-time] 32768[Word], -1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32768 <> -1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2866 not-equal[Int16] 32768[Word], 0[Int16] -> [Boolean] Var $overflow on
+code auto:2866 not-equal[Integer] 32768[Word], 0[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 32768;
-  var  b: Int16 = 0;
+  var  b: Integer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2867 not-equal[Int16] 32768[Word], 0[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 0;
+code auto:2867 not-equal[Integer] 32768[Word], 0[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 0;
   var  r: Boolean;
   r := 32768 <> b;
 endcode
 varvalue r True
 
-code auto:2868 not-equal[Int16] 32768[Word], 0[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2868 not-equal[Integer] 32768[Word], 0[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 32768;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:2869 not-equal[compile-time] 32768[Word], 0[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2869 not-equal[compile-time] 32768[Word], 0[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32768 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2870 not-equal[Int16] 32768[Word], 1[Int16] -> [Boolean] Var $overflow on
+code auto:2870 not-equal[Integer] 32768[Word], 1[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 32768;
-  var  b: Int16 = 1;
+  var  b: Integer = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2871 not-equal[Int16] 32768[Word], 1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 1;
+code auto:2871 not-equal[Integer] 32768[Word], 1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 1;
   var  r: Boolean;
   r := 32768 <> b;
 endcode
 varvalue r True
 
-code auto:2872 not-equal[Int16] 32768[Word], 1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2872 not-equal[Integer] 32768[Word], 1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 32768;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:2873 not-equal[compile-time] 32768[Word], 1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2873 not-equal[compile-time] 32768[Word], 1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32768 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2874 not-equal[Int16] 32768[Word], 127[Int16] -> [Boolean] Var $overflow on
+code auto:2874 not-equal[Integer] 32768[Word], 127[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 32768;
-  var  b: Int16 = 127;
+  var  b: Integer = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2875 not-equal[Int16] 32768[Word], 127[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 127;
+code auto:2875 not-equal[Integer] 32768[Word], 127[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 127;
   var  r: Boolean;
   r := 32768 <> b;
 endcode
 varvalue r True
 
-code auto:2876 not-equal[Int16] 32768[Word], 127[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2876 not-equal[Integer] 32768[Word], 127[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 32768;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:2877 not-equal[compile-time] 32768[Word], 127[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2877 not-equal[compile-time] 32768[Word], 127[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32768 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2878 not-equal[Int16] 32768[Word], 128[Int16] -> [Boolean] Var $overflow on
+code auto:2878 not-equal[Integer] 32768[Word], 128[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 32768;
-  var  b: Int16 = 128;
+  var  b: Integer = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2879 not-equal[Int16] 32768[Word], 128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 128;
+code auto:2879 not-equal[Integer] 32768[Word], 128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 128;
   var  r: Boolean;
   r := 32768 <> b;
 endcode
 varvalue r True
 
-code auto:2880 not-equal[Int16] 32768[Word], 128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2880 not-equal[Integer] 32768[Word], 128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 32768;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r True
 
-code auto:2881 not-equal[compile-time] 32768[Word], 128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2881 not-equal[compile-time] 32768[Word], 128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32768 <> 128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2882 not-equal[Int16] 32768[Word], 32767[Int16] -> [Boolean] Var $overflow on
+code auto:2882 not-equal[Integer] 32768[Word], 32767[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 32768;
-  var  b: Int16 = 32767;
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2883 not-equal[Int16] 32768[Word], 32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 32767;
+code auto:2883 not-equal[Integer] 32768[Word], 32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := 32768 <> b;
 endcode
 varvalue r True
 
-code auto:2884 not-equal[Int16] 32768[Word], 32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2884 not-equal[Integer] 32768[Word], 32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 32768;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:2885 not-equal[compile-time] 32768[Word], 32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2885 not-equal[compile-time] 32768[Word], 32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32768 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2886 not-equal[Int16] 65535[Word], -32768[Int16] -> [Boolean] Var $overflow on
+code auto:2886 not-equal[Integer] 65535[Word], -32768[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 65535;
-  var  b: Int16 = -32768;
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2887 not-equal[Int16] 65535[Word], -32768[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32768;
+code auto:2887 not-equal[Integer] 65535[Word], -32768[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := 65535 <> b;
 endcode
 varvalue r True
 
-code auto:2888 not-equal[Int16] 65535[Word], -32768[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2888 not-equal[Integer] 65535[Word], -32768[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 65535;
   var  r: Boolean;
   r := a <> -32768;
 endcode
 varvalue r True
 
-code auto:2889 not-equal[compile-time] 65535[Word], -32768[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2889 not-equal[compile-time] 65535[Word], -32768[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 65535 <> -32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2890 not-equal[Int16] 65535[Word], -32767[Int16] -> [Boolean] Var $overflow on
+code auto:2890 not-equal[Integer] 65535[Word], -32767[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 65535;
-  var  b: Int16 = -32767;
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2891 not-equal[Int16] 65535[Word], -32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32767;
+code auto:2891 not-equal[Integer] 65535[Word], -32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := 65535 <> b;
 endcode
 varvalue r True
 
-code auto:2892 not-equal[Int16] 65535[Word], -32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2892 not-equal[Integer] 65535[Word], -32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 65535;
   var  r: Boolean;
   r := a <> -32767;
 endcode
 varvalue r True
 
-code auto:2893 not-equal[compile-time] 65535[Word], -32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2893 not-equal[compile-time] 65535[Word], -32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 65535 <> -32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2894 not-equal[Int16] 65535[Word], -129[Int16] -> [Boolean] Var $overflow on
+code auto:2894 not-equal[Integer] 65535[Word], -129[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 65535;
-  var  b: Int16 = -129;
+  var  b: Integer = -129;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2895 not-equal[Int16] 65535[Word], -129[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -129;
+code auto:2895 not-equal[Integer] 65535[Word], -129[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -129;
   var  r: Boolean;
   r := 65535 <> b;
 endcode
 varvalue r True
 
-code auto:2896 not-equal[Int16] 65535[Word], -129[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2896 not-equal[Integer] 65535[Word], -129[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 65535;
   var  r: Boolean;
   r := a <> -129;
 endcode
 varvalue r True
 
-code auto:2897 not-equal[compile-time] 65535[Word], -129[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2897 not-equal[compile-time] 65535[Word], -129[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 65535 <> -129;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2898 not-equal[Int16] 65535[Word], -128[Int16] -> [Boolean] Var $overflow on
+code auto:2898 not-equal[Integer] 65535[Word], -128[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 65535;
-  var  b: Int16 = -128;
+  var  b: Integer = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2899 not-equal[Int16] 65535[Word], -128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -128;
+code auto:2899 not-equal[Integer] 65535[Word], -128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -128;
   var  r: Boolean;
   r := 65535 <> b;
 endcode
 varvalue r True
 
-code auto:2900 not-equal[Int16] 65535[Word], -128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2900 not-equal[Integer] 65535[Word], -128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 65535;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r True
 
-code auto:2901 not-equal[compile-time] 65535[Word], -128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2901 not-equal[compile-time] 65535[Word], -128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 65535 <> -128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2902 not-equal[Int16] 65535[Word], -1[Int16] -> [Boolean] Var $overflow on
+code auto:2902 not-equal[Integer] 65535[Word], -1[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 65535;
-  var  b: Int16 = -1;
+  var  b: Integer = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2903 not-equal[Int16] 65535[Word], -1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -1;
+code auto:2903 not-equal[Integer] 65535[Word], -1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -1;
   var  r: Boolean;
   r := 65535 <> b;
 endcode
 varvalue r True
 
-code auto:2904 not-equal[Int16] 65535[Word], -1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2904 not-equal[Integer] 65535[Word], -1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 65535;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r True
 
-code auto:2905 not-equal[compile-time] 65535[Word], -1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2905 not-equal[compile-time] 65535[Word], -1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 65535 <> -1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2906 not-equal[Int16] 65535[Word], 0[Int16] -> [Boolean] Var $overflow on
+code auto:2906 not-equal[Integer] 65535[Word], 0[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 65535;
-  var  b: Int16 = 0;
+  var  b: Integer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2907 not-equal[Int16] 65535[Word], 0[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 0;
+code auto:2907 not-equal[Integer] 65535[Word], 0[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 0;
   var  r: Boolean;
   r := 65535 <> b;
 endcode
 varvalue r True
 
-code auto:2908 not-equal[Int16] 65535[Word], 0[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2908 not-equal[Integer] 65535[Word], 0[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 65535;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:2909 not-equal[compile-time] 65535[Word], 0[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2909 not-equal[compile-time] 65535[Word], 0[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 65535 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2910 not-equal[Int16] 65535[Word], 1[Int16] -> [Boolean] Var $overflow on
+code auto:2910 not-equal[Integer] 65535[Word], 1[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 65535;
-  var  b: Int16 = 1;
+  var  b: Integer = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2911 not-equal[Int16] 65535[Word], 1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 1;
+code auto:2911 not-equal[Integer] 65535[Word], 1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 1;
   var  r: Boolean;
   r := 65535 <> b;
 endcode
 varvalue r True
 
-code auto:2912 not-equal[Int16] 65535[Word], 1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2912 not-equal[Integer] 65535[Word], 1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 65535;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:2913 not-equal[compile-time] 65535[Word], 1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2913 not-equal[compile-time] 65535[Word], 1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 65535 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2914 not-equal[Int16] 65535[Word], 127[Int16] -> [Boolean] Var $overflow on
+code auto:2914 not-equal[Integer] 65535[Word], 127[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 65535;
-  var  b: Int16 = 127;
+  var  b: Integer = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2915 not-equal[Int16] 65535[Word], 127[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 127;
+code auto:2915 not-equal[Integer] 65535[Word], 127[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 127;
   var  r: Boolean;
   r := 65535 <> b;
 endcode
 varvalue r True
 
-code auto:2916 not-equal[Int16] 65535[Word], 127[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2916 not-equal[Integer] 65535[Word], 127[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 65535;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:2917 not-equal[compile-time] 65535[Word], 127[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2917 not-equal[compile-time] 65535[Word], 127[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 65535 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2918 not-equal[Int16] 65535[Word], 128[Int16] -> [Boolean] Var $overflow on
+code auto:2918 not-equal[Integer] 65535[Word], 128[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 65535;
-  var  b: Int16 = 128;
+  var  b: Integer = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2919 not-equal[Int16] 65535[Word], 128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 128;
+code auto:2919 not-equal[Integer] 65535[Word], 128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 128;
   var  r: Boolean;
   r := 65535 <> b;
 endcode
 varvalue r True
 
-code auto:2920 not-equal[Int16] 65535[Word], 128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2920 not-equal[Integer] 65535[Word], 128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 65535;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r True
 
-code auto:2921 not-equal[compile-time] 65535[Word], 128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2921 not-equal[compile-time] 65535[Word], 128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 65535 <> 128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:2922 not-equal[Int16] 65535[Word], 32767[Int16] -> [Boolean] Var $overflow on
+code auto:2922 not-equal[Integer] 65535[Word], 32767[Integer] -> [Boolean] Var $overflow on
   var  a: Word = 65535;
-  var  b: Int16 = 32767;
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:2923 not-equal[Int16] 65535[Word], 32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 32767;
+code auto:2923 not-equal[Integer] 65535[Word], 32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := 65535 <> b;
 endcode
 varvalue r True
 
-code auto:2924 not-equal[Int16] 65535[Word], 32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:2924 not-equal[Integer] 65535[Word], 32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Word = 65535;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:2925 not-equal[compile-time] 65535[Word], 32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:2925 not-equal[compile-time] 65535[Word], 32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 65535 <> 32767;
 endcode
@@ -24248,1450 +24248,1450 @@ endcode
 varvalue r True
 
 $overflow on
-code auto:3346 not-equal[Pointer] 0[Pointer], -32768[Int16] -> [Boolean] Var $overflow on
+code auto:3346 not-equal[Pointer] 0[Pointer], -32768[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 0;
-  var  b: Int16 = -32768;
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3347 not-equal[Pointer] 0[Pointer], -32768[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32768;
+code auto:3347 not-equal[Pointer] 0[Pointer], -32768[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:3348 not-equal[Pointer] 0[Pointer], -32768[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3348 not-equal[Pointer] 0[Pointer], -32768[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 0;
   var  r: Boolean;
   r := a <> -32768;
 endcode
 varvalue r True
 
-code auto:3349 not-equal[compile-time] 0[Pointer], -32768[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3349 not-equal[compile-time] 0[Pointer], -32768[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> -32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3350 not-equal[Pointer] 0[Pointer], -32767[Int16] -> [Boolean] Var $overflow on
+code auto:3350 not-equal[Pointer] 0[Pointer], -32767[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 0;
-  var  b: Int16 = -32767;
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3351 not-equal[Pointer] 0[Pointer], -32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32767;
+code auto:3351 not-equal[Pointer] 0[Pointer], -32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:3352 not-equal[Pointer] 0[Pointer], -32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3352 not-equal[Pointer] 0[Pointer], -32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 0;
   var  r: Boolean;
   r := a <> -32767;
 endcode
 varvalue r True
 
-code auto:3353 not-equal[compile-time] 0[Pointer], -32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3353 not-equal[compile-time] 0[Pointer], -32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> -32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3354 not-equal[Pointer] 0[Pointer], -129[Int16] -> [Boolean] Var $overflow on
+code auto:3354 not-equal[Pointer] 0[Pointer], -129[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 0;
-  var  b: Int16 = -129;
+  var  b: Integer = -129;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3355 not-equal[Pointer] 0[Pointer], -129[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -129;
+code auto:3355 not-equal[Pointer] 0[Pointer], -129[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -129;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:3356 not-equal[Pointer] 0[Pointer], -129[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3356 not-equal[Pointer] 0[Pointer], -129[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 0;
   var  r: Boolean;
   r := a <> -129;
 endcode
 varvalue r True
 
-code auto:3357 not-equal[compile-time] 0[Pointer], -129[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3357 not-equal[compile-time] 0[Pointer], -129[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> -129;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3358 not-equal[Pointer] 0[Pointer], -128[Int16] -> [Boolean] Var $overflow on
+code auto:3358 not-equal[Pointer] 0[Pointer], -128[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 0;
-  var  b: Int16 = -128;
+  var  b: Integer = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3359 not-equal[Pointer] 0[Pointer], -128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -128;
+code auto:3359 not-equal[Pointer] 0[Pointer], -128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -128;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:3360 not-equal[Pointer] 0[Pointer], -128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3360 not-equal[Pointer] 0[Pointer], -128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 0;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r True
 
-code auto:3361 not-equal[compile-time] 0[Pointer], -128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3361 not-equal[compile-time] 0[Pointer], -128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> -128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3362 not-equal[Pointer] 0[Pointer], -1[Int16] -> [Boolean] Var $overflow on
+code auto:3362 not-equal[Pointer] 0[Pointer], -1[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 0;
-  var  b: Int16 = -1;
+  var  b: Integer = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3363 not-equal[Pointer] 0[Pointer], -1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -1;
+code auto:3363 not-equal[Pointer] 0[Pointer], -1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -1;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:3364 not-equal[Pointer] 0[Pointer], -1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3364 not-equal[Pointer] 0[Pointer], -1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 0;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r True
 
-code auto:3365 not-equal[compile-time] 0[Pointer], -1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3365 not-equal[compile-time] 0[Pointer], -1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> -1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3366 not-equal[Pointer] 0[Pointer], 0[Int16] -> [Boolean] Var $overflow on
+code auto:3366 not-equal[Pointer] 0[Pointer], 0[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 0;
-  var  b: Int16 = 0;
+  var  b: Integer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r False
 
-code auto:3367 not-equal[Pointer] 0[Pointer], 0[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 0;
+code auto:3367 not-equal[Pointer] 0[Pointer], 0[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 0;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r False
 
-code auto:3368 not-equal[Pointer] 0[Pointer], 0[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3368 not-equal[Pointer] 0[Pointer], 0[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 0;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r False
 
-code auto:3369 not-equal[compile-time] 0[Pointer], 0[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3369 not-equal[compile-time] 0[Pointer], 0[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 0;
 endcode
 varvalue r False
 
 $overflow on
-code auto:3370 not-equal[Pointer] 0[Pointer], 1[Int16] -> [Boolean] Var $overflow on
+code auto:3370 not-equal[Pointer] 0[Pointer], 1[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 0;
-  var  b: Int16 = 1;
+  var  b: Integer = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3371 not-equal[Pointer] 0[Pointer], 1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 1;
+code auto:3371 not-equal[Pointer] 0[Pointer], 1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 1;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:3372 not-equal[Pointer] 0[Pointer], 1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3372 not-equal[Pointer] 0[Pointer], 1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 0;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:3373 not-equal[compile-time] 0[Pointer], 1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3373 not-equal[compile-time] 0[Pointer], 1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3374 not-equal[Pointer] 0[Pointer], 127[Int16] -> [Boolean] Var $overflow on
+code auto:3374 not-equal[Pointer] 0[Pointer], 127[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 0;
-  var  b: Int16 = 127;
+  var  b: Integer = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3375 not-equal[Pointer] 0[Pointer], 127[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 127;
+code auto:3375 not-equal[Pointer] 0[Pointer], 127[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 127;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:3376 not-equal[Pointer] 0[Pointer], 127[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3376 not-equal[Pointer] 0[Pointer], 127[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 0;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:3377 not-equal[compile-time] 0[Pointer], 127[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3377 not-equal[compile-time] 0[Pointer], 127[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3378 not-equal[Pointer] 0[Pointer], 128[Int16] -> [Boolean] Var $overflow on
+code auto:3378 not-equal[Pointer] 0[Pointer], 128[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 0;
-  var  b: Int16 = 128;
+  var  b: Integer = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3379 not-equal[Pointer] 0[Pointer], 128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 128;
+code auto:3379 not-equal[Pointer] 0[Pointer], 128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 128;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:3380 not-equal[Pointer] 0[Pointer], 128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3380 not-equal[Pointer] 0[Pointer], 128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 0;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r True
 
-code auto:3381 not-equal[compile-time] 0[Pointer], 128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3381 not-equal[compile-time] 0[Pointer], 128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3382 not-equal[Pointer] 0[Pointer], 32767[Int16] -> [Boolean] Var $overflow on
+code auto:3382 not-equal[Pointer] 0[Pointer], 32767[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 0;
-  var  b: Int16 = 32767;
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3383 not-equal[Pointer] 0[Pointer], 32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 32767;
+code auto:3383 not-equal[Pointer] 0[Pointer], 32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := 0 <> b;
 endcode
 varvalue r True
 
-code auto:3384 not-equal[Pointer] 0[Pointer], 32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3384 not-equal[Pointer] 0[Pointer], 32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 0;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:3385 not-equal[compile-time] 0[Pointer], 32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3385 not-equal[compile-time] 0[Pointer], 32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 0 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3386 not-equal[Pointer] 255[Pointer], -32768[Int16] -> [Boolean] Var $overflow on
+code auto:3386 not-equal[Pointer] 255[Pointer], -32768[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 255;
-  var  b: Int16 = -32768;
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3387 not-equal[Pointer] 255[Pointer], -32768[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32768;
+code auto:3387 not-equal[Pointer] 255[Pointer], -32768[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:3388 not-equal[Pointer] 255[Pointer], -32768[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3388 not-equal[Pointer] 255[Pointer], -32768[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 255;
   var  r: Boolean;
   r := a <> -32768;
 endcode
 varvalue r True
 
-code auto:3389 not-equal[compile-time] 255[Pointer], -32768[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3389 not-equal[compile-time] 255[Pointer], -32768[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 255 <> -32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3390 not-equal[Pointer] 255[Pointer], -32767[Int16] -> [Boolean] Var $overflow on
+code auto:3390 not-equal[Pointer] 255[Pointer], -32767[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 255;
-  var  b: Int16 = -32767;
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3391 not-equal[Pointer] 255[Pointer], -32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32767;
+code auto:3391 not-equal[Pointer] 255[Pointer], -32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:3392 not-equal[Pointer] 255[Pointer], -32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3392 not-equal[Pointer] 255[Pointer], -32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 255;
   var  r: Boolean;
   r := a <> -32767;
 endcode
 varvalue r True
 
-code auto:3393 not-equal[compile-time] 255[Pointer], -32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3393 not-equal[compile-time] 255[Pointer], -32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 255 <> -32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3394 not-equal[Pointer] 255[Pointer], -129[Int16] -> [Boolean] Var $overflow on
+code auto:3394 not-equal[Pointer] 255[Pointer], -129[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 255;
-  var  b: Int16 = -129;
+  var  b: Integer = -129;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3395 not-equal[Pointer] 255[Pointer], -129[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -129;
+code auto:3395 not-equal[Pointer] 255[Pointer], -129[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -129;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:3396 not-equal[Pointer] 255[Pointer], -129[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3396 not-equal[Pointer] 255[Pointer], -129[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 255;
   var  r: Boolean;
   r := a <> -129;
 endcode
 varvalue r True
 
-code auto:3397 not-equal[compile-time] 255[Pointer], -129[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3397 not-equal[compile-time] 255[Pointer], -129[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 255 <> -129;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3398 not-equal[Pointer] 255[Pointer], -128[Int16] -> [Boolean] Var $overflow on
+code auto:3398 not-equal[Pointer] 255[Pointer], -128[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 255;
-  var  b: Int16 = -128;
+  var  b: Integer = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3399 not-equal[Pointer] 255[Pointer], -128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -128;
+code auto:3399 not-equal[Pointer] 255[Pointer], -128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -128;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:3400 not-equal[Pointer] 255[Pointer], -128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3400 not-equal[Pointer] 255[Pointer], -128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 255;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r True
 
-code auto:3401 not-equal[compile-time] 255[Pointer], -128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3401 not-equal[compile-time] 255[Pointer], -128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 255 <> -128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3402 not-equal[Pointer] 255[Pointer], -1[Int16] -> [Boolean] Var $overflow on
+code auto:3402 not-equal[Pointer] 255[Pointer], -1[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 255;
-  var  b: Int16 = -1;
+  var  b: Integer = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3403 not-equal[Pointer] 255[Pointer], -1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -1;
+code auto:3403 not-equal[Pointer] 255[Pointer], -1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -1;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:3404 not-equal[Pointer] 255[Pointer], -1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3404 not-equal[Pointer] 255[Pointer], -1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 255;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r True
 
-code auto:3405 not-equal[compile-time] 255[Pointer], -1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3405 not-equal[compile-time] 255[Pointer], -1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 255 <> -1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3406 not-equal[Pointer] 255[Pointer], 0[Int16] -> [Boolean] Var $overflow on
+code auto:3406 not-equal[Pointer] 255[Pointer], 0[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 255;
-  var  b: Int16 = 0;
+  var  b: Integer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3407 not-equal[Pointer] 255[Pointer], 0[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 0;
+code auto:3407 not-equal[Pointer] 255[Pointer], 0[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 0;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:3408 not-equal[Pointer] 255[Pointer], 0[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3408 not-equal[Pointer] 255[Pointer], 0[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 255;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:3409 not-equal[compile-time] 255[Pointer], 0[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3409 not-equal[compile-time] 255[Pointer], 0[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 255 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3410 not-equal[Pointer] 255[Pointer], 1[Int16] -> [Boolean] Var $overflow on
+code auto:3410 not-equal[Pointer] 255[Pointer], 1[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 255;
-  var  b: Int16 = 1;
+  var  b: Integer = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3411 not-equal[Pointer] 255[Pointer], 1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 1;
+code auto:3411 not-equal[Pointer] 255[Pointer], 1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 1;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:3412 not-equal[Pointer] 255[Pointer], 1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3412 not-equal[Pointer] 255[Pointer], 1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 255;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:3413 not-equal[compile-time] 255[Pointer], 1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3413 not-equal[compile-time] 255[Pointer], 1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 255 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3414 not-equal[Pointer] 255[Pointer], 127[Int16] -> [Boolean] Var $overflow on
+code auto:3414 not-equal[Pointer] 255[Pointer], 127[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 255;
-  var  b: Int16 = 127;
+  var  b: Integer = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3415 not-equal[Pointer] 255[Pointer], 127[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 127;
+code auto:3415 not-equal[Pointer] 255[Pointer], 127[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 127;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:3416 not-equal[Pointer] 255[Pointer], 127[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3416 not-equal[Pointer] 255[Pointer], 127[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 255;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:3417 not-equal[compile-time] 255[Pointer], 127[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3417 not-equal[compile-time] 255[Pointer], 127[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 255 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3418 not-equal[Pointer] 255[Pointer], 128[Int16] -> [Boolean] Var $overflow on
+code auto:3418 not-equal[Pointer] 255[Pointer], 128[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 255;
-  var  b: Int16 = 128;
+  var  b: Integer = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3419 not-equal[Pointer] 255[Pointer], 128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 128;
+code auto:3419 not-equal[Pointer] 255[Pointer], 128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 128;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:3420 not-equal[Pointer] 255[Pointer], 128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3420 not-equal[Pointer] 255[Pointer], 128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 255;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r True
 
-code auto:3421 not-equal[compile-time] 255[Pointer], 128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3421 not-equal[compile-time] 255[Pointer], 128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 255 <> 128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3422 not-equal[Pointer] 255[Pointer], 32767[Int16] -> [Boolean] Var $overflow on
+code auto:3422 not-equal[Pointer] 255[Pointer], 32767[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 255;
-  var  b: Int16 = 32767;
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3423 not-equal[Pointer] 255[Pointer], 32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 32767;
+code auto:3423 not-equal[Pointer] 255[Pointer], 32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := 255 <> b;
 endcode
 varvalue r True
 
-code auto:3424 not-equal[Pointer] 255[Pointer], 32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3424 not-equal[Pointer] 255[Pointer], 32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 255;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:3425 not-equal[compile-time] 255[Pointer], 32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3425 not-equal[compile-time] 255[Pointer], 32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 255 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3426 not-equal[Pointer] 32767[Pointer], -32768[Int16] -> [Boolean] Var $overflow on
+code auto:3426 not-equal[Pointer] 32767[Pointer], -32768[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 32767;
-  var  b: Int16 = -32768;
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3427 not-equal[Pointer] 32767[Pointer], -32768[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32768;
+code auto:3427 not-equal[Pointer] 32767[Pointer], -32768[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:3428 not-equal[Pointer] 32767[Pointer], -32768[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3428 not-equal[Pointer] 32767[Pointer], -32768[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 32767;
   var  r: Boolean;
   r := a <> -32768;
 endcode
 varvalue r True
 
-code auto:3429 not-equal[compile-time] 32767[Pointer], -32768[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3429 not-equal[compile-time] 32767[Pointer], -32768[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> -32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3430 not-equal[Pointer] 32767[Pointer], -32767[Int16] -> [Boolean] Var $overflow on
+code auto:3430 not-equal[Pointer] 32767[Pointer], -32767[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 32767;
-  var  b: Int16 = -32767;
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3431 not-equal[Pointer] 32767[Pointer], -32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32767;
+code auto:3431 not-equal[Pointer] 32767[Pointer], -32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:3432 not-equal[Pointer] 32767[Pointer], -32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3432 not-equal[Pointer] 32767[Pointer], -32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 32767;
   var  r: Boolean;
   r := a <> -32767;
 endcode
 varvalue r True
 
-code auto:3433 not-equal[compile-time] 32767[Pointer], -32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3433 not-equal[compile-time] 32767[Pointer], -32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> -32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3434 not-equal[Pointer] 32767[Pointer], -129[Int16] -> [Boolean] Var $overflow on
+code auto:3434 not-equal[Pointer] 32767[Pointer], -129[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 32767;
-  var  b: Int16 = -129;
+  var  b: Integer = -129;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3435 not-equal[Pointer] 32767[Pointer], -129[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -129;
+code auto:3435 not-equal[Pointer] 32767[Pointer], -129[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -129;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:3436 not-equal[Pointer] 32767[Pointer], -129[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3436 not-equal[Pointer] 32767[Pointer], -129[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 32767;
   var  r: Boolean;
   r := a <> -129;
 endcode
 varvalue r True
 
-code auto:3437 not-equal[compile-time] 32767[Pointer], -129[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3437 not-equal[compile-time] 32767[Pointer], -129[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> -129;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3438 not-equal[Pointer] 32767[Pointer], -128[Int16] -> [Boolean] Var $overflow on
+code auto:3438 not-equal[Pointer] 32767[Pointer], -128[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 32767;
-  var  b: Int16 = -128;
+  var  b: Integer = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3439 not-equal[Pointer] 32767[Pointer], -128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -128;
+code auto:3439 not-equal[Pointer] 32767[Pointer], -128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -128;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:3440 not-equal[Pointer] 32767[Pointer], -128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3440 not-equal[Pointer] 32767[Pointer], -128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 32767;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r True
 
-code auto:3441 not-equal[compile-time] 32767[Pointer], -128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3441 not-equal[compile-time] 32767[Pointer], -128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> -128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3442 not-equal[Pointer] 32767[Pointer], -1[Int16] -> [Boolean] Var $overflow on
+code auto:3442 not-equal[Pointer] 32767[Pointer], -1[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 32767;
-  var  b: Int16 = -1;
+  var  b: Integer = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3443 not-equal[Pointer] 32767[Pointer], -1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -1;
+code auto:3443 not-equal[Pointer] 32767[Pointer], -1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -1;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:3444 not-equal[Pointer] 32767[Pointer], -1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3444 not-equal[Pointer] 32767[Pointer], -1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 32767;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r True
 
-code auto:3445 not-equal[compile-time] 32767[Pointer], -1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3445 not-equal[compile-time] 32767[Pointer], -1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> -1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3446 not-equal[Pointer] 32767[Pointer], 0[Int16] -> [Boolean] Var $overflow on
+code auto:3446 not-equal[Pointer] 32767[Pointer], 0[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 32767;
-  var  b: Int16 = 0;
+  var  b: Integer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3447 not-equal[Pointer] 32767[Pointer], 0[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 0;
+code auto:3447 not-equal[Pointer] 32767[Pointer], 0[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 0;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:3448 not-equal[Pointer] 32767[Pointer], 0[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3448 not-equal[Pointer] 32767[Pointer], 0[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 32767;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:3449 not-equal[compile-time] 32767[Pointer], 0[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3449 not-equal[compile-time] 32767[Pointer], 0[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3450 not-equal[Pointer] 32767[Pointer], 1[Int16] -> [Boolean] Var $overflow on
+code auto:3450 not-equal[Pointer] 32767[Pointer], 1[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 32767;
-  var  b: Int16 = 1;
+  var  b: Integer = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3451 not-equal[Pointer] 32767[Pointer], 1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 1;
+code auto:3451 not-equal[Pointer] 32767[Pointer], 1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 1;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:3452 not-equal[Pointer] 32767[Pointer], 1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3452 not-equal[Pointer] 32767[Pointer], 1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 32767;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:3453 not-equal[compile-time] 32767[Pointer], 1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3453 not-equal[compile-time] 32767[Pointer], 1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3454 not-equal[Pointer] 32767[Pointer], 127[Int16] -> [Boolean] Var $overflow on
+code auto:3454 not-equal[Pointer] 32767[Pointer], 127[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 32767;
-  var  b: Int16 = 127;
+  var  b: Integer = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3455 not-equal[Pointer] 32767[Pointer], 127[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 127;
+code auto:3455 not-equal[Pointer] 32767[Pointer], 127[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 127;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:3456 not-equal[Pointer] 32767[Pointer], 127[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3456 not-equal[Pointer] 32767[Pointer], 127[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 32767;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:3457 not-equal[compile-time] 32767[Pointer], 127[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3457 not-equal[compile-time] 32767[Pointer], 127[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3458 not-equal[Pointer] 32767[Pointer], 128[Int16] -> [Boolean] Var $overflow on
+code auto:3458 not-equal[Pointer] 32767[Pointer], 128[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 32767;
-  var  b: Int16 = 128;
+  var  b: Integer = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3459 not-equal[Pointer] 32767[Pointer], 128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 128;
+code auto:3459 not-equal[Pointer] 32767[Pointer], 128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 128;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r True
 
-code auto:3460 not-equal[Pointer] 32767[Pointer], 128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3460 not-equal[Pointer] 32767[Pointer], 128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 32767;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r True
 
-code auto:3461 not-equal[compile-time] 32767[Pointer], 128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3461 not-equal[compile-time] 32767[Pointer], 128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> 128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3462 not-equal[Pointer] 32767[Pointer], 32767[Int16] -> [Boolean] Var $overflow on
+code auto:3462 not-equal[Pointer] 32767[Pointer], 32767[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 32767;
-  var  b: Int16 = 32767;
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r False
 
-code auto:3463 not-equal[Pointer] 32767[Pointer], 32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 32767;
+code auto:3463 not-equal[Pointer] 32767[Pointer], 32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := 32767 <> b;
 endcode
 varvalue r False
 
-code auto:3464 not-equal[Pointer] 32767[Pointer], 32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3464 not-equal[Pointer] 32767[Pointer], 32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 32767;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r False
 
-code auto:3465 not-equal[compile-time] 32767[Pointer], 32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3465 not-equal[compile-time] 32767[Pointer], 32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32767 <> 32767;
 endcode
 varvalue r False
 
 $overflow on
-code auto:3466 not-equal[Pointer] 32768[Pointer], -32768[Int16] -> [Boolean] Var $overflow on
+code auto:3466 not-equal[Pointer] 32768[Pointer], -32768[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 32768;
-  var  b: Int16 = -32768;
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3467 not-equal[Pointer] 32768[Pointer], -32768[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32768;
+code auto:3467 not-equal[Pointer] 32768[Pointer], -32768[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := 32768 <> b;
 endcode
 varvalue r True
 
-code auto:3468 not-equal[Pointer] 32768[Pointer], -32768[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3468 not-equal[Pointer] 32768[Pointer], -32768[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 32768;
   var  r: Boolean;
   r := a <> -32768;
 endcode
 varvalue r True
 
-code auto:3469 not-equal[compile-time] 32768[Pointer], -32768[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3469 not-equal[compile-time] 32768[Pointer], -32768[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32768 <> -32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3470 not-equal[Pointer] 32768[Pointer], -32767[Int16] -> [Boolean] Var $overflow on
+code auto:3470 not-equal[Pointer] 32768[Pointer], -32767[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 32768;
-  var  b: Int16 = -32767;
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3471 not-equal[Pointer] 32768[Pointer], -32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32767;
+code auto:3471 not-equal[Pointer] 32768[Pointer], -32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := 32768 <> b;
 endcode
 varvalue r True
 
-code auto:3472 not-equal[Pointer] 32768[Pointer], -32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3472 not-equal[Pointer] 32768[Pointer], -32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 32768;
   var  r: Boolean;
   r := a <> -32767;
 endcode
 varvalue r True
 
-code auto:3473 not-equal[compile-time] 32768[Pointer], -32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3473 not-equal[compile-time] 32768[Pointer], -32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32768 <> -32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3474 not-equal[Pointer] 32768[Pointer], -129[Int16] -> [Boolean] Var $overflow on
+code auto:3474 not-equal[Pointer] 32768[Pointer], -129[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 32768;
-  var  b: Int16 = -129;
+  var  b: Integer = -129;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3475 not-equal[Pointer] 32768[Pointer], -129[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -129;
+code auto:3475 not-equal[Pointer] 32768[Pointer], -129[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -129;
   var  r: Boolean;
   r := 32768 <> b;
 endcode
 varvalue r True
 
-code auto:3476 not-equal[Pointer] 32768[Pointer], -129[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3476 not-equal[Pointer] 32768[Pointer], -129[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 32768;
   var  r: Boolean;
   r := a <> -129;
 endcode
 varvalue r True
 
-code auto:3477 not-equal[compile-time] 32768[Pointer], -129[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3477 not-equal[compile-time] 32768[Pointer], -129[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32768 <> -129;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3478 not-equal[Pointer] 32768[Pointer], -128[Int16] -> [Boolean] Var $overflow on
+code auto:3478 not-equal[Pointer] 32768[Pointer], -128[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 32768;
-  var  b: Int16 = -128;
+  var  b: Integer = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3479 not-equal[Pointer] 32768[Pointer], -128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -128;
+code auto:3479 not-equal[Pointer] 32768[Pointer], -128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -128;
   var  r: Boolean;
   r := 32768 <> b;
 endcode
 varvalue r True
 
-code auto:3480 not-equal[Pointer] 32768[Pointer], -128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3480 not-equal[Pointer] 32768[Pointer], -128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 32768;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r True
 
-code auto:3481 not-equal[compile-time] 32768[Pointer], -128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3481 not-equal[compile-time] 32768[Pointer], -128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32768 <> -128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3482 not-equal[Pointer] 32768[Pointer], -1[Int16] -> [Boolean] Var $overflow on
+code auto:3482 not-equal[Pointer] 32768[Pointer], -1[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 32768;
-  var  b: Int16 = -1;
+  var  b: Integer = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3483 not-equal[Pointer] 32768[Pointer], -1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -1;
+code auto:3483 not-equal[Pointer] 32768[Pointer], -1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -1;
   var  r: Boolean;
   r := 32768 <> b;
 endcode
 varvalue r True
 
-code auto:3484 not-equal[Pointer] 32768[Pointer], -1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3484 not-equal[Pointer] 32768[Pointer], -1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 32768;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r True
 
-code auto:3485 not-equal[compile-time] 32768[Pointer], -1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3485 not-equal[compile-time] 32768[Pointer], -1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32768 <> -1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3486 not-equal[Pointer] 32768[Pointer], 0[Int16] -> [Boolean] Var $overflow on
+code auto:3486 not-equal[Pointer] 32768[Pointer], 0[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 32768;
-  var  b: Int16 = 0;
+  var  b: Integer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3487 not-equal[Pointer] 32768[Pointer], 0[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 0;
+code auto:3487 not-equal[Pointer] 32768[Pointer], 0[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 0;
   var  r: Boolean;
   r := 32768 <> b;
 endcode
 varvalue r True
 
-code auto:3488 not-equal[Pointer] 32768[Pointer], 0[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3488 not-equal[Pointer] 32768[Pointer], 0[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 32768;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:3489 not-equal[compile-time] 32768[Pointer], 0[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3489 not-equal[compile-time] 32768[Pointer], 0[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32768 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3490 not-equal[Pointer] 32768[Pointer], 1[Int16] -> [Boolean] Var $overflow on
+code auto:3490 not-equal[Pointer] 32768[Pointer], 1[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 32768;
-  var  b: Int16 = 1;
+  var  b: Integer = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3491 not-equal[Pointer] 32768[Pointer], 1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 1;
+code auto:3491 not-equal[Pointer] 32768[Pointer], 1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 1;
   var  r: Boolean;
   r := 32768 <> b;
 endcode
 varvalue r True
 
-code auto:3492 not-equal[Pointer] 32768[Pointer], 1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3492 not-equal[Pointer] 32768[Pointer], 1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 32768;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:3493 not-equal[compile-time] 32768[Pointer], 1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3493 not-equal[compile-time] 32768[Pointer], 1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32768 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3494 not-equal[Pointer] 32768[Pointer], 127[Int16] -> [Boolean] Var $overflow on
+code auto:3494 not-equal[Pointer] 32768[Pointer], 127[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 32768;
-  var  b: Int16 = 127;
+  var  b: Integer = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3495 not-equal[Pointer] 32768[Pointer], 127[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 127;
+code auto:3495 not-equal[Pointer] 32768[Pointer], 127[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 127;
   var  r: Boolean;
   r := 32768 <> b;
 endcode
 varvalue r True
 
-code auto:3496 not-equal[Pointer] 32768[Pointer], 127[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3496 not-equal[Pointer] 32768[Pointer], 127[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 32768;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:3497 not-equal[compile-time] 32768[Pointer], 127[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3497 not-equal[compile-time] 32768[Pointer], 127[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32768 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3498 not-equal[Pointer] 32768[Pointer], 128[Int16] -> [Boolean] Var $overflow on
+code auto:3498 not-equal[Pointer] 32768[Pointer], 128[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 32768;
-  var  b: Int16 = 128;
+  var  b: Integer = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3499 not-equal[Pointer] 32768[Pointer], 128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 128;
+code auto:3499 not-equal[Pointer] 32768[Pointer], 128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 128;
   var  r: Boolean;
   r := 32768 <> b;
 endcode
 varvalue r True
 
-code auto:3500 not-equal[Pointer] 32768[Pointer], 128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3500 not-equal[Pointer] 32768[Pointer], 128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 32768;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r True
 
-code auto:3501 not-equal[compile-time] 32768[Pointer], 128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3501 not-equal[compile-time] 32768[Pointer], 128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32768 <> 128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3502 not-equal[Pointer] 32768[Pointer], 32767[Int16] -> [Boolean] Var $overflow on
+code auto:3502 not-equal[Pointer] 32768[Pointer], 32767[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 32768;
-  var  b: Int16 = 32767;
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3503 not-equal[Pointer] 32768[Pointer], 32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 32767;
+code auto:3503 not-equal[Pointer] 32768[Pointer], 32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := 32768 <> b;
 endcode
 varvalue r True
 
-code auto:3504 not-equal[Pointer] 32768[Pointer], 32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3504 not-equal[Pointer] 32768[Pointer], 32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 32768;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:3505 not-equal[compile-time] 32768[Pointer], 32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3505 not-equal[compile-time] 32768[Pointer], 32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 32768 <> 32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3506 not-equal[Pointer] 65535[Pointer], -32768[Int16] -> [Boolean] Var $overflow on
+code auto:3506 not-equal[Pointer] 65535[Pointer], -32768[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 65535;
-  var  b: Int16 = -32768;
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3507 not-equal[Pointer] 65535[Pointer], -32768[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32768;
+code auto:3507 not-equal[Pointer] 65535[Pointer], -32768[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32768;
   var  r: Boolean;
   r := 65535 <> b;
 endcode
 varvalue r True
 
-code auto:3508 not-equal[Pointer] 65535[Pointer], -32768[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3508 not-equal[Pointer] 65535[Pointer], -32768[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 65535;
   var  r: Boolean;
   r := a <> -32768;
 endcode
 varvalue r True
 
-code auto:3509 not-equal[compile-time] 65535[Pointer], -32768[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3509 not-equal[compile-time] 65535[Pointer], -32768[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 65535 <> -32768;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3510 not-equal[Pointer] 65535[Pointer], -32767[Int16] -> [Boolean] Var $overflow on
+code auto:3510 not-equal[Pointer] 65535[Pointer], -32767[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 65535;
-  var  b: Int16 = -32767;
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3511 not-equal[Pointer] 65535[Pointer], -32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -32767;
+code auto:3511 not-equal[Pointer] 65535[Pointer], -32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -32767;
   var  r: Boolean;
   r := 65535 <> b;
 endcode
 varvalue r True
 
-code auto:3512 not-equal[Pointer] 65535[Pointer], -32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3512 not-equal[Pointer] 65535[Pointer], -32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 65535;
   var  r: Boolean;
   r := a <> -32767;
 endcode
 varvalue r True
 
-code auto:3513 not-equal[compile-time] 65535[Pointer], -32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3513 not-equal[compile-time] 65535[Pointer], -32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 65535 <> -32767;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3514 not-equal[Pointer] 65535[Pointer], -129[Int16] -> [Boolean] Var $overflow on
+code auto:3514 not-equal[Pointer] 65535[Pointer], -129[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 65535;
-  var  b: Int16 = -129;
+  var  b: Integer = -129;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3515 not-equal[Pointer] 65535[Pointer], -129[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -129;
+code auto:3515 not-equal[Pointer] 65535[Pointer], -129[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -129;
   var  r: Boolean;
   r := 65535 <> b;
 endcode
 varvalue r True
 
-code auto:3516 not-equal[Pointer] 65535[Pointer], -129[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3516 not-equal[Pointer] 65535[Pointer], -129[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 65535;
   var  r: Boolean;
   r := a <> -129;
 endcode
 varvalue r True
 
-code auto:3517 not-equal[compile-time] 65535[Pointer], -129[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3517 not-equal[compile-time] 65535[Pointer], -129[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 65535 <> -129;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3518 not-equal[Pointer] 65535[Pointer], -128[Int16] -> [Boolean] Var $overflow on
+code auto:3518 not-equal[Pointer] 65535[Pointer], -128[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 65535;
-  var  b: Int16 = -128;
+  var  b: Integer = -128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3519 not-equal[Pointer] 65535[Pointer], -128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -128;
+code auto:3519 not-equal[Pointer] 65535[Pointer], -128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -128;
   var  r: Boolean;
   r := 65535 <> b;
 endcode
 varvalue r True
 
-code auto:3520 not-equal[Pointer] 65535[Pointer], -128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3520 not-equal[Pointer] 65535[Pointer], -128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 65535;
   var  r: Boolean;
   r := a <> -128;
 endcode
 varvalue r True
 
-code auto:3521 not-equal[compile-time] 65535[Pointer], -128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3521 not-equal[compile-time] 65535[Pointer], -128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 65535 <> -128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3522 not-equal[Pointer] 65535[Pointer], -1[Int16] -> [Boolean] Var $overflow on
+code auto:3522 not-equal[Pointer] 65535[Pointer], -1[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 65535;
-  var  b: Int16 = -1;
+  var  b: Integer = -1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3523 not-equal[Pointer] 65535[Pointer], -1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = -1;
+code auto:3523 not-equal[Pointer] 65535[Pointer], -1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = -1;
   var  r: Boolean;
   r := 65535 <> b;
 endcode
 varvalue r True
 
-code auto:3524 not-equal[Pointer] 65535[Pointer], -1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3524 not-equal[Pointer] 65535[Pointer], -1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 65535;
   var  r: Boolean;
   r := a <> -1;
 endcode
 varvalue r True
 
-code auto:3525 not-equal[compile-time] 65535[Pointer], -1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3525 not-equal[compile-time] 65535[Pointer], -1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 65535 <> -1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3526 not-equal[Pointer] 65535[Pointer], 0[Int16] -> [Boolean] Var $overflow on
+code auto:3526 not-equal[Pointer] 65535[Pointer], 0[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 65535;
-  var  b: Int16 = 0;
+  var  b: Integer = 0;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3527 not-equal[Pointer] 65535[Pointer], 0[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 0;
+code auto:3527 not-equal[Pointer] 65535[Pointer], 0[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 0;
   var  r: Boolean;
   r := 65535 <> b;
 endcode
 varvalue r True
 
-code auto:3528 not-equal[Pointer] 65535[Pointer], 0[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3528 not-equal[Pointer] 65535[Pointer], 0[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 65535;
   var  r: Boolean;
   r := a <> 0;
 endcode
 varvalue r True
 
-code auto:3529 not-equal[compile-time] 65535[Pointer], 0[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3529 not-equal[compile-time] 65535[Pointer], 0[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 65535 <> 0;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3530 not-equal[Pointer] 65535[Pointer], 1[Int16] -> [Boolean] Var $overflow on
+code auto:3530 not-equal[Pointer] 65535[Pointer], 1[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 65535;
-  var  b: Int16 = 1;
+  var  b: Integer = 1;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3531 not-equal[Pointer] 65535[Pointer], 1[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 1;
+code auto:3531 not-equal[Pointer] 65535[Pointer], 1[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 1;
   var  r: Boolean;
   r := 65535 <> b;
 endcode
 varvalue r True
 
-code auto:3532 not-equal[Pointer] 65535[Pointer], 1[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3532 not-equal[Pointer] 65535[Pointer], 1[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 65535;
   var  r: Boolean;
   r := a <> 1;
 endcode
 varvalue r True
 
-code auto:3533 not-equal[compile-time] 65535[Pointer], 1[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3533 not-equal[compile-time] 65535[Pointer], 1[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 65535 <> 1;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3534 not-equal[Pointer] 65535[Pointer], 127[Int16] -> [Boolean] Var $overflow on
+code auto:3534 not-equal[Pointer] 65535[Pointer], 127[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 65535;
-  var  b: Int16 = 127;
+  var  b: Integer = 127;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3535 not-equal[Pointer] 65535[Pointer], 127[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 127;
+code auto:3535 not-equal[Pointer] 65535[Pointer], 127[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 127;
   var  r: Boolean;
   r := 65535 <> b;
 endcode
 varvalue r True
 
-code auto:3536 not-equal[Pointer] 65535[Pointer], 127[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3536 not-equal[Pointer] 65535[Pointer], 127[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 65535;
   var  r: Boolean;
   r := a <> 127;
 endcode
 varvalue r True
 
-code auto:3537 not-equal[compile-time] 65535[Pointer], 127[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3537 not-equal[compile-time] 65535[Pointer], 127[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 65535 <> 127;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3538 not-equal[Pointer] 65535[Pointer], 128[Int16] -> [Boolean] Var $overflow on
+code auto:3538 not-equal[Pointer] 65535[Pointer], 128[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 65535;
-  var  b: Int16 = 128;
+  var  b: Integer = 128;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3539 not-equal[Pointer] 65535[Pointer], 128[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 128;
+code auto:3539 not-equal[Pointer] 65535[Pointer], 128[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 128;
   var  r: Boolean;
   r := 65535 <> b;
 endcode
 varvalue r True
 
-code auto:3540 not-equal[Pointer] 65535[Pointer], 128[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3540 not-equal[Pointer] 65535[Pointer], 128[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 65535;
   var  r: Boolean;
   r := a <> 128;
 endcode
 varvalue r True
 
-code auto:3541 not-equal[compile-time] 65535[Pointer], 128[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3541 not-equal[compile-time] 65535[Pointer], 128[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 65535 <> 128;
 endcode
 varvalue r True
 
 $overflow on
-code auto:3542 not-equal[Pointer] 65535[Pointer], 32767[Int16] -> [Boolean] Var $overflow on
+code auto:3542 not-equal[Pointer] 65535[Pointer], 32767[Integer] -> [Boolean] Var $overflow on
   var  a: Pointer = 65535;
-  var  b: Int16 = 32767;
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := a <> b;
 endcode
 varvalue r True
 
-code auto:3543 not-equal[Pointer] 65535[Pointer], 32767[Int16] -> [Boolean] Left immediate $overflow on
-  var  b: Int16 = 32767;
+code auto:3543 not-equal[Pointer] 65535[Pointer], 32767[Integer] -> [Boolean] Left immediate $overflow on
+  var  b: Integer = 32767;
   var  r: Boolean;
   r := 65535 <> b;
 endcode
 varvalue r True
 
-code auto:3544 not-equal[Pointer] 65535[Pointer], 32767[Int16] -> [Boolean] Right immediate $overflow on
+code auto:3544 not-equal[Pointer] 65535[Pointer], 32767[Integer] -> [Boolean] Right immediate $overflow on
   var  a: Pointer = 65535;
   var  r: Boolean;
   r := a <> 32767;
 endcode
 varvalue r True
 
-code auto:3545 not-equal[compile-time] 65535[Pointer], 32767[Int16] -> [Boolean] Both immediate $overflow on
+code auto:3545 not-equal[compile-time] 65535[Pointer], 32767[Integer] -> [Boolean] Both immediate $overflow on
   var  r: Boolean;
   r := 65535 <> 32767;
 endcode

@@ -9,162 +9,178 @@ object Form1: TForm1
   FormFactor.Devices = [Desktop]
   OnCreate = FormCreate
   OnClose = FormClose
+  OnDestroy = FormDestroy
   DesignerMasterStyle = 0
   object Panel1: TPanel
-    Align = Left
-    Position.X = 8.000000000000000000
-    Position.Y = 129.000000000000000000
+    Align = MostLeft
+    Position.Y = 113.000000000000000000
     Size.Width = 313.000000000000000000
-    Size.Height = 351.000000000000000000
+    Size.Height = 367.000000000000000000
     Size.PlatformDefault = False
     TabOrder = 0
-    object Source: TLabel
-      Position.X = 8.000000000000000000
-      Position.Y = 8.000000000000000000
-      Text = 'Source'
-      TabOrder = 0
-    end
-    object mmSource: TMemo
-      Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
-      DataDetectorTypes = []
-      StyledSettings = [Size, Style, FontColor]
-      TextSettings.Font.Family = 'Cascadia Code'
-      Anchors = [akLeft, akTop, akRight, akBottom]
-      Position.X = 8.000000000000000000
-      Position.Y = 24.000000000000000000
-      Size.Width = 297.000000000000000000
-      Size.Height = 321.000000000000000000
-      Size.PlatformDefault = False
-      TabOrder = 1
-      Viewport.Width = 293.000000000000000000
-      Viewport.Height = 317.000000000000000000
-    end
   end
   object Panel3: TPanel
     Align = MostTop
     Size.Width = 776.000000000000000000
-    Size.Height = 129.000000000000000000
+    Size.Height = 113.000000000000000000
     Size.PlatformDefault = False
     TabOrder = 1
-    object btnParse: TButton
-      Position.X = 96.000000000000000000
-      Position.Y = 8.000000000000000000
-      TabOrder = 0
-      Text = 'Parse'
-      OnClick = btnParseClick
-    end
     object Label2: TLabel
-      Position.X = 96.000000000000000000
-      Position.Y = 96.000000000000000000
+      Position.X = 192.000000000000000000
+      Position.Y = 48.000000000000000000
       Text = 'Error'
-      TabOrder = 2
+      TabOrder = 1
     end
     object edError: TEdit
       Touch.InteractiveGestures = [LongTap, DoubleTap]
-      TabOrder = 3
-      Position.X = 128.000000000000000000
-      Position.Y = 96.000000000000000000
+      TabOrder = 2
+      Position.X = 224.000000000000000000
+      Position.Y = 48.000000000000000000
       Size.Width = 249.000000000000000000
       Size.Height = 22.000000000000000000
       Size.PlatformDefault = False
     end
-    object btnInterpret: TButton
-      Position.X = 184.000000000000000000
-      Position.Y = 40.000000000000000000
-      TabOrder = 4
-      Text = 'Interpret'
-      OnClick = btnInterpretClick
-    end
-    object btnCodeGen: TButton
-      Position.X = 184.000000000000000000
-      Position.Y = 8.000000000000000000
-      TabOrder = 6
-      Text = 'CodeGen'
-      OnClick = btnCodeGenClick
-    end
-    object btnAssemble: TButton
-      Position.X = 272.000000000000000000
-      Position.Y = 8.000000000000000000
-      TabOrder = 8
-      Text = 'Assemble'
-      OnClick = btnAssembleClick
-    end
-    object btnEmulate: TButton
-      Position.X = 376.000000000000000000
-      Position.Y = 8.000000000000000000
-      TabOrder = 10
-      Text = 'Emulate'
-      OnClick = btnEmulateClick
-    end
-    object btnRun: TButton
-      Action = Run
-      Enabled = True
-      ImageIndex = -1
-      Position.X = 376.000000000000000000
-      Position.Y = 40.000000000000000000
-      TabOrder = 12
-    end
     object btnTest: TButton
-      Position.X = 560.000000000000000000
-      Position.Y = 72.000000000000000000
-      TabOrder = 13
+      Position.X = 688.000000000000000000
+      Position.Y = 8.000000000000000000
+      TabOrder = 7
       Text = 'Test'
       OnClick = btnTestClick
     end
     object cbTests: TComboBox
-      Position.X = 400.000000000000000000
-      Position.Y = 72.000000000000000000
+      Position.X = 528.000000000000000000
+      Position.Y = 8.000000000000000000
       Size.Width = 153.000000000000000000
       Size.Height = 22.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 15
-    end
-    object Label4: TLabel
-      Position.X = 8.000000000000000000
-      Position.Y = 8.000000000000000000
-      Text = 'Parse as'
-      TabOrder = 17
-    end
-    object rbStatement: TRadioButton
-      Position.X = 8.000000000000000000
-      Position.Y = 32.000000000000000000
-      TabOrder = 19
-      Text = 'Statement'
-    end
-    object rbBlock: TRadioButton
-      Position.X = 8.000000000000000000
-      Position.Y = 56.000000000000000000
-      TabOrder = 20
-      Text = 'Block'
-    end
-    object rbGlobal: TRadioButton
-      IsChecked = True
-      Position.X = 8.000000000000000000
-      Position.Y = 80.000000000000000000
-      TabOrder = 21
-      Text = 'Global'
+      TabOrder = 9
     end
     object cbStopOnError: TCheckBox
-      Position.X = 560.000000000000000000
-      Position.Y = 48.000000000000000000
-      TabOrder = 23
+      Position.X = 672.000000000000000000
+      Position.Y = 32.000000000000000000
+      TabOrder = 13
       Text = 'Stop on error'
+    end
+    object Panel9: TPanel
+      Align = Bottom
+      Position.Y = 72.000000000000000000
+      Size.Width = 776.000000000000000000
+      Size.Height = 41.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 15
+      object Label3: TLabel
+        Position.X = 8.000000000000000000
+        Position.Y = 8.000000000000000000
+        Text = 'Platform'
+        TabOrder = 0
+      end
+      object cbPlatforms: TComboBox
+        Position.X = 64.000000000000000000
+        Position.Y = 8.000000000000000000
+        Size.Width = 153.000000000000000000
+        Size.Height = 22.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 1
+        OnChange = cbPlatformsChange
+      end
+      object Label5: TLabel
+        Position.X = 224.000000000000000000
+        Position.Y = 8.000000000000000000
+        Text = 'Deploy'
+        TabOrder = 2
+      end
+      object cbDeploy: TComboBox
+        Position.X = 272.000000000000000000
+        Position.Y = 8.000000000000000000
+        Size.Width = 153.000000000000000000
+        Size.Height = 22.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 3
+        OnChange = cbDeployChange
+      end
+      object btnRun: TButton
+        Action = Run
+        Enabled = True
+        ImageIndex = -1
+        Position.X = 432.000000000000000000
+        Position.Y = 8.000000000000000000
+        TabOrder = 5
+      end
+    end
+    object GroupBox1: TGroupBox
+      Position.X = 104.000000000000000000
+      Size.Width = 81.000000000000000000
+      Size.Height = 73.000000000000000000
+      Size.PlatformDefault = False
+      Text = 'Variables'
+      TabOrder = 16
+      object rbStack: TRadioButton
+        GroupName = 'VariableType'
+        Position.X = 8.000000000000000000
+        Position.Y = 24.000000000000000000
+        Size.Width = 65.000000000000000000
+        Size.Height = 19.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 0
+        Text = 'Stack'
+      end
+      object rbStatic: TRadioButton
+        GroupName = 'VariableType'
+        IsChecked = True
+        Position.X = 8.000000000000000000
+        Position.Y = 40.000000000000000000
+        Size.Width = 65.000000000000000000
+        Size.Height = 19.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 1
+        Text = 'Static'
+      end
     end
     object cbOverflowChecks: TCheckBox
       IsChecked = True
-      Position.X = 96.000000000000000000
-      Position.Y = 72.000000000000000000
-      TabOrder = 25
+      Position.X = 192.000000000000000000
+      Position.Y = 8.000000000000000000
+      TabOrder = 17
       Text = 'Overflow checks'
+      OnChange = cbOverflowChecksChange
+    end
+    object GroupBox2: TGroupBox
+      Size.Width = 105.000000000000000000
+      Size.Height = 73.000000000000000000
+      Size.PlatformDefault = False
+      Text = 'Parse as'
+      TabOrder = 18
+      object rbDeclarations: TRadioButton
+        GroupName = 'ParseType'
+        Position.X = 8.000000000000000000
+        Position.Y = 24.000000000000000000
+        Size.Width = 89.000000000000000000
+        Size.Height = 19.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 0
+        Text = 'Declarations'
+      end
+      object rbCode: TRadioButton
+        GroupName = 'ParseType'
+        IsChecked = True
+        Position.X = 8.000000000000000000
+        Position.Y = 40.000000000000000000
+        Size.Width = 89.000000000000000000
+        Size.Height = 19.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 1
+        Text = 'Code'
+      end
     end
   end
   object Splitter1: TSplitter
     Align = Left
     Cursor = crHSplit
     MinSize = 20.000000000000000000
-    Position.Y = 129.000000000000000000
+    Position.X = 313.000000000000000000
+    Position.Y = 113.000000000000000000
     Size.Width = 8.000000000000000000
-    Size.Height = 351.000000000000000000
+    Size.Height = 367.000000000000000000
     Size.PlatformDefault = False
   end
   object StyleBook1: TStyleBook
@@ -3077,30 +3093,30 @@ object Form1: TForm1
   object Panel7: TPanel
     Align = Client
     Size.Width = 455.000000000000000000
-    Size.Height = 351.000000000000000000
+    Size.Height = 367.000000000000000000
     Size.PlatformDefault = False
     TabOrder = 9
     object TabControl1: TTabControl
       Align = Client
       Size.Width = 455.000000000000000000
-      Size.Height = 310.000000000000000000
+      Size.Height = 326.000000000000000000
       Size.PlatformDefault = False
-      TabIndex = 4
+      TabIndex = 3
       TabOrder = 0
       TabPosition = PlatformDefault
       Sizes = (
         455s
-        284s
+        300s
         455s
-        284s
+        300s
         455s
-        284s
+        300s
         455s
-        284s
+        300s
         455s
-        284s
+        300s
         455s
-        284s)
+        300s)
       object tbILCode: TTabItem
         CustomIcon = <
           item
@@ -3117,7 +3133,7 @@ object Form1: TForm1
         object Panel2: TPanel
           Align = Client
           Size.Width = 455.000000000000000000
-          Size.Height = 284.000000000000000000
+          Size.Height = 300.000000000000000000
           Size.PlatformDefault = False
           TabOrder = 0
           object mmIL: TMemo
@@ -3129,11 +3145,11 @@ object Form1: TForm1
             Position.X = 8.000000000000000000
             Position.Y = 8.000000000000000000
             Size.Width = 440.000000000000000000
-            Size.Height = 270.000000000000000000
+            Size.Height = 286.000000000000000000
             Size.PlatformDefault = False
             TabOrder = 0
             Viewport.Width = 436.000000000000000000
-            Viewport.Height = 266.000000000000000000
+            Viewport.Height = 282.000000000000000000
           end
         end
       end
@@ -3153,7 +3169,7 @@ object Form1: TForm1
         object pnlVariables: TPanel
           Align = Client
           Size.Width = 455.000000000000000000
-          Size.Height = 284.000000000000000000
+          Size.Height = 300.000000000000000000
           Size.PlatformDefault = False
           TabOrder = 0
           object mmVariables: TMemo
@@ -3163,11 +3179,11 @@ object Form1: TForm1
             Position.X = 8.000000000000000000
             Position.Y = 8.000000000000000000
             Size.Width = 438.000000000000000000
-            Size.Height = 272.000000000000000000
+            Size.Height = 288.000000000000000000
             Size.PlatformDefault = False
             TabOrder = 0
             Viewport.Width = 434.000000000000000000
-            Viewport.Height = 268.000000000000000000
+            Viewport.Height = 284.000000000000000000
           end
         end
       end
@@ -3187,7 +3203,7 @@ object Form1: TForm1
         object Panel5: TPanel
           Align = Client
           Size.Width = 455.000000000000000000
-          Size.Height = 284.000000000000000000
+          Size.Height = 300.000000000000000000
           Size.PlatformDefault = False
           TabOrder = 0
           object mmFunctions: TMemo
@@ -3197,11 +3213,11 @@ object Form1: TForm1
             Position.X = 8.000000000000000000
             Position.Y = 8.000000000000000000
             Size.Width = 438.000000000000000000
-            Size.Height = 272.000000000000000000
+            Size.Height = 288.000000000000000000
             Size.PlatformDefault = False
             TabOrder = 0
             Viewport.Width = 434.000000000000000000
-            Viewport.Height = 268.000000000000000000
+            Viewport.Height = 284.000000000000000000
           end
         end
       end
@@ -3209,7 +3225,7 @@ object Form1: TForm1
         CustomIcon = <
           item
           end>
-        IsSelected = False
+        IsSelected = True
         Size.Width = 71.000000000000000000
         Size.Height = 26.000000000000000000
         Size.PlatformDefault = False
@@ -3221,7 +3237,7 @@ object Form1: TForm1
         object Panel4: TPanel
           Align = Client
           Size.Width = 455.000000000000000000
-          Size.Height = 284.000000000000000000
+          Size.Height = 300.000000000000000000
           Size.PlatformDefault = False
           TabOrder = 0
           object mmAssembly: TMemo
@@ -3233,11 +3249,11 @@ object Form1: TForm1
             Position.X = 8.000000000000000000
             Position.Y = 8.000000000000000000
             Size.Width = 438.000000000000000000
-            Size.Height = 270.000000000000000000
+            Size.Height = 286.000000000000000000
             Size.PlatformDefault = False
             TabOrder = 1
             Viewport.Width = 434.000000000000000000
-            Viewport.Height = 266.000000000000000000
+            Viewport.Height = 282.000000000000000000
           end
         end
       end
@@ -3245,7 +3261,7 @@ object Form1: TForm1
         CustomIcon = <
           item
           end>
-        IsSelected = True
+        IsSelected = False
         Size.Width = 63.000000000000000000
         Size.Height = 26.000000000000000000
         Size.PlatformDefault = False
@@ -3259,11 +3275,11 @@ object Form1: TForm1
           DataDetectorTypes = []
           Align = Client
           Size.Width = 455.000000000000000000
-          Size.Height = 284.000000000000000000
+          Size.Height = 300.000000000000000000
           Size.PlatformDefault = False
           TabOrder = 0
           Viewport.Width = 451.000000000000000000
-          Viewport.Height = 280.000000000000000000
+          Viewport.Height = 296.000000000000000000
         end
       end
       object tbTests: TTabItem
@@ -3282,7 +3298,7 @@ object Form1: TForm1
         object Panel6: TPanel
           Align = Client
           Size.Width = 455.000000000000000000
-          Size.Height = 284.000000000000000000
+          Size.Height = 300.000000000000000000
           Size.PlatformDefault = False
           TabOrder = 0
           object mmTests: TMemo
@@ -3292,11 +3308,11 @@ object Form1: TForm1
             Position.X = 8.000000000000000000
             Position.Y = 8.000000000000000000
             Size.Width = 438.000000000000000000
-            Size.Height = 272.000000000000000000
+            Size.Height = 288.000000000000000000
             Size.PlatformDefault = False
             TabOrder = 0
             Viewport.Width = 434.000000000000000000
-            Viewport.Height = 268.000000000000000000
+            Viewport.Height = 284.000000000000000000
           end
         end
       end

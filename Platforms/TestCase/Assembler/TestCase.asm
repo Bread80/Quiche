@@ -3,9 +3,9 @@
 ;Designed to be assembled with RASM.
 
 org $8000
-  ld sp,$0000
-  ld ix,$b000
-  call __global					;Jump to generated code
+  ld ix,$0000		;Initial stack frame
+  ld sp,ix			;Initial stack pointer - playing it safe here as using stack for locals in compiler at the moment
+  call __global		;Jump to generated code
   halt
   
 ;Error codes etc.
@@ -32,6 +32,7 @@ s_newline:
 	ld a,10
 	call s_writechar
 	pop af
+	ret
   
 ;;===============================================
 

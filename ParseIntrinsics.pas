@@ -5,7 +5,7 @@ library rouitines, as opposed to those which generate a (stack framed) function 
 unit ParseIntrinsics;
 
 interface
-uses ParseErrors, ParseExpr;
+uses ParseErrors, ParseExpr, Operators;
 
 //Parse an intinsic operator/function once it has been found in the operators table.
 //OpIndex is the index identifying the operator.
@@ -13,11 +13,11 @@ uses ParseErrors, ParseExpr;
 //assign or use in an expression etc. If AssignReturn is True and the operation is a procedure
 //then an error will be raised.
 //If a value is being returned, it must be returned in Slug.
-function ParseIntrinsic(OpIndex: Integer;AssignReturn: Boolean;var Slug: TExprSlug): TQuicheError;
+function ParseIntrinsic(Op: TOperator;AssignReturn: Boolean;var Slug: TExprSlug): TQuicheError;
 
 implementation
 uses SysUtils,
-  SourceReader, QTypes, ILData, Variables, Operators, Eval, ParserBase;
+  SourceReader, QTypes, ILData, Variables, Eval, ParserBase;
 
 //===============================================
 //Intrinsic functions
@@ -48,16 +48,16 @@ begin
         EXIT;
 
       ILItem.DestType := dtNone;  //No result
-      ILItem.Dest.Loc := locNone; //No result
+      ILItem.Dest.Kind := pkNone; //No result
       ILItem.OpType := VarTypeToOpType(VType);
 
       case VType of
         vtChar:
-          ILItem.OpIndex := OpIndexWriteChar;
+          ILItem.Op := OpWriteChar;
         vtInteger, vtInt8, vtByte, vtWord:
-          ILItem.OpIndex := OpIndexWriteInteger;
+          ILItem.Op := OpWriteInteger;
         vtBoolean:
-          ILItem.OpIndex := OpIndexWriteBoolean;
+          ILItem.Op := OpWriteBoolean;
       else
         EXIT(ErrMsg(qeTodo, 'Unhandled parameter type for Write/ln: ' + VarTypeToName(VType)));
       end;
@@ -76,20 +76,23 @@ begin
   end;
 
   if NewLine then
-    ILItem := ILAppend(dtNone, OpIndexWriteNewLine);
+    ILItem := ILAppend(dtNone, OpWriteNewLine);
+  Result := qeNone;
 end;
 
 //Read parameter(s) of an intrinsic
-function ParseParams(OpIndex: Integer;OpData: POperator;var HaveParam2: Boolean;var Slug1, Slug2: TExprSlug): TQuicheError;
+function ParseParams(Op: TOperator;var HaveParam2: Boolean;var Slug1, Slug2: TExprSlug): TQuicheError;
 var Ch: Char;
   Brace: Boolean; //Is parameter list wrapped in braces?
   ExprType1, ExprType2: TVarType;
+  OpData: POpData;
 begin
+  OpData := @Operations[Op];
   //!!Don't skip whitespace. Brace indicating parameter list must come immediate after identifier
   Ch := Parser.TestChar;
   //Parameters?
   if Parser.EOS then
-    EXIT(ErrOpUsage(ermParameterListExpected, OpIndex));
+    EXIT(ErrOpUsage(ermParameterListExpected, Op));
 
   Brace := Ch = '(';
   if Brace then
@@ -113,7 +116,7 @@ begin
   if HaveParam2 then
   begin
     if Parser.TestChar <> ',' then
-      EXIT(ErrOpUsage(ermIncorrectParameterCount, OpIndex));
+      EXIT(ErrOpUsage(ermIncorrectParameterCount, Op));
     Parser.SkipChar;
     ExprType2 := vtUnknown;
     Result := ParseExpressionToSlug(Slug2, ExprType2);
@@ -123,7 +126,7 @@ begin
 
   if Brace then
     if Parser.TestChar <> ')' then
-      EXIT(ErrOpUsage(ermCommaOrCloseParensExpected, OpIndex))
+      EXIT(ErrOpUsage(ermCommaOrCloseParensExpected, Op))
     else
     begin
       Parser.SkipChar;
@@ -131,22 +134,24 @@ begin
     end
   else
     if Parser.TestChar = ',' then
-      EXIT(ErrOpUsage(ermIncorrectParameterCount, OpIndex));
+      EXIT(ErrOpUsage(ermIncorrectParameterCount, Op));
 end;
 
-function ValidateParams(OpIndex: Integer;OpData: POperator;HaveParam2: Boolean;const Slug1, Slug2: TExprSlug): TQuicheError;
+function ValidateParams(Op: TOperator;HaveParam2: Boolean;const Slug1, Slug2: TExprSlug): TQuicheError;
+var OpData: POpData;
 begin
+  OpData := @Operations[Op];
   //====Validate parameters
   if opfP1Variable in OpData.FuncFlags then
-    if (Slug1.ILItem <> nil) or not (Slug1.Operand.Loc in [locVar]) then
-      EXIT(ErrOpUsage('First parameter must be a variable reference', OpIndex));
+    if (Slug1.ILItem <> nil) or not (Slug1.Operand.Kind in [pkVar]) then
+      EXIT(ErrOpUsage('First parameter must be a variable reference', Op));
   if HaveParam2 and (opfP2Immediate in OpData.FuncFlags) then
-    if (Slug2.ILItem <> nil) or (Slug2.Operand.Loc <> locImmediate) then
-      EXIT(ErrOpUsage('Second parameter must be a constant or constant expression', OpIndex));
+    if (Slug2.ILItem <> nil) or (Slug2.Operand.Kind <> pkImmediate) then
+      EXIT(ErrOpUsage('Second parameter must be a constant or constant expression', Op));
   if opfP1Bitsize16Only in OpData.FuncFlags then
-    if Slug1.Operand.Loc <> locImmediate then
+    if Slug1.Operand.Kind <> pkImmediate then
       if GetTypeSize(Slug1.Operand.GetVarType) <> 2 then
-        EXIT(ErrOpUsage('First parameter must be a 16-bit value', OpIndex));
+        EXIT(ErrOpUsage('First parameter must be a 16-bit value', Op));
 
   //Validate parameter type matches types available for the operation
   if FindAssignmentTypes(OpData.LTypes, Slug1.Operand.GetVarType) = vtUnknown then
@@ -162,41 +167,44 @@ end;
 
 //Handle generic intrinsics which follow the standard syntax etc rules defined in
 //the operators table.
-function ParseGenericIntrinsic(OpIndex: Integer;AssignReturn: Boolean;var Slug: TExprSlug): TQuicheError;
+function ParseGenericIntrinsic(Op: TOperator;AssignReturn: Boolean;var Slug: TExprSlug): TQuicheError;
 var
-  OpData: POperator;
+  OpData: POpData;
   ILItem: PILItem;
   Slug1, Slug2: TExprSlug;
   HaveParam2: Boolean;
   Value: Integer;
   RType: TVarType;
 begin
-  Assert(OpIndex <> -1,'Unknown operator');
-  OpData := OpIndexToData(OpIndex);
+  Slug1.Initialise;
+  Slug2.Initialise;
 
-  Result := ParseParams(OpIndex, OpData, HaveParam2, Slug1, Slug2);
+//  Assert(Op <> -1,'Unknown operator');
+  OpData := @Operations[Op];
+
+  Result := ParseParams(Op, HaveParam2, Slug1, Slug2);
   if Result <> qeNone then
     EXIT;
 
-  Result := ValidateParams(OpIndex, OpData, HaveParam2, Slug1, Slug2);
+  Result := ValidateParams(Op, HaveParam2, Slug1, Slug2);
   if Result <> qeNone then
     EXIT;
 
 
   //Are (both) parameters immediates? If so evaluate
-  if (Slug1.ILItem = nil) and (Slug1.Operand.Loc = locImmediate) then
+  if (Slug1.ILItem = nil) and (Slug1.Operand.Kind = pkImmediate) then
   begin
     if HaveParam2 then
     begin
-      if (Slug2.ILItem = nil) and (Slug2.Operand.Loc = locImmediate) then
-        Result := EvalIntrinsicBi(OpIndex, Slug1.Operand, Slug2.Operand,
+      if (Slug2.ILItem = nil) and (Slug2.Operand.Kind = pkImmediate) then
+        Result := EvalIntrinsicBi(Op, Slug1.Operand, Slug2.Operand,
           Value, RType);
         if Result <> qeNone then
           EXIT;
     end
     else
     begin
-      Result := EvalIntrinsicUnary(OpIndex, @Slug1.Operand,
+      Result := EvalIntrinsicUnary(Op, @Slug1.Operand,
         Value, RType);
       if Result <> qeNone then
         EXIT;
@@ -205,21 +213,21 @@ begin
     begin
       //TODO: Assign data to slug
       Slug.SetImmediate(Value, RType);
-      Slug.OpIndex := OpIndexNone;
+      Slug.Op := OpUnknown;
       Slug.ImplicitType := RType;
       EXIT(qeNone);
     end;
   end;
 
   //Optimisations for large Inc and Dec values
-  if (OpIndex = OpIndexInc) or (OpIndex = OpIndexDec) then
-    if Slug2.Operand.Loc = locImmediate then
+  if Op in [OpInc, OpDec] then
+    if Slug2.Operand.Kind = pkImmediate then
     begin
       if abs(Slug2.Operand.ImmToInteger) >= iConvertIncToAddThreshhold then
-        if OpIndex = OpIndexInc then
-          OpIndex := OpIndexAdd
+        if Op = OpInc then
+          Op := OpAdd
         else
-          OpIndex := OpIndexSubtract;
+          Op := OpSubtract;
         //DO NOT update OpData - we need data from original operation.
         //(but we need OpIndex) from new operation
     end;
@@ -231,18 +239,18 @@ begin
     Slug2.AssignToHiddenVar;
   if AssignReturn or (opfp1Variable in OpData.FuncFlags) then
   begin //Return a slug for assignment/remainder of expression
-    ILItem := ILAppend(dtData, OpIndex);
-    Slug.Operand.Loc := locNone;
+    ILItem := ILAppend(dtData, Op);
+    Slug.Operand.Kind := pkNone;
     Slug.ILItem := ILItem;
-    Slug.OpIndex := OpIndexNone;
-    Slug.OpData := nil;
+    Slug.Op := OpUnknown;
+//    Slug.OpData := nil;
     Slug.Negate := False;
     Slug.Invert := False;
     //Dest to be assigned by caller
   end
   else
   begin //Append the function call to ILList, nothing to return
-    ILItem := ILAppend(dtNone, OpIndex);
+    ILItem := ILAppend(dtNone, Op);
   end;
   if opfNoOverflowChecks in OpData.FuncFlags then
     ILItem.CodeGenFlags := ILItem.CodeGenFlags - [cgOverFlowCheck];
@@ -273,25 +281,25 @@ begin
   end
   else if opfp1Variable in OpData.FuncFlags then
   begin //Param1 is a variable and we're assigning the result to it.
-    Assert(ILItem.Param1.Loc = locVar);
-    ILItem.Dest.SetVar(ILItem.Param1.VarIndex, VarIndexIncWriteCount(ILItem.Param1.VarIndex));
+    Assert(ILItem.Param1.Kind = pkVar);
+    ILItem.Dest.SetVarAndSub(ILItem.Param1.Variable, ILItem.Param1.Variable.IncWriteCount);
   end;
 end;
 
-function ParseIntrinsic(OpIndex: Integer;AssignReturn: Boolean;var Slug: TExprSlug): TQuicheError;
+function ParseIntrinsic(Op: TOperator;AssignReturn: Boolean;var Slug: TExprSlug): TQuicheError;
 begin
-  if OpIndex = OpIndexWrite then
+  if Op = OpWrite then
     if AssignReturn then
-      EXIT(ErrOpUsage(ermCantAssignProcedure, OpIndex))
+      EXIT(ErrOpUsage(ermCantAssignProcedure, Op))
     else
       EXIT(ParseWrite(False));
-  if OpIndex = OpIndexWriteLn then
+  if Op = OpWriteLn then
     if AssignReturn then
-      EXIT(ErrOpUsage(ermCantAssignProcedure, OpIndex))
+      EXIT(ErrOpUsage(ermCantAssignProcedure, Op))
     else
       EXIT(ParseWrite(True));
 
-  Result := ParseGenericIntrinsic(OpIndex, AssignReturn, Slug);
+  Result := ParseGenericIntrinsic(Op, AssignReturn, Slug);
 end;
 
 end.

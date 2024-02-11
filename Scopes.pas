@@ -34,23 +34,11 @@ type
     Depth: Integer;   //The block depth within the current scope. Used to determine
                       //which variables are in scope. Ie. within a BEGIN...END block
                       //Depth is increased for every BEGIN and decreased for every END
-//    Func: PFunction;  //The function which owns this scope. Nil for main/global code
+    Func: PFunction;  //The function which owns this scope. Nil for main/global code
 //    Constants: ;      //Constants declared at this scope level
 //    Types: ;          //Ditto for Types
     VarList: TVarList;  //Ditto for Variables
 
-    //Variables are referenced in the IL by Index numbers. Each index needs to be
-    //unique within it's parent tree (i.e it's and higher scopes), but can be repeated
-    //within other, unrelated, scopes.
-    //The current implementation of Variable lists uses the index as an index into
-    //an TList We use this value to set a 'base' for the list of each scope. The
-    //Variables unit can add/subtract this value as necessary to translate VarIndexes
-    //to indexes within a list.
-    //Global scope has a value of zero. Higher scopes will have higher Indexes.
-    //This a Variable list will 'known' if an Index is in a higher list if the Index
-    //is lower than the current VarFirstIndex
-    VarListFirstIndex: Integer; //Then index number of the first variable in the
-                                //VarList. Lower Indexes will be in parent scope(s)
     FuncList: TFuncList;  //Functions declared in this scope
     AsmCode: TStringList;  //Assembly code for Code segment for this scope (from CodeGen)
     AsmData: TStringList;   //Assembly code for Data segment (from CodeGen)
@@ -72,7 +60,9 @@ function GetCurrentScope: PScope;
 
 //Creates a new scope and sets it as the current scope
 //If no main scope is assigned, also sets this as the main scope
-function CreateCurrentScope(Name: String): PScope;
+//If the Scope is for a function, Func is that function, otherwise Func should be nil.
+//Name is the name of the scope. If Name is '' the name will be retrived from Func.
+function CreateCurrentScope(Func: PFunction;Name: String): PScope;
 
 //Set the current scope to the parent of the curent scope
 procedure EndCurrentScope;
@@ -89,8 +79,7 @@ procedure InitialiseScopes;
 //Item is a pointer to the data for the found item. This can be cast to the appropriate
 //type: PVariable, PFunction, etc.
 //Index returns an index value which is dependant on the item type
-function SearchScopes(Ident: String;out IdentType: TIdentType;out Scope: PScope;
-  out Item: Pointer; out Index: Integer): Boolean;
+function SearchScopes(Ident: String;out IdentType: TIdentType;out Scope: PScope): Pointer;
 
 //Increase the Depth of the current Scope (called for each BEGIN)
 procedure ScopeIncDepth;
@@ -155,7 +144,7 @@ begin
   CurrentScope := Scope;
   //Constants
   //Types
-  SetCurrentVarList(Scope.VarList, Scope.VarListFirstIndex);
+  SetCurrentVarList(Scope.VarList);
   SetCurrentFuncList(Scope.FuncList);
   //AsmCode - nowt to do
   SetCurrentILList(Scope.ILList);
@@ -177,25 +166,22 @@ begin
   NewBlock := True;
 end;
 
-function CreateCurrentScope(Name: String): PScope;
+function CreateCurrentScope(Func: PFunction;Name: String): PScope;
 begin
+  Assert((Func <> nil) or (Name <> ''), 'Scope requires a Func or a Name (or both)');
   New(Result);
   ScopeList.Add(Result);
+  if Name <> '' then
+    Result.Name := Name
+  else
+    Result.Name := Func.Name;
   Result.Name := Name;
   Result.Parent := CurrentScope;
   Result.Depth := 0;
-//  Result.Func := nil;
+  Result.Func := Func;
 //    Constants: ;
 //    Types: ;
   Result.VarList := CreateVarList;
-  if Assigned(CurrentScope) then
-  begin
-    Result.VarListFirstIndex := CurrentScope.VarListFirstIndex + ScopeVarCount;
-    if Result.VarListFirstIndex > 31000 then
-      raise Exception.Create('Too many Scopes created!');
-  end
-  else
-    Result.VarListFirstIndex := 0;
   Result.FuncList := CreateFuncList;
   Result.AsmCode := TStringlist.Create;
   Result.AsmData := TStringList.Create;
@@ -214,11 +200,11 @@ begin
     ScopeList := TList<PScope>.Create;
   CurrentScope := nil;
   MainScope := nil;
-  CreateCurrentScope('_Global');
+  CreateCurrentScope(nil, '_Global');
 end;
 
 function SearchScopes(Ident: String;out IdentType: TIdentType;
-  out Scope: PScope;out Item: Pointer; out Index: Integer): Boolean;
+  out Scope: PScope): Pointer;
 var
   V: PVariable;
   Func: PFunction;
@@ -229,29 +215,27 @@ begin
     //Search scope
 
     //Variables
-    V := VarFindByNameInScope(Ident, Index);
+    V := VarFindByNameInScope(Ident);
     if V <> nil then
     begin
       IdentType := itVar;
-      Item := V;
       SetCurrentScope(Scope);
-      EXIT(True);
+      EXIT(V);
     end;
 
     Func := FuncFindInScope(Ident);
     if Func <> nil then
     begin
       IdentType := itFunction;
-      Item := Func;
       SetCurrentScope(Scope);
-      EXIT(True);
+      EXIT(Func);
     end;
 
 
   until not SetParentScope;
 
   SetCurrentScope(Scope);
-  Result := False;
+  Result := nil;
 end;
 
 procedure ScopeIncDepth;

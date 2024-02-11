@@ -26,7 +26,12 @@ uses
   ParseErrors in 'ParseErrors.pas',
   SourceReader in 'SourceReader.pas',
   ParseIntrinsics in 'ParseIntrinsics.pas',
-  ParseFuncDef in 'ParseFuncDef.pas';
+  ParseFuncDef in 'ParseFuncDef.pas',
+  ParseFuncCall in 'ParseFuncCall.pas',
+  MConfig in 'MConfig.pas',
+  TextBrowser in '..\TextEditor\TextBrowser.pas',
+  EditableText in '..\TextEditor\EditableText.pas',
+  Emulator in 'Emulator.pas';
 
 {$R *.res}
 

@@ -4,10 +4,15 @@ unit QTypes;
 
 interface
 
+//========================CPU Metadata
 const
   iCPUWordSize  = 2;  //For OG Z80
-  iCPUWordMask  = $ffff;
+  iCPUWordMask  = $ffff;  //Mask for 'bitness' of an integer
+  iIntegerMin   = $8000;  //Lowest value for an integer. Used when massing type values
   iRealSize     = 5;  //Byte size of a float on the current target. 5 is CPC size :)
+
+
+//========================Language types
 
 //This is the type system as seen by the langauge parser
 type TQType = Byte;  //***Code for vtType will need updating if this changes
@@ -17,17 +22,23 @@ const
   //ORDERING IS SIGNIFICANT - allows code optimisation
   vtUnknown = $ff;  //Unspecified (bug) or don't care/any type
 
+  //Unsigned numerics
   vtWord    = 0;
   vtByte    = 1;
   vtPointer = 2;  //Untyped pointer. Can be used in expressions
+
+  //Signed numerics
   vtInt8    = 3;
   vtInteger = 4;
   //Unused  = 5;  //**Only to be used for numeric types
   vtReal    = 6;  //For future use.
+
+  //Other types (NOTE: all these types count as unsigned)
   vtChar    = 7;
   vtType    = 8;  //A type. E.g as in a call to sizeof(Integer)
   vtBoolean = 9;
-  vtString  = 10; //For future use. Pointer to actual data.
+  vtFlag    = 10; //A (boolean) value in a system flag
+  vtString  = 11; //For future use. Pointer to actual data.
 //  vtEnumeration
 //  vtSet
 
@@ -52,7 +63,8 @@ function IsNumericType(VarType: TVarType): Boolean;
 //Any integer type. Not typed pointers - these can't be used in expressions
 function IsIntegerType(VarType: TVarType): Boolean;
 
-//Any signed type (real or integer)
+//Returns True if the type is a signed numeric type. Returns False for *all* other
+//types
 function IsSignedType(VarType: TVarType): Boolean;
 
 //Any type which only occupies a single byte
@@ -69,7 +81,7 @@ function IsEnumerable(VarType: TVarType): Boolean;
 
 
 //Get maximum/minium value for a types range. Result only has meaning for enumarable types
-//For non-numeric types the result is the integer representation of tha value
+//For non-numeric types the result is the integer representation of the value
 function GetMaxValue(VarType: TVarType): Integer;
 function GetMinValue(VarType: TVarType): Integer;
 
@@ -147,6 +159,31 @@ const TypeEnumToOpType: array[low(TTypeEnum)..high(TTypeEnum)] of TOpType =
 //    'Record','Array','Enumeration','Set'
     );
 
+//Range types are used within the parser to assess how to store, expand and find
+//primitives for numeric types
+//NOTE: The compiler could be adapted for targets with different bitness by modifying
+//this table and/or the constants which go with it (NumberRangeBounds)
+//However, adaptations will almost certainly be required elsewhere.
+type TNumberRange = (
+    rgReal,   //..-32769:     Real                      n/a                      Real
+    rgS16,    //-32768..-129: Unsigned 16               Real                     S16
+    rgS8,     //-128..-1:     Signed 8 or Signed 16     Signed 16                S8
+    rgAny,    //0..127:       Signed 8 or unsigned 8    Signed 16 or Unsigned 16 Any
+    rgS16U8,  //128..255:     Signed 16 or unsigned 8   Signed 16 or Unsigned 16 S16U8
+    rgS16U16, //256..32767:   Signed 16 or Unsigned 16  Real or Unsigned 16      S16U16
+    rgU16     //32768..65535: Unsigned 16               Real                     U16
+//  (Real)      65536..:      Real                      n/a                      Real
+    );
+
+const NumberRangeBounds: array[low(TNumberRange)..high(TNumberRange)] of Integer = (
+      -32769, -129,      -1,     127,    255,       32767,     65535);
+    NumberRangeToSignedType: array[low(TNumberRange)..high(TNumberRange)] of TVarType = (
+      vtReal, vtInteger, vtInt8, vtInt8, vtInteger, vtInteger, vtReal);
+    NumberRangeToUnSignedType: array[low(TNumberRange)..high(TNumberRange)] of TVarType = (
+      vtReal, vtReal,    vtReal, vtByte, vtByte,    vtWord,    vtWord);
+
+function IntToNumberRange(Value: Integer): TNumberRange;
+
 //Validates whether the ExprType can be assigned to the variable (etc)
 //with type of AssignType
 function ValidateAssignmentType(AssignType, ExprType: TVarType): Boolean;
@@ -166,7 +203,8 @@ implementation
 uses SysUtils, Globals;
 
 const VarTypeNames : array[vtWord..vtString] of String = (
-  'Word','Byte','Pointer','Int8','Integer','<INVALID>','Real','Char','TypeDef','Boolean','String');
+  'Word','Byte','Pointer','Int8','Integer','<INVALID>','Real','Char','TypeDef',
+  'Boolean','<Flag>','String');
 
 function VarTypeToName(VarType: TVarType): String;
 begin
@@ -196,7 +234,7 @@ end;
 
 function GetTypeSize(VarType: TVarType): Integer;
 const TypeSizes: array[vtWord..vtString] of Byte =
-  (2,1,2,1,2,0,iRealSize,1,sizeof(TQType),1,2);
+  (2,1,2,1,2,0,iRealSize,1,sizeof(TQType),1,0,2);
 begin
   if VarType = vtUnknown then
     //Unknown/invalid
@@ -238,7 +276,7 @@ end;
 
 function IsLogicalType(VarType: TVarType): Boolean;
 begin
-  Result := (VarType <= vtInteger) or (VarType = vtBoolean);
+  Result := (VarType <= vtInteger) or (VarType in [vtBoolean, vtFlag]);
 end;
 
 function IsEnumerable(VarType: TVarType): Boolean;
@@ -268,7 +306,8 @@ end;
 
 function VarTypeToOpType(VarType: TVarType): TOpType;
 const lutVarTypeToOpType : array[vtWord..vtString] of TOpType =
-  (rtU16, rtU8, rtU16, rtS8, rtS16, rtUnknown, rtReal, rtU8, rtU8{TType-This may change}, rtBoolean, rtU16);
+  (rtU16, rtU8, rtU16, rtS8, rtS16, rtUnknown, rtReal, rtU8, rtU8{TType-This may change},
+  rtBoolean, rtBoolean, rtU16);
 begin
   Assert(Sizeof(TQType) = 1,'VarTypeToOpType: sizeof TQType has changed!');
 
@@ -331,6 +370,14 @@ begin
   raise Exception.Create('Unknown var type name');
 end;
 }
+
+function IntToNumberRange(Value: Integer): TNumberRange;
+begin
+  for Result := low(TNumberRange) to high(TNumberRange) do
+    if Value <= NumberRangeBounds[Result] then
+      EXIT;
+  Result := high(TNumberRange);
+end;
 
 function ValidateAssignmentType(AssignType, ExprType: TVarType): Boolean;
 begin

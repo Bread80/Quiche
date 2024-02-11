@@ -1,7 +1,7 @@
 unit Fragments;
 
 interface
-uses ILData;
+uses ILData, Scopes;
 
 type
   PFragment = ^TFragment;
@@ -16,11 +16,11 @@ procedure LoadFragmentsFile(Filename: String);
 
 function FindFragmentByName(const AName: String): PFragment;
 
-function FragmentSub(AName: String;ILItem: PILItem): String;
+function FragmentSub(AName: String;ILItem: PILItem;Scope: PScope): String;
 
 
 implementation
-uses Classes, Generics.Collections, SysUtils, Variables;
+uses Classes, Generics.Collections, SysUtils, Variables, QTypes;
 
 var  FragList: TList<PFragment>;
 
@@ -90,19 +90,24 @@ begin
   Result := '$' + IntToHex(lo(Value), 2).ToLower
 end;
 
+function WordLoToStr(Value: Integer): String;
+begin
+  Result := '$' + IntToHex(lo(Value), 4).ToLower
+end;
+
 function ImmByte(Param: PILParam): String;
 begin
-  Result := ByteToStr(lo(Param.ImmValue));
+  Result := ByteToStr(lo(Param.ImmValueInt));
 end;
 
 function ImmHighByte(Param: PILParam): String;
 begin
-  Result := ByteToStr(hi(Param.ImmValue));
+  Result := ByteToStr(hi(Param.ImmValueInt));
 end;
 
 function ImmWord(Param: PILParam): String;
 begin
-  Result := '$' + IntToHex(Param.ImmValue, 4).ToLower;
+  Result := '$' + IntToHex(Param.ImmValueInt and iCPUWordMask, 4).ToLower;
 end;
 
 function OffsetToStr(Offset: Integer): String;
@@ -117,7 +122,7 @@ function CodeOffset(Param: PILParam;out Comment: String): String;
 var Variable: PVariable;
 begin
   Variable := Param.ToVariable;
-  Assert(Variable.Storage = vsRelative);
+  Assert(Variable.Storage = vsStack);
   Result := OffsetToStr(Variable.Offset);
   Comment := Variable.Name;
 end;
@@ -126,7 +131,7 @@ function CodeOffsetHigh(Param: PILParam;out Comment: String): String;
 var Variable: PVariable;
 begin
   Variable := Param.ToVariable;
-  Assert(Variable.Storage = vsRelative);
+  Assert(Variable.Storage = vsStack);
   Result := OffsetToStr(Variable.Offset+1);
   Comment := Variable.Name;
 end;
@@ -135,12 +140,12 @@ function CodeVarName(Param: PILParam;out Comment: String): String;
 var Variable: PVariable;
 begin
   Variable := Param.ToVariable;
-  Assert(Variable.Storage = vsAbsolute);
+  Assert(Variable.Storage = vsStatic);
   Result := Variable.GetAsmName;
   Comment := Variable.Name;
 end;
 
-function DoSubs(S: String;ILItem: PILItem): String;
+function DoSubs(S: String;ILItem: PILItem;Scope: PScope): String;
 var
   St: Integer;  //Start of param
   En: Integer;  //End of param
@@ -183,33 +188,33 @@ begin
 
       //8 bit registers
       else if CompareText(PName, 'd.r8') = 0 then
-        Sub := AllocLocToReg8[ILItem.ResultAlloc]
+        Sub := CPUReg8ToChar[ILItem.Dest.Reg]
       else if CompareText(PName, 'p1.r8') = 0 then
-        Sub := AllocLocToReg8[ILItem.Param1Alloc]
+        Sub := CPUReg8ToChar[ILItem.Param1.Reg]
       else if CompareText(PName, 'p2.r8') = 0 then
-        Sub := AllocLocToReg8[ILItem.Param2Alloc]
+        Sub := CPUReg8ToChar[ILItem.Param2.Reg]
 
       //16 bit registers
       else if CompareText(PName, 'd.r16') = 0 then
-        Sub := AllocLocToHighReg[ILItem.ResultAlloc] + AllocLocToLowReg[ILItem.ResultAlloc]
+        Sub := CPURegPairToString[ILItem.Dest.Reg]
       else if CompareText(PName, 'd.r16low') = 0 then
-        Sub := AllocLocToLowReg[ILItem.ResultAlloc]
+        Sub := CPURegLowToChar[ILItem.Dest.Reg]
       else if CompareText(PName, 'd.r16high') = 0 then
-        Sub := AllocLocToHighReg[ILItem.ResultAlloc]
+        Sub := CPURegHighToChar[ILItem.Dest.Reg]
 
       else if CompareText(PName, 'p1.r16') = 0 then
-        Sub := AllocLocToRegPair[ILItem.Param1Alloc]
+        Sub := CPURegPairToString[ILItem.Param1.Reg]
       else if CompareText(PName, 'p1.r16low') = 0 then
-        Sub := AllocLocToLowReg[ILItem.Param1Alloc]
+        Sub := CPURegLowToChar[ILItem.Param1.Reg]
       else if CompareText(PName, 'p1.r16high') = 0 then
-        Sub := AllocLocToHighReg[ILItem.Param1Alloc]
+        Sub := CPURegHighToChar[ILItem.Param1.Reg]
 
       else if CompareText(PName, 'p2.r16') = 0 then
-        Sub := AllocLocToRegPair[ILItem.Param2Alloc]
+        Sub := CPURegPairToString[ILItem.Param2.Reg]
       else if CompareText(PName, 'p2.r16low') = 0 then
-        Sub := AllocLocToLowReg[ILItem.Param2Alloc]
+        Sub := CPURegLowToChar[ILItem.Param2.Reg]
       else if CompareText(PName, 'p2.r16high') = 0 then
-        Sub := AllocLocToHighReg[ILItem.Param2Alloc]
+        Sub := CPURegHighToChar[ILItem.Param2.Reg]
 
       //Absolutes (fixed/global variables)
       else if CompareText(PName, 'd.varname') = 0 then
@@ -239,7 +244,13 @@ begin
       else if CompareText(PName, 'p2.offsetlow') = 0 then
         Sub := CodeOffset(@ILItem.Param2, Comment)
       else if CompareText(PName, 'p2.offsethigh') = 0 then
-        Sub := CodeOffsetHigh(@ILItem.Param2, Comment);
+        Sub := CodeOffsetHigh(@ILItem.Param2, Comment)
+
+      else if CompareText(PName, 'vars.localsbytesize') = 0 then
+        Sub := WordLoToStr(VarGetLocalsByteSize)
+      else if CompareText(PName, 'vars.paramsbytesize') = 0 then
+        Sub := WordLoToStr(VarGetParamsByteSize)
+        ;
 
 
       if Sub = '' then
@@ -254,14 +265,14 @@ begin
   end;
 end;
 
-function FragmentSub(AName: String;ILItem: PILItem): String;
+function FragmentSub(AName: String;ILItem: PILItem;Scope: PScope): String;
 var Frag: PFragment;
 begin
   Frag := FindFragmentByName(AName);
   if not Assigned(Frag) then
-    raise Exception.Create('Library segment not found for: ' + AName);
+    raise Exception.Create('Library fragment not found for: ' + AName);
 
-  Result := DoSubs(Frag.Code, ILItem);
+  Result := DoSubs(Frag.Code, ILItem, Scope);
 end;
 
 initialization

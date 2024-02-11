@@ -78,24 +78,24 @@ function GetValue(ILItem: PILItem;Param: PILParam;var ValueType: TVarType;out Su
 var Variable: PVariable;
 begin
   Result := -1;
-  case Param.Loc of
-    locNone: RaiseError('Attempt to read a param which is locNone');
-    locPhiVar:
+  case Param.Kind of
+    pkNone: RaiseError('Attempt to read a param which is locNone');
+    pkPhiVar:
     begin
-      Variable := VarIndexToData(ILItem.Dest.PhiVarIndex);
+      Variable := ILItem.Dest.PhiVar;
 //      ExecTest(Variable.Sub = Sub, 'Variable Sub doesn''t match param Sub version (Phi node)');
       Result := Variable.ValueInt;
       ValueType := Variable.VarType;
       SubMismatch := Variable.WriteCount <> Param.VarSub;
     end;
-    locImmediate:
+    pkImmediate:
     begin
-      Result := Param.ImmValue;
+      Result := Param.ImmValueInt;
       ValueType := Param.ImmType;
     end;
-    locVar:
+    pkVar:
     begin
-      Variable := VarIndexToData(Param.VarIndex);
+      Variable := Param.Variable;
       ExecTest(Variable.WriteCount = Param.VarSub, 'Variable Sub doesn''t match param Sub version (normal node)');
       Result := Variable.ValueInt;
       ValueType := Variable.VarType;
@@ -141,7 +141,7 @@ var ILItem: PILItem;
   ValueType2: TVarType;
   Variable: PVariable;
   SubMismatch: Boolean;
-  Op: POperator;
+  Op: POpData;
 begin
   ILItem := ILIndexToData(Index);
   if ILItem.BlockID >= 0 then
@@ -152,7 +152,7 @@ begin
 
   Result := Index + 1;
 
-  Op := OpIndexToData(ILItem.OpIndex);
+  Op := @Operations[ILItem.Op];
   if ILItem.DestType = dtBranch then
     //Unconditional branch - don't evaluate parameters
   else
@@ -274,23 +274,23 @@ begin
   //Assign result to Dest/Do branch
   case ILItem.DestType of
     dtData:
-      case ILItem.Dest.Loc of
-        locNone: RaiseError('Dest assignment to <locNone>');
-        locPhiVar:
+      case ILItem.Dest.Kind of
+        pkNone: RaiseError('Dest assignment to <locNone>');
+        pkPhiVar:
         begin
-          Variable := VarIndexToData(ILItem.Dest.VarIndex);
-          Variable.ValueInt := Value;
-          Variable.VarType := ValueType;
-          Variable.WriteCount := ILItem.Dest.VarSub;
-        end;
-        locVar:
-        begin
-          Variable := VarIndexToData(ILItem.Dest.PhiVarIndex);
+          Variable := ILItem.Dest.PhiVar;
           Variable.ValueInt := Value;
           Variable.VarType := ValueType;
           Variable.WriteCount := ILItem.Dest.PhiSub;
         end;
-        locImmediate: RaiseError('Dest assignment to <locImmediate>');
+        pkVar:
+        begin
+          Variable := ILItem.Dest.Variable;
+          Variable.ValueInt := Value;
+          Variable.VarType := ValueType;
+          Variable.WriteCount := ILItem.Dest.VarSub;
+        end;
+        pkImmediate: RaiseError('Dest assignment to <locImmediate>');
       else
         RaiseError('Unknown Dest type');
       end;

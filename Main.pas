@@ -47,36 +47,28 @@ uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
   FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs,
   FMX.Controls.Presentation, FMX.StdCtrls, FMX.ScrollBox, FMX.Memo, FMX.Edit,
-  System.Actions, FMX.ActnList, FMX.ListBox, Compiler, FMX.TabControl;
+  System.Actions, FMX.ActnList, FMX.ListBox, Compiler, FMX.TabControl,
+  TextBrowser, Globals;
 
 type
   TForm1 = class(TForm)
     Panel1: TPanel;
-    Source: TLabel;
-    mmSource: TMemo;
     Panel2: TPanel;
     mmIL: TMemo;
     Panel3: TPanel;
-    btnParse: TButton;
     Label2: TLabel;
     edError: TEdit;
     mmAssembly: TMemo;
     Splitter1: TSplitter;
     Panel4: TPanel;
-    btnInterpret: TButton;
-    btnCodeGen: TButton;
-    btnAssemble: TButton;
-    btnEmulate: TButton;
     StyleBook1: TStyleBook;
     ActionList1: TActionList;
     Run: TAction;
     btnRun: TButton;
     btnTest: TButton;
     cbTests: TComboBox;
-    Label4: TLabel;
-    rbStatement: TRadioButton;
-    rbBlock: TRadioButton;
-    rbGlobal: TRadioButton;
+    rbStack: TRadioButton;
+    rbStatic: TRadioButton;
     TabControl1: TTabControl;
     tbILCode: TTabItem;
     tbVariables: TTabItem;
@@ -97,21 +89,37 @@ type
     cbOverflowChecks: TCheckBox;
     tbEmulate: TTabItem;
     mmEmulate: TMemo;
-    procedure btnParseClick(Sender: TObject);
+    Panel9: TPanel;
+    Label3: TLabel;
+    cbPlatforms: TComboBox;
+    Label5: TLabel;
+    cbDeploy: TComboBox;
+    GroupBox1: TGroupBox;
+    GroupBox2: TGroupBox;
+    rbDeclarations: TRadioButton;
+    rbCode: TRadioButton;
     procedure btnInterpretClick(Sender: TObject);
-    procedure btnCodeGenClick(Sender: TObject);
-    procedure btnAssembleClick(Sender: TObject);
     procedure btnEmulateClick(Sender: TObject);
     procedure RunExecute(Sender: TObject);
     procedure btnTestClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure cbScopeChange(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
+    procedure cbPlatformsChange(Sender: TObject);
+    procedure cbOverflowChecksChange(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure cbDeployChange(Sender: TObject);
   private
+    tdSource: TTextBrowser;
+    Created: Boolean;
+    CompilerConfigFilename: String;
     FEditorFileName: String;
+    procedure LoadDeployList;
     procedure LoadTestList;
-    function GetCompileScope: TCompileScope;
+    function GetBlockType: TBlockType;
+    function GetParseType: TParseType;
     procedure SaveState;
+    procedure DelayedSetFocus(Control: TControl);
   public
     { Public declarations }
   end;
@@ -124,56 +132,70 @@ uses IOUtils, Testing;
 
 {$R *.fmx}
 
+const DeployExt = '.deploy';
+
 procedure TForm1.RunExecute(Sender: TObject);
+var Good: Boolean;
 begin
-  btnParseClick(nil);
-  if Compiler.LastErrorNo <> 0 then
-    EXIT;
-  btnCodeGenClick(nil);
-  if Compiler.LastErrorNo <> 0 then
-    EXIT;
-  btnAssembleClick(nil);
-  if Compiler.AssembleError then
-    EXIT;
-  btnEmulateClick(nil);
-  if Compiler.LastErrorNo <> 0 then
-    EXIT;
-  SetFocused(mmSource);
+  SaveState;
+  Good := Compiler.CompileString(tdSource.Text.AsString, GetBlockType, GetParseType,
+    True, False);
+
+  Compiler.GetScopeList(cbScope.Items);
+  if cbScope.Items.Count > 0 then
+    cbScope.ItemIndex := 0;
+
+  Compiler.GetILText(mmIL.Lines);
+  Compiler.GetVarsText(mmVariables.Lines, True);
+  Compiler.GetFunctionsText(mmFunctions.Lines);
+
+  if not Good then
+  begin
+    if Compiler.LastErrorNo <> 0 then
+    begin //Compile error
+      tdSource.Text.acSetCursor(Compiler.LastErrorPos, Compiler.LastErrorLine-1);
+      edError.Text := Compiler.LastErrorString;
+      mmIL.Lines.Add(tdSource.Text.Lines[LastErrorLine-1]);
+      mmIL.Lines.Add(StringOfChar(' ',LastErrorPos)+'^');
+      mmIL.Lines.Add(edError.Text);
+    end
+    else if Compiler.AssembleError then
+    begin
+      ShowMessage('Assembly error: ' + Compiler.AssemblerLog);
+      TabControl1.ActiveTab := tbAssembly;
+    end;
+  end
+  else
+  begin
+    edError.Text := '';
+
+    btnEmulateClick(nil);
+//    if Compiler.LastErrorNo <> 0 then
+//      EXIT;
+//    mmIL.Lines.Add('');
+//    Compiler.GetVarsText(mmVariables.Lines, True);
+  end;
+
+  DelayedSetFocus(tdSource);
 end;
 
 procedure TForm1.SaveState;
 begin
-  mmSource.Lines.SaveToFile(FEditorFileName);
-end;
-
-procedure TForm1.btnAssembleClick(Sender: TObject);
-begin
-  if not Compiler.Assemble(Compiler.AssemblerFileName) then
-    ShowMessage('Error: ' + Compiler.AssemblerLog);
-  TabControl1.ActiveTab := tbAssembly;
-end;
-
-procedure TForm1.btnCodeGenClick(Sender: TObject);
-begin
-//  Compiler.LoadFragmentsLibrary(TPath.Combine(Compiler.QuicheFolder, FragmentsFilename));
-
-  if not Compiler.DoCodeGen then
-    edError.Text := LastErrorString;
-
-  Compiler.GetObjectCode(mmAssembly.Lines);
-
-  Compiler.SaveObjectCode(TPath.Combine(Compiler.OutputFolder, 'quicheoutput.asm'));
-  TabControl1.ActiveTab := tbAssembly;
+  tdSource.Text.SaveToFile;
 end;
 
 procedure TForm1.btnEmulateClick(Sender: TObject);
 begin
-  Compiler.Emulate(Compiler.BinaryFileName);
+  if Compiler.Emulate(Compiler.BinaryFileName) then
+  begin
+    mmIL.Lines.Add('');
+    Compiler.GetVarsText(mmEmulate.Lines, False);
+    mmEmulate.Lines.Add(#13'Write Buffer:');
+    mmEmulate.Lines.Add(Compiler.WriteBuffer);
+  end
+  else
+    mmEmulate.Lines.Add('Emulation failed or not available');
 
-  mmIL.Lines.Add('');
-  Compiler.GetVarsText(mmEmulate.Lines, False);
-  mmEmulate.Lines.Add(#13'Write Buffer:');
-  mmEmulate.Lines.Add(Compiler.WriteBuffer);
   TabControl1.ActiveTab := tbEmulate;
 end;
 
@@ -185,46 +207,6 @@ begin
 
   Compiler.GetVarsText(mmVariables.Lines, False);
   TabControl1.ActiveTab := tbVariables;
-end;
-
-procedure TForm1.btnParseClick(Sender: TObject);
-var Good: Boolean;
-begin
-  SaveState;
-  Compiler.Initialise(True);
-
-  Compiler.SetOverflowChecks(cbOverflowChecks.IsChecked);
-
-  Compiler.LoadSourceString(mmSource.Text);
-
-  Good := Compiler.Parse(GetCompileScope);
-  btnRun.Enabled := Good;
-  btnCodeGen.Enabled := Good;
-
-  Compiler.GetScopeList(cbScope.Items);
-  if cbScope.Items.Count > 0 then
-    cbScope.ItemIndex := 0;
-
-  Compiler.GetILText(mmIL.Lines);
-  Compiler.GetVarsText(mmVariables.Lines, True);
-  Compiler.GetFunctionsText(mmFunctions.Lines);
-
-  if Good then
-  begin
-    edError.Text := '';
-//    mmIL.Lines.Add('');
-//    Compiler.GetVarsText(mmVariables.Lines, True);
-  end
-  else
-  begin
-    edError.Text := Compiler.LastErrorString;
-    mmIL.Lines.Add(mmSource.Lines[LastErrorLine-1]);
-    mmIL.Lines.Add(StringOfChar(' ',LastErrorPos)+'^');
-    mmIL.Lines.Add(edError.Text);
-  end;
-
-  Focused := mmSource;
-  TabControl1.ActiveTab := tbILCode;
 end;
 
 procedure TForm1.btnTestClick(Sender: TObject);
@@ -239,6 +221,35 @@ begin
   mmTests.Lines.Clear;
   Testing.TestLogToStrings(mmTests.Lines);
   TabControl1.ActiveTab := tbTests;
+end;
+
+procedure TForm1.cbDeployChange(Sender: TObject);
+begin
+  if cbDeploy.ItemIndex = -1 then
+    Compiler.Deploy.Clear
+  else
+    Compiler.Deploy.LoadFromFile(TPath.Combine(
+      TPath.Combine(Compiler.GetPlatformFolder, DeployFolderName),
+      cbDeploy.Items[cbDeploy.ItemIndex] + DeployExt));
+end;
+
+procedure TForm1.cbOverflowChecksChange(Sender: TObject);
+begin
+  Compiler.Config.OverflowChecks := cbOverflowChecks.IsChecked;
+  if Created then
+    Compiler.Config.SaveToFile(CompilerConfigFileName);
+end;
+
+procedure TForm1.cbPlatformsChange(Sender: TObject);
+begin
+  if cbPlatforms.ItemIndex >= 0 then
+  begin
+    Compiler.Config.PlatformName := cbPlatforms.Items[cbPlatforms.ItemIndex];
+    if Created then
+      Compiler.Config.SaveToFile(CompilerConfigFileName);
+    LoadDeployList;
+    //Set default deployment? From config file?
+  end;
 end;
 
 procedure TForm1.cbScopeChange(Sender: TObject);
@@ -256,6 +267,21 @@ begin
   end;
 end;
 
+procedure TForm1.DelayedSetFocus(Control: TControl);
+begin
+  TThread.CreateAnonymousThread(
+    procedure
+    begin
+      TThread.Synchronize( nil,
+         procedure
+         begin
+           Control.SetFocus;
+         end
+      );
+    end
+  ).Start;
+end;
+
 procedure TForm1.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
   SaveState;
@@ -263,26 +289,88 @@ end;
 
 procedure TForm1.FormCreate(Sender: TObject);
 var Folder: String;
+  TestCase: Integer;
+  PlatformIndex: Integer;
 begin
   Folder := TPath.GetFullPath(TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), '..\..\'));
   Compiler.SetQuicheFolder(Folder);
-  Compiler.SetPlatform('TestCase');
   Compiler.OutputFolder := 'C:\RetroTools\Quiche';
+  CompilerConfigFilename := TPath.Combine(Compiler.GetQuicheFolder, 'Config\Compiler.cfg');
+
+  Compiler.GetPlatformList(cbPlatforms.Items);
+  TestCase := cbPlatforms.Items.IndexOf('TestCase');
+  if TestCase >= 0 then
+    cbPlatforms.ItemIndex := TestCase
+  else
+    cbPlatforms.ItemIndex := 0;
+
+  Compiler.Config.LoadFromFile(CompilerConfigFilename);
+  PlatformIndex := cbPlatforms.Items.IndexOf(Config.PlatformName);
+  if PlatformIndex < 0 then
+    ShowMessage('Unknown platform: ' + Config.PlatformName)
+  else
+    cbPlatforms.ItemIndex := PlatformIndex;
+  cbOverflowChecks.IsChecked := Config.OverflowChecks;
 
   LoadTestList;
+
+  tdSource := TTextBrowser.Create(Self);
+  tdSource.Parent := Panel1;
+  tdSource.Theme := DarkTheme;
+  tdSource.Align := TAlignLayout.Client;
   FEditorFileName := TPath.Combine(Folder, 'Config\uifile.qch');
   if TFile.Exists(FEditorFileName) then
-    mmSource.Lines.LoadFromFile(FEditorFileName);
+    tdSource.Text.LoadFromFile(FEditorFilename);
+
+  DelayedSetFocus(tdSource);
+  Created := True;
 end;
 
-function TForm1.GetCompileScope: TCompileScope;
+procedure TForm1.FormDestroy(Sender: TObject);
 begin
-  if rbBlock.isChecked then
-    Result := csBlock
-  else if rbGlobal.IsChecked then
-    Result := csGlobal
+  inherited;
+  tdSource.Free;
+end;
+
+function TForm1.GetBlockType: TBlockType;
+begin
+  if rbStack.isChecked then
+    Result := btStack
+  else if rbStatic.IsChecked then
+    Result := btStatic
   else
-    raise Exception.Create('Invalid compile scope selection');
+    raise Exception.Create('Invalid Block Type selection');
+end;
+
+function TForm1.GetParseType: TParseType;
+begin
+  if rbDeclarations.IsChecked then
+    Result := ptDeclarations
+  else if rbCode.IsChecked then
+    Result := ptCode
+  else
+    raise Exception.Create('Invalid Parse Type selection');
+end;
+
+procedure TForm1.LoadDeployList;
+var DeployPath: String;
+  Files: TArray<String>;
+  Filename: String;
+begin
+  cbDeploy.Items.Clear;
+  if Config.PlatformName = '' then
+    EXIT;
+
+  DeployPath := TPath.Combine(Compiler.GetPlatformFolder, DeployFolderName);
+  if TDirectory.Exists(DeployPath) then
+  begin
+    Files := TDirectory.GetFiles(DeployPath, '*' + DeployExt);
+    for Filename in Files do
+      cbDeploy.Items.Add(TPath.GetFilenameWithoutExtension(Filename));
+
+    if cbDeploy.Items.Count > 0 then
+      cbDeploy.ItemIndex := 0;
+  end;
 end;
 
 procedure TForm1.LoadTestList;

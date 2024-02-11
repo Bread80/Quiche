@@ -2,15 +2,24 @@ unit Testing;
 {
 Test file:
 ;Source code
+;Options
+;  Options are 'sticky' - they remain set for following tests
+blocktype static|stack      - Select Stack to generate a stack frame and use local vars
+parsetype declarations|code
+$overflow on|off            - enable or disable overflow checking
+logprimitives on|off
 code [<testname>]
 ...
 endcode
-;Compilation
-compile error [<errorname>]
 ;Parsing
-vartype <varname> <vartype>
+vartype <varname> <vartype> - variable type
+compile noerror|error [<errorname>] - compile error
+;Code generation
+usesprimitive <primitive-name>
 ;Execution
-varvalue <varname> <value>
+varvalue <varname> <value>  - variable value
+runtime overflow|dividebyzero|none
+                            - runtime error
 }
 
 interface
@@ -24,12 +33,13 @@ procedure RunAllTests(Folder: String;StopOnError: Boolean);
 procedure TestLogToStrings(SL: TStrings);
 
 implementation
-uses SysUtils, IOUtils, Compiler, Variables, QTypes, Globals;
+uses SysUtils, IOUtils, Compiler, Variables, QTypes, Globals, CodeGenZ80AsmEx;
 
 var
   TestName: String;
   TestCode: TStringList;
-  CompileScope: TCompileScope;
+  BlockType: TBlockType;
+  ParseType: TParseType;
   IsCompiled: Boolean;
   CompileOkay: Boolean;
   HasRun: Boolean;
@@ -78,14 +88,15 @@ end;
 
 procedure Initialise;
 begin
-  Compiler.SetPlatform('TestCase');
+  Compiler.Config.PlatformName := 'TestCase';
 
   if Assigned(Log) then
     Log.Clear;
   ResetTestStats;
   ResetFileStats;
   ResetTotalStats;
-  CompileScope := csBlock;
+  BlockType := btStatic;
+  ParseType := ptCode;
 end;
 
 procedure TestLogToStrings(SL: TStrings);
@@ -148,7 +159,7 @@ function CompileNeeded(IgnoreErrors: Boolean): Boolean;
 begin
   if not IsCompiled then
   begin
-    CompileOkay := Compiler.CompileStrings(TestCode, CompileScope, False);
+    CompileOkay := Compiler.CompileStrings(TestCode, BlockType, ParseType, False, True);
     Result := CompileOkay;
     if not CompileOkay and not IgnoreErrors then
     begin
@@ -183,7 +194,6 @@ end;
 
 function TestVarType(Fields: TArray<String>): Boolean;
 var V: PVariable;
-  Index: Integer;
 begin
   try
     if not CompileNeeded(False) then
@@ -198,7 +208,7 @@ begin
 
   if Length(Fields) <> 3 then
     EXIT(False);
-  V := VarFindByNameAllScopes(Fields[1], Index);
+  V := VarFindByNameAllScopes(Fields[1]);
   if not Assigned(V) then
     TestLog('ERROR: No such variable: ' + Fields[1])
   else
@@ -209,7 +219,6 @@ end;
 
 function TestVarValue(Fields: TArray<String>): Boolean;
 var V: PVariable;
-  Index: Integer;
   I: Integer;
   B: Integer;
   C: Char;
@@ -221,7 +230,7 @@ begin
 
   if Length(Fields) <> 3 then
     EXIT(False);
-  V := VarFindByNameAllScopes(Fields[1], Index);
+  V := VarFindByNameAllScopes(Fields[1]);
   Result := True;
   if not Assigned(V) then
     TestLog('ERROR: No such variable: ' + Fields[1])
@@ -280,6 +289,21 @@ begin
     DoTest(Result, 'Compiler raised an error: ' + Compiler.LastErrorString)
 end;
 
+function TestUsesPrimitive(Fields: TArray<String>): Boolean;
+var PrimName: String;
+begin
+  if Length(Fields) < 2 then
+    EXIT(False);
+
+  PrimName := Fields[1];
+
+  CompileNeeded(True);
+
+  Result := CodeGenZ80AsmEx.UsesPrimitive(PrimName);
+  if not Result then
+    DoTest(Result, 'Compiler failed to use primitive: ' + PrimName)
+end;
+
 function TestRuntime(Fields: TArray<String>): Boolean;
 var Err: Integer;
 begin
@@ -305,15 +329,15 @@ begin
   Result := Compiler.RunTimeError = Err;
 end;
 
-function SetCompileScope(Fields: TArray<String>): Boolean;
+function SetBlockType(Fields: TArray<String>): Boolean;
 begin
   if Length(Fields) <> 2 then
     EXIT(False);
 
-  if CompareText(Fields[1], 'block') = 0 then
-    CompileScope := csBlock
-  else if CompareText(Fields[1], 'global') = 0 then
-    CompileScope := csGlobal
+  if CompareText(Fields[1], 'stack') = 0 then
+    BlockType := btStack
+  else if CompareText(Fields[1], 'static') = 0 then
+    BlockType := btStatic
   else
     EXIT(False);
 
@@ -335,6 +359,21 @@ begin
   Result := True;
 end;
 
+function SetLogPrimitives(Fields: TArray<String>): Boolean;
+begin
+  if Length(Fields) <> 2 then
+    EXIT(False);
+
+  if CompareText(Fields[1], 'on') = 0 then
+    CodeGenZ80AsmEx.LogPrimitives := True
+  else if CompareText(Fields[1], 'off') = 0 then
+    CodeGenZ80AsmEx.LogPrimitives := False
+  else
+    EXIT(False);
+
+  Result := True;
+end;
+
 procedure RunTestFile(Filename: String;StopOnError: Boolean);
 var SL: TStringList;
   Line: String;
@@ -345,7 +384,7 @@ begin
   if not Assigned(Log) then
     Log := TStringList.Create;
 
-  Compiler.Initialise(True);    //Initialise directives to known state
+  Compiler.Initialise(True, False);    //Initialise directives to known state
 
   TestLog('Processing file: ' + Filename);
   TestLog('------------------------------');
@@ -385,18 +424,26 @@ begin
           TestLog('');
           TestLog('Test: ' + TestName);
         end
+
+        else if CompareText(Fields[0], 'blocktype') = 0 then
+          Okay := SetBlockType(Fields)
         else if CompareText(Fields[0], '$overflow') = 0 then
           Okay := OptionOverflow(Fields)
-        else if CompareText(Fields[0], 'vartype') = 0 then
-          Okay := TestVarType(Fields)
-        else if CompareText(Fields[0], 'varvalue') = 0 then
-          Okay := TestVarValue(Fields)
+        else if CompareText(Fields[0], 'logprimitives') = 0 then
+          Okay := SetLogPrimitives(Fields)
+
         else if CompareText(Fields[0], 'compile') = 0 then
           Okay := TestCompile(Fields)
+        else if CompareText(Fields[0], 'vartype') = 0 then
+          Okay := TestVarType(Fields)
+
+        else if CompareText(Fields[0], 'usesprimitive') = 0 then
+          Okay := TestUsesPrimitive(Fields)
+
+        else if CompareText(Fields[0], 'varvalue') = 0 then
+          Okay := TestVarValue(Fields)
         else if CompareText(Fields[0], 'runtime') = 0 then
           Okay := TestRuntime(Fields)
-        else if CompareText(Fields[0], 'compilescope') = 0 then
-          Okay := SetCompileScope(Fields)
         else
         begin
           TestLog('Invalid command: ' + Line);

@@ -1,6 +1,7 @@
 unit ParseErrors;
 
 interface
+uses Functions, Operators;
 
 //This enum list general error classes. This is intended to be used either for
 //basic, generic, errors or for the bootstrap compiler.
@@ -9,13 +10,14 @@ type TQuicheError = (
 
   //General syntax
   qeSyntax,             //Generic syntax error
+  qeFunctionCall,       //Syntax error in function call
   qeInvalidKeyword,
   qeENDExpected,
   qeENDdotExpected,
   qeCodeAfterENDdot,
   qeInvalidTopLevel,
 
-  //Functions
+  //Function declarations
   qeFunctionRedeclared,
   qeFunctionBodyExpected,
   qeFunctionDeclaration,  //General error in function declaration
@@ -41,6 +43,7 @@ type TQuicheError = (
   qeUnknownOperator,
   qeConstantExpressionExpected,
   qeConstantExpressionOverflow,
+  qeConstantOutOfRange,
   qeDivByZero,
   qeInvalidDecimalNumber,
   qeInvalidHexNumber,
@@ -60,6 +63,7 @@ const Errors : array[TQuicheError] of String = (
   'No error',
 
   'Syntax error',
+  'Error in function call',
   'Invalid keyword',
   'END expected',
   'END. expected',
@@ -89,6 +93,7 @@ const Errors : array[TQuicheError] of String = (
   'Unknown operator',
   'Constant expression expected',
   'Constant expression overflow',
+  'Constant expression out of range',
   'Division by zero',
   'Incorrect decimal number',
   'Incorrect hex number',
@@ -106,6 +111,7 @@ const Errors : array[TQuicheError] of String = (
 const SubErrors : array[TQuicheError] of String = (
   '',
 
+  '',
   '',
   '',
   '',
@@ -134,6 +140,7 @@ const SubErrors : array[TQuicheError] of String = (
   '',
   '',
 
+  '',
   '',
   '',
   '',
@@ -219,7 +226,9 @@ function ErrSyntax(SyntaxError: TSyntaxError): TQuicheError;
 
 function ErrSyntaxMsg(SyntaxError: TSyntaxError;Msg: String): TQuicheError;
 
-function ErrOpUsage(Msg: String;OpIndex: Integer): TQuicheError;
+function ErrOpUsage(Msg: String;Op: TOperator): TQuicheError;
+
+function ErrFuncCall(Msg: String;Func: PFunction): TQuicheError;
 
 const
   ermCommaOrCloseParensExpected = ''','' or '')'' expected in parameter list';
@@ -234,7 +243,7 @@ var
   LastErrorHelp: String;
 
 implementation
-uses SysUtils, Operators;
+uses SysUtils;
 
 function Err(ErrClass: TQuicheError): TQuicheError;
 begin
@@ -274,11 +283,18 @@ begin
   Result := qeSyntax;
 end;
 
-function ErrOpUsage(Msg: String;OpIndex: Integer): TQuicheError;
+function ErrOpUsage(Msg: String;Op: TOperator): TQuicheError;
 begin
   LastErrorMessage := Msg;
-  LastErrorHelp := OpIndexToUsage(OpIndex);
+  LastErrorHelp := OpToUsage(Op);
   Result := qeSyntax;
+end;
+
+function ErrFuncCall(Msg: String;Func: PFunction): TQuicheError;
+begin
+  LastErrorMessage := Msg;
+  LastErrorHelp := Func.ToString;
+  Result := qeFunctionCall;
 end;
 
 end.

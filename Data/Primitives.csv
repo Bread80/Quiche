@@ -1,101 +1,108 @@
-﻿;,,,,Empty = 'any type',,,Intentionally blank!,,,,,,,,,,
+﻿;Empty = 'any type' Intentionally blank!,,,,,,,,,,,,,,,,,
 ;,,,,,,,,,,,,,,,,,
-;,Notes: Ordering of items in the table is significant!,,,,,,,,,,,,,,,,
-;,,,,,,All handlers for an operation must be listed consecutively,,,,,,,,,,,
-;,,,,,,Immediate locations (Param type i) must be listed before register locations,,,,,,,,,,,
-;,,,,,,Smaller types must be listed before larger types,,,,,,,,,,,
+;Notes: Ordering of items in the table is significant!,,,,,,,,,,,,,,,,,
+;All handlers for an operation must be listed consecutively,,,,,,,,,,,,,,,,,
+;Immediate locations (Param type i) must be listed before register locations,,,,,,,,,,,,,,,,,
+;Smaller types must be listed before larger types,,,,,,,,,,,,,,,,,
 ;,,,,,,,,,,,,,,,,,
-;,,,,,,Procedures,,Locations,,,,,Special validations on type conversion,,,,
-;,Name,OpType,FirstParamType,DestType,Validation,Exec,Flags,Param1,Param2,Dest,Corrupts,Validate,s8,u8,s16,u16,Notes
-;,Misc,,,,,,,,,,,,,,,,
-,none,,,,x,error,,,,none,,,,,,,Raises an error if encountered by the code generator
-,phi,,,,x,empty,,,,,,,,,,,Dummy which does nothing
-;,Validation routines,,,,,,,,,,,,,,,,
+;,,,,,,Procedures,,Register options available,,,,,Special validations on type conversion,,,,
+;,Name ,OpType,FirstParamType,DestType,Validation,Exec,Flags,Param1,Param2,Dest,Corrupts,Validate,s8,u8,s16,u16,Notes
+;,Misc   ,,,,,,,,,,,,,,,,
+,unknown,,,,x,error   ,,,,none,,,,,,,Raises an error if encountered by the code generator
+,move,,,,x,empty   ,,a;b;c;d;e;h;l;bc;de;hl,,p1,,,,,,,Primitive does nothing. Used for load-store operations
+,phi     ,,,,x,empty   ,,,,    ,,,,,,,Dummy which does nothing
+,funccall,,,,x,proccall,,,,    ,,,,,,,Function call
+;Validation routines,,,,,,,,,,,,,,,,,
 ;,x,,,,x,c_overflow,,,,,,,,,,,Overflow error if carry true
 ;,x,,,,x,m_overflow,,,,,,,,,,,Overflow if sign flag is negative (high bit set)
 ,x,,,,x,b7sov,,,,p1,f,,,,,,Overflow if bit 7 set
 ,x,,,,x,b15sov,,,,p1,f,,,,,,Overflow if bit 15 set
-;,Assignment from immediate data - these routines both read the source data and store it to the destination. Thus the 'Dest' column says 'none' - we don't want the code generator also generating store code,,,,,,,,,,,,,,,,
-,assign,x8,,x8,n,assign_abs8_imm8,,i,,absvar,a,,,,,,Assigns an immediate 8 bit value (constant) (Validation done by parser!)
-,assign,x8,,x8,n,assign_rel8_imm8,,i,,relvar,,,,,,,Assigns an immediate 8 bit value (constant) (Validation done by parser!)
-,assign,x8,,boolean,n,assign_abs8_imm8,,i,,absvar,a,,,,,,Assigns an immediate 8 bit value (constant) (Validation done by parser!)
-,assign,x8,,boolean,n,assign_rel8_imm8,,i,,relvar,,,,,,,
-,assign,x8,,s16,n,proc_assign_abss16_imm8,,i,,absvar,a;f,,,,,,Zero extends to 16 bits
-,assign,s8,,s16,n,proc_assign_rels16_imm8,,i,,relvar,,,,,,,Extends an x8 constant to x16
-,assign,x8,,x16,n,assign_abs16_imm8,,i,,absvar,a,,,,,,Zero extends to 16 bits
-,assign,x8,,x16,n,assign_rel16_imm8,,i,,relvar,,,,,,,Zero extends to 16 bits
-,assign,x16,,x16,n,assign_abs16_imm16,,i,,absvar,a,,,,,,Assigns an immediate 16 bit value (validation done by parser!)
-,assign,x16,,x16,n,assign_rel16_imm16,,i,,relvar,,,,,,,Assigns an immediate 16 bit value (validation done by parser!)
-,assign,x16,,x8,n,assign_abs8_imm8,,i,,absvar,a,,,,,,Shorten a 16 bit immediate to an 8 bit (validated by parser)
-,assign,x16,,x8,n,assign_rel8_imm8,,i,,relvar,,,,,,,Shorten a 16 bit immediate to an 8 bit (validated by parser)
-,assign,boolean,,boolean,n,assign_abs8_imm8,,i,,absvar,a,,,,,,
-,assign,boolean,,boolean,n,assign_rel8_imm8,,i,,relvar,,,,,,,
+;Assignment from immediate data - these routines both read the source data and store it to the destination.,,,,,,,,,,,,,,,,,
+;Thus the 'Dest' column says 'none' - we don't want the code generator also generating store code,,,,,,,,,,,,,,,,,
+,storeimm,x8     ,,x8     ,n,assign_abs8_imm8       ,deststaticvar,i,,none,a  ,,,,,,Assigns an immediate 8 bit value (constant) (Validation done by parser!)
+,storeimm,x8     ,,x8     ,n,assign_rel8_imm8       ,destrelvar,i,,none,   ,,,,,,Assigns an immediate 8 bit value (constant) (Validation done by parser!)
+,storeimm,x8     ,,boolean,n,assign_abs8_imm8       ,deststaticvar,i,,none,a  ,,,,,,Assigns an immediate 8 bit value (constant) (Validation done by parser!)
+,storeimm,x8     ,,boolean,n,assign_rel8_imm8       ,destrelvar,i,,none,   ,,,,,,
+,storeimm,x8     ,,s16    ,n,proc_assign_abss16_imm8,deststaticvar,i,,none,a;f,,,,,,Zero extends to 16 bits
+,storeimm,s8     ,,s16    ,n,proc_assign_rels16_imm8,destrelvar,i,,none,   ,,,,,,Extends an x8 constant to x16
+,storeimm,x8     ,,x16    ,n,assign_abs16_imm8      ,deststaticvar,i,,none,a  ,,,,,,Zero extends to 16 bits
+,storeimm,x8     ,,x16    ,n,assign_rel16_imm8      ,destrelvar,i,,none,   ,,,,,,Zero extends to 16 bits
+,storeimm,x16    ,,x16    ,n,assign_abs16_imm16     ,deststaticvar,i,,none,a  ,,,,,,Assigns an immediate 16 bit value (validation done by parser!)
+,storeimm,x16    ,,x16    ,n,assign_rel16_imm16     ,destrelvar,i,,none,   ,,,,,,Assigns an immediate 16 bit value (validation done by parser!)
+,storeimm,x16    ,,x8     ,n,assign_abs8_imm8       ,deststaticvar,i,,none,a  ,,,,,,Shorten a 16 bit immediate to an 8 bit (validated by parser)
+,storeimm,x16    ,,x8     ,n,assign_rel8_imm8       ,destrelvar,i,,none,   ,,,,,,Shorten a 16 bit immediate to an 8 bit (validated by parser)
+,storeimm,boolean,,boolean,n,assign_abs8_imm8       ,deststaticvar,i,,none,a  ,,,,,,
+,storeimm,boolean,,boolean,n,assign_rel8_imm8       ,destrelvar,i,,none,   ,,,,,,
 ;,Assignment,,,,,,,,,,,,,,,,
-,assign,u8,,,x,empty,,b;c;d;e;h;l;a,,p1,,,,,,,Assigning from a U8
-,assign,s8,,,x,empty,,b;c;d;e;h;l;a,,p1,,,,,,,Assigning from an S8
-,assign,u16,,,x,empty,,hl;de;bc,,p1,,,,,,,Assigning from a U16
-,assign,s16,,,x,empty,,hl;de;bc,,p1,,,,,,,Assigning from an S16
+;,assign,u8     ,,       ,x,empty                  ,,b;c;d;e;h;l;a,,p1,,,,,,,Assigning from a U8
+;,assign,s8     ,,       ,x,empty                  ,,b;c;d;e;h;l;a,,p1,,,,,,,Assigning from an S8
+;,assign,u16    ,,       ,x,empty                  ,,hl;de;bc     ,,p1,,,,,,,Assigning from a U16
+;,assign,s16    ,,       ,x,empty                  ,,hl;de;bc     ,,p1,,,,,,,Assigning from an S16
+;,assign,u8     ,,,x,push_byte_a,,a,,stackbyte,,,,,,,Pushing a byte to the stack
+;,assign,s8,,,x,push_byte_a,,a,,stackbyte,,,,,,,Pushing a byte to the stack
+;,assign,u16,,,x,push_word,,hl;de;bc     ,,stack,,,,,,,Pushing a word to the stack
+;,assign,s16,,,x,push_word,,hl;de;bc     ,,stack,,,,,,,Pushing a word to the stack
 ;,,,,,,,,,,,,,,,,,
 ;,branch,,,,,branch,,,,,,,,,,,Conditional or unconditional
 ,condbranch,boolean,,branch,x,atozf,,a,,zf,f,,,,,,Conditional branch
 ;,phi,,,,,phi,,,,,,,,,,,Ignored
 ;,,,,,,,,,,,,,,,,,
 ;,Maths,,,,,,,,,,,,,,,,
-,add,u8,,,x,add8ri,,a,i,a,a;f,c_overflow,m_overflow,,,,
-,add,u8,,,x,add8rr,,a,a;b;c;d;e;h;l,a,a;f,c_overflow,m_overflow,,,,
-,add,s8,,,x,add8ri,,a,i,a,a;f,pe_overflow,,m_overflow,,m_overflow,
-,add,s8,,,x,add8rr,,a,a;b;c;d;e;h;l,a,a;f,pe_overflow,,m_overflow,,m_overflow,
-,add,u16,,s16,y,addx16y,,hl,hl;de;bc,hl,h;l;f,c_overflow,,,m_overflow,,"Uses ADC HL,ss which does set sign flag"
-,add,u16,,,x,addx16n,,hl,hl;de;bc,hl,h;l;f,c_overflow,,,,,"Uses ADD HL,ss which doesn't set flags needed for conversions, but is faster"
-,add,s16,,,y,addx16y,,hl,hl;de;bc,hl,h;l;f,pe_overflow,,,,m_overflow,"Uses ADC HL,ss which sets all flags"
-,add,s16,,,n,addx16n,,hl,hl;de;bc,hl,h;l;f,,,,,,"Uses ADD HL,ss"
-,add,m16s16,,,n,addx16n,,hl,hl;de;bc,hl,h;l;f,,,,,,"Uses ADD HL,ss"
-,add,m16u16,,,n,addx16n,,hl,hl;de;bc,hl,h;l;f,,,,,,"Uses ADD HL,ss"
-,add,m16s16,s,,y,:add_m16_s16_raise_errors,,hl,de,hl,h;l;f,empty,,,,,"First param is the S16, output is s16"
-,add,m16s16,u,,y,:add_m16_s16_raise_errors,,de,hl,hl,h;l;f,empty,,,,,"First param is the u16, output is s16"
-,add,m16u16,s,,y,:add_m16_u16_raise_errors,,hl,de,hl,h;l;f,empty,,,,,"First param is the S16, output is u16"
-,add,m16u16,u,,y,:add_m16_u16_raise_errors,,de,hl,hl,h;l;f,empty,,,,,"First param is the u16, output is u16"
-,subtract,u8,,,x,sub8ri,,a,i,a,a;f,c_overflow,m_overflow,,,,
-,subtract,u8,,,x,sub8rr,,a,a;b;c;d;e;h;l,a,a;f,c_overflow,m_overflow,,,,
-,subtract,s8,,,x,sub8ri,,a,i,a,a;f,pe_overflow,,m_overflow,,m_overflow,
-,subtract,s8,,,x,sub8rr,,a,a;b;c;d;e;h;l,a,a;f,pe_overflow,,m_overflow,,m_overflow,
-,subtract,u16,,,x,subx16,,hl,hl;de;bc,hl,h;l;f,c_overflow,,,m_overflow,,
-,subtract,s16,,,x,subx16,,hl,hl;de;bc,hl,h;l;f,pe_overflow,,,,m_overflow,
-,subtract,m16s16,,,n,subx16,,hl,hl;de;bc,hl,h;l;f,,,,,,
-,subtract,m16u16,,,n,subx16,,hl,hl;de;bc,hl,h;l;f,,,,,,
-,subtract,m16s16,s,,y,:sub_s16_u16_s16_raise_errors,,hl,de,hl,h;l;f,empty,,,,,"First param is the S16, output is s16"
-,subtract,m16s16,u,,y,:sub_u16_s16_s16_raise_errors,,hl,de,hl,h;l;f,empty,,,,,"First param is the u16, output is s16"
-,subtract,m16u16,s,,y,:sub_s16_u16_u16_raise_errors,,hl,de,hl,h;l;f,empty,,,,,"First param is the S16, output is u16"
-,subtract,m16u16,u,,y,:sub_u16_s16_u16_raise_errors,,hl,de,hl,h;l;f,empty,,,,,"First param is the u16, output is u16"
-,negate,s8,,s8,x,negs8,,a,,a,a;f,pe_overflow,,,,,
-,negate,s8,,s16,x,negs8,,a,,a,a;f,empty,,,,,
-,negate,u16,,,x,negu16,,de,,hl,h;l;d;e;f,empty,,nz_overflow,p_overflow,nz_overflow,
-,negate,s16,,,y,:negate_HL_and_test_if_INT,,hl,,hl,h;l;a;f,nc_overflow,,,,,
-,negate,s16,,,n,:negate_s16,,hl,,hl,h;l;a;f,,,,,,
+;,add,u8,,,x,add8ri,,a,i,a,a;f,c_overflow,m_overflow,,,,
+;,add,u8,,,x,add8rr,,a,a;b;c;d;e;h;l,a,a;f,c_overflow,m_overflow,,,,
+;,add,s8,,,x,add8ri,,a,i,a,a;f,pe_overflow,,m_overflow,,m_overflow,
+;,add,s8,,,x,add8rr,,a,a;b;c;d;e;h;l,a,a;f,pe_overflow,,m_overflow,,m_overflow,
+;,add,u16,,s16,y,addx16y,,hl,hl;de;bc,hl,h;l;f,c_overflow,,,m_overflow,,"Uses ADC HL,ss which does set sign flag"
+;,add,u16,,,x,addx16n,,hl,hl;de;bc,hl,h;l;f,c_overflow,,,,,"Uses ADD HL,ss which doesn't set flags needed for conversions, but is faster"
+;,add,s16,,,y,addx16y,,hl,hl;de;bc,hl,h;l;f,pe_overflow,,,,m_overflow,"Uses ADC HL,ss which sets all flags"
+;,add,s16,,,n,addx16n,,hl,hl;de;bc,hl,h;l;f,,,,,,"Uses ADD HL,ss"
+;,add,m16s16,,,n,addx16n,,hl,hl;de;bc,hl,h;l;f,,,,,,"Uses ADD HL,ss"
+;,add,m16u16,,,n,addx16n,,hl,hl;de;bc,hl,h;l;f,,,,,,"Uses ADD HL,ss"
+;,add,m16s16,s,,y,:add_m16_s16_raise_errors,,hl,de,hl,h;l;f,empty,,,,,"First param is the S16, output is s16"
+;,add,m16s16,u,,y,:add_m16_s16_raise_errors,,de,hl,hl,h;l;f,empty,,,,,"First param is the u16, output is s16"
+;,add,m16u16,s,,y,:add_m16_u16_raise_errors,,hl,de,hl,h;l;f,empty,,,,,"First param is the S16, output is u16"
+;,add,m16u16,u,,y,:add_m16_u16_raise_errors,,de,hl,hl,h;l;f,empty,,,,,"First param is the u16, output is u16"
+;,subtract,u8,,,x,sub8ri,,a,i,a,a;f,c_overflow,m_overflow,,,,
+;,subtract,u8,,,x,sub8rr,,a,a;b;c;d;e;h;l,a,a;f,c_overflow,m_overflow,,,,
+;,subtract,s8,,,x,sub8ri,,a,i,a,a;f,pe_overflow,,m_overflow,,m_overflow,
+;,subtract,s8,,,x,sub8rr,,a,a;b;c;d;e;h;l,a,a;f,pe_overflow,,m_overflow,,m_overflow,
+;,subtract,u16,,,x,subx16,,hl,hl;de;bc,hl,h;l;f,c_overflow,,,m_overflow,,
+;,subtract,s16,,,x,subx16,,hl,hl;de;bc,hl,h;l;f,pe_overflow,,,,m_overflow,
+;,subtract,m16s16,,,n,subx16,,hl,hl;de;bc,hl,h;l;f,,,,,,
+;,subtract,m16u16,,,n,subx16,,hl,hl;de;bc,hl,h;l;f,,,,,,
+;,subtract,m16s16,s,,y,:sub_s16_u16_s16_raise_errors,,hl,de,hl,h;l;f,empty,,,,,"First param is the S16, output is s16"
+;,subtract,m16s16,u,,y,:sub_u16_s16_s16_raise_errors,,hl,de,hl,h;l;f,empty,,,,,"First param is the u16, output is s16"
+;,subtract,m16u16,s,,y,:sub_s16_u16_u16_raise_errors,,hl,de,hl,h;l;f,empty,,,,,"First param is the S16, output is u16"
+;,subtract,m16u16,u,,y,:sub_u16_s16_u16_raise_errors,,hl,de,hl,h;l;f,empty,,,,,"First param is the u16, output is u16"
+;,negate,s8,,s8,x,negs8,,a,,a,a;f,pe_overflow,,,,,
+;,negate,s8,,s16,x,negs8,,a,,a,a;f,empty,,,,,
+;,negate,u16,,,x,negu16,,de,,hl,h;l;d;e;f,empty,,nz_overflow,p_overflow,nz_overflow,
+;,negate,s16,,,y,:negate_HL_and_test_if_INT,,hl,,hl,h;l;a;f,nc_overflow,,,,,
+;,negate,s16,,,n,:negate_s16,,hl,,hl,h;l;a;f,,,,,,
 ;,,,,,,,,,,,,,,,,,
 ;,Name,OpType,FirstParamType,DestType,Validation,Exec,,Param1,Param2,Dest,Corrupts,Validate,s8,u8,s16,u16,Notes
 ;,multiply,u8,,u16,x,:mult_h_e,,h,e,hl,a;f;b;d;e;h;l,empty,,,,,"Technically we could do this, but it violates other expression parsing rules."
-,multiply,u8,,,x,:mult_h_e,,h,e,l,a;f;b;d;e;h;l,hreg_nz_overflow,,,,,
-,multiply,u16,,,x,:do_16x16_multiply_with_overflow,,hl,de,hl,a;f;d;e;h;l,c_overflow,,,,,
-,multiply,s16,,,x,:INT_multiply_with_overflow_test,,hl,de,hl,a;f;b;d;e;h;l,nc_overflow,,,,,
-,multiply,m16s16,s,,x,:multiply_s16_u16_s16,,hl,de,hl,a;f;b;d;e;h;l,nc_overflow,,,,,
-,multiply,m16s16,u,,x,:multiply_s16_u16_s16,,de,hl,hl,a;f;b;d;e;h;l,nc_overflow,,,,,
-,multiply,m16u16,s,,x,:multiply_s16_u16_u16,,hl,de,hl,a;f;b;d;e;h;l,nc_overflow,,,,,
-,multiply,m16u16,u,,x,:multiply_s16_u16_u16,,de,hl,hl,a;f;b;d;e;h;l,nc_overflow,,,,,
-,intdiv,u8,,,x,:c_div_d,,c,d,c,a;f;b;c,empty,,,,,
-,intdiv,u16,,,x,:unsigned16_division,,hl,de,hl,a;f;b;c;d;e;h;l,empty,,,,,
-,intdiv,s16,,,x,:INT_division,,hl,de,hl,a;f;b;c;d;e;h;l,nc_overflow,,,,,
-,intdiv,m16s16,s,,x,:div_s16_u16_s16,,hl,de,hl,a;f;b;c;d;e;h;l,nc_overflow,,,,,
-,intdiv,m16s16,u,,x,:div_u16_s16_s16,,hl,de,hl,a;f;b;c;d;e;h;l,nc_overflow,,,,,
-,intdiv,m16u16,s,,x,:div_s16_u16_u16,,hl,de,hl,a;f;b;c;d;e;h;l,nc_overflow,,,,,
-,intdiv,m16u16,u,,x,:div_u16_s16_u16,,hl,de,hl,a;f;b;c;d;e;h;l,nc_overflow,,,,,
-,mod,u8,,,x,:c_div_d,,c,d,a,a;f;b;c,empty,,,,,
-,mod,u16,,,x,:unsigned16_division,,hl,de,de,a;f;b;c;d;e;h;l,empty,,,,,
-,mod,s16,,,x,:INT_modulo,,hl,de,hl,a;f;b;c;d;e;h;l,empty,,,,,
-,mod,m16s16,s,,x,:mod_s16_u16_s16,,hl,de,hl,a;f;b;c;d;e;h;l,empty,,,,,
-,mod,m16s16,u,,x,:mod_u16_s16_s16,,hl,de,de,a;f;b;c;d;e;h;l,empty,,,,,
-,mod,m16u16,s,,x,:mod_s16_u16_u16,,hl,de,hl,a;f;b;c;d;e;h;l,nc_overflow,,,,,
-,mod,m16u16,u,,x,:mod_u16_s16_u16,,hl,de,de,a;f;b;c;d;e;h;l,nc_overflow,,,,,
+;,multiply,u8,,,x,:mult_h_e,,h,e,l,a;f;b;d;e;h;l,hreg_nz_overflow,,,,,
+;,multiply,u16,,,x,:do_16x16_multiply_with_overflow,,hl,de,hl,a;f;d;e;h;l,c_overflow,,,,,
+;,multiply,s16,,,x,:INT_multiply_with_overflow_test,,hl,de,hl,a;f;b;d;e;h;l,nc_overflow,,,,,
+;,multiply,m16s16,s,,x,:multiply_s16_u16_s16,,hl,de,hl,a;f;b;d;e;h;l,nc_overflow,,,,,
+;,multiply,m16s16,u,,x,:multiply_s16_u16_s16,,de,hl,hl,a;f;b;d;e;h;l,nc_overflow,,,,,
+;,multiply,m16u16,s,,x,:multiply_s16_u16_u16,,hl,de,hl,a;f;b;d;e;h;l,nc_overflow,,,,,
+;,multiply,m16u16,u,,x,:multiply_s16_u16_u16,,de,hl,hl,a;f;b;d;e;h;l,nc_overflow,,,,,
+;,intdiv,u8,,,x,:c_div_d,,c,d,c,a;f;b;c,empty,,,,,
+;,intdiv,u16,,,x,:unsigned16_division,,hl,de,hl,a;f;b;c;d;e;h;l,empty,,,,,
+;,intdiv,s16,,,x,:INT_division,,hl,de,hl,a;f;b;c;d;e;h;l,nc_overflow,,,,,
+;,intdiv,m16s16,s,,x,:div_s16_u16_s16,,hl,de,hl,a;f;b;c;d;e;h;l,nc_overflow,,,,,
+;,intdiv,m16s16,u,,x,:div_u16_s16_s16,,hl,de,hl,a;f;b;c;d;e;h;l,nc_overflow,,,,,
+;,intdiv,m16u16,s,,x,:div_s16_u16_u16,,hl,de,hl,a;f;b;c;d;e;h;l,nc_overflow,,,,,
+;,intdiv,m16u16,u,,x,:div_u16_s16_u16,,hl,de,hl,a;f;b;c;d;e;h;l,nc_overflow,,,,,
+;,mod,u8,,,x,:c_div_d,,c,d,a,a;f;b;c,empty,,,,,
+;,mod,u16,,,x,:unsigned16_division,,hl,de,de,a;f;b;c;d;e;h;l,empty,,,,,
+;,mod,s16,,,x,:INT_modulo,,hl,de,hl,a;f;b;c;d;e;h;l,empty,,,,,
+;,mod,m16s16,s,,x,:mod_s16_u16_s16,,hl,de,hl,a;f;b;c;d;e;h;l,empty,,,,,
+;,mod,m16s16,u,,x,:mod_u16_s16_s16,,hl,de,de,a;f;b;c;d;e;h;l,empty,,,,,
+;,mod,m16u16,s,,x,:mod_s16_u16_u16,,hl,de,hl,a;f;b;c;d;e;h;l,nc_overflow,,,,,
+;,mod,m16u16,u,,x,:mod_u16_s16_u16,,hl,de,de,a;f;b;c;d;e;h;l,nc_overflow,,,,,
 ;,shl,u8,,,,shl,,,,,,,,,,,
 ;,shl,s8,,,,shl,,,,,,,,,,,
 ;,shl,u16,,,,shl,,,,,,,,,,,
@@ -108,156 +115,156 @@
 ;,Comparisons,,,,,,,,,,,,,,,,
 ;,,,,,,,,,,,,,,,,,
 ;,Name,OpType,FirstParamType,DestType,Validation,Exec,,Param1,Param2,Dest,Corrupts,Validate,s8,u8,s16,u16,Notes
-,equal,x8,,branch,x,compare8i,,a,i,zf,f,empty,,,,,For branches - only sets flag
-,equal,x8,,branch,x,compare8r,,a,a;b;c;d;e;h;l,zf,f,empty,,,,,For branches - only sets flag
-,equal,x8,,,x,sub8ri,,a,i,zfa,a;f,empty,,,,,zfa: sets z flag and a <> 0
-,equal,x8,,,x,sub8rr,,a,a;b;c;d;e;h;l,zfa,a;f,empty,,,,,zfa: sets z flag and a <> 0
-,equal,m16u16,,branch,x,:equal_m16,,hl,de,zf,a;h;l;f,empty,,,,,
-,equal,m16s16,,branch,x,:equal_m16,,hl,de,zf,a;h;l;f,empty,,,,,
-,equal,m16u16,,,x,:equal_m16,,hl,de,zf,a;h;l;f,empty,,,,,
-,equal,m16s16,,,x,:equal_m16,,hl,de,zf,a;h;l;f,empty,,,,,
-,equal,x16,,branch,x,:comp_u16,,hl,de,zf,a;f,empty,,,,,
-,equal,x16,,,x,:comp_u16,,hl,de,zf,a;f,empty,,,,,
-,equal,boolean,,branch,x,xor8ri,,a,i,zf,f,empty,,,,,
-,equal,boolean,,branch,x,xor8rr,,a,a;b;c;d;e;h;l,zf,f,empty,,,,,
-,equal,boolean,,,x,xor8ri,,a,i,cpla,f,empty,,,,,Result in complement (invert) of A
-,equal,boolean,,,x,xor8rr,,a,a;b;c;d;e;h;l,cpla,f,empty,,,,,Result in complement (invert) of A
-,notequal,x8,,branch,x,compare8i,,a,i,nzf,f,empty,,,,,For branches - only sets flag
-,notequal,x8,,branch,x,compare8r,,a,a;b;c;d;e;h;l,nzf,f,empty,,,,,For branches - only sets flag
-,notequal,x8,,,x,sub8ri,,a,i,nzfa,a;f,empty,,,,,zfa: sets z flag and a <> 0
-,notequal,x8,,,x,sub8rr,,a,a;b;c;d;e;h;l,nzfa,a;f,empty,,,,,zfa: sets z flag and a <> 0
-,notequal,m16u16,,branch,x,:equal_m16,,hl,de,nzf,a;h;l;f,empty,,,,,
-,notequal,m16s16,,branch,x,:equal_m16,,hl,de,nzf,a;h;l;f,empty,,,,,
-,notequal,m16u16,,,x,:equal_m16,,hl,de,nzf,a;h;l;f,empty,,,,,
-,notequal,m16s16,,,x,:equal_m16,,hl,de,nzf,a;h;l;f,empty,,,,,
-,notequal,x16,,branch,x,:comp_u16,,hl,de,nzf,a;f,empty,,,,,
-,notequal,x16,,,x,:comp_u16,,hl,de,nzf,a;f,empty,,,,,
-,notequal,boolean,,branch,x,xor8ri,,a,i,nzf,f,empty,,,,,
-,notequal,boolean,,branch,x,xor8rr,,a,a;b;c;d;e;h;l,nzf,f,empty,,,,,
-,notequal,boolean,,,x,xor8ri,,a,i,a,f,empty,,,,,Result is raw value of A
-,notequal,boolean,,,x,xor8rr,,a,a;b;c;d;e;h;l,a,f,empty,,,,,Result is raw value of A
+;,equal,x8,,branch,x,compare8i,,a,i,zf,f,empty,,,,,For branches - only sets flag
+;,equal,x8,,branch,x,compare8r,,a,a;b;c;d;e;h;l,zf,f,empty,,,,,For branches - only sets flag
+;,equal,x8,,,x,sub8_reg_imm,,a,i,zfa,a;f,empty,,,,,zfa: sets z flag and a <> 0
+;,equal,x8,,,x,sub8_reg_reg,,a,a;b;c;d;e;h;l,zfa,a;f,empty,,,,,zfa: sets z flag and a <> 0
+;,equal,m16u16,,branch,x,:equal_m16,,hl,de,zf,a;h;l;f,empty,,,,,
+;,equal,m16s16,,branch,x,:equal_m16,,hl,de,zf,a;h;l;f,empty,,,,,
+;,equal,m16u16,,,x,:equal_m16,,hl,de,zf,a;h;l;f,empty,,,,,
+;,equal,m16s16,,,x,:equal_m16,,hl,de,zf,a;h;l;f,empty,,,,,
+;,equal,x16,,branch,x,:comp_u16,,hl,de,zf,a;f,empty,,,,,
+;,equal,x16,,,x,:comp_u16,,hl,de,zf,a;f,empty,,,,,
+;,equal,boolean,,branch,x,xor8ri,,a,i,zf,f,empty,,,,,
+;,equal,boolean,,branch,x,xor8rr,,a,a;b;c;d;e;h;l,zf,f,empty,,,,,
+;,equal,boolean,,,x,xor8ri,,a,i,cpla,f,empty,,,,,Result in complement (invert) of A
+;,equal,boolean,,,x,xor8rr,,a,a;b;c;d;e;h;l,cpla,f,empty,,,,,Result in complement (invert) of A
+;,notequal,x8,,branch,x,compare8i,,a,i,nzf,f,empty,,,,,For branches - only sets flag
+;,notequal,x8,,branch,x,compare8r,,a,a;b;c;d;e;h;l,nzf,f,empty,,,,,For branches - only sets flag
+;,notequal,x8,,,x,sub8_reg_imm,,a,i,nzfa,a;f,empty,,,,,zfa: sets z flag and a <> 0
+;,notequal,x8,,,x,sub8_reg_reg,,a,a;b;c;d;e;h;l,nzfa,a;f,empty,,,,,zfa: sets z flag and a <> 0
+;,notequal,m16u16,,branch,x,:equal_m16,,hl,de,nzf,a;h;l;f,empty,,,,,
+;,notequal,m16s16,,branch,x,:equal_m16,,hl,de,nzf,a;h;l;f,empty,,,,,
+;,notequal,m16u16,,,x,:equal_m16,,hl,de,nzf,a;h;l;f,empty,,,,,
+;,notequal,m16s16,,,x,:equal_m16,,hl,de,nzf,a;h;l;f,empty,,,,,
+;,notequal,x16,,branch,x,:comp_u16,,hl,de,nzf,a;f,empty,,,,,
+;,notequal,x16,,,x,:comp_u16,,hl,de,nzf,a;f,empty,,,,,
+;,notequal,boolean,,branch,x,xor8ri,,a,i,nzf,f,empty,,,,,
+;,notequal,boolean,,branch,x,xor8rr,,a,a;b;c;d;e;h;l,nzf,f,empty,,,,,
+;,notequal,boolean,,,x,xor8ri,,a,i,a,f,empty,,,,,Result is raw value of A
+;,notequal,boolean,,,x,xor8rr,,a,a;b;c;d;e;h;l,a,f,empty,,,,,Result is raw value of A
 ;,,,,,,,,,,,,,,,,,
-,less,u8,,branch,x,compare8i,,a,i,cf,f,empty,,,,,
-,less,u8,,branch,x,compare8r,,a,a;b;c;d;e;h;l,cf,f,empty,,,,,
-,less,u8,,,x,compare8i,,a,i,cf,f,empty,,,,,
-,less,u8,,,x,compare8r,,a,a;b;c;d;e;h;l,cf,f,empty,,,,,
-,less,u16,,branch,x,:comp_u16,,hl,de,cf,a;f,empty,,,,,
-,less,u16,,,x,:comp_u16,,hl,de,cf,a;f,empty,,,,,
-,less,s16,,branch,x,:comp_s16,,hl,de,cf,a;f;d,empty,,,,,
-,less,s16,,,x,:comp_s16,,hl,de,cf,a;f;d,empty,,,,,
-,less,x16,u,branch,x,:comp_u16_s16,,hl,de,cf,a;h;l;f,empty,,,,,
-,less,x16,u,,x,:comp_u16_s16,,hl,de,cf,a;h;l;f,empty,,,,,
-,less,x16,s,branch,x,:comp_s16_u16,,hl,de,cf,a;h;l;f,empty,,,,,
-,less,x16,s,,x,:comp_s16_u16,,hl,de,cf,a;h;l;f,empty,,,,,
-,less,boolean,,branch,x,compare8i,,a,i,cf,f,empty,,,,,
-,less,boolean,,branch,x,compare8r,,a,a;b;c;d;e;h;l,cf,f,empty,,,,,
-,less,boolean,,,x,bool_less8i,,a,i,a,f,empty,,,,,
-,less,boolean,,,x,bool_less8r,,a,a;b;c;d;e;h;l,a,f,empty,,,,,
+;,less,u8,,branch,x,compare8i,,a,i,cf,f,empty,,,,,
+;,less,u8,,branch,x,compare8r,,a,a;b;c;d;e;h;l,cf,f,empty,,,,,
+;,less,u8,,,x,compare8i,,a,i,cf,f,empty,,,,,
+;,less,u8,,,x,compare8r,,a,a;b;c;d;e;h;l,cf,f,empty,,,,,
+;,less,u16,,branch,x,:comp_u16,,hl,de,cf,a;f,empty,,,,,
+;,less,u16,,,x,:comp_u16,,hl,de,cf,a;f,empty,,,,,
+;,less,s16,,branch,x,:comp_s16,,hl,de,cf,a;f;d,empty,,,,,
+;,less,s16,,,x,:comp_s16,,hl,de,cf,a;f;d,empty,,,,,
+;,less,x16,u,branch,x,:comp_u16_s16,,hl,de,cf,a;h;l;f,empty,,,,,
+;,less,x16,u,,x,:comp_u16_s16,,hl,de,cf,a;h;l;f,empty,,,,,
+;,less,x16,s,branch,x,:comp_s16_u16,,hl,de,cf,a;h;l;f,empty,,,,,
+;,less,x16,s,,x,:comp_s16_u16,,hl,de,cf,a;h;l;f,empty,,,,,
+;,less,boolean,,branch,x,compare8i,,a,i,cf,f,empty,,,,,
+;,less,boolean,,branch,x,compare8r,,a,a;b;c;d;e;h;l,cf,f,empty,,,,,
+;,less,boolean,,,x,bool_less8i,,a,i,a,f,empty,,,,,
+;,less,boolean,,,x,bool_less8r,,a,a;b;c;d;e;h;l,a,f,empty,,,,,
 ;,,,,,,,,,,,,,,,,,
-,greaterequal,u8,,branch,x,compare8i,,a,i,ncf,f,empty,,,,,
-,greaterequal,u8,,branch,x,compare8r,,a,a;b;c;d;e;h;l,ncf,f,empty,,,,,
-,greaterequal,u8,,,x,compare8i,,a,i,ncf,f,empty,,,,,
-,greaterequal,u8,,,x,compare8r,,a,a;b;c;d;e;h;l,ncf,f,empty,,,,,
-,greaterequal,u16,,branch,x,:comp_u16,,hl,de,ncf,a;f,empty,,,,,
-,greaterequal,u16,,,x,:comp_u16,,hl,de,ncf,a;f,empty,,,,,
-,greaterequal,s16,,branch,x,:comp_s16,,hl,de,ncf,a;f;d,empty,,,,,
-,greaterequal,s16,,,x,:comp_s16,,hl,de,ncf,a;f;d,empty,,,,,
-,greaterequal,x16,u,branch,x,:comp_u16_s16,,hl,de,ncf,a;h;l;f,empty,,,,,
-,greaterequal,x16,u,,x,:comp_u16_s16,,hl,de,ncf,a;h;l;f,empty,,,,,
-,greaterequal,x16,s,branch,x,:comp_s16_u16,,hl,de,ncf,a;h;l;f,empty,,,,,
-,greaterequal,x16,s,,x,:comp_s16_u16,,hl,de,ncf,a;h;l;f,empty,,,,,
-,greaterequal,boolean,,branch,x,compare8i,,a,i,ncf,f,empty,,,,,
-,greaterequal,boolean,,branch,x,compare8r,,a,a;b;c;d;e;h;l,ncf,f,empty,,,,,
-,greaterequal,boolean,,,x,bool_greaterequal8i,,i,a,a,f,empty,,,,,
-,greaterequal,boolean,,,x,bool_greaterequal8r,,b;c;d;e;h;l,a,a,f,empty,,,,,Note: A should be an option for Param1 but current allocator allocates Param1 first and breaks here.
+;,greaterequal,u8,,branch,x,compare8i,,a,i,ncf,f,empty,,,,,
+;,greaterequal,u8,,branch,x,compare8r,,a,a;b;c;d;e;h;l,ncf,f,empty,,,,,
+;,greaterequal,u8,,,x,compare8i,,a,i,ncf,f,empty,,,,,
+;,greaterequal,u8,,,x,compare8r,,a,a;b;c;d;e;h;l,ncf,f,empty,,,,,
+;,greaterequal,u16,,branch,x,:comp_u16,,hl,de,ncf,a;f,empty,,,,,
+;,greaterequal,u16,,,x,:comp_u16,,hl,de,ncf,a;f,empty,,,,,
+;,greaterequal,s16,,branch,x,:comp_s16,,hl,de,ncf,a;f;d,empty,,,,,
+;,greaterequal,s16,,,x,:comp_s16,,hl,de,ncf,a;f;d,empty,,,,,
+;,greaterequal,x16,u,branch,x,:comp_u16_s16,,hl,de,ncf,a;h;l;f,empty,,,,,
+;,greaterequal,x16,u,,x,:comp_u16_s16,,hl,de,ncf,a;h;l;f,empty,,,,,
+;,greaterequal,x16,s,branch,x,:comp_s16_u16,,hl,de,ncf,a;h;l;f,empty,,,,,
+;,greaterequal,x16,s,,x,:comp_s16_u16,,hl,de,ncf,a;h;l;f,empty,,,,,
+;,greaterequal,boolean,,branch,x,compare8i,,a,i,ncf,f,empty,,,,,
+;,greaterequal,boolean,,branch,x,compare8r,,a,a;b;c;d;e;h;l,ncf,f,empty,,,,,
+;,greaterequal,boolean,,,x,bool_greaterequal8i,,i,a,a,f,empty,,,,,
+;,greaterequal,boolean,,,x,bool_greaterequal8r,,b;c;d;e;h;l,a,a,f,empty,,,,,Note: A should be an option for Param1 but current allocator allocates Param1 first and breaks here.
 ;,,,,,,,,,,,,,,,,,
-,greater,u8,,branch,x,compare8i_swap,,i,a,cf,f,empty,,,,,
-,greater,u8,,branch,x,compare8r_swap,,b;c;d;e;h;l,a,cf,f,empty,,,,,Note: A should be an option for Param1 but current allocator allocates Param1 first and breaks here.
-,greater,u8,,,x,compare8i_swap,,i,a,cf,f,empty,,,,,
-,greater,u8,,,x,compare8r_swap,,b;c;d;e;h;l,a,cf,f,empty,,,,,Note: A should be an option for Param1 but current allocator allocates Param1 first and breaks here.
-,greater,u16,,branch,x,:comp_u16,,de,hl,cf,a;f,empty,,,,,
-,greater,u16,,,x,:comp_u16,,de,hl,cf,a;f,empty,,,,,
-,greater,s16,,branch,x,:comp_s16,,de,hl,cf,a;f;d,empty,,,,,
-,greater,s16,,,x,:comp_s16,,de,hl,cf,a;f;d,empty,,,,,
-,greater,x16,s,branch,x,:comp_u16_s16,,de,hl,cf,a;h;l;f,empty,,,,,
-,greater,x16,s,,x,:comp_u16_s16,,de,hl,cf,a;h;l;f,empty,,,,,
-,greater,x16,u,branch,x,:comp_s16_u16,,de,hl,cf,a;h;l;f,empty,,,,,
-,greater,x16,u,,x,:comp_s16_u16,,de,hl,cf,a;h;l;f,empty,,,,,
-,greater,boolean,,branch,x,compare8i_swap,,i,a,cf,f,empty,,,,,
-,greater,boolean,,branch,x,compare8r_swap,,b;c;d;e;h;l,a,cf,f,empty,,,,,Note: A should be an option for Param1 but current allocator allocates Param1 first and breaks here.
-,greater,boolean,,,x,bool_greater8i,,i,a,a,f,empty,,,,,
-,greater,boolean,,,x,bool_greater8r,,b;c;d;e;h;l,a,a,f,empty,,,,,Note: A should be an option for Param1 but current allocator allocates Param1 first and breaks here.
+;,greater,u8,,branch,x,compare8i_swap,,i,a,cf,f,empty,,,,,
+;,greater,u8,,branch,x,compare8r_swap,,b;c;d;e;h;l,a,cf,f,empty,,,,,Note: A should be an option for Param1 but current allocator allocates Param1 first and breaks here.
+;,greater,u8,,,x,compare8i_swap,,i,a,cf,f,empty,,,,,
+;,greater,u8,,,x,compare8r_swap,,b;c;d;e;h;l,a,cf,f,empty,,,,,Note: A should be an option for Param1 but current allocator allocates Param1 first and breaks here.
+;,greater,u16,,branch,x,:comp_u16,,de,hl,cf,a;f,empty,,,,,
+;,greater,u16,,,x,:comp_u16,,de,hl,cf,a;f,empty,,,,,
+;,greater,s16,,branch,x,:comp_s16,,de,hl,cf,a;f;d,empty,,,,,
+;,greater,s16,,,x,:comp_s16,,de,hl,cf,a;f;d,empty,,,,,
+;,greater,x16,s,branch,x,:comp_u16_s16,,de,hl,cf,a;h;l;f,empty,,,,,
+;,greater,x16,s,,x,:comp_u16_s16,,de,hl,cf,a;h;l;f,empty,,,,,
+;,greater,x16,u,branch,x,:comp_s16_u16,,de,hl,cf,a;h;l;f,empty,,,,,
+;,greater,x16,u,,x,:comp_s16_u16,,de,hl,cf,a;h;l;f,empty,,,,,
+;,greater,boolean,,branch,x,compare8i_swap,,i,a,cf,f,empty,,,,,
+;,greater,boolean,,branch,x,compare8r_swap,,b;c;d;e;h;l,a,cf,f,empty,,,,,Note: A should be an option for Param1 but current allocator allocates Param1 first and breaks here.
+;,greater,boolean,,,x,bool_greater8i,,i,a,a,f,empty,,,,,
+;,greater,boolean,,,x,bool_greater8r,,b;c;d;e;h;l,a,a,f,empty,,,,,Note: A should be an option for Param1 but current allocator allocates Param1 first and breaks here.
 ;,,,,,,,,,,,,,,,,,
-,lessequal,u8,,branch,x,compare8i_swap,,i,a,ncf,f,empty,,,,,
-,lessequal,u8,,branch,x,compare8r_swap,,b;c;d;e;h;l,a,ncf,f,empty,,,,,Note: A should be an option for Param1 but current allocator allocates Param1 first and breaks here.
-,lessequal,u8,,,x,compare8i_swap,,i,a,ncf,f,empty,,,,,
-,lessequal,u8,,,x,compare8r_swap,,b;c;d;e;h;l,a,ncf,f,empty,,,,,Note: A should be an option for Param1 but current allocator allocates Param1 first and breaks here.
-,lessequal,u16,,branch,x,:comp_u16,,de,hl,ncf,a;f,empty,,,,,
-,lessequal,u16,,,x,:comp_u16,,de,hl,ncf,a;f,empty,,,,,
-,lessequal,s16,,branch,x,:comp_s16,,de,hl,ncf,a;f;d,empty,,,,,
-,lessequal,s16,,,x,:comp_s16,,de,hl,ncf,a;f;d,empty,,,,,
-,lessequal,x16,s,branch,x,:comp_u16_s16,,de,hl,ncf,a;h;l;f,empty,,,,,
-,lessequal,x16,s,,x,:comp_u16_s16,,de,hl,ncf,a;h;l;f,empty,,,,,
-,lessequal,x16,u,branch,x,:comp_s16_u16,,de,hl,ncf,a;h;l;f,empty,,,,,
-,lessequal,x16,u,,x,:comp_s16_u16,,de,hl,ncf,a;h;l;f,empty,,,,,
-,lessequal,boolean,,branch,x,compare8i_swap,,i,a,ncf,f,empty,,,,,
-,lessequal,boolean,,branch,x,compare8r_swap,,b;c;d;e;h;l,a,ncf,f,empty,,,,,Note: A should be an option for Param1 but current allocator allocates Param1 first and breaks here.
-,lessequal,boolean,,,x,bool_lessequal8i,,a,i,a,f,empty,,,,,
-,lessequal,boolean,,,x,bool_lessequal8r,,a,a;b;c;d;e;h;l,a,f,empty,,,,,
+;,lessequal,u8,,branch,x,compare8i_swap,,i,a,ncf,f,empty,,,,,
+;,lessequal,u8,,branch,x,compare8r_swap,,b;c;d;e;h;l,a,ncf,f,empty,,,,,Note: A should be an option for Param1 but current allocator allocates Param1 first and breaks here.
+;,lessequal,u8,,,x,compare8i_swap,,i,a,ncf,f,empty,,,,,
+;,lessequal,u8,,,x,compare8r_swap,,b;c;d;e;h;l,a,ncf,f,empty,,,,,Note: A should be an option for Param1 but current allocator allocates Param1 first and breaks here.
+;,lessequal,u16,,branch,x,:comp_u16,,de,hl,ncf,a;f,empty,,,,,
+;,lessequal,u16,,,x,:comp_u16,,de,hl,ncf,a;f,empty,,,,,
+;,lessequal,s16,,branch,x,:comp_s16,,de,hl,ncf,a;f;d,empty,,,,,
+;,lessequal,s16,,,x,:comp_s16,,de,hl,ncf,a;f;d,empty,,,,,
+;,lessequal,x16,s,branch,x,:comp_u16_s16,,de,hl,ncf,a;h;l;f,empty,,,,,
+;,lessequal,x16,s,,x,:comp_u16_s16,,de,hl,ncf,a;h;l;f,empty,,,,,
+;,lessequal,x16,u,branch,x,:comp_s16_u16,,de,hl,ncf,a;h;l;f,empty,,,,,
+;,lessequal,x16,u,,x,:comp_s16_u16,,de,hl,ncf,a;h;l;f,empty,,,,,
+;,lessequal,boolean,,branch,x,compare8i_swap,,i,a,ncf,f,empty,,,,,
+;,lessequal,boolean,,branch,x,compare8r_swap,,b;c;d;e;h;l,a,ncf,f,empty,,,,,Note: A should be an option for Param1 but current allocator allocates Param1 first and breaks here.
+;,lessequal,boolean,,,x,bool_lessequal8i,,a,i,a,f,empty,,,,,
+;,lessequal,boolean,,,x,bool_lessequal8r,,a,a;b;c;d;e;h;l,a,f,empty,,,,,
 ;,,,,,,,,,,,,,,,,,
 ;,Boolean operators,,,,,,,,,,,,,,,,
 ;,,,,,,,,,,,,,,,,,
 ;,Name,OpType,FirstParamType,DestType,Validation,Exec,,Param1,Param2,Dest,Corrupts,Validate,s8,u8,s16,u16,Notes
-,or,u8,,,x,or8ri,,a,i,a,f,empty,,,,,The way we're storing Booleans means we use the same code for bitwise and logical operations
-,or,u8,,,x,or8rr,,a,a;b;c;d;e;h;l,a,f,empty,,,,,The way we're storing Booleans means we use the same code for bitwise and logical operations
-,or,s8,,,x,or8ri,,a,i,a,f,empty,,,,,The way we're storing Booleans means we use the same code for bitwise and logical operations
-,or,s8,,,x,or8rr,,a,a;b;c;d;e;h;l,a,f,empty,,,,,The way we're storing Booleans means we use the same code for bitwise and logical operations
-,or,u16,,,x,or16ri,,hl;de;bc,i,p1,a;f,empty,,,,,
-,or,u16,,,x,or16rr,,hl;de;bc,hl;de;bc,p1,a;f,empty,,,,,
-,or,s16,,,x,or16ri,,hl;de;bc,i,p1,a;f,empty,,,,,
-,or,s16,,,x,or16rr,,hl;de;bc,hl;de;bc,p1,a;f,empty,,,,,
-,or,m16s16,,,x,or16ri,,hl;de;bc,i,p1,a;f,empty,,,,,
-,or,m16s16,,,x,or16rr,,hl;de;bc,hl;de;bc,p1,a;f,empty,,,,,
-,or,m16u16,,,x,or16ri,,hl;de;bc,i,p1,a;f,empty,,,,,
-,or,m16u16,,,x,or16rr,,hl;de;bc,hl;de;bc,p1,a;f,empty,,,,,
-,or,boolean,,,x,or8ri,,a,i,a,f,empty,,,,,
-,or,boolean,,,x,or8rr,,a,a;b;c;d;e;h;l,a,f,empty,,,,,
+;,or,u8,,,x,or8ri,,a,i,a,f,empty,,,,,The way we're storing Booleans means we use the same code for bitwise and logical operations
+;,or,u8,,,x,or8rr,,a,a;b;c;d;e;h;l,a,f,empty,,,,,The way we're storing Booleans means we use the same code for bitwise and logical operations
+;,or,s8,,,x,or8ri,,a,i,a,f,empty,,,,,The way we're storing Booleans means we use the same code for bitwise and logical operations
+;,or,s8,,,x,or8rr,,a,a;b;c;d;e;h;l,a,f,empty,,,,,The way we're storing Booleans means we use the same code for bitwise and logical operations
+;,or,u16,,,x,or16ri,,hl;de;bc,i,p1,a;f,empty,,,,,
+;,or,u16,,,x,or16rr,,hl;de;bc,hl;de;bc,p1,a;f,empty,,,,,
+;,or,s16,,,x,or16ri,,hl;de;bc,i,p1,a;f,empty,,,,,
+;,or,s16,,,x,or16rr,,hl;de;bc,hl;de;bc,p1,a;f,empty,,,,,
+;,or,m16s16,,,x,or16ri,,hl;de;bc,i,p1,a;f,empty,,,,,
+;,or,m16s16,,,x,or16rr,,hl;de;bc,hl;de;bc,p1,a;f,empty,,,,,
+;,or,m16u16,,,x,or16ri,,hl;de;bc,i,p1,a;f,empty,,,,,
+;,or,m16u16,,,x,or16rr,,hl;de;bc,hl;de;bc,p1,a;f,empty,,,,,
+;,or,boolean,,,x,or8ri,,a,i,a,f,empty,,,,,
+;,or,boolean,,,x,or8rr,,a,a;b;c;d;e;h;l,a,f,empty,,,,,
 ;,,,,,,,,,,,,,,,,,
-,and,u8,,,x,and8ri,,a,i,a,f,empty,,,,,The way we're storing Booleans means we use the same code for bitwise and logical operations
-,and,u8,,,x,and8rr,,a,a;b;c;d;e;h;l,a,f,empty,,,,,The way we're storing Booleans means we use the same code for bitwise and logical operations
-,and,s8,,,x,and8ri,,a,i,a,f,empty,,,,,The way we're storing Booleans means we use the same code for bitwise and logical operations
-,and,s8,,,x,and8rr,,a,a;b;c;d;e;h;l,a,f,empty,,,,,The way we're storing Booleans means we use the same code for bitwise and logical operations
-,and,u16,,,x,and16ri,,hl;de;bc,i,p1,a;f,empty,,,,,
-,and,u16,,,x,and16rr,,hl;de;bc,hl;de;bc,p1,a;f,empty,,,,,
-,and,s16,,,x,and16ri,,hl;de;bc,i,p1,a;f,empty,,,,,
-,and,s16,,,x,and16rr,,hl;de;bc,hl;de;bc,p1,a;f,empty,,,,,
-,and,m16s16,,,x,and16ri,,hl;de;bc,i,p1,a;f,empty,,,,,
-,and,m16s16,,,x,and16rr,,hl;de;bc,hl;de;bc,p1,a;f,empty,,,,,
-,and,m16u16,,,x,and16ri,,hl;de;bc,i,p1,a;f,empty,,,,,
-,and,m16u16,,,x,and16rr,,hl;de;bc,hl;de;bc,p1,a;f,empty,,,,,
-,and,boolean,,,x,and8ri,,a,i,a,f,empty,,,,,
-,and,boolean,,,x,and8rr,,a,a;b;c;d;e;h;l,a,f,empty,,,,,
+;,and,u8,,,x,and8ri,,a,i,a,f,empty,,,,,The way we're storing Booleans means we use the same code for bitwise and logical operations
+;,and,u8,,,x,and8rr,,a,a;b;c;d;e;h;l,a,f,empty,,,,,The way we're storing Booleans means we use the same code for bitwise and logical operations
+;,and,s8,,,x,and8ri,,a,i,a,f,empty,,,,,The way we're storing Booleans means we use the same code for bitwise and logical operations
+;,and,s8,,,x,and8rr,,a,a;b;c;d;e;h;l,a,f,empty,,,,,The way we're storing Booleans means we use the same code for bitwise and logical operations
+;,and,u16,,,x,and16ri,,hl;de;bc,i,p1,a;f,empty,,,,,
+;,and,u16,,,x,and16rr,,hl;de;bc,hl;de;bc,p1,a;f,empty,,,,,
+;,and,s16,,,x,and16ri,,hl;de;bc,i,p1,a;f,empty,,,,,
+;,and,s16,,,x,and16rr,,hl;de;bc,hl;de;bc,p1,a;f,empty,,,,,
+;,and,m16s16,,,x,and16ri,,hl;de;bc,i,p1,a;f,empty,,,,,
+;,and,m16s16,,,x,and16rr,,hl;de;bc,hl;de;bc,p1,a;f,empty,,,,,
+;,and,m16u16,,,x,and16ri,,hl;de;bc,i,p1,a;f,empty,,,,,
+;,and,m16u16,,,x,and16rr,,hl;de;bc,hl;de;bc,p1,a;f,empty,,,,,
+;,and,boolean,,,x,and8ri,,a,i,a,f,empty,,,,,
+;,and,boolean,,,x,and8rr,,a,a;b;c;d;e;h;l,a,f,empty,,,,,
 ;,,,,,,,,,,,,,,,,,
-,xor,u8,,,x,xor8ri,,a,i,a,f,empty,,,,,The way we're storing Booleans means we use the same code for bitwise and logical operations
-,xor,u8,,,x,xor8rr,,a,a;b;c;d;e;h;l,a,f,empty,,,,,The way we're storing Booleans means we use the same code for bitwise and logical operations
-,xor,s8,,,x,xor8ri,,a,i,a,f,empty,,,,,The way we're storing Booleans means we use the same code for bitwise and logical operations
-,xor,s8,,,x,xor8rr,,a,a;b;c;d;e;h;l,a,f,empty,,,,,The way we're storing Booleans means we use the same code for bitwise and logical operations
-,xor,u16,,,x,xor16ri,,hl;de;bc,i,p1,a;f,empty,,,,,
-,xor,u16,,,x,xor16rr,,hl;de;bc,hl;de;bc,p1,a;f,empty,,,,,
-,xor,s16,,,x,xor16ri,,hl;de;bc,i,p1,a;f,empty,,,,,
-,xor,s16,,,x,xor16rr,,hl;de;bc,hl;de;bc,p1,a;f,empty,,,,,
-,xor,m16s16,,,x,xor16ri,,hl;de;bc,i,p1,a;f,empty,,,,,
-,xor,m16s16,,,x,xor16rr,,hl;de;bc,hl;de;bc,p1,a;f,empty,,,,,
-,xor,m16u16,,,x,xor16ri,,hl;de;bc,i,p1,a;f,empty,,,,,
-,xor,m16u16,,,x,xor16rr,,hl;de;bc,hl;de;bc,p1,a;f,empty,,,,,
-,xor,boolean,,,x,xor8ri,,a,i,a,f,empty,,,,,
-,xor,boolean,,,x,xor8rr,,a,a;b;c;d;e;h;l,a,f,empty,,,,,
+;,xor,u8,,,x,xor8ri,,a,i,a,f,empty,,,,,The way we're storing Booleans means we use the same code for bitwise and logical operations
+;,xor,u8,,,x,xor8rr,,a,a;b;c;d;e;h;l,a,f,empty,,,,,The way we're storing Booleans means we use the same code for bitwise and logical operations
+;,xor,s8,,,x,xor8ri,,a,i,a,f,empty,,,,,The way we're storing Booleans means we use the same code for bitwise and logical operations
+;,xor,s8,,,x,xor8rr,,a,a;b;c;d;e;h;l,a,f,empty,,,,,The way we're storing Booleans means we use the same code for bitwise and logical operations
+;,xor,u16,,,x,xor16ri,,hl;de;bc,i,p1,a;f,empty,,,,,
+;,xor,u16,,,x,xor16rr,,hl;de;bc,hl;de;bc,p1,a;f,empty,,,,,
+;,xor,s16,,,x,xor16ri,,hl;de;bc,i,p1,a;f,empty,,,,,
+;,xor,s16,,,x,xor16rr,,hl;de;bc,hl;de;bc,p1,a;f,empty,,,,,
+;,xor,m16s16,,,x,xor16ri,,hl;de;bc,i,p1,a;f,empty,,,,,
+;,xor,m16s16,,,x,xor16rr,,hl;de;bc,hl;de;bc,p1,a;f,empty,,,,,
+;,xor,m16u16,,,x,xor16ri,,hl;de;bc,i,p1,a;f,empty,,,,,
+;,xor,m16u16,,,x,xor16rr,,hl;de;bc,hl;de;bc,p1,a;f,empty,,,,,
+;,xor,boolean,,,x,xor8ri,,a,i,a,f,empty,,,,,
+;,xor,boolean,,,x,xor8rr,,a,a;b;c;d;e;h;l,a,f,empty,,,,,
 ;,,,,,,,,,,,,,,,,,
-,not,u8,,,x,cpla,,a,,a,f,empty,,,,,The way we're storing Booleans means we use the same code for bitwise and logical operations
-,not,s8,,,x,cpla,,a,,a,f,empty,,,,,The way we're storing Booleans means we use the same code for bitwise and logical operations
-,not,u16,,,x,not16rr,,hl;de;bc,,p1,a;f,empty,,,,,
-,not,s16,,,x,not16rr,,hl;de;bc,,p1,a;f,empty,,,,,
-,not,boolean,,,x,cpla,,a,,a,f,empty,,,,,
+;,not,u8,,,x,cpla,,a,,a,f,empty,,,,,The way we're storing Booleans means we use the same code for bitwise and logical operations
+;,not,s8,,,x,cpla,,a,,a,f,empty,,,,,The way we're storing Booleans means we use the same code for bitwise and logical operations
+;,not,u16,,,x,not16rr,,hl;de;bc,,p1,a;f,empty,,,,,
+;,not,s16,,,x,not16rr,,hl;de;bc,,p1,a;f,empty,,,,,
+;,not,boolean,,,x,cpla,,a,,a,f,empty,,,,,
 ;,,,,,,,,,,,,,,,,,
 ;,Name,OpType,FirstParamType,DestType,Validation,Exec,,Param1,Param2,Dest,Corrupts,Validate,s8,u8,s16,u16,Notes
 ,writechar,u8,,,x,:s_writechar,,a,,,,empty,,,,,Write character to output
@@ -271,21 +278,21 @@
 ;,,,,,,,,,,,,,,,,,
 ;,Typecasts,,,,,,,,,,,,,,,,
 ;,,,,,,,,,,,,,,,,,
-,integer,x8,,x16,x,assign_abs16_r8,,a;b;c;d;e;h;l,,absvar,a;f,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
-,integer,x8,,x16,x,assign_rel16_r8,,a;b;c;d;e;h;l,,relvar,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
+,integer,x8,,x16,x,assign_abs16_r8,deststaticvar,a;b;c;d;e;h;l,,,a;f,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
+,integer,x8,,x16,x,assign_rel16_r8,destrelvar,a;b;c;d;e;h;l,,,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
 ,integer,x16,,x16,x,empty,,hl;de;bc,,p1,,empty,empty,empty,empty,empty,
-,integer,boolean,,x16,x,assign_abs16_r8,,a;b;c;d;e;h;l,,absvar,a;f,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
-,integer,boolean,,x16,x,assign_rel16_r8,,a;b;c;d;e;h;l,,relvar,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
-,word,x8,,x16,x,assign_abs16_r8,,a;b;c;d;e;h;l,,absvar,a;f,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
-,word,x8,,x16,x,assign_rel16_r8,,a;b;c;d;e;h;l,,relvar,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
+,integer,boolean,,x16,x,assign_abs16_r8,deststaticvar,a;b;c;d;e;h;l,,,a;f,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
+,integer,boolean,,x16,x,assign_rel16_r8,destrelvar,a;b;c;d;e;h;l,,,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
+,word,x8,,x16,x,assign_abs16_r8,deststaticvar,a;b;c;d;e;h;l,,,a;f,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
+,word,x8,,x16,x,assign_rel16_r8,destrelvar,a;b;c;d;e;h;l,,,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
 ,word,x16,,x16,x,empty,,hl;de;bc,,p1,,empty,empty,empty,empty,empty,
-,word,boolean,,x16,x,assign_abs16_r8,,a;b;c;d;e;h;l,,absvar,a;f,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
-,word,boolean,,x16,x,assign_rel16_r8,,a;b;c;d;e;h;l,,relvar,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
-,pointer,x8,,x16,x,assign_abs16_r8,,a;b;c;d;e;h;l,,absvar,a;f,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
-,pointer,x8,,x16,x,assign_rel16_r8,,a;b;c;d;e;h;l,,relvar,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
+,word,boolean,,x16,x,assign_abs16_r8,deststaticvar,a;b;c;d;e;h;l,,,a;f,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
+,word,boolean,,x16,x,assign_rel16_r8,destrelvar,a;b;c;d;e;h;l,,,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
+,pointer,x8,,x16,x,assign_abs16_r8,deststaticvar,a;b;c;d;e;h;l,,,a;f,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
+,pointer,x8,,x16,x,assign_rel16_r8,destrelvar,a;b;c;d;e;h;l,,,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
 ,pointer,x16,,x16,x,empty,,hl;de;bc,,p1,,empty,empty,empty,empty,empty,
-,pointer,boolean,,x16,x,assign_abs16_r8,,a;b;c;d;e;h;l,,absvar,a;f,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
-,pointer,boolean,,x16,x,assign_rel16_r8,,a;b;c;d;e;h;l,,relvar,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
+,pointer,boolean,,x16,x,assign_abs16_r8,deststaticvar,a;b;c;d;e;h;l,,,a;f,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
+,pointer,boolean,,x16,x,assign_rel16_r8,destrelvar,a;b;c;d;e;h;l,,,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed
 ,int8,x8,,x8,x,empty,,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,
 ,int8,x16,,x8,x,empty,loadrplow,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,Typecast 16 bit to 8 bit. High byte will be ignored
 ,int8,boolean,,x8,x,empty,,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,

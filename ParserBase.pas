@@ -21,9 +21,9 @@ var Parser: TQuicheSourceReader;
 type TKeyword = (keyUNKNOWN,
   keyAND, keyBEGIN,
   keyCONST, keyDIV, keyDO, keyDOWNTO,
-  keyELSE, keyEND, keyEXTERN,keyFOR, keyFORWARD, keyFUNCTION,
+  keyELSE, keyEND, {keyEXTERN,} keyFOR, {keyFORWARD, }keyFUNCTION,
   keyIF, keyIN,
-  keyMOD, keyNOT, keyOR, keyOUT, keyPROCEDURE,
+  keyMOD, keyNOT, keyOR, keyPROCEDURE,
   keySHL, keySHR,
   keyTHEN, keyTO, keyVAR, keyXOR,
   keyFALSE, keyTRUE, keyMAXINT, keyMININT //These are Consts and shouldn't be here!
@@ -47,6 +47,13 @@ function TestForIdent(Ident: String): Boolean;
 //If found returns the type and consumes the characters,
 //if not returns vtUnknown and leaves the Parser unchanged
 function TestForTypeSymbol(out VarType: TVarType): TQuicheError;
+
+function TestSymbolFirst: Boolean;
+
+function ParseSymbol(out Ident: String): TQuicheError;
+
+//Is the next char to be consumed the start of an Identifier?
+function TestIdentFirst: Boolean;
 
 //Parses and returns an identifier.
 //If First is anything other than #0 this will be used as the first character
@@ -129,17 +136,16 @@ end;
 //Parsing
 
 
+function IdentToKeyword(Ident: String): TKeyword;
 const KeywordStrings: array[low(TKeyword)..high(TKeyword)] of String = (
   '',  //Placeholder for Unknown value
   'and', 'begin', 'const', 'div', 'do', 'downto',
-  'else', 'end', 'extern', 'for', 'forward', 'function',
+  'else', 'end', 'for', 'function',
   'if', 'in',
-  'mod', 'not', 'or', 'out', 'procedure',
+  'mod', 'not', 'or', 'procedure',
   'shl', 'shr',
   'then', 'to', 'var', 'xor',
   'false','true','maxint','minint');
-
-function IdentToKeyword(Ident: String): TKeyword;
 begin
   for Result := low(TKeyword) to high(TKeyword) do
     if CompareText(KeywordStrings[Result], Ident) = 0 then
@@ -189,6 +195,44 @@ begin
   end;
   Parser.Undo;
   EXIT(False);
+end;
+
+function TestSymbolFirst: Boolean;
+begin
+  Parser.SkipWhiteSpaceAll;
+  Result := Parser.TestChar in csSymbolFirst;
+end;
+
+function ParseSymbol(out Ident: String): TQuicheError;
+var Ch: Char;
+begin
+  Ident := '';
+
+  Parser.SkipWhiteSpaceAll;
+  Parser.Mark;
+
+  if not Parser.ReadChar(Ch) then
+    EXIT(Err(qeOperatorExpected));
+  if Ch in csSymbolFirst then
+    Ident := Ch
+  else
+    EXIT(Err(qeIdentifierExpected));
+
+  while True do
+  begin
+    Ch := Parser.TestChar;
+    if Ch in csSymbolOther then
+      Ident := Ident + Ch
+    else
+      EXIT(qeNone);
+    Parser.SkipChar;
+  end;
+end;
+
+function TestIdentFirst: Boolean;
+begin
+  Parser.SkipWhiteSpaceAll;
+  Result := Parser.TestChar in csIdentFirst;
 end;
 
 function ParseIdentifier(First: Char;out Ident: String): TQuicheError;

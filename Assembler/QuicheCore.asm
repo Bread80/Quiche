@@ -29,7 +29,13 @@ raise_error:
 		ld (last_error_code), a
 		pop hl
 		ld (last_error_addr),hl
+		ld hl,.error
+		call write_ascii7
+;.self:		
+;		jr .self
 		halt
+.error: 
+	db "Runtime erro","r"+$80
 		
 ;;==================================================MATHS
 
@@ -46,7 +52,7 @@ raise_error:
 ;B		-ve (1) >=$8000(1)	Overflow if result negative
 ;C		+ve (0) <$8000(0)	Overflow if result negative
 ;D		+ve (0) >=$8000(1)	Always overflow
-add_m16_s16_raise_errors:
+add16_s_u__s_raise_errors:
 	ld a,h					;Compare sign (signed) and size (unsigned)
 	xor d					;Also, clears carry
 	jp m,.always_or_never	;Case A or D
@@ -69,7 +75,7 @@ add_m16_s16_raise_errors:
 ;B		-ve (1) >=$8000(1)	Can't overflow
 ;C		+ve (0) <$8000(0)	Can't overflow
 ;D		+ve (0) >=$8000(1)	Overflow if carry
-add_m16_u16_raise_errors:
+add16_s_u__u_raise_errors:
 	bit 7,h					;Get sign of signed value
 	jr nz,.ov_if_notcarry	;Negative - Case A or B
 							
@@ -95,7 +101,7 @@ add_m16_u16_raise_errors:
 ;B		-ve (1) >=$8000(1)	Always overflow
 ;C		+ve (0) <$8000(0)	Can't overflow
 ;D		+ve (0) >=$8000(1)	Overflow if result +ve
-sub_s16_u16_s16_raise_errors:
+sub16_s_u__s_raise_errors:
 	ld a,h					;Compare sign (signed) and size (unsigned)
 	xor d					;Also, clears carry
 	jp p,.always_or_never	;Case B or C
@@ -122,7 +128,7 @@ sub_s16_u16_s16_raise_errors:
 ;B		>=$8000(1)	-ve (1)	Always overflow
 ;C		<$8000 (0)	+ve (0)	Can't overflow
 ;D		<$8000 (0)	-ve (1) Overflow if result -ve
-sub_u16_s16_s16_raise_errors:
+sub16_u_s__s_raise_errors:
 	ld a,h					;Compare sign (signed) and size (unsigned)
 	xor d					;Also, clears carry
 	jp p,.always_or_never	;Case B or C
@@ -150,7 +156,7 @@ sub_u16_s16_s16_raise_errors:
 ;B		-ve (1) >=$8000(1)	Always overflow
 ;C		+ve (0) <$8000(0)	Overflow if carry
 ;D		+ve (0) >=$8000(1)	Always overflow/Overflow if carry
-sub_s16_u16_u16_raise_errors:
+sub16_s_u__u_raise_errors:
 	bit 7,h					;Get sign of signed number
 	jr nz,raise_overflow	;Overflow if negative
 	and a					;Clear carry
@@ -169,7 +175,7 @@ sub_s16_u16_u16_raise_errors:
 ;B		>=$8000(1)	-ve (1)	Overflow if not carry
 ;C		<$8000 (0)	+ve (0)	Overflow if carry
 ;D		<$8000 (0)	-ve (1) Can't overflow
-sub_u16_s16_u16_raise_errors:
+sub16_u_s__u_raise_errors:
 	ld a,h					;Compare sign (signed) and size (unsigned)
 	xor d					;Also, clears carry
 	jp p,.can_overflow		;Case B or C
@@ -207,7 +213,7 @@ negate_s16:
 ;HL:=H*E
 ;Output: A,B,DE corrupt
 ;From: https://wikiti.brandonw.net/index.php?title=Z80_Routines:Math:Multiplication
-mult_h_e
+mult8_h_e__hl
    ld	d, 0				; Combining the overhead and
    sla	h					; optimised first iteration
    sbc	a, a
@@ -234,10 +240,10 @@ mult_h_e
 ;     D,E,H,L are not changed
 ;	  If the denominator is zero, jumps to raise_divbyzero and never returns
 ;From: http://z80-heaven.wikidot.com/math#toc14
-C_Div_D:
+div8_c_d__c_a:
 	ld a,d
 	and a
-	jr z,raise_divbyzero
+	jp z,raise_divbyzero
 	
     ld b,8
     xor a
@@ -258,7 +264,7 @@ unknown_maths_fixup:
         or      a               ;Is HL>=$8000? 
         jp      m,unknown_maths_fixup_B ;yes
         or      b               ;Do we need to invert (bit 7 of B set)
-        jp      m,negate_HL_and_test_if_INT
+        jp      m,negate_HL_with_overflow
         scf                    	;Success
         ret                		 
 
@@ -281,11 +287,11 @@ unknown_maths_fixup_B:            ;HL=negative value. A is copy of H
 ;If overflow, returns CF clear
 ;	otherwise returns CF set (opposite of unsigned routine)
 ;Corrupts AF, B, DE registers
-multiply_s16_u16_s16:
+mult16_s_u__s:
 		ld b,h					;Negate result flag
 		bit 7,b
-		call nz,negate_HL_and_test_if_INT
-		call do_16x16_multiply_with_overflow
+		call nz,negate_HL_with_overflow
+		call mult16_u_u__u
 		jp nc,unknown_maths_fixup
 		or $ff					;Overflow - Clear carry
 		ret
@@ -295,11 +301,11 @@ multiply_s16_u16_s16:
 ;If overflow, returns CF clear
 ;	otherwise returns CF set (opposite of unsigned routine)
 ;Corrupts AF, B, DE registers
-multiply_s16_u16_u16:
+mult16_s_u__u:
 		ld b,h					;Negate result flag
 		bit 7,b
-		call nz,negate_HL_and_test_if_INT
-		call do_16x16_multiply_with_overflow
+		call nz,negate_HL_with_overflow
+		call mult16_u_u__u
 		jp nc,.error_if_negative
 		or $ff					;Overflow - Clear carry
 		ret
@@ -320,9 +326,9 @@ multiply_s16_u16_u16:
 ;If overflow, returns CF clear
 ;	otherwise returns CF set (opposite of unsigned routine)
 ;Corrupts AF, B, DE registers
-INT_multiply_with_overflow_test:
+mult16_s_s__s:
         call    make_both_operands_positive
-        call    do_16x16_multiply_with_overflow	;Returns CF set if overflow
+        call    mult16_u_u__u	;Returns CF set if overflow
         jp      nc,unknown_maths_fixup	;negate result if needed (B reg), and test for overflow
         or      $ff              
         ret                      ;Clear carry 
@@ -342,7 +348,7 @@ make_both_operands_positive:
 ;If overflow, returns CF set
 ;	otherwise, CF clear
 ;Corrupts AF, DE registers
-do_16x16_multiply_with_overflow: 
+mult16_u_u__u: 
         ld      a,h              
         or      a               ;H=0?
         jr      z,.h_zero
@@ -403,33 +409,33 @@ do_16x16_multiply_with_overflow:
 ;B register stores the sign flag (i.e. bit 7)
 
 ;HL(signed) := HL(unsigned) / DE(signed)
-div_u16_s16_s16:
+div16_u_s__s:
 		ld b,d					;Invert flag
 		call div_mod_invert_param2
 		jr do_div_to_s16
 
 ;HL(signed) := HL(signed) / DE(unsigned)
-div_s16_u16_s16:
+div16_s_u__s:
 		ld b,h					;Invert flag
 		call negate_HL_if_negative_and_test_if_INT
 do_div_to_s16:		
-		call unsigned16_division		;Do the division
+		call div16_u_u__u		;Do the division
 div_mod_done_s16:
 		jp c,unknown_maths_fixup	;Invert if necessary
 		ret
 	
 ;HL(unsigned) := HL(signed) / DE(unsigned)
-div_s16_u16_u16:
+div16_s_u__u:
 		ld b,h
 		call negate_HL_if_negative_and_test_if_INT
 		jr do_div_to_u16
 
 ;HL(unsigned) := HL(unsigned) / DE(signed)
-div_u16_s16_u16:
+div16_u_s__u:
 		ld b,d					;Get sign of signed parameter
 		call div_mod_invert_param2
 do_div_to_u16:
-		call unsigned16_division		;Do the division
+		call div16_u_u__u		;Do the division
 do_mod_to_u16:					;Resurns an error if result is negative (ie is B is negative)
 								;but /not/ if HL is zero
 		ld a,h					;If result is zero, no overflow
@@ -449,30 +455,30 @@ do_mod_to_u16:					;Resurns an error if result is negative (ie is B is negative)
 ;HL if the first parameter is signed
 
 ;DE(signed) := HL(unsigned) mod DE(signed)
-mod_u16_s16_s16:
+mod16_u_s__s:
 		call div_mod_invert_param2
-		jr unsigned16_division			;Divide and return
+		jr div16_u_u__u			;Divide and return
 				
 ;HL(signed) := HL(signed) mod DE(unsigned)
-mod_s16_u16_s16:
+mod16_s_u__s:
 		ld b,h					;Invert flag
 		call negate_HL_if_negative_and_test_if_INT
-		call unsigned16_division
+		call div16_u_u__u
 		ex hl,de
 		jr div_mod_done_s16		;Error check
 	
 ;HL(unsigned) := HL(signed) mod DE(unsigned)
-mod_s16_u16_u16:
+mod16_s_u__u:
 		ld b,h					;Invert flag
 		call negate_HL_if_negative_and_test_if_INT
-		call unsigned16_division
+		call div16_u_u__u
 		ex hl,de
 		jr do_mod_to_u16		;Error check
 		
 ;DE(unsigned) := HL(unsigned) mod DE(signed)
-mod_u16_s16_u16:
+mod16_u_s__u:
 		call div_mod_invert_param2
-		jr unsigned16_division
+		jr div16_u_u__u
 
 div_mod_invert_param2:
 		ex hl,de
@@ -482,14 +488,14 @@ div_mod_invert_param2:
 		
 
 ;;INTeger (signed) division
-INT_division:  
+div16_s_s__s: 
         call    _int_modulo_5      
 _int_division_1:
         jp      c,unknown_maths_fixup 
         ret                        
 
 ;;=INT modulo
-INT_modulo:                       
+mod16_s_s__s:                       
         ld      c,h            	;Preserve H to use as invert flag   
 									;(In Pascal mod result is always positive)
         call    _int_modulo_5      
@@ -506,7 +512,7 @@ _int_modulo_5:
 ;		 DE is remainder
 ;Returns with Carry set (i.e. success)
 ;If DE is zero, raises Division By Zero error and never returns
-unsigned16_division:               
+div16_u_u__u:               
         ld      a,d         	;Test for division by zero  
         or      e                 
         jp      z,raise_divbyzero
@@ -555,17 +561,33 @@ _int_modulo_42:
 _int_modulo_45:                  
         dec     a                 
         jr      nz,_int_modulo_36	;Loop
-        scf                       
+        scf                        
         pop     bc                
         ret                       
 
 ;;--------------------------------------------------------------
 abs_hl_with_overflow
 		bit 7,h
-		jr nz,negate_HL_and_test_if_INT
+		jr nz,negate_HL_with_overflow
 		scf
 		ret
 		
+;=negate HL and test for overflow
+;Result will overflow if input >= 32769
+;Entry: HL is unsiged 16
+;Exit: HL is signed 16
+negate_u16_with_overflow:
+	ld a,h
+	add a						;Bit 15 to carry
+	jr nc,negate_HL_with_overflow	;If bit 15 clear result will be good
+								;If bit 15 high only valid value is $8000 (32768)
+								;which inverts to -32768 ($8000). Unchanged!
+								;We just test if bits 14..0 are zero. If so good, if not overflow
+	or l						;Left shift. If A,L are both now zero result will be good
+	ret nz						;Carry cleared by OR
+	scf
+	ret							
+
 ;;=negate HL if negative and test if INT
 negate_HL_if_negative_and_test_if_INT:
         ld      a,h                
@@ -575,12 +597,12 @@ negate_HL_if_negative_and_test_if_INT:
 ;;=negate HL and test if INT
 ;HL = -HL, then test if it's a valid INT value
 ;Returns NC if the result is not a valid INT
-negate_HL_and_test_if_INT:        
+negate_HL_with_overflow:        
         xor     a                 ;A :=0 
         sub     l                 ;AL:=-L 
         ld      l,a               ;L := -L
         sbc     a,h               ;A := -L - H
-        sub     l                 ;A := -L - H - L
+        sub     l                 ;A := -L - H - (- L)
         cp      h                 ;Test for 32768? i.e. possible overflow (depending on use case) 
         ld      h,a                
         scf                       
@@ -591,32 +613,28 @@ negate_HL_and_test_if_INT:
 		
 
 ;Left shift an 8-bit value by a 16-bit count
-;Input: C: Value to be shifted
-;		A: High byte of shift count
-;		B: Low byte of shift count
+;Input: A: Value to be shifted
+;		BC: Shift count
 ;Output: A: Shifted value
-;		 F,B corrupt
-;		 C preserved
+;		 F,BC corrupt
 left_shift_8_by_16:
-	and a
-	jr nz,shift_oversize_8  ;Value too large - return zero
+	dec b					;Is B <> 0?
+	inc b
+	jr nz,shift_oversize_8    ;Value too large - return zero
+	ld b,c
 
 ;Left shift an 8-bit value by a 8-bit count
-;Input: C: Value to be shifted
+;Input: A: Value to be shifted
 ;		B: Shift count
 ;Output: A: Shifted value
 ;		 F,B corrupt
-;		 C preserved
 left_shift_8_by_8
-	ld a,b
-	cp 8					;Result will be zero
-	jr nc,shift_oversize_8
+	dec b					;Test if shift count is zero
+	inc b
+	ret z					;No change
 
-	and b
-	ld a,c
-	ret z					;Shift count is zero
 .loop
-		add a
+	add a
 	djnz .loop
 	ret
 
@@ -625,44 +643,41 @@ shift_oversize_8:
 	ret
 	
 ;Left shift an 8-bit value by a 16-bit count
-;Input: C: Value to be shifted
-;		A: High byte of shift count
-;		B: Low byte of shift count
+;Input: A: Value to be shifted
+;		BC: Shift count
 ;Output: A: Shifted value
-;		 F,B corrupt
-;		 C preserved
+;		 F,BC corrupt
 right_shift_8_by_16:
-	and a
+	dec b
+	inc b
 	jr nz,shift_oversize_8  ;Value too large - return zero
+	ld b,c
 
 ;Left shift an 8-bit value by a 8-bit count
-;Input: C: Value to be shifted
+;Input: A: Value to be shifted
 ;		B: Shift count
 ;Output: A: Shifted value
 ;		 F,B corrupt
-;		 C preserved
 right_shift_8_by_8
-	ld a,b
-	cp 8					;Result will be zero
-	jr nc,shift_oversize_8
-
-	and b
-	ld a,c
+	dec b
+	inc b
 	ret z					;Shift count is zero
+	
 .loop
-		srl a
+	srl a
 	djnz .loop
 	ret
 	
 ;Left shift an 16-bit value by a 16-bit count
 ;Input: HL: Value to be shifted
-;		A: High byte of shift count
-;		B: Low byte of shift count
+;		BC: Shift count
 ;Output: HL: Shifted value
 ;		 F,B corrupt
 left_shift_16_by_16:
-	and a
+	dec b
+	inc b
 	jr nz,shift_oversize_16  ;Value too large - return zero
+	ld b,c
 
 ;Left shift an 16-bit value by a 8-bit count
 ;Input: HL: Value to be shifted
@@ -670,14 +685,11 @@ left_shift_16_by_16:
 ;Output: HL: Shifted value
 ;		 F,B corrupt
 left_shift_16_by_8
-	ld a,b
-	cp 16					;Result will be zero
-	jr nc,shift_oversize_16
-
-	and b
+	dec b
+	inc b
 	ret z					;Shift count is zero
 .loop
-		add hl,hl
+	add hl,hl
 	djnz .loop
 	ret
 
@@ -687,13 +699,14 @@ shift_oversize_16:
 	
 ;Right shift an 16-bit value by a 16-bit count
 ;Input: HL: Value to be shifted
-;		A: High byte of shift count
-;		B: Low byte of shift count
+;		BC: Shift count
 ;Output: HL: Shifted value
 ;		 F,B corrupt
 right_shift_16_by_16:
-	and a
+	dec b
+	inc b
 	jr nz,shift_oversize_16  ;Value too large - return zero
+	ld b,c
 
 ;Right shift an 16-bit value by a 8-bit count
 ;Input: HL: Value to be shifted
@@ -701,15 +714,12 @@ right_shift_16_by_16:
 ;Output: HL: Shifted value
 ;		 F,B corrupt
 right_shift_16_by_8
-	ld a,b
-	cp 16					;Result will be zero
-	jr nc,shift_oversize_16
-
-	and b
+	dec b
+	inc b
 	ret z					;Shift count is zero
 .loop
-		srl h
-		rr l
+	srl h
+	rr l
 	djnz .loop
 	ret
   
@@ -729,8 +739,17 @@ equal_m16:
 	sbc hl,de
 	ret
 	
-;Alternate version which doesn't corrupt HL
-comp_u16
+;1) Compare equality of either signed or unsignd 16-bit values
+;2) Compare magnitude of unsigned 16-bit values
+;Both: 
+;Parameters in HL and DE.
+;Corrupts: A and Flags
+;For equality: 
+;Both values must be either signed or unsigned
+;Returns ZF set if they are equal, ZF clear if they differ
+;For magnitude:
+;Returns CF set if HL <= DE, CF clear if HL > DE
+compare_u16:
 	ld a,h
 	cp d
 	ret nz
@@ -744,32 +763,25 @@ comp_u16
 ;if HL = DE: A:=0;  ZF set, CF clear
 ;if HL <= DE:       CF set or ZF set, A>=0
 ;if HL < DE: A:=-1; CF set, ZF clear
-comp_s16:   
-        ld      a,h  
-        xor     d    			;Will clear negative flag (PF) if both are same sign
-        ld      a,h  
-        jp      p,.comp_magnitude	;Same sign, compare magnitides
-        add     a,a             ;Set CF if HL is negative (bit 15 high)
-								;If HL is negative and signs are different then DE must be > HL
-ret
-;.exit:
-;        sbc     a,a             ;If CF set, A:=-1, otherwise A:=0. CF preserved
-;        ret     c               ;A=&ff, ZF clear, CF set
-
-;        inc     a               ;A=1, 
-;        ret                        
+compare_s16:   
+    ld      a,h  
+    xor     d    			;Will clear negative flag (PF) if both are same sign
+    ld      a,h  
+    jp      p,.comp_magnitude	;Same sign, compare magnitides
+    add     a,a             ;Set CF if HL is negative (bit 15 high)
+							;If HL is negative and signs are different then DE must be > HL
+ret                      
 
 .comp_magnitude:         
-        cp      d            	;CF set if D > H
-ret nz;        jr      nz,.exit		;if H <> D - compare high bytes
-        ld      a,l              
-        sub     e               ;CF set if E > L. A:=0
-ret;        jr      nz,.exit		;if D <> E - compare high bytes
-;        ret                     ;ZF set if DE == HL. A still zero, CF clear
+    cp      d            	;CF set if D > H
+	ret nz
+    ld      a,l              
+    sub     e               ;CF set if E > L. A:=0
+ret
   
 ;Compare HL and DE where HL is unsigned number and DE is signed number
 ;Reurns CF set if DE > HL
-comp_u16_s16:
+compare_u16_s16:
 	ld a,h					;Is HL >= $8000
 	rla
 	ccf
@@ -786,7 +798,7 @@ comp_u16_s16:
 	
 ;Compare HL and DE where HL is signed number and DE is unsigned number
 ;Returns CF set if DE > HL
-comp_s16_u16:
+compare_s16_u16:
 	ld a,h					;Is HL negative
 	rla
 	ret c					;If so, it's always less
@@ -811,7 +823,7 @@ write_integer:
 ;	push af
 	ld a,'-'
 	call s_writechar
-	call negate_hl_and_test_if_int
+	call negate_HL_with_overflow
 ;	pop af
 	jr write_word
 
@@ -932,3 +944,35 @@ write_asciiz:
 	inc hl
 	jr write_asciiz
 	
+;===================================
+;Stack and stack frames
+
+;Called on function entry with HL=-<vars.localsbytesize>  
+stacklocal_enter:
+  pop de 			;Return address
+  push ix			;Old stackframe
+  ld ix,$0000
+  add ix,sp         ;New stackframe
+;  ld hl,-<vars.localsbytesize> ;Done by caller
+  add hl,sp			;Allocate stack space for locals
+;###Check for stack overflow###
+;ld a,sp_high_minimum
+;cp h
+;jr nc,raise_stack_overflow
+  ld sp,hl
+  ex hl,de		;Return address
+  jp (hl)
+  
+  
+;JumPed to on function exit. de=16 bit return value (if any), hl=<vars.paramsbytesize>  
+:stacklocal_exit:
+;exit 
+  ld sp,ix 			;remove locals from stack
+;  ld hl,<vars.paramsbytesize> ;remove parameters - passed in
+  add hl,sp         ;SP after params removed
+  pop ix 			;restore original value/stackframe
+  pop bc 			;return addr
+  ld sp,hl			;Restore original SP
+  ex hl,de			;hl=return value
+  push bc			;Return address
+  ret  

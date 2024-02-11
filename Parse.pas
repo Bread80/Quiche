@@ -45,12 +45,12 @@ function ParseBlock(BlockState: TBlockState;Storage: TVarStorage): TQuicheError;
 //If AllowFuncs is True then Functions and Procedure declarations are also allowed.
 //This enables the distinction between program level decarations and function/procedure
 //level declarations (which Quiche doesn't allow)
-function ParseGlobals(AllowFuncs: Boolean): TQuicheError;
+function ParseDeclarations(IsRoot: Boolean;AllowFuncs: Boolean;Storage: TVarStorage): TQuicheError;
 
 implementation
 uses SysUtils, Classes,
   SourceReader, Globals, ILData, QTypes, Functions, Scopes, Operators,
-  ParserBase, ParserFixups, ParseIntrinsics, ParseFuncDef;
+  ParserBase, ParserFixups, ParseIntrinsics, ParseFuncDef, ParseFuncCall;
 //===============================================
 //Utilities
 
@@ -91,42 +91,52 @@ end;
 //then it will be possible to reference the variable within the expression which
 //would, of course, be an bug.
 function ParseAssignmentExpr(var Variable: PVariable;Storage: TVarStorage;
-  var VarIndex: Integer;VType: TVarType): TQuicheError;
+  VType: TVarType): TQuicheError;
 var
   ILItem: PILItem;
   VarSub: Integer;
   ExprType: TVarType;
   Slug: TExprSlug;
 begin
+  Slug.Initialise;
+
   ExprType := VType;
   Result := ParseExpressionToSlug(Slug, ExprType);
   if Result <> qeNone then
     EXIT;
 
   if Variable = nil then
+  begin
     if VType = vtUnknown then
-      Variable := VarCreate('', Slug.ImplicitType, Storage, VarIndex)
+      Variable := VarCreateUnknown(Slug.ImplicitType, Storage)
     else
-      Variable := VarCreate('', VType, Storage, VarIndex);
+      Variable := VarCreateUnknown(VType, Storage);
+  end;
 
-  VarSub := VarIndexIncWriteCount(VarIndex);
+  VarSub := Variable.IncWriteCount;
 
   if Slug.ILItem <> nil then
   begin
     ILItem := Slug.ILItem;
-    if ILItem.OpIndex = OpIndexNone then
-      ILItem.OpIndex := OpIndexAssign;
+    if ILItem.Op = OpUnknown then
+      if (ILItem.Param1.Kind = pkImmediate) and (ILItem.Param2.Kind = pkNone) then
+        ILItem.Op := OpStoreImm
+      else
+        ILItem.Op := OpMove;
   end
   else
   begin
-    ILItem := ILAppend(dtData, OpIndexAssign);
+    if Slug.Operand.Kind = pkImmediate then
+      ILItem := ILAppend(dtData, OpStoreImm)
+    else
+      ILItem := ILAppend(dtData, OpMove);
     ILItem.Param1 := Slug.Operand;
-    ILItem.Param2.Loc := locNone;
+    ILItem.Param2.Kind := pkNone;
     ILItem.OpType := Slug.OpType;
     ILItem.ResultType := VarTypeToOpType(Variable.VarType);
   end;
 
-  ILItem.Dest.SetVar(VarIndex, VarSub);
+  ILItem.Dest.SetVarAndSub(Variable, VarSub);
 
 //  if VType <> vtUnknown then
     //Sets any validation needed to assign the result to the variable
@@ -134,8 +144,8 @@ begin
 //    ILItem.ResultType := GetExprResultType(VType, Slug.ResultType);
 
 
-  if (ILItem.OpIndex = OpIndexAssign) and (ILItem.OpType = rtUnknown) then
-    if Slug.Operand.Loc = locImmediate then
+  if (ILItem.Op in [OpMove, OpStoreImm]) and (ILItem.OpType = rtUnknown) then
+    if Slug.Operand.Kind = pkImmediate then
       case GetTypeSize(Slug.ResultType) of
         1: Slug.OpType := rtX8;
         2: Slug.OpType := rtX16;
@@ -146,7 +156,7 @@ begin
       Slug.OpType := VarTypeToOpType(Slug.ResultType);
 
   //Overflows for an immediate assignment must be validated by the parser
-  if (ILItem.OpIndex = OpIndexAssign) and (ILItem.Param1.Loc = locImmediate) then
+  if ILItem.Op = OpStoreImm then
     ILItem.CodeGenFlags := ILItem.CodeGenFlags - [cgOverflowCheck];
 end;
 
@@ -162,6 +172,8 @@ var ExprType: TVarType;
 //  ImplicitType: TVarType; //Dummy
   Slug: TExprSlug;
 begin
+  Slug.Initialise;
+
   ExprType := vtBoolean;
   Result := ParseExpressionToSlug(Slug, ExprType);
   if Result <> qeNone then
@@ -173,21 +185,21 @@ begin
     ILItem := Slug.ILItem;
     //Convert item to a branch
     ILItem.DestType := dtCondBranch;
-    if (ILItem.OpIndex = OpIndexNone) or (ILItem.OpIndex = OpIndexAssign) then
-      ILItem.OpIndex := OpIndexBranch;
+    if ILItem.Op in [opUnknown, OpMove, OpStoreImm] then
+      ILItem.Op := OpBranch;
   end
   //ILItem = nil
-  else if Slug.Operand.Loc = locImmediate then
+  else if Slug.Operand.Kind = pkImmediate then
   begin
     Assert(Slug.Operand.ImmType = vtBoolean);
     ILItem := nil;
-    ConstExprValue := (Slug.Operand.ImmValue and $ff) = (valueTrue and $ff);
+    ConstExprValue := (Slug.Operand.ImmValueInt and $ff) = (valueTrue and $ff);
   end
   else
   begin //ILItem = nil and OpIndex <> None
-    ILItem := ILAppend(dtCondBranch, OpIndexCondBranch);
+    ILItem := ILAppend(dtCondBranch, OpCondBranch);
     ILItem.Param1 := Slug.Operand;
-    ILItem.Param2.Loc := locNone;
+    ILItem.Param2.Kind := pkNone;
     ILItem.OpType := rtBoolean;
     ILItem.ResultType := rtBoolean; //(Not technically needed)
   end;
@@ -205,11 +217,12 @@ end;
 //Also inspects the optAllowAutoCreation option to determine if a declaration
 //requires an explicit 'var' or can be implied by the first assignment to a variable
 function ParseAssignment(VarRead, AllowVar: Boolean;VarName: String;
-  out Variable: PVariable;Storage: TVarStorage;var VarIndex: Integer): TQuicheError;
+  out Variable: PVariable;Storage: TVarStorage): TQuicheError;
 var Ch: Char;
   VarType: TVarType;  //vtUnknown if we're using type inference
   DoAssign: Boolean;  //True if we're assigning a value
   Creating: Boolean;
+  Keyword: TKeyword;
 begin
   if VarName = '' then
   begin
@@ -233,6 +246,10 @@ begin
   //Is a there any form of type sepcifier?
   if optAllowAutoCreation or VarRead then
   begin
+    Keyword := IdentToKeyword(VarName);
+    if Keyword <> keyUnknown then
+      EXIT(ErrSub(qeReservedWord, VarName));
+
     Result := TestForTypeSymbol(VarType);
     if Result <> qeNone then
       EXIT;
@@ -268,12 +285,12 @@ begin
 
     if VarRead then
     begin
-      Variable := VarFindByNameInScope(VarName, VarIndex);
+      Variable := VarFindByNameInScope(VarName);
       if Variable <> nil then
         EXIT(ErrSub(qeVariableRedeclared, VarName));
     end
     else
-      Variable := VarFindByNameAllScopes(VarName, VarIndex);
+      Variable := VarFindByNameAllScopes(VarName);
 {      Variable := nil;
       VarIndex := -1;
     end
@@ -284,7 +301,7 @@ begin
     DoAssign := TestAssignment;
     if not DoAssign then
       EXIT(ErrSyntax(synAssignmentExpected));
-    Variable := VarFindByNameAllScopes(VarName, VarIndex);
+    Variable := VarFindByNameAllScopes(VarName);
     if Variable = nil then
       EXIT(ErrSub(qeVariableNotFound, VarName));
     VarType := Variable.VarType;
@@ -298,7 +315,7 @@ begin
 //    if Variable <> nil then
 //      Result := ParseAssignmentExpr(Variable, VarIndex, Variable.VarType)
 //    else
-      Result := ParseAssignmentExpr(Variable, Storage, VarIndex, VarType);
+      Result := ParseAssignmentExpr(Variable, Storage, VarType);
     if Result <> qeNone then
       EXIT;
 
@@ -323,7 +340,7 @@ begin
   end
   else
   begin //Otherwise just create it. Meh. Boring
-    Variable := VarCreate(VarName, VarType, Storage, VarIndex);
+    Variable := VarCreate(VarName, VarType, Storage);
     if Variable = nil then
       EXIT(ErrSub(qeVariableRedeclared, VarName));
     Result := qeNone;
@@ -340,9 +357,8 @@ end;
 //                           VAR <identifier> := <expr>
 function DoVAR(Storage: TVarStorage): TQuicheError;
 var Variable: PVariable;
-  VarIndex: Integer;
 begin
-  Result := ParseAssignment(True, False, '', Variable, Storage, VarIndex);
+  Result := ParseAssignment(True, False, '', Variable, Storage);
 end;
 
 // <for-statement> := FOR <identifier> := <expr> TO <expr> DO
@@ -352,10 +368,8 @@ var
   VarRead: Boolean;
   LoopVarName: String;
   LoopVar: PVariable;
-  LoopVarIndex: Integer;
   ToInc: Boolean;       //TO or DOWNTO?
   EndValue: PVariable;  //Hidden variable to contain end value for the loop
-  EndValueIndex: Integer;
   EntryBlockID: Integer;
   EntryLastItemIndex: Integer;
 //  ForLastID: Integer; //Block ID of FOR statement (prior to loop);
@@ -391,7 +405,7 @@ begin
     //
 
   //(Create and) assign the loop variable
-  Result := ParseAssignment(VarRead, false, LoopVarName, LoopVar, Storage, LoopVarIndex);
+  Result := ParseAssignment(VarRead, false, LoopVarName, LoopVar, Storage);
   if Result <> qeNone then
     EXIT;
 
@@ -404,9 +418,8 @@ begin
 
   //Eval TO expression
   EndValue := nil;
-  EndValueIndex := -1;
   //Parse and create EndValue
-  Result := ParseAssignmentExpr(EndValue, Storage, EndValueIndex, LoopVar.VarType);
+  Result := ParseAssignmentExpr(EndValue, Storage, LoopVar.VarType);
   if Result <> qeNone then
     EXIT;
 
@@ -416,7 +429,7 @@ begin
     EXIT(ErrSyntaxMsg(synFOR, 'DO expected'));
 
   //Insert Branch into header
-  ILItem := ILAppend(dtBranch, OpIndexBranch);
+  ILItem := ILAppend(dtBranch, OpBranch);
   ILItem.BranchBlockID := GetCurrBlockID + 1;
   EntryBlockID := GetCurrBlockID;
   EntryLastItemIndex := ILGetCount - 1;
@@ -425,15 +438,15 @@ begin
   //------------
   //Insert Phi for loop variable
   NewBlock := True;
-  LoopVarPhi := ILAppend(dtData, OpIndexPhi);
-  LoopVarPhi.Param1.Loc := locPhiVar;
+  LoopVarPhi := ILAppend(dtData, OpPhi);
+  LoopVarPhi.Param1.Kind := pkPhiVar;
   LoopVarPhi.Param1.PhiBlockID := EntryBlockID;
   LoopVarPhi.Param1.PhiSub := LoopVar.WriteCount;
   //(Fixup param2 later)
-  LoopVarPhi.Param2.Loc := locPhiVar;
+  LoopVarPhi.Param2.Kind := pkPhiVar;
 
-  LoopVarPhi.Dest.Loc := locPhiVar;
-  LoopVarPhi.Dest.PhiVarIndex := LoopVarIndex;
+  LoopVarPhi.Dest.Kind := pkPhiVar;
+  LoopVarPhi.Dest.PhiVar := LoopVar;
   LoopVarPhi.Dest.PhiSub := LoopVar.IncWriteCount;
 
   HeaderBlockID := GetCurrBlockID;
@@ -441,14 +454,14 @@ begin
 
   //Test LoopVar and Branch to Body or Exit
   if ToInc then
-    ExitTestItem := ILAppend(dtCondBranch, OpIndexLessEqual)
+    ExitTestItem := ILAppend(dtCondBranch, OpLessEqual)
   else
-    ExitTestItem := ILAppend(dtCondBranch, OpIndexGreaterEqual);
+    ExitTestItem := ILAppend(dtCondBranch, OpGreaterEqual);
   ExitTestItem.OpType := VarTypeToOpType(LoopVar.VarType);
   ExitTestItem.ResultType := rtBoolean;
 
-  ExitTestItem.Param1.SetVar(LoopVarIndex, LoopVar.WriteCount);
-  ExitTestItem.Param2.SetVar(EndValueIndex, EndValue.WriteCount);
+  ExitTestItem.Param1.SetVariableAndSub(LoopVar, LoopVar.WriteCount);
+  ExitTestItem.Param2.SetVariableAndSub(EndValue, EndValue.WriteCount);
 
   ExitTestItem.TrueBlockID := GetCurrBlockID + 1; //Body BlockID
   //FalseBlock to be fixed up at end of loop
@@ -464,7 +477,7 @@ begin
     EXIT;
 
   //Insert Branch into Latch section
-  ILItem := ILAppend(dtBranch, OpIndexBranch);
+  ILItem := ILAppend(dtBranch, OpBranch);
   ILItem.BranchBlockID := GetCurrBlockID + 1;
 
   //LATCH section - next LoopVar and branch back to header
@@ -472,23 +485,23 @@ begin
   NewBlock := True;
   //Next loopvar
   if ToInc then
-    ILItem := ILAppend(dtData, OpIndexAdd)
+    ILItem := ILAppend(dtData, OpAdd)
   else
-  ILItem := ILAppend(dtData, OpIndexSubtract);
+  ILItem := ILAppend(dtData, OpSubtract);
   ILItem.OpType := VarTypeToOpType(LoopVar.VarType);
   ILItem.ResultType := ILItem.OpType;
-  ILItem.Param1.SetVar(LoopVarIndex, LoopVar.WriteCount);
+  ILItem.Param1.SetVariableAndSub(LoopVar, LoopVar.WriteCount);
   //(Uncomment to add Step value)
   ILItem.Param2.SetImmediate(1, vtByte);
 
-  ILItem.Dest.SetVar(LoopVarIndex, LoopVar.IncWriteCount);
+  ILItem.Dest.SetVarAndSub(LoopVar, LoopVar.IncWriteCount);
 
   //Insert Branch back to Header section
-  ILItem := ILAppend(dtBranch, OpIndexBranch);
+  ILItem := ILAppend(dtBranch, OpBranch);
   ILItem.BranchBlockID := HeaderBlockID;
 
   //Fixup Phi for Loopvar at start of Header section
-  LoopVarPhi.Param2.Loc := locPhiVar;
+  LoopVarPhi.Param2.Kind := pkPhiVar;
   LoopVarPhi.Param2.PhiBlockID := GetCurrBlockID;
   LoopVarPhi.Param2.VarSub := LoopVar.WriteCount;
 
@@ -563,7 +576,7 @@ begin
   if Branch <> nil then
   begin
     //Branch to merge block
-    ThenBranch := ILAppend(dtBranch, OpIndexBranch);
+    ThenBranch := ILAppend(dtBranch, OpBranch);
     ThenLastID := GetCurrBlockID;
     ThenLastIndex := ILGetCount-1;
   end;
@@ -587,7 +600,7 @@ begin
     if Branch <> nil then
     begin
       //Branch to merge block
-      ElseBranch := ILAppend(dtBranch, OpIndexBranch);
+      ElseBranch := ILAppend(dtBranch, OpBranch);
       ElseLastID := GetCurrBlockID;
       ElseLastIndex := ILGetCount-1;
 
@@ -628,17 +641,6 @@ end;
 
 //===============================================================
 
-function DoParseFunctionCall(Func: PFunction;AsProc: Boolean): TQuicheError;
-begin
-  case Func.CallingConvention of
-    ccIntrinsic: Result := ErrMsg(qeBUG, 'Instrinic dispatch shouldn''t end up here');  //Special cases :)
-    ccExtern: Result := ErrMsg(qeTODO, 'Extern function dispatch not yet implemented'); //Calls to assembly
-    ccStackFrame: Result := ErrMsg(qeTODO, 'StackFrame funciton dispatch not yet implemented'); //IX bases
-  else
-    raise Exception.Create('Unknown calling convention in function despatch :(');
-  end;
-end;
-
 // <statement> := <block>
 //             |  <function-call>
 //             |  <variable-declaration>
@@ -655,10 +657,11 @@ var
   Scope: PScope;
   IdentType: TIdentType;
   Item: Pointer;
-  Index: Integer;
-  OpIndex: Integer;
+  Op: TOperator;
   Slug: TExprSlug;  //Dummy, value assigned will be ignored
 begin
+  Slug.Initialise;
+
   if Ident = '' then
   begin
     Ch := Parser.TestChar;
@@ -684,19 +687,21 @@ begin
       EXIT(ErrSub(qeInvalidKeyword, Ident));
     end;
     EXIT;
-  end
-  else if SearchScopes(Ident, IdentType, Scope, Item, Index) then
+  end;
+
+  Item := SearchScopes(Ident, IdentType, Scope);
+  if Assigned(Item) then
   begin
     case IdentType of
       itVar:
       begin
-        Result := ParseAssignment(false, false, Ident, PVariable(Item), Storage, Index);
+        Result := ParseAssignment(false, false, Ident, PVariable(Item), Storage);
         if Result <> qeNone then
           EXIT;
       end;
       itFunction:
       begin
-        Result := DoParseFunctionCall(PFunction(Item), True);
+        Result := DoParseProcedureCall(PFunction(Item));
         if Result <> qeNone then
           EXIT;
       end;
@@ -708,9 +713,9 @@ begin
   end
   else
   begin //Search for intrinsics
-    OpIndex := OpProcedureToIndex(Ident);
-    if OpIndex <> -1 then
-      Result := ParseIntrinsic(OpIndex, False, Slug)
+    Op := IdentToIntrinsicProc(Ident);
+    if Op <> opUnknown then
+      Result := ParseIntrinsic(Op, False, Slug)
     else
     begin
       //TODO: Search builtin function library
@@ -790,24 +795,6 @@ begin
   end;
 end;
 
-
-//---------------------------
-//The main BEGIN ... END. block
-function ParseMainBlock: TQuicheError;
-begin
-  Result := ParseBlock(bsBeginRead, vsAbsolute);
-  if Result <> qeNone then
-    EXIT;
-  if Parser.TestChar <> '.' then
-    EXIT(Err(qeEndDotExpected));
-  Parser.SkipChar;
-
-  Parser.SkipWhiteSpaceAll;
-  if not Parser.EOF then
-    EXIT(Err(qeCodeAfterEndDot));
-  Result := qeNone;
-end;
-
 // <globals> := [ <global-defs> ] [ <global-defs> ]
 //              <main-block>
 // <global-defs> := <function-def>
@@ -816,73 +803,74 @@ end;
 //               | <constant-def>
 // <main-block> := <block> . <end-of-file>
 //              (no space between <block> and the period).
-function ParseGlobals(AllowFuncs: Boolean): TQuicheError;
+function ParseDeclarations(IsRoot: Boolean;AllowFuncs: Boolean;Storage: TVarStorage): TQuicheError;
 var
   Ch: Char;
   Keyword: TKeyword;
-  NextKeyword: TKeyword;
 begin
-  NextKeyword := keyUnknown;
-
   while true do
   begin
-    if NextKeyword <> keyUnknown then
-      Keyword := NextKeyword
-    else
+    Parser.SkipWhiteSpaceAll;
+    Ch := Parser.TestChar;
+    if Ch = ';' then
     begin
-      Parser.SkipWhiteSpaceAll;
-      Ch := Parser.TestChar;
-      //Attribute
-      if Ch = '[' then
-      begin
-        Parser.SkipChar;
-        Result := ParseAttribute;
-        if Result <> qeNone then
-          EXIT;
-        Keyword := keyUnknown;
-      end
-      else if Ch in csIdentFirst then
-      begin //Identifier
-        Result := ParseKeyword(Keyword);
-        if Result <> qeNone then
-          EXIT;
-        if Keyword = keyUnknown then
-          EXIT(Err(qeInvalidTopLevel));
-      end
-      else
-        EXIT(Err(qeInvalidTopLevel));
-    end;
-
-    NextKeyword := keyUnknown;
-    if Keyword <> keyUnknown then
-    begin
-      case Keyword of
-//        keyCONST: ;
-        keyFUNCTION: Result := ParseFunctionDef(False, NextKeyword);
-        keyPROCEDURE: Result := ParseFunctionDef(True, NextKeyword);
-//        keyTYPE: ;
-        //At this scope all vars are global
-        keyVAR: Result := DoVAR(vsAbsolute);
-        keyBEGIN: //the program's BEGIN ... END. block
-        begin
-            Result := ParseMainBlock;
-            if Result <> qeNone then
-              EXIT;
-            Assert(ScopeGetDepth = 0);
-            EXIT;
-        end;
-
-      else
-        EXIT(Err(qeInvalidTopLevel))
-      end;
-//TESTING ONLY - TO BE REMOVED
-//If Result = errIdentifierExpected then
-//  EXIT(errNone);
-//--END
+      Parser.SkipChar;
+      Keyword := keyUNKNOWN;
+    end
+    else if Ch = '[' then
+    begin //Attribute
+      Parser.SkipChar;
+      Result := ParseAttribute;
       if Result <> qeNone then
         EXIT;
+      Keyword := keyUnknown;
+    end
+    else if Ch in csIdentFirst then
+    begin //Identifier
+      Result := ParseKeyword(Keyword);
+      if Result <> qeNone then
+        EXIT;
+      if Keyword = keyUnknown then
+        EXIT(Err(qeInvalidTopLevel));
+    end
+    else
+      EXIT(Err(qeInvalidTopLevel));
 
+    case Keyword of
+      keyUNKNOWN: ; //Nothing to do
+//      keyCONST: ;
+      keyFUNCTION: Result := ParseFunctionDef(False);
+      keyPROCEDURE: Result := ParseFunctionDef(True);
+//      keyTYPE: ;
+      //At this scope all vars are global
+      keyVAR: Result := DoVAR(Storage);
+      keyBEGIN: //BEGIN ... END block
+      begin
+        Result := ParseBlock(bsBeginRead, Storage);
+        if Result <> qeNone then
+          EXIT;
+        if IsRoot then
+          Assert(ScopeGetDepth = 0);
+        if IsRoot then
+          if Parser.TestChar <> '.' then
+            EXIT(Err(qeEndDotExpected))
+          else
+          begin
+            Parser.SkipChar;
+
+            Parser.SkipWhiteSpaceAll;
+            if not Parser.EOF then
+              EXIT(Err(qeCodeAfterEndDot));
+            Result := qeNone;
+          end;
+
+        EXIT(qeNone);
+      end;
+    else
+      EXIT(Err(qeInvalidTopLevel))
     end;
+    if Result <> qeNone then
+      EXIT;
   end;
 end;
 

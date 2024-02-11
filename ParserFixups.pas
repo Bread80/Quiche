@@ -61,9 +61,9 @@ begin
   begin
     ILItem := ILIndexToData(Index);
     if ILItem.DestType = dtData then
-      if ILItem.Dest.Loc = locVar then
+      if ILItem.Dest.Kind = pkVar then
       begin
-        Variable := VarIndexToData(ILItem.Dest.VarIndex);
+        Variable := ILItem.Dest.Variable;
         if Variable.AdjustSubTo = -1 then
         begin
           Variable.AdjustSubTo := ILItem.Dest.VarSub - 1;
@@ -89,42 +89,42 @@ begin
   begin
     ILItem := ILIndexToData(Index);
     if ILItem.DestType = dtData then
-      if ilItem.Dest.Loc = locVar then
+      if ilItem.Dest.Kind = pkVar then
       begin
-        Variable := VarIndexToData(ILItem.Dest.VarIndex);
+        Variable := ILItem.Dest.Variable;
         if Variable.AdjustSubTo >= 0 then
           if Variable.AdjustSubFrom = -1 then
             Variable.AdjustSubFrom := ILItem.Dest.VarSub - 1;
       end;
 
-    case ILItem.Param1.Loc of
-      locVar:
+    case ILItem.Param1.Kind of
+      pkVar:
       begin
-        Variable := VarIndexToData(ILItem.Param1.VarIndex);
+        Variable := ILItem.Param1.Variable;
         if Variable.AdjustSubTo >= 0 then
           if (Variable.AdjustSubFrom = -1) or (ILItem.Param1.VarSub = Variable.AdjustSubFrom) then
             ILItem.Param1.VarSub := Variable.AdjustSubTo;
       end;
-      locPhiVar:
+      pkPhiVar:
       begin
-        Variable := VarIndexToData(ILItem.Dest.PhiVarIndex);
+        Variable := ILItem.Dest.PhiVar;
         if Variable.AdjustSubTo >= 0 then
           if (Variable.AdjustSubFrom = -1) or (ILItem.Param1.PhiSub = Variable.AdjustSubFrom) then
             ILItem.Param1.PhiSub := Variable.AdjustSubTo;
       end;
     end;
 
-    case ILItem.Param2.Loc of
-      locVar:
+    case ILItem.Param2.Kind of
+      pkVar:
       begin
-        Variable := VarIndexToData(ILItem.Param2.VarIndex);
+        Variable := ILItem.Param2.Variable;
         if Variable.AdjustSubTo >= 0 then
           if (Variable.AdjustSubFrom = -1) or (ILItem.Param2.VarSub = Variable.AdjustSubFrom) then
             ILItem.Param2.VarSub := Variable.AdjustSubTo;
       end;
-      locPhiVar:
+      pkPhiVar:
       begin
-        Variable := VarIndexToData(ILItem.Dest.PhiVarIndex);
+        Variable := ILItem.Dest.PhiVar;
         if Variable.AdjustSubTo >= 0 then
           if (Variable.AdjustSubFrom = -1) or (ILItem.Param2.VarSub = Variable.AdjustSubFrom) then
             ILItem.Param2.PhiSub := Variable.AdjustSubTo;
@@ -151,7 +151,7 @@ end;
 //VarIndex the Index of the variable to find
 //Index is the IL item to begin walking from
 //StopIndex is the IL item to finish walking at (last item of prior block)
-function PhiFindVar(VarIndex: Integer;Index, StopIndex: Integer): Integer;
+function PhiFindVar(AVariable: PVariable;Index, StopIndex: Integer): Integer;
 var ILItem: PILItem;
 begin
   //Search up block
@@ -160,7 +160,7 @@ begin
     //If assignment to var found
     ILItem := ILIndexToData(Index);
     if ILItem.DestType = dtData then
-      if (ILItem.Dest.Loc = locVar) and (ILItem.Dest.VarIndex = VarIndex) then
+      if (ILItem.Dest.Kind = pkVar) and (ILItem.Dest.Variable = AVariable) then
         EXIT(ILItem.Dest.VarSub);
 
     dec(Index);
@@ -206,30 +206,30 @@ begin
   begin
     //For each assignment to an untouched var
     ILItem := ILIndexToData(Index);
-    if (ILItem.DestType = dtData) and (ILItem.Dest.Loc = locVar) then
+    if (ILItem.DestType = dtData) and (ILItem.Dest.Kind = pkVar) then
     begin
-      Variable := VarIndexToData(ILItem.Dest.VarIndex);
+      Variable := ILItem.Dest.Variable;
       if not Variable.Touched then
       begin
         Path2Sub := 0;
 
         //If Path2, Search Path2
         if Path2Index > 0 then
-          Path2Sub := PhiFindVar(ILItem.Dest.VarIndex, Path2Index, Path1Index);
+          Path2Sub := PhiFindVar(ILItem.Dest.Variable, Path2Index, Path1Index);
 
         //If No Path 2 or Not found in Path 1
         //Search Origin Path
         if Path2Sub = 0 then
-          Path2Sub := PhiFindVar(ILItem.Dest.VarIndex, OriginIndex, -1);
+          Path2Sub := PhiFindVar(ILItem.Dest.Variable, OriginIndex, -1);
 
         //If Path2Sub is still zero then it was not assigned in either the other
         //path or the origin path. We'll stick with Sub=0 to show this
         //(either a warning or a chance to auto-initialise tha variable)
         if InsertIndex = -1 then
-          ILPhi := ILAppend(dtData, OpIndexPhi)
+          ILPhi := ILAppend(dtData, OpPhi)
         else
         begin
-          ILPhi := ILInsert(InsertIndex, dtData, OpIndexPhi);
+          ILPhi := ILInsert(InsertIndex, dtData, OpPhi);
           if Index > InsertIndex then
             inc(Index);
           if Path2Index > InsertIndex then
@@ -238,17 +238,17 @@ begin
             inc(OriginIndex);
         end;
 
-        ILPhi.Dest.Loc := locPhiVar;//ILItem.Dest.Loc;
-        ILPhi.Dest.PhiVarIndex := ILItem.Dest.VarIndex;
+        ILPhi.Dest.Kind := pkPhiVar;//ILItem.Dest.Loc;
+        ILPhi.Dest.PhiVar := ILItem.Dest.Variable;
         ILPhi.Dest.PhiSub := Variable.IncWriteCount;
 
-        case ILItem.Dest.Loc of
-          locVar:
+        case ILItem.Dest.Kind of
+          pkVar:
           begin
-            ILPhi.Param1.Loc := locPhiVar;
+            ILPhi.Param1.Kind := pkPhiVar;
             ILPhi.Param1.PhiBlockID := Path1BlockID;
 
-            ILPhi.Param2.Loc := locPhiVar;
+            ILPhi.Param2.Kind := pkPhiVar;
             ILPhi.Param2.PhiBlockID := Path2BlockID;
 
             if not Swap then

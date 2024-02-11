@@ -11,6 +11,7 @@
 ;d.		Destination
 ;p1.	First parameter
 ;p2.	Second parameter
+;vars.	Data about variables and parameters used when generating stack frames
 
 ;Suffix specifies the actual data required from the parameter
 ;Valid values are:
@@ -24,6 +25,10 @@
 ;offsetlow	- offset to the low byte of a stack variable
 ;offsethigh	- offset to the high byte of a stack variable
 ;varname	- Fully qualified name of the variable
+
+;Variables and stackframe data
+;paramsbytesize	- number of bytes allocated on the stack for parameters by the current function
+;localsbytesize	- number of bytes allocated on the stack for local variables by the current function
 
 ;Invalid values will result in a compiler exception or assertion failure.
 
@@ -94,77 +99,102 @@
 ;Loads  
 ;====================================================
 
-=ld_p1r8_imm
+=load_p1r8_imm
   ld <p1.r8>,<p1.immbyte>
 
-=ld_p1r16_imm
+=load_p1r16_imm
   ld <p1.r16>,<p1.immword>
   
-=ld_p1r16high_zero
+=load_p1r16high_zero
   ld <p1.r16high>,$00
   
   
-=ld_p1r8_abs
-  ld <p1.r8>,(<p1.varname>)	;$$
+=load_p1r8_abs_a
+  ld a,(<p1.varname>)	;$$
 
-=ld_p1r8_abslow
-  ld <p1.r8>,(<p1.varname>)	;$$
+=load_p1r8_abs_via_a
+  ld a,(<p1.varname>)	;$$
+  ld <p1.r8>,a
+
+=load_p1r8_abslow_a
+  ld a,(<p1.varname>)	;$$
   
-=ld_p1r8_abshigh
-  ld <p1.r8>,(<p1.varname> + 1)	;$$
+=load_p1r8_abslow_via_a
+  ld a,(<p1.varname>)	;$$
+  ld <p1.r8>,a
+
+=load_p1r8_abshigh_a
+  ld a,(<p1.varname> + 1)	;$$
+  
+=load_p1r8_abshigh_via_a
+  ld a,(<p1.varname> + 1)	;$$
+  ld <p1.r8>,a
  
-=ld_p1r16_abs
-  ld <p1.r16>,(<p1.varname>)	;$$  
+=load_p1r16_abs
+  ld <p1.r16>,(<p1.varname>)	;$$
+  
+=load_p1r16low_abslow_a
+  ld a,(<p1.varname>)	;$$
 
-=ld_p1r16low_abslow
-  ld <p1.r16low>,(<p1.varname>)	;$$
+=load_p1r16low_abslow_via_a
+  ld a,(<p1.varname>)	;$$
+  ld <p1.r16low>,a  
 
 
-=ld_p1r8_rel
+=load_p1r8_rel
   ld <p1.r8>,(ix<p1.offset>)	;$$
 
-=ld_p1r8_rellow
+=load_p1r8_rellow
   ld <p1.r8>,(ix<p1.offsetlow>)	;$$
   
-=ld_p1r8_relhigh
+=load_p1r8_relhigh
   ld <p1.r8>,(ix<p1.offsethigh>)	;$$
     
-=ld_p1r16_rel
+=load_p1r16_rel
   ld <p1.r16low>,(ix<p1.offsetlow>)	;$$  
   ld <p1.r16high>,(ix<p1.offsethigh>)
 
-=ld_p1r16low_rellow
+=load_p1r16low_rellow
   ld <p1.r16low>,(ix<p1.offsetlow>)	;$$
   
   
-=ld_p2r8_imm
+=load_p2r8_imm
   ld <p2.r8>,<p2.immbyte>
 
-=ld_p2r16_imm
+=load_p2r16_imm
   ld <p2.r16>,<p2.immword>
   
-=ld_p2r16high_zero
+=load_p2r16high_zero
   ld <p2.r16high>,$00
 
+=load_p2r8_abs_a
+  ld a,(<p2.varname>)	;$$
+  
+=load_p2r8_abs_via_a
+  ld a,(<p2.varname>)	;$$
+  ld <p2.r8>,a
 
-=ld_p2r8_abs
-  ld <p2.r8>,(<p2.varname>)	;$$
 
-=ld_p2r16_abs
-  ld <p2.r16>,(<p2.varname>)	;$$ 
+ 
+=load_p2r16_abs
+  ld <p2.r16>,(<p2.varname>)	;$$
 
-=ld_p2r16low_abslow
-  ld <p2.r16low>,(<p2.varname>)	;$$
+=load_p2r16low_abs_a
+  ld a,(<p2.varname>)	;$$ 
+  
+=load_p2r16low_abslow_via_a
+  ld a,(<p2.varname>)	;$$
+  ld <p2.r16low>,a
   
 
-=ld_p2r8_rel
+=load_p2r8_rel
   ld <p2.r8>,(ix<p2.offset>)	;$$
 
-=ld_p2r16_rel
+=load_p2r16_rel
   ld <p2.r16low>,(ix<p2.offsetlow>)	;$$  
   ld <p2.r16high>,(ix<p2.offsethigh>)
 
-=ld_p2r16low_rellow
+=load_p2r16low_rellow
   ld <p2.r16low>,(ix<p2.offsetlow>)	;$$
 
 
@@ -213,14 +243,17 @@
 
 
 =assign_abs16_r8
+;TODO: ONLY FOR A!
   ld (<d.varname>),<p1.r8>	;$$
   xor a
   ld (<d.varname> + 1),a
 
 =assign_abs8_r8
-  ld (<d.varname>),<p1.r8> 	;$$
+;TODO: ONLY FOR A!
+  ld (<d.varname>),<p1.r8> 	;$$ assign_abs8_r8
 
-=assign_abs8r_16low
+=assign_abs8_r16low
+;TODO: ONLY FOR A!
   ld (<d.varname>),<p1.r16low>   ;$$
   
 
@@ -242,31 +275,49 @@
 =store_abs8_a
   ld (<d.varname>),a		;$$
   
-=store_abs8_r8
-  ld (<d.varname>),<d.r8>	;$$
+=store_abs8_r8_a
+  ld (<d.varname>),a		;$$
   
-=store_abs16_r8
+=store_abs8_r8_via_a
+  ld a,<d.r8>
+  ld (<d.varname>),a	;$$
+
+=store_abs16_r8_a
+  ld (<d.varname>),a
   xor a
   ld (<d.varname> + 1),a	;$$
-  ld (<d.varname>),<d.r8>
+ 
+=store_abs16_r8_via_a
+  xor a
+  ld (<d.varname> + 1),a	;$$
+  ld a,<d.r8>
+  ld (<d.varname>),a
   
+;Store to low byte of absolute variable
 ;For use before a sign extend
-=store_abs16low_r8
-  ld (<d.varname>),<d.r8>	;$$
+=store_abs16low_r8_a
+  ld (<d.varname>),a	;$$
 
+=store_abs16low_r8_via_a
+  ld a,<d.r8>
+  ld (<d.varname>),a	;$$
+  
+;Store to high byte of absolute variable
 ;For use after a sign extend
 =store_abs16high_a
   ld (<d.varname> + 1),a		;$$
-  
+
 ;For use after a sign extend
-=store_abs16high_r8
-  ld (<d.varname> + 1),<d.r8>	;$$
+=store_abs16high_via_a
+  ld a,<d.r8>
+  ld (<d.varname> + 1),a	;$$
 
 =store_abs16_r16
   ld (<d.varname>),<d.r16>	;$$
 
-=store_abs8_r16low
-  ld (<d.varname>),<d.r16low>	;$$
+=store_abs8_r16low_via_a
+  ld a,<d.r16low>
+  ld (<d.varname>),a	;$$
   
   
 =store_rel8_a
@@ -297,6 +348,27 @@
 
 =store_rel8_r16low
   ld (ix<d.offsetlow>),<d.r16low>	;$$
+  
+;Stack operations
+;================
+
+=stacklocal_enter
+  ld hl,-<vars.localsbytesize>
+  call stacklocal_enter
+  
+=stacklocal_exit
+;ld de,return_value_if_any
+  ld hl,<vars.paramsbytesize> + $0004	;+ Stack frame size (return addr, prev IX)
+  jp stacklocal_exit
+
+  
+;Push byte to the stack
+=push_byte_a
+  push af
+  inc sp
+  
+=push_word
+  push <d.r16>
     
 ;ALU operations
 ;=========================================================
@@ -304,19 +376,19 @@
 ;----Addition
 
 ;8 bit add to immediate
-=add8ri
+=add8_reg_imm
   add a,<p2.immbyte>
 
 ;8 bit add to register
-=add8rr
+=add8_reg_reg
   add a,<p2.r8>
 
 ;16 bit add. Can only test for unsigned overflow due to ADD HL,ss opcode
-=addx16n
+=add16_nooverflow
   add hl,<p2.r16>	
   
 ;16 bit add. Affects all needed flags for validation and 16 bit conversion
-=addx16y
+=add16_overflow
   or a				;Clear carry
   adc hl,<p2.r16>
 
@@ -335,44 +407,43 @@
 ;----Subtraction
 
 ;8 bit immediate subtract
-=sub8ri
+=sub8_reg_imm
   sub a,<p2.immbyte>
 
 ;8 bit register subtract
-=sub8rr
+=sub8_reg_reg
   sub a,<p2.r8>
 
 ;16 bit subtract
-=subx16
+=sub16
   and a
   sbc hl,<p2.r16>	
   
 ;----Negation
 
-=negs8
+=negate_s8
   neg				;Parity flag set if A was $80
 
-=negu16
-  ld h,0
-  ld l,h
-  and a
-  sbc hl,de
+;=negate_u16
+;  ld hl,$0000
+;  and a
+;  sbc hl,de
 
 ;----Comparisons
 ;Note: We need to set A for assignments, flags for branches
 
-=compare8i
+=compare8_reg_imm
   cp <p2.immbyte>
 
 ;Swapped parameter ordering
-=compare8i_swap
+=compare8swap_reg_imm
   cp <p1.immbyte>
 
-=compare8r
+=compare8_reg_reg
   cp <p2.r8>
   
 ;Swapped parameter ordering
-=compare8r_swap
+=compare8swap_reg_reg
   cp <p1.r8>  
   
 ;Compare and set A to zero if equal
@@ -383,46 +454,46 @@
   or l
 
 ;p1 < p2 for boolean operands. Equivalent to !p1 AND p2
-=bool_less8i
+=bool_less8_reg_imm
   cpl
   and <p2.immbyte>
   
 ;p1 < p2 for boolean operands. Equivalent to !p1 AND p2
-=bool_less8r
+=bool_less8_reg_reg
   cpl
   and <p2.r8>
 
 ;p1 > p2 for boolean operands. Equivalent to p1 AND !p2
 ;NOTE: To generate this we need to reverse the order of the operands!
-=bool_greater8i
+=bool_greater8_reg_imm
   cpl
   and <p1.immbyte>
   
 ;p1 > p2 for boolean operands. Equivalent to p1 AND !p2
 ;NOTE: To generate this we need to reverse the order of the operands!
-=bool_greater8r
+=bool_greater8_reg_reg
   cpl
   and <p1.r8>
 
 ;p1 <= p2 for boolean operands. Equivalent to !p1 OR p2
-=bool_lessequal8i
+=bool_lessequal8_reg_imm
   cpl
   or <p2.immbyte>
   
 ;p1 <= p2 for boolean operands. Equivalent to !p1 OR p2
-=bool_lessequal8r
+=bool_lessequal8_reg_reg
   cpl
   or <p2.r8>
   
 ;p1 >= p2 for boolean operands. Equivalent to p1 OR !p2
 ;NOTE: To generate this we need to reverse the order of the operands!
-=bool_greaterequal8i
+=bool_greaterequal8_reg_imm
   cpl
   or <p1.immbyte>
   
 ;p1 >= p2 for boolean operands. Equivalent to p1 OR !p2
 ;NOTE: To generate this we need to reverse the order of the operands!
-=bool_greaterequal8r
+=bool_greaterequal8_reg_reg
   cpl
   or <p1.r8>
   
@@ -476,13 +547,13 @@
 =cpla
   cpl
 
-=or8ri
+=or8_reg_imm
   or <p2.immbyte>
   
-=or8rr
+=or8_reg_reg
   or <p2.r8>
   
-=or16ri
+=or16_reg_imm
   ld a,<p1.r16low>
   or <p2.immwordlow>
   ld <p1.r16low>,a
@@ -490,7 +561,7 @@
   or <p2.immwordhigh>
   ld <p1.r16high>,a
   
-=or16rr
+=or16_reg_reg
   ld a,<p1.r16low>
   or <p2.r16low>
   ld <p1.r16low>,a
@@ -498,13 +569,13 @@
   or <p2.r16high>
   ld <p1.r16high>,a
 
-=and8ri
+=and8_reg_imm
   and <p2.immbyte>
   
-=and8rr
+=and8_reg_reg
   and <p2.r8>
   
-=and16ri
+=and16_reg_imm
   ld a,<p1.r16low>
   and <p2.immwordlow>
   ld <p1.r16low>,a
@@ -512,7 +583,7 @@
   and <p2.immwordhigh>
   ld <p1.r16high>,a
   
-=and16rr
+=and16_reg_reg
   ld a,<p1.r16low>
   and <p2.r16low>
   ld <p1.r16low>,a
@@ -520,13 +591,13 @@
   and <p2.r16high>
   ld <p1.r16high>,a
   
-=xor8ri
+=xor8_reg_imm
   xor <p2.immbyte>
 
-=xor8rr
+=xor8_reg_reg
   xor <p2.r8>
   
-=xor16ri
+=xor16_reg_imm
   ld a,<p1.r16low>
   xor <p2.immwordlow>
   ld <p1.r16low>,a
@@ -534,7 +605,7 @@
   xor <p2.immwordhigh>
   ld <p1.r16high>,a
   
-=xor16rr
+=xor16_reg_reg
   ld a,<p1.r16low>
   xor <p2.r16low>
   ld <p1.r16low>,a
@@ -542,7 +613,8 @@
   xor <p2.r16high>
   ld <p1.r16high>,a
   
-=not16rr
+;16 bit complement
+=cpl16_reg
   ld a,<p1.r16low>
   cpl
   ld <p1.r16low>,a

@@ -1,26 +1,26 @@
 unit Eval;
 
 interface
-uses SysUtils, ILData, ParseErrors, QTypes;
+uses SysUtils, ILData, ParseErrors, QTypes, Operators;
 
 //Evaulate an operator with two parameters
-function EvalBi(OpIndex: Integer;Param1, Param2: PILParam;
+function EvalBi(Op: TOperator;Param1, Param2: PILParam;
   out Value: Integer;out RType: TVarType): TQuicheError;
 
 //Evaluate and operator woth a single parameter
-function EvalUnary(OpIndex: Integer; Param: PILParam;
+function EvalUnary(Op: TOperator; Param: PILParam;
   out Value: Integer;out RType: TVarType): TQuicheError;
 
 //Evaluate and intrinsic with a single parameter
-function EvalIntrinsicUnary(OpIndex: Integer; Param: PILParam;
+function EvalIntrinsicUnary(Op: TOperator; Param: PILParam;
   out Value: Integer;out RType: TVarType): TQuicheError;
 
 //Evaulate an instrinsic with two parameters
-function EvalIntrinsicBi(OpIndex: Integer; Param1, Param2: TILParam;
+function EvalIntrinsicBi(Op: TOperator; Param1, Param2: TILParam;
   out Value: Integer;out RType: TVarType): TQuicheError;
 
 implementation
-uses Operators, Globals, System.Character;
+uses Globals, System.Character;
 
 function ValueToRType(Value: Integer;out RType: TVarTYpe): TQuicheError;
 begin
@@ -42,7 +42,7 @@ end;
 
 
 //Eval binary operator when both params are integers
-function EvalBiInteger(OpIndex: Integer;Param1, Param2: PILParam;
+function EvalBiInteger(Op: TOperator;Param1, Param2: PILParam;
   out Value: Integer;out RType: TVarType): TQuicheError;
 var P1: Integer;  //First parameter value
   P2: Integer;    //Second parameter value
@@ -51,64 +51,66 @@ begin
   P1 := Param1.ImmToInteger;
   P2 := Param2.ImmToInteger;
 
-  if OpIndex = opIndexAdd then
-    Value := P1 + P2
-  else if OpIndex = opIndexSubtract then
-    Value := P1 - P2
-  else if OpIndex = opIndexMultiply then
-    Value := P1 * P2
-  else if OpIndex = opIndexIntDivide then
+  case Op of
+    opAdd:            Value := P1 + P2;
+    opSubtract:       Value := P1 - P2;
+    opMultiply:  Value := P1 * P2;
+    opIntDivide:
+      if P2 = 0 then
+        EXIT(Err(qeDivByZero))
+      else
+        Value := P1 div P2;
+    opMod:
     if P2 = 0 then
       EXIT(Err(qeDivByZero))
     else
-      Value := P1 div P2
-  else if OpIndex = opIndexMod then
-    if P2 = 0 then
-      EXIT(Err(qeDivByZero))
-    else
-      Value := P1 mod P2
-  else if OpIndex = opIndexEqual then
-  begin
-    Value := BooleanToBinary[P1 = P2];
-    RType := vtBoolean;
-  end
-  else if OpIndex = opIndexNotEqual then
-  begin
-    Value := BooleanToBinary[P1 <> P2];
-    RType := vtBoolean;
-  end
-  else if OpIndex = opIndexLess then
-  begin
-    Value := BooleanToBinary[P1 < P2];
-    RType := vtBoolean;
-  end
-  else if OpIndex = opIndexGreater then
-  begin
-    Value := BooleanToBinary[P1 > P2];
-    RType := vtBoolean;
-  end
-  else if OpIndex = opIndexLessEqual then
-  begin
-    Value := BooleanToBinary[P1 <= P2];
-    RType := vtBoolean;
-  end
-  else if OpIndex = opIndexGreaterEqual then
-  begin
-    Value := BooleanToBinary[P1 >= P2];
-    RType := vtBoolean;
-  end
-  else if OpIndex = opIndexAND then
-    Value := P1 and P2
-  else if OpIndex = opIndexOR then
-    Value := P1 or P2
-  else if OpIndex = opIndexXOR then
-    Value := P1 xor P2
-  else if OpIndex = opIndexSHL then
-    Value := P1 shl P2
-  else if OpIndex = opIndexSHR then
-    Value := P1 shr P2
+      Value := P1 mod P2;
+    opEqual:
+    begin
+      Value := BooleanToBinary[P1 = P2];
+      RType := vtBoolean;
+    end;
+    opNotEqual:
+    begin
+      Value := BooleanToBinary[P1 <> P2];
+      RType := vtBoolean;
+    end;
+    opLess:
+    begin
+      Value := BooleanToBinary[P1 < P2];
+      RType := vtBoolean;
+    end;
+    opGreater:
+    begin
+      Value := BooleanToBinary[P1 > P2];
+      RType := vtBoolean;
+    end;
+    opLessEqual:
+    begin
+      Value := BooleanToBinary[P1 <= P2];
+      RType := vtBoolean;
+    end;
+    opGreaterEqual:
+    begin
+      Value := BooleanToBinary[P1 >= P2];
+      RType := vtBoolean;
+    end;
+    opAND: Value := P1 and P2;
+    opOR:  Value := P1 or P2;
+    opXOR: Value := P1 xor P2;
+    opSHL:
+      if (P2 < 0) or (P2 > 32) then
+        Value := 0
+      else
+        Value := P1 shl P2;
+    opSHR:
+      if (P2 < 0) or (P2 > 32) then
+        Value := 0
+      else
+        Value := P1 shr P2;
   else
     raise Exception.Create('Unknown operation in Evaluate');
+  end;
 
   if RType = vtUnknown then
     Result := ValueToRType(Value, RType)
@@ -117,7 +119,7 @@ begin
 end;
 
 //Eval binary operator when both params are booleans
-function EvalBiBoolean(OpIndex: Integer;Param1, Param2: PILParam;
+function EvalBiBoolean(Op: TOperator;Param1, Param2: PILParam;
   out Value: Integer;out RType: TVarType): TQuicheError;
 var P1: Integer;  //First parameter value
   P2: Integer;    //Second parameter value
@@ -126,26 +128,21 @@ begin
   P1 := Param1.ImmToInteger;
   P2 := Param2.ImmToInteger;
 
-  if OpIndex = opIndexEqual then
-    Value := BooleanToBinary[P1 = P2]
-  else if OpIndex = opIndexNotEqual then
-    Value := BooleanToBinary[P1 <> P2]
-  else if OpIndex = opIndexLess then
-    Value := BooleanToBinary[P1 < P2]
-  else if OpIndex = opIndexGreater then
-    Value := BooleanToBinary[P1 > P2]
-  else if OpIndex = opIndexLessEqual then
-    Value := BooleanToBinary[P1 <= P2]
-  else if OpIndex = opIndexGreaterEqual then
-    Value := BooleanToBinary[P1 >= P2]
-  else if OpIndex = opIndexAND then
-    Value := P1 and P2
-  else if OpIndex = opIndexOR then
-    Value := P1 or P2
-  else if OpIndex = opIndexXOR then
-    Value := P1 xor P2
+  case Op of
+    opEqual:        Value := BooleanToBinary[P1 = P2];
+    opNotEqual:     Value := BooleanToBinary[P1 <> P2];
+
+    //Note: we reverse the tests for booleans when compared as integers
+    opLess:         Value := BooleanToBinary[P2 < P1];
+    opGreater:      Value := BooleanToBinary[P2 > P1];
+    opLessEqual:    Value := BooleanToBinary[P2 <= P1];
+    opGreaterEqual: Value := BooleanToBinary[P2 >= P1];
+    opAND:          Value := P1 and P2;
+    opOR:           Value := P1 or P2;
+    opXOR:          Value := P1 xor P2;
   else
     raise Exception.Create('Unknown operation in Evaluate');
+  end;
 
   if RType = vtUnknown then
     RType := vtBoolean;
@@ -153,7 +150,7 @@ begin
 end;
 
 //Eval binary operator when both params are chars
-function EvalBiChar(OpIndex: Integer;Param1, Param2: PILParam;
+function EvalBiChar(Op: TOperator;Param1, Param2: PILParam;
   out Value: Integer;out RType: TVarType): TQuicheError;
 var P1: Integer;  //First parameter value
   P2: Integer;    //Second parameter value
@@ -163,61 +160,83 @@ begin
   P1 := Param1.ImmToInteger;
   P2 := Param2.ImmToInteger;
 
-  if OpIndex = opIndexEqual then
-  begin
-    Value := BooleanToBinary[P1 = P2];
-    RType := vtBoolean;
-  end
-  else if OpIndex = opIndexNotEqual then
-  begin
-    Value := BooleanToBinary[P1 <> P2];
-    RType := vtBoolean;
-  end
-  else if OpIndex = opIndexLess then
-  begin
-    Value := BooleanToBinary[P1 < P2];
-    RType := vtBoolean;
-  end
-  else if OpIndex = opIndexGreater then
-  begin
-    Value := BooleanToBinary[P1 > P2];
-    RType := vtBoolean;
-  end
-  else if OpIndex = opIndexLessEqual then
-  begin
-    Value := BooleanToBinary[P1 <= P2];
-    RType := vtBoolean;
-  end
-  else if OpIndex = opIndexGreaterEqual then
-  begin
-    Value := BooleanToBinary[P1 >= P2];
-    RType := vtBoolean;
-  end
+  case Op of
+    opEqual:
+     begin
+      Value := BooleanToBinary[P1 = P2];
+      RType := vtBoolean;
+    end;
+    opNotEqual:
+    begin
+      Value := BooleanToBinary[P1 <> P2];
+      RType := vtBoolean;
+    end;
+    opLess:
+    begin
+      Value := BooleanToBinary[P1 < P2];
+      RType := vtBoolean;
+    end;
+    opGreater:
+    begin
+      Value := BooleanToBinary[P1 > P2];
+      RType := vtBoolean;
+    end;
+    opLessEqual:
+    begin
+      Value := BooleanToBinary[P1 <= P2];
+      RType := vtBoolean;
+    end;
+    opGreaterEqual:
+    begin
+      Value := BooleanToBinary[P1 >= P2];
+      RType := vtBoolean;
+    end;
   else
     raise Exception.Create('Unknown operation in Evaluate');
+  end;
 end;
 
 //If both operand are immediate values, and we have a suitable routine available,
 //Evaluate LeftSlug := LeftSlug.Operand <LeftSlug.Operation> RightSlug.Operand
 //Returns True if the operation was evaluated.
 //If so, RightSlug is now spare
-function EvalBi(OpIndex: Integer;Param1, Param2: PILParam;
+function EvalBi(Op: TOperator;Param1, Param2: PILParam;
   out Value: Integer;out RType: TVarType): TQuicheError;
 begin
   Result := qeNone;
   if IsNumericType(Param1.ImmType) and IsNumericType(Param2.ImmType) then
-    EvalBiInteger(OpIndex, Param1, Param2, Value, RType)
+    Result := EvalBiInteger(Op, Param1, Param2, Value, RType)
   else if (Param1.ImmType = vtBoolean) and (Param2.ImmType = vtBoolean) then
-    EvalBiBoolean(OpIndex, Param1, Param2, Value, RType)
+    Result := EvalBiBoolean(Op, Param1, Param2, Value, RType)
   else if (Param1.ImmType = vtChar) and (Param2.ImmType = vtChar) then
-    EvalBiChar(OpIndex, Param1, Param2, Value, RType)
+    Result := EvalBiChar(Op, Param1, Param2, Value, RType)
   else
     EXIT(ErrOpUsage('Incompatible types ' +
       VarTypeToName(Param1.ImmType) + ' and ' +
-      VarTypeToName(Param2.ImmType), OpIndex));
+      VarTypeToName(Param2.ImmType), Op));
 end;
 
-function EvalUnary(OpIndex: Integer; Param: PILParam; out Value: Integer;out RType: TVarType): TQuicheError;
+function LogicValueToType(Value: Integer;VarType: TVarType): Integer;
+begin
+  case VarType of
+    vtByte: Result := Value and $ff;
+    vtWord, vtPointer: Result := Value and $ffff;
+    vtInt8:
+      if Value >= $80 then
+        Result := Value or (-1 xor $ff)
+      else
+        Result := Value;
+    vtInteger:
+      if Value >= iIntegerMin then
+        Result := Value or (-1 xor iCPUWordMask)
+      else
+        Result := Value;
+  else
+    Assert(False, 'Invalid type for logic result');
+  end;
+end;
+
+function EvalUnary(Op: TOperator; Param: PILParam; out Value: Integer;out RType: TVarType): TQuicheError;
 var P: Integer;  //Parameter value
   PType: TVarType;
 begin
@@ -229,12 +248,12 @@ begin
   begin
     P := Param.ImmToInteger;
 
-    if OpIndex = opIndexNOT then
-      Value := not P
-    else if OpIndex = opIndexNegate then
-      Value :=  - P
+    case Op of
+      opComplement: Value := LogicValueToType(not P, PType);
+      opNegate: Value :=  - P
     else
       raise Exception.Create('Unknown operation in Evaluate');
+    end;
 
     if RType = vtUnknown then
       Result := ValueToRType(Value, RType)
@@ -245,7 +264,7 @@ begin
   begin
     P := Param.ImmToInteger;
 
-    if OpIndex = opIndexNOT then
+    if Op = opComplement then
     begin
       Value := P xor valueTrue;
       RType := vtBoolean;
@@ -259,14 +278,14 @@ begin
 end;
 
 //Evaluate and intrinsic with a single parameter
-function EvalIntrinsicUnary(OpIndex: Integer; Param: PILParam;
+function EvalIntrinsicUnary(Op: TOperator; Param: PILParam;
   out Value: Integer;out RType: TVarType): TQuicheError;
-var OpData: POperator;
+var OpData: POpData;
   P: Integer;
 begin
-  OpData := OpIndexToData(OpIndex);
-  Assert(OpData <> nil);
-  Assert(Param.Loc = locImmediate);
+  OpData := @Operations[Op];
+//  Assert(OpData <> nil);
+  Assert(Param.Kind = pkImmediate);
 
   if OpData.OpGroup = ogTypecast then
   begin
@@ -274,14 +293,14 @@ begin
     case GetTypeSize(RType) of
       1:
       begin
-        Value := Param.ImmValue and $ff;
+        Value := Param.ImmValueInt and $ff;
         if IsSignedType(RType) then
           if (Value and $80) <> 0 then
-            Value := Param.ImmValue or (-1 xor $ff);
+            Value := Param.ImmValueInt or (-1 xor $ff);
       end;
       2:
       begin
-        Value := Param.ImmValue and $ffff;
+        Value := Param.ImmValueInt and $ffff;
         if GetTypeSize(Param.ImmType) = 1 then
           Value := Value and $ff;
       end;
@@ -400,15 +419,15 @@ begin
 end;
 
 //Evaulate an instrinsic with two parameters
-function EvalIntrinsicBi(OpIndex: Integer; Param1, Param2: TILParam;
+function EvalIntrinsicBi(Op: TOperator; Param1, Param2: TILParam;
   out Value: Integer;out RType: TVarType): TQuicheError;
-var OpData: POperator;
+var OpData: POpData;
   P1, P2: Integer;
 begin
-  OpData := OpIndexToData(OpIndex);
-  Assert(OpData <> nil);
-  Assert(Param1.Loc = locImmediate);
-  Assert(Param2.Loc = locImmediate);
+  OpData := @Operations[Op];
+//  Assert(OpData <> nil);
+  Assert(Param1.Kind = pkImmediate);
+  Assert(Param2.Kind = pkImmediate);
 
   P1 := Param1.ImmToInteger;
   P2 := Param2.ImmToInteger;

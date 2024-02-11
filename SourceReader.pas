@@ -9,6 +9,8 @@ const
   csIdentOther = ['0'..'9','A'..'Z','a'..'z',{'.',}'_'];
   csDecimalFirst = ['0'..'9'];
   csHexChars = ['0'..'9','a'..'f','A'..'F'];
+  csSymbolFirst = ['*','/','+','-','=','<','>'];
+  csSymbolOther = ['=','>'];  //For <= and <>
 
 //Line oriented source code reader
 //Can read data from a file or string
@@ -251,6 +253,11 @@ end;
 
 procedure TSourceReader.Undo;
 begin
+  //This shouldn't be able to happen.
+  //Wee need nested/stacked Mark points
+  if FMarkLineNo < 0 then
+    EXIT;
+//  Assert(FMarkLineNo >= 0, 'Unmatched Parser.Undo/Parser.Mark');
   FLineNo := FMarkLineNo;
   FPos := FMarkPos;
   if FLines <> nil then

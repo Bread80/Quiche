@@ -14,7 +14,7 @@ const
   rerrOverflow = 1;
   rerrDivByZero = 2;
 
-//CompilerOptions
+  //CompilerOptions
 var
   //If true, variables can be auto-created by any assignment to an un-declared
   //variable. Explicit type declarations are allowed when this option is used.
@@ -29,6 +29,9 @@ var
   optDefaultVarStorage: TVarStorage;
 
 
+type TBlockType = (btDefault, btStatic, btStack);
+
+var RootBlockType: TBlockType;
 
 implementation
 

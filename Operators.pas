@@ -1,5 +1,60 @@
 unit Operators;
 
+{
+NextGen operators:
+Operators table defines available operations:
+  Operation name
+  Symbol (?) or keyword
+  Precedence
+x  ?Left type(s)
+x  ?Right type(s)
+x  Swappable (mutable?)(numeric only?)
+x  Match operators (numeric only?) - un-necessary: just browse primitives list to see
+x    what is available and 'up-grade' parameters as necessary
+
+Primitives table defines available primitives:
+  Operation
+  Procedure identifier (Proc, Fragment or Subroutine)
+  Left type (base VarType)
+  Right type (base VarType)
+  Commutative (operator order can be swapped)
+  Destination type (base VarType, or 'same as Left');
+  Registers available (for Left, Right and Dest (or Dest same as P1))
+  Corrupts (registers)
+  Validation (y/n/either)
+  Validation routine (if there's an optimised validation routine. I.e. one which
+    makes use of flags set by the primitive
+  Conversion validation (optimised routines to used for type conversion after the primitive)
+
+At Parse time:
+  Search list of available Primitives
+  If *any* routine is available which can handle the given types (etc)
+    accept a routine is available and move on
+  else: see if any routine is available with upscaled parameters
+    if so:
+      take note of the minimum return type
+      proceed with the expression now being of the available return type
+
+At CodeGen time:
+  Now is the time to select the optimium routine from those matching the criteria,
+  upscaling parameters as needed
+
+Examples:
+Addition accepts parameters of the same type, swappable
+  Routines are available for:
+    Byte, Byte: Byte  - commutative
+    Int8, Int8: Int8  - commutative
+    Word, Word: Word (aka Pointer)  - commutative
+    Integer, Integer: Integer  - commutative
+    Real, Real: Real  - commutative
+    Char, Char: String - not commutative
+    String, Char: String - not commutative
+    Char, String: String - not commutative
+    String, String: String - not commutative
+    Set, Set: Set - commutat
+    ive
+}
+
 interface
 uses QTypes;
 
@@ -25,15 +80,71 @@ type
     );
   TOpFuncFlagSet = set of TOpFuncFlag;
 
-  POperator = ^TOperator;
-  TOperator = record
+  TOperator = (
+    opUnknown,    //Unassigned (error if it gets to codegen)
+    opMove,       //Move data from one location to another (ie load+store)
+    opStoreImm,   //Store an immediate value into a location
+//    opAssignX,     //DEPRECATED
+    opBranch,     //Unconditional branch
+    opCondBranch, //Conditional branch
+    opConstBranch,//Conditional branch with constant expression (immediate value)
+    opPhi,        //Phi function
+    opDataLoad,   //Load data into registers (for a function call)
+    opFuncCall,   //Call function
+    opFuncReturn, //Return from function
+
+    //Maths
+    opAdd, opSubtract, opMultiply, opRealDiv, opIntDivide, opMod,
+    opNegate, //Unary minus
+    //Note: Unary addition is skipped by parser
+    //Logic
+    opOR, opAND, opXOR,
+    opComplement,    //Unary NOT
+    //Comparisons
+    opEqual, opNotEqual, opLess, opGreater, opLessEqual, opGreaterEqual,
+    //Misc
+    opIn, opSHR, opSHL,
+    opAt,  //@ (address of)
+    //Typecasts
+    opInteger, opInt8, opWord, opByte, opPointer, opBoolean, opChar,
+    //Intrinsics
+    //Maths
+    opAbs, opDec, opInc, opOdd,
+    //System
+    opHi, opHigh, opInp, opLo, opLow, opOrd, opOut, opPeek, opPoke, opPred,
+    opPtr, opSizeof, opSucc, opSwap, opRead, opReadln, opWrite, opWriteln,
+    opWriteNewLine, opWriteChar, opWriteInteger, opWriteBoolean,
+    //Strings and Chars
+    opChr, opDowncase, opLength, opUpcase
+    );
+
+  POpData = ^TOpData;
+  TOpData = record
+    Name: String;         //Internal name of the operation
+    Precedence: Integer;  //In expressions. Higher equal higher
+    SignCombine: Boolean; //Affects how the primitives table is searched when
+                          //either parameter is a numerical constant.
+                          //(Only affects numerical operations)
+                          //If SignCombine is True: the other (non-constant)
+                          //parameter will be examined. A primitive will be chosen
+                          //based on whether the non-constant parameter is signed
+                          //or not and whether the constant parameter can be
+                          //represented within that type, and if not the type(s)
+                          //of one or both parameters will be expanded on the basis
+                          //of the signedness of both parameters.
+                          //If SignCombine is False the size and signedness of
+                          //each parameter will be examined separately.
+    FirstPrimIndex: Integer;  //Index in PrimListNG of the first entry for this
+                          //operator
+
+    IsNG: Boolean;        //True if this operator uses NG methodology
+
+    //All items below are deprecated
     Symbol: String;           //Symbol or keyword
     OpGroup: TOpGroup;        //Operator gouping
-    Name: String;             //Internal name of the operation
     OpTypes: TOpTypeSet;      //Set of available primitive types
     Logical: Boolean;         //If true the operator is a boolean logical one (AND, OR, XOR, NOT)
                               //Used for special processing of parameters.
-    Precedence: Integer;      //In expressions. Higher equal higher
     LTypes: TTypeEnumSet;     //List of applicable types for the left operand
     RTypes: TTypeEnumSet;     //List of applicable types for the right operand
     Swappable: Boolean;       //Can operators be swapped?
@@ -44,83 +155,65 @@ type
     ResultType: TTypeEnum;    //The output type. vtUnknown specifies same as input (left operand)
   end;
 
-var
-  OpIndexNone: Integer;
-  OpIndexAssign: Integer;
-  OpIndexBranch: Integer;
-  OpIndexConstBranch: Integer;
-  OpIndexCondBranch: Integer;
-  OpIndexPhi: Integer;
-  OpIndexAdd: Integer;
-  OpIndexSubtract: Integer;
-  OpIndexMultiply: Integer;
-//  OpIndexRealDivide: Integer;
-  OpIndexIntDivide: Integer;
-  OpIndexMod: Integer;
-  OpIndexEqual: Integer;
-  OpIndexNotEqual: Integer;
-  OpIndexLess: Integer;
-  OpIndexGreater: Integer;
-  OpIndexLessEqual: Integer;
-  OpIndexGreaterEqual: Integer;
-  OpIndexAND: Integer;
-  OpIndexOR: Integer;
-  OpIndexXOR: Integer;
-  OpIndexSHL: Integer;
-  OpIndexSHR: Integer;
-  OpIndexNegate: Integer;
-  OpIndexNOT: Integer;
+var Operations : array[low(TOperator)..high(TOperator)] of TOpData;
 
-  OpIndexWrite: Integer;
-  OpIndexWriteLn: Integer;
-  OpIndexWriteNewLine: Integer;
-  OpIndexWriteChar: Integer;
-  OpIndexWriteInteger: Integer;
-  OpIndexWriteBoolean: Integer;
-
-  OpIndexInc: Integer;
-  OpIndexDec: Integer;
-
-function OpIndexToData(Index: Integer): POperator;
 
 //Finds the first operator with the given symbol
-function OpSymbolToData(Symbol: String;out Index: Integer;out Op: POperator): Boolean;
-//Finds the operator withe the given Name
-function OpNameToIndex(Name: String): Integer;
+function SymbolToOperator(const Symbol: String): TOperator;
+//Finds the operator with the given Name
+//function OpIdentifierToOpData(const Name: String): POpData;
+function IdentToOperator(const Name: String): TOperator;
 
 //Returns only functions
-function OpFunctionToIndex(Name: String): Integer;
+function IdentToIntrinsicFunc(const Name: String): TOperator;
 
 //Returns procedures and functions (i.e any which can be used as statements)
-function OpProcedureToIndex(Name: STring): Integer;
-
-//Updates the OpIndex to one which can handle the given parameters
-//If there is no matching operator, returns an error.
-//
-//NOTE: some operations are available in multiple variants with different
-//operand and result types. For example logical operations (OR, AND, XOR) have
-//both bitwise and boolean variants. These have multiple entries in the Operators.
-//This code will update the OpIndex as necessary.
-//function UpdateOpForParams(var OpIndex: Integer;LType, RType: TVarType): Boolean;
+function IdentToIntrinsicProc(const Name: String): TOperator;
 
 procedure InitialiseOperators;
 
 procedure LoadOperatorsFile(const Filename: String);
+procedure LoadOperatorsFileNG(const Filename: String);
 
 //Convert an operator index to a string explaining it's usage
-function OpIndexToUsage(OpIndex: Integer): String;
+function OpToUsage(Op: TOperator): String;
+
+function StringToBoolean(S: String): Boolean;
 
 implementation
 uses Generics.Collections, Classes, SysUtils;
 
-var OpList : TList<POperator>;
+const OpStrings : array[low(TOperator)..high(TOperator)] of String = (
+    'UNKNOWN','Move','StoreImm',
+    'Branch','CondBranch','ConstBranch','Phi','DataLoad',
+    'FuncCall','FuncReturn',
+    'Add', 'Subtract', 'Multiply', 'RealDiv', 'Div', 'Mod','Negate',
+    'OR', 'AND', 'XOR','Complement',
+    'Equal', 'NotEqual', 'Less', 'Greater', 'LessEqual', 'GreaterEqual',
+    'In', 'SHR', 'SHL',
+    'At',
+    'Integer', 'Int8', 'Word', 'Byte', 'Pointer', 'Boolean', 'Char',
+    'Abs', 'Dec', 'Inc', 'Odd',
+    'Hi', 'High', 'Inp', 'Lo', 'Low', 'Ord', 'Out', 'Peek', 'Poke', 'Pred',
+    'Ptr', 'Sizeof', 'Succ', 'Swap', 'Read', 'Readln', 'Write', 'Writeln',
+    'WriteNewLine', 'WriteChar', 'WriteInteger', 'WriteBoolean',
+    'Chr', 'Downcase', 'Length', 'Upcase'
+    );
+
+const
+  //Mapping between ASCII and symbolic operators
+  SymbolOps: array of TOperator = [opAdd, opSubtract, opMultiply, opRealDiv,
+    opEqual,opNotEqual,opLess,opGreater,opLessEqual,opGreaterEqual];
+  SymbolStrings: array of String = ['+','-','*','/','=','<>','<','>','<=','>='];
 
 procedure ClearOpList;
-var Op: POperator;
+var Op: TOperator;
 begin
-  for Op in OpList do
-    Dispose(Op);
-  OpList.Clear;
+  for Op := low(TOperator) to high(TOperator) do
+  begin
+    Operations[Op].Name := '';
+    Operations[Op].Symbol := '';
+  end;
 end;
 
 procedure InitialiseOperators;
@@ -128,56 +221,55 @@ begin
   ClearOpList;
 end;
 
-
-function OpIndexToData(Index: Integer): POperator;
-begin
-  Result := OpList[Index];
-end;
-
-function OpSymbolToData(Symbol: String;out Index: Integer;out Op: POperator): Boolean;
+function SymbolToOperator(const Symbol: String): TOperator;
 var I: Integer;
 begin
-  for I := 0 to OpList.Count-1 do
-    if (OpList[I].OpGroup = ogBinary) and (CompareText(OpList[I].Symbol, Symbol) = 0) then
-    begin
-      Index := I;
-      Op := OpList[I];
-      EXIT(True);
-    end;
+  Assert(Length(SymbolOps) = Length(SymbolStrings));
+  for I := 0 to length(SymbolStrings)-1 do
+    if Symbol = SymbolStrings[I] then
+      EXIT(SymbolOps[I]);
 
-  Index := OpIndexNone;
-  Op := nil;
-  EXIT(False);
+  Result := opUnknown;
 end;
 
-function OpNameToIndex(Name: String): Integer;
+function IdentToOperator(const Name: String): TOperator;
 begin
-  for Result := 0 to OpList.Count-1 do
-    if CompareText(OpList[Result].Name, Name) = 0 then
+  for Result := low(TOperator) to high(TOperator) do
+    if CompareText(Name, OpStrings[Result]) = 0 then
       EXIT;
 
-  Result := -1;
+  Result := opUnknown;
 end;
 
-function OpFunctionToIndex(Name: String): Integer;
+function IdentToOpData(const Name: String): POpData;
+var Op: TOperator;
 begin
-  for Result := 0 to OpList.Count-1 do
-    if OpList[Result].OpGroup in [ogFunc, ogProc, ogTypecast] then
-      if CompareText(OpList[Result].Name, Name) = 0 then
+  for Op := low(TOperator) to high(TOperator) do
+    if CompareText(Name, OpStrings[Op]) = 0 then
+      EXIT(@Operations[Op]);
+
+  Result := nil;
+end;
+
+function IdentToIntrinsicFunc(const Name: String): TOperator;
+begin
+  for Result := low(TOperator) to high(TOperator) do
+    if Operations[Result].OpGroup in [ogFunc, ogProc, ogTypecast] then
+      if CompareText(Operations[Result].Name, Name) = 0 then
         EXIT;
 
-  Result := -1;
+  Result := opUnknown;
 end;
 
 //Returns procedures and functions (i.e any which can be used as statements)
-function OpProcedureToIndex(Name: STring): Integer;
+function IdentToIntrinsicProc(const Name: String): TOperator;
 begin
-  for Result := 0 to OpList.Count-1 do
-    if OpList[Result].OpGroup in [ogFunc, ogProc] then
-      if CompareText(OpList[Result].Name, Name) = 0 then
+  for Result := low(TOperator) to high(TOperator) do
+    if Operations[Result].OpGroup in [ogFunc, ogProc] then
+      if CompareText(Operations[Result].Name, Name) = 0 then
         EXIT;
 
-  Result := -1;
+  Result := opUnknown;
 end;
 
 function StringToOpGroup(S: String): TOpGroup;
@@ -226,7 +318,6 @@ begin
 end;
 
 const //Field indexes
-
   fGroup          = 2;
   fSymbol         = 3;
   fOpName         = 4;
@@ -243,7 +334,8 @@ procedure LoadOperatorsFile(const Filename: String);
 var Data: TStringList;
   Line: String;
   Fields: TArray<String>;
-  Op: POperator;
+  Op: POpData;
+  I: Integer;
 begin
   Data := TStringList.Create;
   Data.LoadFromFile(Filename);
@@ -254,8 +346,13 @@ begin
       Fields := Line.Split([',']);
       if Length(Fields) < 11 then
         raise Exception.Create('Operators line too short: ' + Line);
-      Op := New(POperator);
-      OpList.Add(Op);
+      for I:=0 to Length(Fields)-1 do
+        Fields[I] := Fields[I].Trim;
+
+      Op := IdentToOpData(Fields[fOpName]);
+      if Op = nil then
+        raise Exception.Create('Operator not found: ' + Fields[fOpName]);
+      Op.IsNG := False;
 
       Op.Symbol := Fields[fSymbol].ToLower;
       Op.OpGroup := StringToOpGroup(Fields[fGroup].ToLower);
@@ -281,122 +378,55 @@ begin
         Op.ResultType := StringToTypeEnum(Fields[fResultType]);
       end;
     end;
-
-    OpIndexNone := OpNameToIndex('none');
-    OpIndexPhi := OpNameToIndex('phi');
-    OpIndexBranch := OpNameToIndex('branch');
-    OpIndexCondBranch := OpNameToIndex('condbranch');
-    OpIndexConstBranch := OpNameToIndex('constbranch');
-    OpIndexAssign := OpNameToIndex('assign');
-
-    OpIndexAdd := OpNameToIndex('add');
-    OpIndexSubtract := OpNameToIndex('subtract');
-    OpIndexMultiply := OpNameToIndex('multiply');
-//    OpIndexFloatDivide := OpNameToIndex('floatdiv');
-    OpIndexIntDivide := OpNameToIndex('intdiv');
-    OpIndexMod := OpNameToIndex('mod');
-
-    OpIndexEqual := OpNameToIndex('equal');
-    OpIndexNotEqual := OpNameToIndex('notequal');
-    OpIndexLess := OpNameToIndex('less');
-    OpIndexGreater := OpNameToIndex('greater');
-    OpIndexLessEqual := OpNameToIndex('lessequal');
-    OpIndexGreaterEqual := OpNameToIndex('greaterequal');
-
-    OpIndexAND := OpNameToIndex('AND');
-    OpIndexOR := OpNameToIndex('OR');
-    OpIndexXOR := OpNameToIndex('XOR');
-    OpIndexSHL := OpNameToIndex('SHL');
-    OpIndexSHR := OpNameToIndex('SHR');
-
-    OpIndexNOT := OpNameToIndex('not');
-    OpIndexNegate := OpNameToIndex('negate');
-
-    OpIndexWrite := OpNameToIndex('write');
-    OpIndexWriteLn := OpNameToIndex('writeln');
-    OpIndexWriteNewLine := OpNameToIndex('writenewline');
-    OpIndexWriteChar := OpNameToIndex('writechar');
-    OpIndexWriteInteger := OpNameToIndex('writeinteger');
-    OpIndexWriteBoolean := OpNameToIndex('writeboolean');
-
-    OpIndexInc := OpNameToIndex('inc');
-    OpIndexDec := OpNameToIndex('dec');
-
-    Assert(OpIndexPhi <> 0);
-    Assert(OpIndexBranch <> 0);
-    Assert(OpIndexConstBranch <> 0);
-    Assert(OpIndexCondBranch <> 0);
-    Assert(OpIndexAssign <> 0);
-
-    Assert(OpIndexAdd <> 0);
-    Assert(OpIndexSubtract <> 0);
-    Assert(OpIndexMultiply <> 0);
-//    Assert(OpIndexFloatDivide <> 0);
-    Assert(OpIndexIntDivide <> 0);
-    Assert(OpIndexMod <> 0);
-
-    Assert(OpIndexEqual <> 0);
-    Assert(OpIndexNotEqual <> 0);
-    Assert(OpIndexLess <> 0);
-    Assert(OpIndexGreater <> 0);
-    Assert(OpIndexLessEqual <> 0);
-    Assert(OpIndexGreaterEqual <> 0);
-
-    Assert(OpIndexAND <> 0);
-    Assert(OpIndexOR <> 0);
-    Assert(OpIndexXOR <> 0);
-    Assert(OpIndexSHL <> 0);
-    Assert(OpIndexSHR <> 0);
-
-    Assert(OpIndexNOT <> 0);
-    Assert(OpIndexNegate <> 0);
-
-    Assert(OpIndexWrite <> 0);
-    Assert(OpIndexWriteLn <> 0);
-    Assert(OpIndexWriteChar <> 0);
-    Assert(OpIndexWriteInteger <> 0);
-    Assert(OpIndexWriteBoolean <> 0);
-    Assert(OpIndexWriteNewLine <> 0);
-
-    Assert(OpIndexInc <> 0);
-    Assert(OpIndexDec <> 0);
 end;
 
-(*
-  TOpGroup = (
-    ogSystem,   //Compiler goodness :)
-    ogBinary,   //Operators with two parameters - findable by symbol/name
-    ogUnary,    //Unary operators
-    ogTypecast, //Typecasts
-    ogFunc,     //Appears as a function to the user
-    ogProc);    //Appears as a procedure to the user
+const
+  fNGOpName = 1;
+  fNGPrecedence = 2;
+  fNGSignCombine = 3;
 
-  POperator = ^TOperator;
-  TOperator = record
-    Symbol: String;           //Symbol or keyword
-    OpGroup: TOpGroup;        //Operator gouping
-    Name: String;             //Internal name of the operation
-    OpTypes: TOpTypeSet;      //Set of available primitive types
-    Logical: Boolean;         //If true the operator is a boolean logical one (AND, OR, XOR, NOT)
-                              //Used for special processing of parameters.
-    Precedence: Integer;      //In expressions. Higher equal higher
-    LTypes: TTypeEnumSet;     //List of applicable types for the left operand
-    RTypes: TTypeEnumSet;     //List of applicable types for the right operand
-    Swappable: Boolean;       //Can operators be swapped?
-    MatchOperands: Boolean;   //Extend numeric operators to match each other
-    Param2Optional: Boolean;  //Parameter 2 is optional. (Only valid for functions)
-    ResultSame: Boolean;      //If true the result will be the same type as the operands
-                              //(Left operand, if only one operand)
-    ResultType: TTypeEnum;    //The output type. vtUnknown specifies same as input (left operand)
-  end;
-*)
-function OpIndexToUsage(OpIndex: Integer): String;
-var OpData: POperator;
+procedure LoadOperatorsFileNG(const Filename: String);
+var Data: TStringList;
+  Line: String;
+  Fields: TArray<String>;
+  Op: POpData;
+  I: Integer;
 begin
-  OpData := OpIndexToData(OpIndex);
+  Data := TStringList.Create;
+  Data.LoadFromFile(Filename);
+
+  for Line in Data do
+    if (Length(Line) > 0) and (Line.Chars[0] <> ';') then
+    begin
+      if Line.StartsWith('END') then
+        EXIT;
+
+      Fields := Line.Split([',']);
+      if Fields[fNGOpName] <> '' then
+      begin
+        if Length(Fields) < 11 then
+          raise Exception.Create('Operators line too short: ' + Line);
+        for I:=0 to Length(Fields)-1 do
+          Fields[I] := Fields[I].Trim;
+
+        Op := IdentToOpData(Fields[fNGOpName]);
+        if Op = nil then
+          raise Exception.Create('Operator not found: ' + Fields[fNGOpName]);
+        Op.IsNG := True;
+
+        Op.FirstPrimIndex := -1;
+        Op.Name := Fields[fNGOpName];
+        Op.Precedence := StrToInt(Fields[fNGPrecedence]);
+        Op.SignCombine := StringToBoolean(Fields[fNGSignCombine]);
+      end;
+    end;
+end;
+
+function OpToUsage(Op: TOperator): String;
+var OpData: POpData;
+begin
+  OpData := @Operations[Op];
   Result := OpData.Symbol + ' (stuff to do here)';
 end;
 
-initialization
-  OpList := TList<POperator>.Create;
 end.
