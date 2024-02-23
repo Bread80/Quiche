@@ -417,7 +417,7 @@ begin
     end
     //----End
     else
-      EXIT(ErrMsg(qeExpression, 'Function not valid in constant expressions: ' + OpData.Name));
+      EXIT(qeIntrinsicCantBeEvaluatedAtCompileTime);
   end;
 
     if ResultType = vtUnknown then
@@ -445,7 +445,7 @@ begin
   if CompareText(OpData.Name, 'inc') = 0 then
       Value := P1 + P2
   else
-    EXIT(ErrMsg(qeBUG, 'Intrinsic not implemented: ' + OpData.Name));
+    EXIT(qeIntrinsicCantBeEvaluatedAtCompileTime);
 
   if RType = vtUnknown then
     Result := ValueToRType(Value, RType)

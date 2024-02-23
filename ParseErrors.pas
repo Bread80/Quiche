@@ -51,6 +51,7 @@ type TQuicheError = (
   qeUnterminatedString,
   qeInvalidCharLiteral,
   qeUnmatchedBrackets,
+  qeIntrinsicCantBeEvaluatedAtCompileTime,  //Used as a signal, not an error
 
   //Techie stuff
   qeAttributeError,     //Error in an attribute
@@ -101,6 +102,7 @@ const Errors : array[TQuicheError] of String = (
   'Unterminated string',
   'Incorrect character literal',
   'Unmatched brackets',
+  'qeIntrinsicCantBeEvaluatedAtCompileTime',
 
   'Invalid attribute',
   'Error in code generation',
@@ -140,6 +142,7 @@ const SubErrors : array[TQuicheError] of String = (
   '',
   '',
 
+  '',
   '',
   '',
   '',

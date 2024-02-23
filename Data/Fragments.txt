@@ -621,3 +621,11 @@
   ld a,<p1.r16high>
   cpl
   ld <p1.r16high>,a  
+  
+;=== Input and output
+
+=in_reg_bc
+  in <d.r8>,(c)
+  
+=in_a_n
+  in a,(<p1.immbyte>)

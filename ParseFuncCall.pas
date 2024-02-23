@@ -215,30 +215,41 @@ begin
     begin
       Result := EvalIntrinsicUnary(Func.Op, Slugs[0].Operand,
         Slug.Operand.ImmValueInt, Slug.Operand.ImmType);
-      if Result <> qeNone then
-        EXIT;
-      Slug.ResultType := Slug.Operand.ImmType;
-      Slug.ImplicitType := Slug.ResultType;
-      Slug.Operand.Kind := pkImmediate;
+      if Result = qeIntrinsicCantBeEvaluatedAtCompileTime then
+        //Continue with IL code generatio
+        Result := qeNone
+      else
+      begin
+        if Result <> qeNone then
+          EXIT;
+        Slug.ResultType := Slug.Operand.ImmType;
+        Slug.ImplicitType := Slug.ResultType;
+        Slug.Operand.Kind := pkImmediate;
       //TODO: We currently use the ResultType from the available Primitives.
       //For constants we probably want to base the ResultType on the value, but
       //two lines below are too blunt and need refining
 //      Slug.ResultType := Slug.Operand.ImmType;
 //      Slug.ImplicitType := Slug.ResultType;
-      EXIT;
+        EXIT;
+      end
     end
     else //Two parameters
       if not Assigned(Slugs[1].ILItem) and (Slugs[1].Operand.Kind = pkImmediate) then
       begin
         Result := EvalIntrinsicBi(Func.Op, Slugs[0].Operand, Slugs[1].Operand,
           Slug.Operand.ImmValueInt, Slug.Operand.ImmType);
-        if Result <> qeNone then
-          EXIT;
-        Slug.Operand.Kind := pkImmediate;
+        if Result = qeIntrinsicCantBeEvaluatedAtCompileTime then
+          Result := qeNone
+        else
+        begin
+          if Result <> qeNone then
+            EXIT;
+          Slug.Operand.Kind := pkImmediate;
         //TODO: As previous TODO
 //        Slug.ResultType := Slug.Operand.ImmType;
 //        Slug.ImplicitType := Slug.ResultType;
-        EXIT;
+          EXIT;
+        end;
       end;
 
 

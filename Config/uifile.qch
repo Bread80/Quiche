@@ -1,2 +1,2 @@
-var i:=high(Integer)
-var j:=high(i)
+var a:=inp(255)
+var b:=inp(a)

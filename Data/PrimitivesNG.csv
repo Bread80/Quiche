@@ -344,8 +344,8 @@
 ,high,TypeDef,none,n,Word,x,,error,,,imm,,hl,,empty,,,,,Compile time only. Returns a constant at compile time. This is just a placeholder. ResultType 'Word' Can contain any possible return value. We can massage/hack that into a proper return type (in Eval).
 ,high,TypeDef,none,n,Word,x,,error,,,a,,hl,,empty,,,,,Compile time only. Returns a constant at compile time. This is just a placeholder. ResultType 'Word' Can contain any possible return value. We can massage/hack that into a proper return type (in Eval).
 ,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,
+,inp,Word,none,n,Byte,x,,in_reg_bc,,,bc,,a,,,,,,,Current Primitive data can't cope with multiple result register options
+;,inp,Byte,none,n,Byte,x,,in_a_n,,,imm,,a,,,,,,,Not yet supported (How to differentiate between the two? Compiler option?)
 ,,,,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,
