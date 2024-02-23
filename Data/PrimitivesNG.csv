@@ -347,11 +347,27 @@
 ,inp,Word,none,n,Byte,x,,in_reg_bc,,,bc,,a,,,,,,,Current Primitive data can't cope with multiple result register options
 ;,inp,Byte,none,n,Byte,x,,in_a_n,,,imm,,a,,,,,,,Not yet supported (How to differentiate between the two? Compiler option?)
 ,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,(Empty columns for formatting),,,,,,,,,,,,
+;,,----Primitive Selection----,,,,----Primitive Data----,,,,,,,,,Special validations on type conversion,,,,,
+;,Operation,Ltype,Rtype,Commutative,ResultType,Validation,,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,Validate,Int8,Byte,Integer,Word,Notes
 ,lo,Word,none,n,Byte,x,load_rp_low,empty,,,a;b;c;d;e;h;l,,param1,,empty,,,,,
 ,lo,Integer,none,n,Byte,x,load_rp_low,empty,,,a;b;c;d;e;h;l,,param1,,empty,,,,,
 ,,,,,,,,,,,,,,,,,,,,
 ,low,TypeDef,none,n,Integer,x,,error,,,imm,,hl,,empty,,,,,Compile time only. Returns a constant at compile time. This is just a placeholder. ResultType 'Integer' Can contain any possible return value. We can massage/hack that into a proper return type (in Eval).
 ,low,TypeDef,none,n,Integer,x,,error,,,a,,hl,,empty,,,,,Compile time only. Returns a constant at compile time. This is just a placeholder. ResultType 'Integer' Can contain any possible return value. We can massage/hack that into a proper return type (in Eval).
+,,,,,,,,,,,,,,,,,,,,
+,ord,Byte,none,n,Byte,x,,empty,,,a;b;c;d;e;h;l,,param1,,empty,,,,,
+,ord,Int8,none,n,Int8,x,,empty,,,a;b;c;d;e;h;l,,param1,,empty,,,,,
+,ord,Word,none,n,Word,x,,empty,,,hl;de;bc,,param1,,empty,,,,,
+,ord,Integer,none,n,Integer,x,,empty,,,hl;de;bc,,param1,,empty,,,,,
+,ord,Boolean,none,n,Byte,x,,empty,,,a;b;c;d;e;h;l,,param1,,empty,,,,,
+,ord,Char,none,n,Byte,x,,empty,,,a;b;c;d;e;h;l,,param1,,empty,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,

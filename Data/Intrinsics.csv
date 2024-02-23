@@ -25,7 +25,7 @@
 ,lo,val,Value,AnyInteger,,,,,,,Byte,"Returns low byte of Value. Value must be a 16-bit integer-type (Word, Pointer or Integer)"
 ,low,const,Type,TypeDef,,,,,,,Param1,Returns the lowest value of an enumerable type
 ;,low,const,Variable,Array,,,,,,,Word,Lowest index of array
-;,ord,var,Value,Enumerable,,,,,,,Param1,Ordinal value of item
+,ord,val,Item,Enumerable,,,,,,,Integer,Returns the ordinal value of the item
 ;,out,val,Port,Numeric,,val,Data,Numeric,,,None,Write to I/O port
 ;,peek,val,Address,Word,,const,Type,TypeDef,Byte,Optional,Param2,"Read from memory. Result type is that of second parameter, Byte if not specified"
 ;,poke,val,Address,Word,,const,Data,Any,,,None,Write to memory
