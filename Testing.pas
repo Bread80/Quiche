@@ -258,8 +258,15 @@ begin
     begin
       if (Length(Fields[2]) = 3) and (Fields[2].Chars[0] = '''') and (Fields[2].Chars[2] = '''') then
         C := Fields[2].Chars[1]
-      else
-        EXIT(False);
+      else if Fields[2].Chars[0] = '#' then
+        //Numeric char literal
+        if TryStrToInt(Fields[2].Substring(1), I) then
+          if I <= 255 then
+            C := chr(I)
+          else
+            EXIT(False)
+        else
+          EXIT(False);
       DoTest(V.ValueInt = ord(C), 'VarValue mismatch on ' + V.Name +
         ', wanted ''' + C + ''' got ''' + chr(V.ValueInt) + '''');
     end;

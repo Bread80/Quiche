@@ -136,6 +136,7 @@ begin
     ILItem.ResultType := VarTypeToOpType(Variable.VarType);
   end;
 
+  ILItem.DestType := dtData;
   ILItem.Dest.SetVarAndSub(Variable, VarSub);
 
 //  if VType <> vtUnknown then
@@ -713,11 +714,11 @@ begin
   end
   else
   begin //Search for intrinsics
-    Op := IdentToIntrinsicProc(Ident);
+{    Op := IdentToIntrinsicProc(Ident);
     if Op <> opUnknown then
       Result := ParseIntrinsic(Op, False, Slug)
     else
-    begin
+}    begin
       //TODO: Search builtin function library
 
       //If followed by := raise variable not found

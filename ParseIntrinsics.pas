@@ -81,7 +81,7 @@ begin
 end;
 
 //Read parameter(s) of an intrinsic
-function ParseParams(Op: TOperator;var HaveParam2: Boolean;var Slug1, Slug2: TExprSlug): TQuicheError;
+{function ParseParams(Op: TOperator;var HaveParam2: Boolean;var Slug1, Slug2: TExprSlug): TQuicheError;
 var Ch: Char;
   Brace: Boolean; //Is parameter list wrapped in braces?
   ExprType1, ExprType2: TVarType;
@@ -136,8 +136,8 @@ begin
     if Parser.TestChar = ',' then
       EXIT(ErrOpUsage(ermIncorrectParameterCount, Op));
 end;
-
-function ValidateParams(Op: TOperator;HaveParam2: Boolean;const Slug1, Slug2: TExprSlug): TQuicheError;
+}
+{function ValidateParams(Op: TOperator;HaveParam2: Boolean;const Slug1, Slug2: TExprSlug): TQuicheError;
 var OpData: POpData;
 begin
   OpData := @Operations[Op];
@@ -164,10 +164,10 @@ begin
 
   Result := qeNone;
 end;
-
+}
 //Handle generic intrinsics which follow the standard syntax etc rules defined in
 //the operators table.
-function ParseGenericIntrinsic(Op: TOperator;AssignReturn: Boolean;var Slug: TExprSlug): TQuicheError;
+{function ParseGenericIntrinsic(Op: TOperator;AssignReturn: Boolean;var Slug: TExprSlug): TQuicheError;
 var
   OpData: POpData;
   ILItem: PILItem;
@@ -204,8 +204,7 @@ begin
     end
     else
     begin
-      Result := EvalIntrinsicUnary(Op, @Slug1.Operand,
-        Value, RType);
+      Result := EvalIntrinsicUnary(Op, Slug1.Operand, Value, RType);
       if Result <> qeNone then
         EXIT;
     end;
@@ -285,7 +284,7 @@ begin
     ILItem.Dest.SetVarAndSub(ILItem.Param1.Variable, ILItem.Param1.Variable.IncWriteCount);
   end;
 end;
-
+}
 function ParseIntrinsic(Op: TOperator;AssignReturn: Boolean;var Slug: TExprSlug): TQuicheError;
 begin
   if Op = OpWrite then
@@ -299,7 +298,7 @@ begin
     else
       EXIT(ParseWrite(True));
 
-  Result := ParseGenericIntrinsic(Op, AssignReturn, Slug);
+//  Result := ParseGenericIntrinsic(Op, AssignReturn, Slug);
 end;
 
 end.

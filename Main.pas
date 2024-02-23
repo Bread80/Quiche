@@ -158,6 +158,8 @@ begin
       mmIL.Lines.Add(tdSource.Text.Lines[LastErrorLine-1]);
       mmIL.Lines.Add(StringOfChar(' ',LastErrorPos)+'^');
       mmIL.Lines.Add(edError.Text);
+      mmIL.Lines.Add(ErrorHelp);
+      TabControl1.ActiveTab := tbILCode;
     end
     else if Compiler.AssembleError then
     begin
@@ -170,6 +172,7 @@ begin
     edError.Text := '';
 
     btnEmulateClick(nil);
+    TabControl1.ActiveTab := tbEmulate;
 //    if Compiler.LastErrorNo <> 0 then
 //      EXIT;
 //    mmIL.Lines.Add('');

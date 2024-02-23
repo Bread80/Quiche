@@ -48,9 +48,18 @@ type
     ValProcU16: String;
   end;
 
+  TPrimFlagNG = (
+    pfnLoadRPLow,  //Load only the high byte of the (16-bit) parameter
+    pfnLoadRPHigh //Load only high byte of the (16-bit) parameter
+{    pfP1StaticVar,  //Load Param1 from static var
+    pfP1RelVar,     //Load Param2 from relative var
+    pfDestStaticVar,  //Store to a static variable
+    pfDestRelVar      //Store to an IX relative variable
+}    );
+  TPrimFlagSetNG = set of TPrimFlagNG;
   PPrimitiveNG = ^TPrimitiveNG;
   TPrimitiveNG = record
-    //Fields to use for register selection
+    //Fields to use for primitive selection
     Op: TOperator;
     ProcName: String;     //Name of the Proc (code), Fragment, or Subroutine used
                           //during code generation
@@ -60,7 +69,8 @@ type
     ResultType: TVarType; //Destination (Result) type
     Validation: TPrimValidation;  //Can this routine be used when validation is on? off? either?
 
-    //Fields for register use
+    //Fields for primitive use
+    Flags: TPrimFlagSetNG;//Flags
     LRegs: TCPURegSet;    //What registers can the left parameter accept?
     RRegs: TCPURegSet;    //What registers can the right operator accept?
     ResultInLReg: Boolean;  //If True the result is returned in the same register
@@ -107,14 +117,15 @@ function PrimFindByProcName(AName: String): PPrimitive;
 //Returns the result type that the selected routine will return.
 //If no suitable routine was found returns vtUnknown
 //If the parameter type were expanded then LType and RType return the expanded type(s)
-function PrimFindBestMatchVarVar(Op: TOperator;var LType, RType: TVarType): TVarType;
+function PrimFindBestMatchVarVar(Op: TOperator;var LType, RType: TVarType;
+  out ResultType: TVarType): Boolean;
 
 //Where left operand is an immediate value
 function PrimFindBestMatchRangeVar(Op: TOperator;out LType: TVarType;
-  var RType: TVarType;LRange: TNumberRange): TVarType;
+  var RType: TVarType;LRange: TNumberRange;out ResultType: TVarType): Boolean;
 //Where the right operand is an immediate value
 function PrimFindBestMatchVarRange(Op: TOperator;var LType: TVarType;
-  out RType: TVarType;RRange: TNumberRange): TVarType;
+  out RType: TVarType;RRange: TNumberRange;out ResultType: TVarType): Boolean;
 
 
 procedure PrimSetProc(Name: String;Proc: TCodeGenProc);
@@ -202,6 +213,66 @@ end;
 
 //==================NG Primitive matching & type matching
 
+
+//vtWord, vtByte, vtPointer, vtInt8, vtInteger, <Unused>, vtReal,
+//  vtChar, vtType, vtBoolean, vtFlag, vtString
+
+//Mapping between <code-type>,<primitive-type> to fitness
+const FitnessTypeType: array[vtWord..vtString,vtWord..vtString] of Integer =
+//   W   B   P  I8   I   x   R   C   T   B   F   S
+  (( 0, -1,  0, -1, -1, -1,  1, -1, -1, -1, -1, -1),  //Word
+   ( 1,  0,  1, -1,  2, -1,  3, -1, -1, -1, -1, -1),  //Byte
+   ( 0, -1,  0, -1, -1, -1,  1, -1, -1, -1, -1, -1),  //Pointer
+   (-1, -1, -1,  1,  2, -1,  3, -1, -1, -1, -1, -1),  //Int8
+   (-1, -1, -1, -1,  0, -1,  1, -1, -1, -1, -1, -1),  //Integer
+   (-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),  //<unused>
+   (-1, -1, -1, -1, -1, -1,  0, -1, -1, -1, -1, -1),  //Real
+   (-1, -1, -1, -1, -1, -1, -1,  0, -1, -1,  1, -1),  //Char
+   (-1, -1, -1, -1, -1, -1, -1, -1,  0, -1, -1, -1),  //Type
+   (-1, -1, -1, -1, -1, -1, -1, -1, -1,  0,  1, -1),  //Boolean
+   (-1, -1, -1, -1, -1, -1, -1, -1,  1, -1,  0, -1),  //Flag
+   (-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  0)); //String
+
+//Mapping between <code-range>,<primitive-type> to fitness
+const FitnessRangeType: array[low(TNumberRange)..high(TNumberRange), vtWord..vtString] of Integer =
+//  Wrd Byt Ptr I8  Int  x  Rl  Chr Typ Boo Flg Str
+  ((-1, -1, -1, -1, -1, -1,  0, -1, -1, -1, -1, -1),  //rgReal,   //..-32769
+   (-1, -1, -1, -1,  0, -1,  1, -1, -1, -1, -1, -1),  //rgS16,    //-32768..-129
+   (-1, -1, -1,  0,  1, -1,  2, -1, -1, -1, -1, -1),  //rgS8,     //-128..-1
+   ( 2,  0,  2,  1,  3, -1,  4, -1, -1, -1, -1, -1),  //rgAny,    //0..127
+   ( 1,  0,  1, -1,  2, -1,  3, -1, -1, -1, -1, -1),  //rgS16U8,  //128..255
+   ( 0, -1,  1, -1,  1, -1,  2, -1, -1, -1, -1, -1),  //rgS16U16, //256..32767
+   ( 0, -1,  0, -1, -1, -1,  1, -1, -1, -1, -1, -1)); //rgU16     //32768..65535
+
+{PrimSearch:
+  BestFitness := MaxInt;
+  BestPrim := nil;
+  Prim := FirstPrim
+  while Prim.Op = Op
+    LeftFitness := Fitness[LType, Prim.LType];
+      (Or LType, LRange)
+    if RType = vtUnknown then
+      if Prim.RType = vtUnknown then
+        RFitness := 0
+      else
+        RFitness := -1
+    else
+      RightFitness := Fitness[RType, Prim.RType];
+        (Or RType, RRange)
+    if LFitness > 0 and RFitness > 0 then
+      **Validate any other param info - not required for ParseSearch
+      Fitness := LFitness + RFitness
+      if Fitness = 0 then
+        EXIT(Found)
+      else
+        if BestPrim = nil or Fitness < BestFitness then
+          BestFitness := Fitness
+          BestPrim := Prim
+    Prim := NextPrim
+  end;
+  NotFound
+end;
+}
 type TPrimSearchRec = record
     Op: TOperator;
     PrimIndex: Integer;
@@ -214,6 +285,7 @@ type TPrimSearchRec = record
     LStorage: TVarStorage;
     RStorage: TVarStorage;
 
+    ResultType: TVarType;
     SwapParams: Boolean;
   end;
 
@@ -251,7 +323,7 @@ end;
 //Pass in PrimIndex = -1 to search from the start of the table.
 //        PrimIndex >= 0 to search incementally beginning at the item /after/ the indexed item.
 //Returns PrimIndex pointing to the found item.
-function PrimSearch(var SearchRec: TPrimSearchRec): TVarType;
+function PrimSearch(var SearchRec:  TPrimSearchRec): Boolean;
 var Prim: PPrimitiveNG;
   LTest: TVarType;
   RTest: TVarType;
@@ -289,9 +361,10 @@ begin
         begin
           SearchRec.SwapParams := False;
           if (Prim.ResultType = vtWord) and ((SearchRec.LType = vtPointer) or (SearchRec.RType = vtPointer)) then
-            EXIT(vtPointer)
+            SearchRec.ResultType := vtPointer
           else
-            EXIT(Prim.ResultType);
+            SearchRec.ResultType := Prim.ResultType;
+          EXIT(True);
         end;
 
       if Prim.Commutative then
@@ -300,10 +373,11 @@ begin
             ParamRegMatch(Prim, Prim.RRegs, SearchRec.LKind, SearchRec.LStorage) then
           begin
             SearchRec.SwapParams := True;
-          if (Prim.ResultType = vtWord) and ((SearchRec.LType = vtPointer) or (SearchRec.RType = vtPointer)) then
-            EXIT(vtPointer)
-          else
-            EXIT(Prim.ResultType);
+            if (Prim.ResultType = vtWord) and ((SearchRec.LType = vtPointer) or (SearchRec.RType = vtPointer)) then
+              SearchRec.ResultType := vtPointer
+            else
+              SearchRec.ResultType := Prim.ResultType;
+            EXIT(True);
           end;
     end;
 
@@ -312,7 +386,7 @@ begin
 
   //End of PrimList reached (for Op)
   SearchRec.PrimIndex := -1;
-  Result := vtUnknown;
+  Result := False;
 end;
 
 //**ExpandRange
@@ -337,7 +411,7 @@ begin
 end;
 
 //Expands **Ranges** to find a routine with suitable types
-function PrimFindTypeMatch(var SearchRec: TPrimSearchRec): TVarType;
+function PrimFindTypeMatch(var SearchRec: TPrimSearchRec): Boolean;
 begin
   if (SearchRec.LType = vtPointer) or (SearchRec.RType = vtPointer) then
     SearchRec.IsSigned := False
@@ -348,7 +422,7 @@ begin
   SearchRec.PrimIndex := -1;
   Result := PrimSearch(SearchRec);
 
-  while Result = vtUnknown do
+  while not Result do
   begin
     //Attempt to expand operands one at a time.
     //If we can't expand operands then the search is over :(
@@ -368,14 +442,15 @@ begin
   end;
 
   //TEMPORARY - Return NOT found (at the moment) if we have a Real or a String anywhere
-  if (Result in [vtReal, vtString]) or (SearchRec.LType in [vtReal, vtString]) or
+  if (SearchRec.ResultType in [vtReal, vtString]) or (SearchRec.LType in [vtReal, vtString]) or
     (SearchRec.RType in [vtReal, vtString]) then
-    Result := vtUnknown;
-  if Result = vtFlag then
-    Result := vtBoolean;
+    Result := False;
+  if SearchRec.ResultType = vtFlag then
+    SearchRec.ResultType := vtBoolean;
 end;
 
-function PrimFindBestMatchVarVar(Op: TOperator;var LType, RType: TVarType): TVarType;
+function PrimFindBestMatchVarVar(Op: TOperator;var LType, RType: TVarType;
+  out ResultType: TVarType): Boolean;
 var SearchRec: TPrimSearchRec;
 begin
   SearchRec.Op := Op;
@@ -389,6 +464,7 @@ begin
   Result := PrimFindTypeMatch(SearchRec);
   LType := SearchRec.LType;
   RType := SearchRec.RType;
+  ResultType := SearchRec.ResultType;
 end;
 
 function RangeToType(Op: TOperator;AType: TVarType;ARange: TNumberRange): TVarType;
@@ -407,7 +483,7 @@ begin
 end;
 
 function PrimFindBestMatchRangeVar(Op: TOperator;out LType: TVarType;
-  var RType: TVarType;LRange: TNumberRange): TVarType;
+  var RType: TVarType;LRange: TNumberRange;out ResultType: TVarType): Boolean;
 var SearchRec: TPrimSearchRec;
 begin
   SearchRec.Op := Op;
@@ -421,10 +497,11 @@ begin
   Result := PrimFindTypeMatch(SearchRec);
   LType := SearchRec.LType;
   RType := SearchRec.RType;
+  ResultType := SearchRec.ResultType;
 end;
 
 function PrimFindBestMatchVarRange(Op: TOperator;var LType: TVarType;
-  out RType: TVarType;RRange: TNumberRange): TVarType;
+  out RType: TVarType;RRange: TNumberRange;out ResultType: TVarType): Boolean;
 var SearchRec: TPrimSearchRec;
 begin
   SearchRec.Op := Op;
@@ -438,6 +515,7 @@ begin
   Result := PrimFindTypeMatch(SearchRec);
   LType := SearchRec.LType;
   RType := SearchRec.RType;
+  ResultType := SearchRec.ResultType;
 end;
 
 //---
@@ -492,7 +570,7 @@ end;
 // * Match Locations (Not sure this should be here?)
 function ILItemToPrimitiveNG(const ILItem: TILItem;out SwapParams: Boolean): PPrimitiveNG;
 var
-  ResultType: TVarType;
+  Found: Boolean;
   Prim: PPrimitiveNG;
   SearchRec: TPrimSearchRec;
   V: PVariable;
@@ -520,10 +598,10 @@ begin
 
 //Convert Ranges to Types (with Primitives available)
   //Finds first Prim, and expands types as needed to find a match
-  ResultType := PrimFindTypeMatch(SearchRec);//PrimIndex, ILItem.Op, LType, RType, SwapParams);
+  Found := PrimFindTypeMatch(SearchRec);
 
   //Iterate entries
-  while ResultType <> vtUnknown do
+  while Found do
   begin
     Prim := PrimListNG[SearchRec.PrimIndex];
 
@@ -542,7 +620,7 @@ begin
         EXIT(Prim);
       end;
 
-    ResultType := PrimSearch(SearchRec);//PrimIndex, ILItem.Op, LType, RType, IsSigned, SwapParams);
+    Found := PrimSearch(SearchRec);
   end;
 
   Result := nil;
@@ -898,6 +976,27 @@ begin
     end;
 end;
 
+function StrToPrimFlagSetNG(S: String): TPrimFlagSetNG;
+var X: String;
+begin
+  Result := [];
+  for X in S.Split([';']) do
+    if CompareText(X, 'load_rp_low') = 0 then
+      Result := Result + [pfnLoadRPLow]
+    else if CompareText(X, 'load_rp_high') = 0 then
+      Result := Result + [pfnLoadRPHigh]
+{    else if CompareText(X, 'p1staticvar') = 0 then
+      Result := Result + [pfP1StaticVar]
+    else if CompareText(X, 'p1relvar') = 0 then
+      Result := Result + [pfP1RelVar]
+    else if CompareText(X, 'deststaticvar') = 0 then
+      Result := Result + [pfDestStaticVar]
+    else if CompareText(X, 'destrelvar') = 0 then
+      Result := Result + [pfDestRelVar]
+}    else
+      raise Exception.Create('Unknown prim flag NG: ' + X);
+end;
+
 const
   //Primitive selection data
   fNGName           = 1;
@@ -909,17 +1008,18 @@ const
 
   //Primitive data (hopefully to evenetually be migrated into the fragment and
   //library files
-  fNGProcName       = 7;
+  fNGFlags          = 7;
+  fNGProcName       = 8;
   //Empty columns to give half-decent presentation in Excel
-  fNGLRegs          = 10;
-  fNGRRegs          = 11;
-  fNGResultReg      = 12;
-  fNGCorrupts       = 13;
-  fNGValidateProc   = 14;
-  fNGValidateToS8   = 15;
-  fNGValidateToU8   = 16;
-  fNGValidateToS16  = 17;
-  fNGValidateToU16  = 18;
+  fNGLRegs          = 11;
+  fNGRRegs          = 12;
+  fNGResultReg      = 13;
+  fNGCorrupts       = 14;
+  fNGValidateProc   = 15;
+  fNGValidateToS8   = 16;
+  fNGValidateToU8   = 17;
+  fNGValidateToS16  = 18;
+  fNGValidateToU16  = 19;
 
 procedure LoadPrimitivesNGFile(const Filename: String);
 var Data: TStringList;
@@ -948,6 +1048,7 @@ begin
         Prim := New(PPrimitiveNG);
         PrimListNG.Add(Prim);
 
+        //Primitive selection data
         Prim.Op := IdentToOperator(Fields[fNGName]);
         if Prim.Op = opUnknown then
           raise Exception.Create('Operation not found in ' + Line);
@@ -966,11 +1067,15 @@ begin
           if Prim.RType = vtUnknown then
             raise Exception.Create('Unknown RType: ' + Fields[fNGRType]);
         end;
-//        Prim.TypeExpansion := StringToBoolean(Fields[fNGTypeExpansion]);
         Prim.Commutative := StringToBoolean(Fields[fNGCommutative]);
-        Prim.ResultType := StringToVarType(Fields[fNGResultType]);
-        if Prim.ResultType = vtUnknown then
-          raise Exception.Create('Unknown ResultType: ' + Fields[fNGResultType]);
+        if CompareText(Fields[fNGResultType], 'None') = 0 then
+          Prim.ResultType := vtUnknown
+        else
+        begin
+          Prim.ResultType := StringToVarType(Fields[fNGResultType]);
+          if Prim.ResultType = vtUnknown then
+            raise Exception.Create('Unknown ResultType: ' + Fields[fNGResultType]);
+        end;
 
         if Length(Fields[fNGValidation]) <> 1 then
           raise Exception.Create('Error in PrimitivesNG.Validation field: ' + Fields[fNGValidation]);
@@ -981,6 +1086,10 @@ begin
         else
           raise Exception.Create('Error in PrimitivesNG.Validation field: ' + Fields[fNGValidation]);
         end;
+
+
+        //Primitive usage data
+        Prim.Flags := StrToPrimFlagSetNG(Fields[fFlags]);
 
         Prim.LRegs := StrToCPURegSet(Fields[fNGLRegs], False);
         if rImm in Prim.LRegs then

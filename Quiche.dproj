@@ -409,6 +409,7 @@
         <DCCReference Include="..\TextEditor\TextBrowser.pas"/>
         <DCCReference Include="..\TextEditor\EditableText.pas"/>
         <DCCReference Include="Emulator.pas"/>
+        <DCCReference Include="Intrinsics.pas"/>
         <None Include="Tests.txt"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>

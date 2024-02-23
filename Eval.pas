@@ -12,11 +12,11 @@ function EvalUnary(Op: TOperator; Param: PILParam;
   out Value: Integer;out RType: TVarType): TQuicheError;
 
 //Evaluate and intrinsic with a single parameter
-function EvalIntrinsicUnary(Op: TOperator; Param: PILParam;
-  out Value: Integer;out RType: TVarType): TQuicheError;
+function EvalIntrinsicUnary(Op: TOperator;const Param: TILParam;
+  out Value: Integer;out ResultType: TVarType): TQuicheError;
 
 //Evaulate an instrinsic with two parameters
-function EvalIntrinsicBi(Op: TOperator; Param1, Param2: TILParam;
+function EvalIntrinsicBi(Op: TOperator;const Param1, Param2: TILParam;
   out Value: Integer;out RType: TVarType): TQuicheError;
 
 implementation
@@ -278,8 +278,8 @@ begin
 end;
 
 //Evaluate and intrinsic with a single parameter
-function EvalIntrinsicUnary(Op: TOperator; Param: PILParam;
-  out Value: Integer;out RType: TVarType): TQuicheError;
+function EvalIntrinsicUnary(Op: TOperator;const Param: TILParam;
+  out Value: Integer;out ResultType: TVarType): TQuicheError;
 var OpData: POpData;
   P: Integer;
 begin
@@ -289,12 +289,12 @@ begin
 
   if OpData.OpGroup = ogTypecast then
   begin
-    RType := TypeEnumToVarType[OpData.ResultType];
-    case GetTypeSize(RType) of
+    ResultType := TypeEnumToVarType[OpData.ResultType];
+    case GetTypeSize(ResultType) of
       1:
       begin
         Value := Param.ImmValueInt and $ff;
-        if IsSignedType(RType) then
+        if IsSignedType(ResultType) then
           if (Value and $80) <> 0 then
             Value := Param.ImmValueInt or (-1 xor $ff);
       end;
@@ -312,12 +312,14 @@ begin
   else  //Functions
   begin
     P := Param.ImmToInteger;
-    RType := vtUnknown;
+    ResultType := vtUnknown;
 
     //-----Maths functions
-    if CompareText(OpData.Name, 'abs') = 0 then
-      Value := abs(P)
-    else if (CompareText(OpData.Name, 'pred') = 0) then
+    case Op of
+      opAbs: Value := abs(P);
+      //More TODO
+{    else
+     if (CompareText(OpData.Name, 'pred') = 0) then
     begin
       if Param.ImmType = vtBoolean then
       begin
@@ -343,23 +345,29 @@ begin
       else
         Value := P + 1;
     end
-    else if CompareText(OpData.Name, 'odd') = 0 then
+}   opOdd:
     begin
       Value := BooleanToBinary[odd(P)];
-      RType := vtBoolean;
-    end
+      ResultType := vtBoolean;
+    end;
 
     //-----System functions
-    else if CompareText(OpData.Name, 'hi') = 0 then
+    opHi:
     begin
       Assert(GetTypeSize(Param.ImmType) = 2);
       Value := hi(P);
-    end
-    else if CompareText(OpData.Name, 'high') = 0 then
+    end;
+    opHigh:
     begin
-      RType := Param.ImmType;
-      if IsEnumerable(Param.ImmType) then
-        Value := GetMaxValue(Param.ImmType)
+      ResultType := Param.ImmType;
+      if ResultType = vtTypeDef then
+      begin
+        ResultType := Param.ImmValueInt;
+        Value := GetMaxValue(ResultType)
+      end
+      else
+      if IsEnumerable(ResultType) then
+        Value := GetMaxValue(ResultType)
       else
         EXIT(ErrMsg(qeTODO, 'TODO: intrinsic high() with type name as a parameter'))
     end
@@ -370,7 +378,7 @@ begin
     end
     else if CompareText(OpData.Name, 'low') = 0 then
     begin
-      RType := Param.ImmType;
+      ResultType := Param.ImmType;
       if IsEnumerable(Param.ImmType) then
         Value := GetMinValue(Param.ImmType)
       else
@@ -381,7 +389,7 @@ begin
     else if CompareText(OpData.Name, 'sizeof') = 0 then
     begin //TODO: type names
       Value := GetTypeSize(Param.ImmType);
-      RType := vtInteger;
+      ResultType := vtInteger;
     end
     else if CompareText(OpData.Name, 'swap') = 0 then
     begin
@@ -395,31 +403,32 @@ begin
       if not (P in [0..255]) then
         EXIT(Err(qeConstantExpressionOverflow));
       Value := P;
-      RType := vtChar;
+      ResultType := vtChar;
     end
     else if CompareText(OpData.Name, 'downcase') = 0 then
     begin
       Value := ord(chr(P).ToLower);
-      RType := vtChar;
+      ResultType := vtChar;
     end
     else if CompareText(OpData.Name, 'upcase') = 0 then
     begin
       Value := ord(chr(P).ToUpper);
-      RType := vtChar;
+      ResultType := vtChar;
     end
     //----End
     else
       EXIT(ErrMsg(qeExpression, 'Function not valid in constant expressions: ' + OpData.Name));
+  end;
 
-    if RType = vtUnknown then
-      Result := ValueToRType(Value, RType)
+    if ResultType = vtUnknown then
+      Result := ValueToRType(Value, ResultType)
     else
       Result := qeNone;
   end;
 end;
 
 //Evaulate an instrinsic with two parameters
-function EvalIntrinsicBi(Op: TOperator; Param1, Param2: TILParam;
+function EvalIntrinsicBi(Op: TOperator;const Param1, Param2: TILParam;
   out Value: Integer;out RType: TVarType): TQuicheError;
 var OpData: POpData;
   P1, P2: Integer;

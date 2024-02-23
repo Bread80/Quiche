@@ -294,6 +294,8 @@ function ErrFuncCall(Msg: String;Func: PFunction): TQuicheError;
 begin
   LastErrorMessage := Msg;
   LastErrorHelp := Func.ToString;
+  if Func.Comments <> '' then
+    LastErrorHelp := LastErrorHelp + #13 + Func.Comments;
   Result := qeFunctionCall;
 end;
 

@@ -10,6 +10,7 @@ var LastErrorNo: Integer;
 var LastErrorLine: Integer;
 var LastErrorPos: Integer;
 function LastErrorString: String;
+function ErrorHelp: String;
 
 //Output log of the assembler
 var AssemblerLog: String;
@@ -99,7 +100,7 @@ procedure SaveObjectCode(Filename: String);
 
 implementation
 uses SysUtils, IOUtils,
-  Operators, PrimitivesEx, ILData, Variables, Parse, CodeGenZ80AsmEx,
+  Operators, PrimitivesEx, Intrinsics, ILData, Variables, Parse, CodeGenZ80AsmEx,
   Fragments, ILExec, Shell, Emulator, ParserBase, Functions, Scopes;
 
 //====Errors and return values
@@ -115,6 +116,13 @@ begin
     Result := '';
 end;
 
+function ErrorHelp: String;
+begin
+  if LastError <> qeNone then
+    Result := LastErrorHelp
+  else
+    Result := '';
+end;
 //====Config
 
 const
@@ -123,6 +131,7 @@ const
   OperatorsNGFilename = 'Data/OperatorsNG.csv';
   PrimitivesFilename = 'Data/Primitives.csv';
   PrimitivesNGFilename = 'Data/PrimitivesNG.csv';
+  IntrinsicsFilename = 'Data/Intrinsics.csv';
 
   QuicheCoreFilename = 'Assembler/QuicheCore.asm';
   PlatformsBaseFolder = 'Platforms';
@@ -213,6 +222,10 @@ begin
     LoadPrimitivesFile(TPath.Combine(QuicheFolder, PrimitivesFilename));
     LoadPrimitivesNGFile(TPath.Combine(QuicheFolder, PrimitivesNGFilename));
   end;
+  //Intrinsics are owned by the root Scope which is always cleared, so we must
+  //reload for every run
+  InitialiseIntrinsics;
+  LoadIntrinsicsFile(TPath.Combine(QuicheFolder, IntrinsicsFilename));
 
   InitialiseCodeGen(TPath.Combine(GetPlatformFolder, 'Assembler/' + Config.PlatformName + '.asm'),
     TPath.Combine(QuicheFolder, QuicheCoreFilename));

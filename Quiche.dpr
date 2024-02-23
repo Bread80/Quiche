@@ -31,7 +31,8 @@ uses
   MConfig in 'MConfig.pas',
   TextBrowser in '..\TextEditor\TextBrowser.pas',
   EditableText in '..\TextEditor\EditableText.pas',
-  Emulator in 'Emulator.pas';
+  Emulator in 'Emulator.pas',
+  Intrinsics in 'Intrinsics.pas';
 
 {$R *.res}
 

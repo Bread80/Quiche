@@ -11,6 +11,13 @@ const
   iIntegerMin   = $8000;  //Lowest value for an integer. Used when massing type values
   iRealSize     = 5;  //Byte size of a float on the current target. 5 is CPC size :)
 
+//========================Super types
+
+//Used in data file for Intrinsics
+type TSuperType = (stAny, stNumeric, stAnyInteger, stEnumerable);
+
+function StringToSuperType(const S: String;out Super: TSuperType): Boolean;
+function SuperTypeToString(Super: TSuperType): String;
 
 //========================Language types
 
@@ -35,7 +42,7 @@ const
 
   //Other types (NOTE: all these types count as unsigned)
   vtChar    = 7;
-  vtType    = 8;  //A type. E.g as in a call to sizeof(Integer)
+  vtTypeDef = 8;  //A type. E.g as in a call to sizeof(Integer)
   vtBoolean = 9;
   vtFlag    = 10; //A (boolean) value in a system flag
   vtString  = 11; //For future use. Pointer to actual data.
@@ -201,6 +208,26 @@ function TypeEnumSetToString(Enum: TTypeEnumSet): String;
 
 implementation
 uses SysUtils, Globals;
+
+const SuperTypeNames: array[low(TSuperType)..high(TSuperType)] of String = (
+  'Any', 'Numeric', 'AnyInteger', 'Enumerable');
+
+function StringToSuperType(const S: String;out Super: TSuperType): Boolean;
+var LSuper: TSuperType;
+begin
+  for LSuper := low(TSuperType) to high(TSuperType) do
+    if CompareText(S, SuperTypeNames[LSuper]) = 0 then
+    begin
+      Super := LSuper;
+      EXIT(True);
+    end;
+  Result := False;
+end;
+
+function SuperTypeToString(Super: TSuperType): String;
+begin
+  Result := SuperTypeNames[Super];
+end;
 
 const VarTypeNames : array[vtWord..vtString] of String = (
   'Word','Byte','Pointer','Int8','Integer','<INVALID>','Real','Char','TypeDef',
@@ -381,16 +408,18 @@ end;
 
 function ValidateAssignmentType(AssignType, ExprType: TVarType): Boolean;
 begin
+  if AssignType = ExprType then
+    EXIT(True);
+
   //Numeric types
   if IsNumericType(AssignType) and IsNumericType(ExprType) then
     EXIT(ExprType <> vtReal);
-  if AssignType = vtBoolean then
-    EXIT(ExprType = vtBoolean);
-
-  if AssignType = vtString then
-    EXIT(ExprType in [vtChar, vtString]);
-  if AssignType = vtChar then
-    EXIT(ExprType = vtChar);
+  case AssignType of
+    vtString: EXIT(ExprType in [vtChar, vtString]);
+    vtChar: //TODO: if AssignType = vtChar we can assign a string of length one to it
+      if ExprType = vtString then
+        raise Exception.Create('TODO: Add code to allow assigning string of length one to a Char');
+  end;
 
   Result := False;
 end;

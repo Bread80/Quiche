@@ -336,7 +336,7 @@ end;
 
 //=====================================Maths
 
-procedure ProcDec8r(ILItem: PILItem);
+procedure ProcDec8Reg(ILItem: PILItem);
 var Count: Integer;
   I: Integer;
 begin
@@ -347,12 +347,12 @@ begin
 
   for I := 1 to abs(Count) do
     if Count > 0 then
-      GenLibraryProc('dec8r', ILItem)
+      GenLibraryProc('dec8_reg', ILItem)
     else
-      GenLibraryProc('inc8r', ILItem);
+      GenLibraryProc('inc8_reg', ILItem);
 end;
 
-procedure ProcDec16r(ILItem: PILItem);
+procedure ProcDec16Reg(ILItem: PILItem);
 var Count: Integer;
   I: Integer;
 begin
@@ -363,12 +363,12 @@ begin
 
   for I := 1 to abs(Count) do
     if Count > 0 then
-      GenLibraryProc('dec16r', ILItem)
+      GenLibraryProc('dec16_reg', ILItem)
     else
-      GenLibraryProc('inc16r', ILItem);
+      GenLibraryProc('inc16_reg', ILItem);
 end;
 
-procedure ProcInc8r(ILItem: PILItem);
+procedure ProcInc8Reg(ILItem: PILItem);
 var Count: Integer;
   I: Integer;
 begin
@@ -379,12 +379,12 @@ begin
 
   for I := 1 to abs(Count) do
     if Count > 0 then
-      GenLibraryProc('inc8r', ILItem)
+      GenLibraryProc('inc8_reg', ILItem)
     else
-      GenLibraryProc('dec8r', ILItem);
+      GenLibraryProc('dec8_reg', ILItem);
 end;
 
-procedure ProcInc16r(ILItem: PILItem);
+procedure ProcInc16Reg(ILItem: PILItem);
 var Count: Integer;
   I: Integer;
 begin
@@ -395,176 +395,10 @@ begin
 
   for I := 1 to abs(Count) do
     if Count > 0 then
-      GenLibraryProc('inc16r', ILItem)
+      GenLibraryProc('inc16_reg', ILItem)
     else
-      GenLibraryProc('dec16r', ILItem);
+      GenLibraryProc('dec16_reg', ILItem);
 end;
-
-(*
-procedure ProcNegateU8(ILItem: PILItem;Prim: PPrimitive);
-begin
-  GenLoadParam8('a',@ILItem.Param1);
-  Instr('neg');     //Sets carry if input <> 0
-  Instr('ld l,a');
-  Instr('sbc a,a'); //High byte will be zero if input was zero, otherwise -1
-  Instr('ld h,a');
-  GenStoreDest16(@ILItem.Dest, 'h','l');
-end;
-
-procedure ProcNegateU16(ILItem: PILItem;Prim: PPrimitive);
-begin
-  Line('  ld l,0');
-  Line('  ld h,l');
-  GenLoadParam16('d','e',@ILItem.Param1);
-  Instr('and a');     //Clear carry
-  Instr('sbc hl,de');
-  if cgOverflowCheck in ILItem.CodeGenFlags then
-    //Overflow if result < -32768. I.e if positive
-    Instr('jp p,raise_overflow');
-  GenStoreDest16(@ILItem.Dest, 'h','l');
-end;
-
-procedure ProcNegateS16(ILItem: PILItem;Prim: PPrimitive);
-begin
-  GenLoadParam16('h','l',@ILItem.Param1);
-  if cgOverflowCheck in ILItem.CodeGenFlags then
-  begin
-    Instr('call negate_HL_and_test_if_INT');
-    Instr('jp nc,raise_overflow');
-  end
-  else
-  begin
-    Instr('xor a');
-    Instr('sub l');
-    Instr('ld l,a');
-    Instr('sbc a,a');
-    Instr('sub h');
-    Instr('ld h,a');
-  end;
-
-  GenStoreDest16(@ILItem.Dest, 'h','l');
-end;
-
-
-procedure ProcSHL8(ILItem: PILItem;Prim: PPrimitive);
-var RType: TVarType;
-begin
-  GenLoadParam8('c',@ILItem.Param1);
-
-  RType := ILParamToVarType(@ILItem.Param2);
-  if TypeSize[RType] = 2 then
-  begin
-    GenLoadParam16('a','b', @ILItem.Param2);
-    Instr('call left_shift_8_by_16');
-  end
-  else
-  begin
-    GenLoadParam8('b', @ILItem.Param2);
-    Instr('call left_shift_8_by_8');
-  end;
-  GenStoreILItem8(ILItem, 'a');
-end;
-
-procedure ProcSHL16(ILItem: PILItem;Prim: PPrimitive);
-var RType: TVarType;
-begin
-  GenLoadParam16('h','l',@ILItem.Param1);
-
-  RType := ILParamToVarType(@ILItem.Param2);
-  if TypeSize[RType] = 2 then
-  begin
-    GenLoadParam16('a','b', @ILItem.Param2);
-    Instr('call left_shift_16_by_16');
-  end
-  else
-  begin
-    GenLoadParam8('b', @ILItem.Param2);
-    Instr('call left_shift_16_by_8');
-  end;
-  GenStoreDest16(@ILItem.Dest, 'h','l');
-end;
-
-procedure ProcSHR8(ILItem: PILItem;Prim: PPrimitive);
-var RType: TVarType;
-begin
-  GenLoadParam8('c',@ILItem.Param1);
-
-  RType := ILParamToVarType(@ILItem.Param2);
-  if TypeSize[RType] = 2 then
-  begin
-    GenLoadParam16('a','b', @ILItem.Param2);
-    Instr('call right_shift_8_by_16');
-  end
-  else
-  begin
-    GenLoadParam8('b', @ILItem.Param2);
-    Instr('call right_shift_8_by_8');
-  end;
-  GenStoreILItem8(ILItem, 'a');
-end;
-
-procedure ProcSHR16(ILItem: PILItem;Prim: PPrimitive);
-var RType: TVarType;
-begin
-  GenLoadParam16('h','l',@ILItem.Param1);
-
-  RType := ILParamToVarType(@ILItem.Param2);
-  if TypeSize[RType] = 2 then
-  begin
-    GenLoadParam16('a','b', @ILItem.Param2);
-    Instr('call right_shift_16_by_16');
-  end
-  else
-  begin
-    GenLoadParam8('b', @ILItem.Param2);
-    Instr('call right_shift_16_by_8');
-  end;
-  GenStoreDest16(@ILItem.Dest, 'h','l');
-end;
-
-
-
-
-
-//------------------------Boolean bitwise and logical
-procedure ProcNot8(ILItem: PILItem;Prim: PPrimitive);
-begin
-  GenLoadParam8('a', @ILItem.Param1);
-  instr('cpl');
-  //Low byte
-
-  GenStoreILItem8(ILItem, 'a');
-  //High byte - always $ff
-end;
-
-procedure ProcNotBoolean(ILItem: PILItem;Prim: PPrimitive);
-begin
-  GenLoadParam8('a', @ILItem.Param1);
-  Instr('xor $01');
-
-  GenStoreILItem8(ILItem, 'a');
-end;
-
-procedure ProcNot16(ILItem: PILItem;Prim: PPrimitive);
-var
-  Op: POperator;
-begin
-  Op := OpIndexToData(ILItem.OpIndex);
-
-  GenLoadParam16('h','l', @ILItem.Param1);
-
-  //Lazy code. Doing this properly is too complex!
-  //(At least until I have register allocation working)
-  Instr('ld a,l');
-  Instr('cpl');
-  Instr('ld l,a');
-  Instr('ld a,h');
-  Instr('cpl');
-  Instr('ld h,a');
-
-  GenStoreDest16(@ILItem.Dest, 'h','l');
-end;
-*)
 
 procedure ProcCall(ILItem: PILItem);
 var Code: String;
@@ -843,7 +677,14 @@ begin
 
       //Are we storing to a 1 or two byte destination?
       case OpTypeSize[ILItem.ResultType] of
-        1: GenLibraryProc(StoreStr + '8_r8' + Suffix,ILItem);
+        1:
+          case GetTypeSize(V.VarType) of
+            1: GenLibraryProc(StoreStr + '8_r8' + Suffix,ILItem);
+            //If destiniation is 16 bit, zero extend data
+            2: GenLibraryProc(StoreStr + '16_r8' + Suffix, ILItem);
+          else
+            raise Exception.Create('Invalid variable size in StoreAfterPrim');
+          end;
         2:
           //Do we need to sign extend?
           if (OpType in [rtS8, rtX8]) and
@@ -1129,14 +970,12 @@ begin
         rNone, rImm: ;  //Nothing to do. Imm is handled by Primitive itself
         rA..rL:
           begin
-{ TODO
-
-            if pfLoadRPHigh in Prim.Flags then
+            if pfnLoadRPHigh in Prim.Flags then
               GenLibraryProc(Prefix + 'r8' + StoreStr + 'high' + Suffix, ILItem)
-            else if pfLoadRPLow in Prim.Flags then
+            else if pfnLoadRPLow in Prim.Flags then
               GenLibraryProc(Prefix + 'r8' + StoreStr + 'low' + Suffix, ILItem)
             else
-}              GenLibraryProc(Prefix + 'r8' + StoreStr + Suffix, ILItem);
+              GenLibraryProc(Prefix + 'r8' + StoreStr + Suffix, ILItem);
           end;
         rHL..rBC:
           begin
@@ -1351,7 +1190,7 @@ begin
         rtS16: ValProcName := Prim.ValidateToS16;
         rtU16: ValProcName := Prim.ValidateToU16;
       else
-        raise Exception.Create('Unhandled type in GenValidation');
+        raise Exception.Create('Unhandled type in StoreAfterPrimNG');
       end;
       if ValProcName = '' then
         //No special case so use validation matrix!!
@@ -1586,33 +1425,16 @@ begin
   PrimSetProc('b7sov',ProcDestB7SetOverflow);
   PrimSetProc('b15sov',ProcDestB15SetOverflow);
 
-  PrimSetProc('procdec8r',ProcDec8r);
-  PrimSetProc('procdec16r',ProcDec16r);
-  PrimSetProc('procinc8r',ProcInc8r);
-  PrimSetProc('procinc16r',ProcInc16r);
+  PrimSetProc('proc_dec8_reg',ProcDec8Reg);
+  PrimSetProc('proc_dec16_reg',ProcDec16Reg);
+  PrimSetProc('proc_inc8_reg',ProcInc8Reg);
+  PrimSetProc('proc_inc16_reg',ProcInc16Reg);
 
   PrimSetProc('proccall',ProcCall);
 
   ValidatePrimitives;
 
 //  PrimSetProc('proctypecastX8X16R',ProcTypecastX8X16R);
-
-  //Maths
-(*
-  PrimSetProc('shl',rtU8,ProcSHL8);
-  PrimSetProc('shl',rtS8,ProcSHL8);
-  PrimSetProc('shl',rtU16,ProcSHL16);
-  PrimSetProc('shl',rtS16,ProcSHL16);
-  PrimSetProc('shr',rtU8,ProcSHR8);
-  PrimSetProc('shr',rtS8,ProcSHR8);
-  PrimSetProc('shr',rtU16,ProcSHR16);
-  PrimSetProc('shr',rtS16,ProcSHR16);
-
-  //Boolean
-  PrimSetProc('not', rtX8,ProcNot8);
-  PrimSetProc('not', rtX16,ProcNot16);
-  PrimSetProc('not', rtBoolean,ProcNotBoolean);
-*)
 end;
 
 procedure InsertPreamble(PlatformFile, QuicheLibrary: String);

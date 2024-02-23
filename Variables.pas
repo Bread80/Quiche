@@ -476,7 +476,7 @@ begin
             vtInteger: V.ValueInt := Int16(Mem[Base+V.Offset] + (Mem[Base+V.Offset+1] shl 8));
             vtInt8: V.ValueInt := Int8(Mem[Base+V.Offset]);
             vtWord, vtPointer: V.ValueInt := Mem[Base+V.Offset] + (Mem[Base+V.Offset+1] shl 8);
-            vtByte, vtBoolean, vtChar, vtType:  V.ValueInt := Mem[Base+V.Offset];
+            vtByte, vtBoolean, vtChar, vtTypeDef:  V.ValueInt := Mem[Base+V.Offset];
           else
             raise Exception.Create('Invalid VarType in LoadVarsFromMemoryDump');
           end;
@@ -531,7 +531,7 @@ begin
           Result := Result + 'ILLEGAL BOOLEAN: ' + IntToStr(ValueInt);
         end;
       vtChar: Result := Result + '''' + chr(ValueInt and $ff) + '''';
-      vtType: Result := Result + 'type ' + VarTypeToName(ValueInt);
+      vtTypeDef: Result := Result + 'type ' + VarTypeToName(ValueInt);
 //      vtString: ;
 //      vtReal: ;
     else

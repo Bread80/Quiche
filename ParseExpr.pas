@@ -84,6 +84,7 @@ uses SysUtils, Variables, ParserBase, Eval, Globals, Scopes, ParseIntrinsics,
 procedure TExprSlug.AssignToHiddenVar;
 begin
   Assert(ILItem <> nil);
+  ILItem.DestType := dtData;
   Operand.SetVariable(ILItem.Dest.CreateAndSetHiddenVar(ResultType, optDefaultVarStorage));
 end;
 
@@ -785,27 +786,30 @@ begin
   begin
     //Test for type names. If it is a typecast it will be followed by open bracket.
     //If not it's a typename
-    if Parser.TestChar <> '(' then
+    VarType := StringToVarType(Ident);
+    if VarType <> vtUnknown then
     begin
-      VarType := StringToVarType(Ident);
-      if VarType <> vtUnknown then
+      if Parser.TestChar = '(' then
+        //Typecast - Process as a function call (see above) (And this should have been caught above ??)
+        raise Exception.Create('TYpecasts aren''t functional at the moment')
+      else
       begin
-        Slug.SetImmediate(VarType, vtType);
+        Slug.SetImmediate(VarType, vtTypeDef);
         Slug.ParamOrigin := poExplicit;
-        Slug.ImplicitType := vtType;
+        Slug.ImplicitType := vtTypeDef;
         EXIT(qeNone);
       end;
     end;
 
     //Test for intrinsic functions
-    Op := IdentToIntrinsicFunc(Ident);
+{    Op := IdentToIntrinsicFunc(Ident);
     if Op <> opUnknown then
       if Operations[Op].OpGroup = ogProc then
         EXIT(ErrOpUsage(ermCantAssignProcedure, Op))
       else
         Result := ParseIntrinsic(Op, True, Slug)
     else
-    begin
+}    begin
       //TODO: Search builtin function library
       EXIT(ErrMsg(qeTODO, 'Library function lookup not yet implemented'));
 
@@ -852,7 +856,8 @@ begin
     else
       VType := Slug.Operand.GetVarType;
     Dummy := vtUnknown;
-    Slug.ResultType := PrimFindBestMatchVarVar(Slug.Op, VType, Dummy);
+    Assert(PrimFindBestMatchVarVar(Slug.Op, VType, Dummy, Slug.ResultType),
+      'Unary primitive not found');
 
     if Slug.ILItem <> nil then
       //We already have an ILItem created. If so, we need to set the Dest to
@@ -1065,7 +1070,7 @@ begin
     begin
       LRange := IntToNumberRange(Left.Operand.immValueInt);
       RType := Right.ResultType;
-      ResultType := PrimFindBestMatchRangeVar(Left.Op, LType, RType, LRange);
+      Result := PrimFindBestMatchRangeVar(Left.Op, LType, RType, LRange, ResultType);
       Left.Operand.ImmType := LType;
     end
   else if (Right.ILItem = nil) and (Right.Operand.Kind = pkImmediate) and
@@ -1073,7 +1078,7 @@ begin
   begin
     LType := Left.ResultType;
     RRange := IntToNumberRange(Right.Operand.immValueInt);
-    ResultType := PrimFindBestMatchVarRange(Left.Op, LType, RType, RRange);
+    Result := PrimFindBestMatchVarRange(Left.Op, LType, RType, RRange, ResultType);
     Right.Operand.ImmType := RType;
   end
   else
@@ -1083,17 +1088,16 @@ begin
   //PS. if both are immediate: gets evaluated at compile-time. We don't get called
     LType := Left.ResultType;
     RType := Right.ResultType;
-    ResultType := PrimFindBestMatchVarVar(Left.Op, LType, RType);
+    Result := PrimFindBestMatchVarVar(Left.Op, LType, RType, ResultType);
   end;
+  if not Result then
+    EXIT;
 
   Left.ResultType := ResultType;
   Left.OpType := VarTypeToOpType(Left.ResultType);
 
   Left.ImplicitType := ResultType;
   Right.ImplicitType := ResultType;
-
-
-  Result := Left.ResultType <> vtUnknown;
 end;
 
 //Compares the precedences of the passed in slug and the following slug.
@@ -1212,6 +1216,15 @@ function FixupSlugNoOperation(var Slug: TExprSlug;var ExprType: TVarType): TQuic
 begin
   if Slug.ResultType = vtUnknown then
     Slug.ResultType := Slug.Operand.GetVarType;
+
+  if (ExprType = vtTypeDef) and (Slug.ResultType <> vtTypeDef) then
+    //If caller wants a TypeDef can we get TypeDef of value
+    //Can't do this for expressions (at least, not yet! - TODO)
+    if Slug.ILItem = nil then
+    begin
+      Slug.Operand.SetImmediate(Slug.Operand.GetVarType, vtTypeDef);
+      Slug.ResultType := vtTypeDef;
+    end;
 
   if Slug.OpType = rtUnknown then
     if Slug.Operand.Kind = pkImmediate then

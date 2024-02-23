@@ -1,4 +1,22 @@
 unit Operators;
+(*
+Operators/Operations are operations performed on data by a program. These might
+be:
+* Infix or prefix operators (+ * = shl and in) etc.
+* Intrinsics: built in functions such as abs() hi() sizeof() inc() for which the
+  code generator outputs 'inline' code directly into the output (contrast with
+  'regualar' library functions which are processed by the code generator in the
+  same way as a call to a user created function).
+
+Operations on constant values can be evaluated at compile time (parse time) by
+the Eval unit.
+Operations on variables, or a mix of variables and constants are processed by
+the code generator, which uses the Primitives unit and data table. This lists
+all available library routines (whether Fragments or Subroutines) along with
+available data types and other meta data. The expression parser also ues the
+Primitives unit to validate the available data types and ascertain result types
+for operations.
+*)
 
 {
 NextGen operators:
@@ -104,7 +122,7 @@ type
     opEqual, opNotEqual, opLess, opGreater, opLessEqual, opGreaterEqual,
     //Misc
     opIn, opSHR, opSHL,
-    opAt,  //@ (address of)
+    opAddr,  //@ (address of)
     //Typecasts
     opInteger, opInt8, opWord, opByte, opPointer, opBoolean, opChar,
     //Intrinsics
@@ -191,7 +209,7 @@ const OpStrings : array[low(TOperator)..high(TOperator)] of String = (
     'OR', 'AND', 'XOR','Complement',
     'Equal', 'NotEqual', 'Less', 'Greater', 'LessEqual', 'GreaterEqual',
     'In', 'SHR', 'SHL',
-    'At',
+    'Addr',
     'Integer', 'Int8', 'Word', 'Byte', 'Pointer', 'Boolean', 'Char',
     'Abs', 'Dec', 'Inc', 'Odd',
     'Hi', 'High', 'Inp', 'Lo', 'Low', 'Ord', 'Out', 'Peek', 'Poke', 'Pred',

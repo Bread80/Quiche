@@ -1,53 +1,55 @@
-﻿,,Table of available Intrinsics,,,,,,,
-,,,,,,,,,
-,,For full documentation see TPrimitiveNG record in the PrimitivesEx.pas file,,,,,,,
-,,,,,,,,,
-,,"Lines will be ignored if they begin with a semicolon, or if Operation column is empty",,,,,,,
-,,Terminate the file with 'END' in capitals in first column,,,,,,,
-,,,,,,,,,
-;,,Param1,,,Param2,,,Result,
-;,Name,Access,VarType,Flags,Access,VarType,Flags,VarType,Notes
-;Maths,,,,,,,,,
-,abs,val,Numeric,,,,,Param1,Absolute value
-,dec,var,Enumerable,,val,AnyInteger,"Constant, Optional",None,Decrement by 1/param2
-,inc,var,Enumerable,,val,AnyInteger,"Constant, Optional",None,Increment by 1/param2
-,odd,val,Numeric,,,,,Boolean,Is value odd?
-,,,,,,,,,
-;,,Param1,,,Param2,,,Result,
-;,Name,Access,VarType,Flags,Access,VarType,Flags,VarType,Notes
-;System,,,,,,,,,
-,addr,const,Any,,,,,Pointer,Address of parameter
-,hi,val,AnyInteger,Not8Bit,,,,Byte,High byte
-,high,const,TypeDef,,,,,Param1,Highest value of enumerable type
-,high,const,Array,,,,,Word,Highest index of array
-,inp,val,Numeric,,,,,Byte,Read I/O port
-,lo,val,AnyInteger,Not8Bit,,,,Byte,Low byte
-,low,const,TypeDef,,,,,Param1,Lowest value of enumerable type
-,low,const,Array,,,,,Word,Lowest index of array
-,ord,var,Enumerable,,,,,Param1,Ordinal value of item
-,out,val,Numeric,,val,Numeric,,None,Write to I/O port
-,peek,val,Word,,const,TypeDef,Optional,Param2,"Read from memory. Result type is that of second parameter, Byte if not specified"
-,poke,val,Word,,const,Any,,None,Write to memory
-,pred,const,Enumerable,,val,AnyInteger,Optional,Param1,Returns the previous value for the type (nth prior if param 2 given)
-,ptr,val,Numeric,,,,,Pointer,Converts the value to a pointer
-,read,out,Any(?),Special!,,,,None,Reads one or more values from input stream
-,readln,out,Any(?),Special!,,,,None,Reads one or more lines from input stream
-,sizeof,const,TypeDef,,,,,Word,Byte size of the type
-,sizeof,const,Any,,,,,Word,Byte size of the variable
-,succ,const,Enumerable,,val,AnyInteger,Optional,Param1,Returns the next value for the type (nth next if param 2 given)
-,swap,const,AnyInteger,Not8Bit,,,,Param1,Swaps the high and low bytes of the parameter
-,write,out,Any(?),Special!,,,,None,Writes one or more values to output
-,writeln,out,Any(?),Special!,,,,None,Writes zero of more values to output followed by a new line
-,,,,,,,,,
-;,,Param1,,,Param2,,,Result,
-;,Name,Access,VarType,Flags,Access,VarType,Flags,VarType,Notes
-";Strings, Chars and arrays",,,,,,,,,
-,chr,val,Numeric,,,,,Char,Returns the character with the given index
-,downcase,val,Char,,,,,Char,Converts the character to lower case
-,length,const,Array/String,,,,,Word,"Returns the element count of an array, character count of a string"
-,val,val,Char,,,,,Byte,Returns the index of the given character
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-,,,,,,,,,
-END,,,,,,,,,
+﻿,,Table of available Intrinsics,,,,,,,,,,
+,,,,,,,,,,,,
+,,For full documentation see TFunction record in the Functions.pas file,,,,,,,,,,
+,,,,,,,,,,,,
+,,"Lines will be ignored if they begin with a semicolon, or if Operation column is empty",,,,,,,,,,
+,,Terminate the file with 'END' in capitals in first column,,,,,,,,,,
+,,,,,,,,,,,,
+;,,Param1,,,Param2,,,,Result,,,
+;,Name,Access,Name,VarType,Flags,Access,Name,VarType,DefaultValue,Flags,VarType,Notes
+;Maths,,,,,,,,,,,,
+,abs,val,Value,Numeric,,,,,,,Param1,"Absolute value (i.e. if Value is negative returns -Value, otherwise returns Value). No effect on unsigned types."
+;,,,,,,,,,,,,Param2 for Inc and Dec must be an integer constant expression. Error checking for this is hard coded in ParseFuncCall unit
+,dec,var,Variable,Enumerable,,val,Count,AnyInteger,1,,None,"Decrement Variable by Count. Count may be negative, in which case functions as Inc. Count must be an integer constant expression. No runtime underflow or overflow checking is performed. Generates a sequence of DEC or INC opcode(s), therefore Count should not be large! Does not return a value (contrast with Pred) and, therefore, cannot be used in expressions"
+,inc,var,Variable,Enumerable,,val,Count,AnyInteger,1,,None,"Increment Variable by Count. Count may be negative, in which case functions as Dec. Count must be an integer constant expression. No runtime overflow or underflow checking is performed. Generates a sequence of INC or DEC opcode(s), therefore Count should not be large! Does not return a value (contrast with Succ) and, therefore, cannot be used in expressions"
+,odd,val,Value,Numeric,,,,,,,Boolean,Returns True if Value is odd
+,,,,,,,,,,,,
+;,,Param1,,,,Param2,,,,,Result,
+;,Name,Access,,VarType,Flags,Access,,VarType,,Flags,VarType,Notes
+;System,,,,,,,,,,,,
+;,addr,const,Variable,Any,,,,,,,Pointer,"Returns the memory address of Variable (TODO: Const, function, return a typed pointer (vs generic pointer)"
+,hi,val,Value,AnyInteger,,,,,,,Byte,"Returns high byte of Value. Value must be a 16-bit integer-type (Word, Pointer or Integer)"
+,high,const,Type,TypeDef,,,,,,,Param1,Highest value of enumerable type
+;,high,const,Variable,Array,,,,,,,Word,Highest index of array
+;,inp,val,Port,Numeric,,,,,,,Byte,Read I/O port
+;,lo,val,Value,AnyInteger,Not8Bit,,,,,,Byte,Low byte
+;,low,const,Type,TypeDef,,,,,,,Param1,Lowest value of enumerable type
+;,low,const,Variable,Array,,,,,,,Word,Lowest index of array
+;,ord,var,Value,Enumerable,,,,,,,Param1,Ordinal value of item
+;,out,val,Port,Numeric,,val,Data,Numeric,,,None,Write to I/O port
+;,peek,val,Address,Word,,const,Type,TypeDef,Byte,Optional,Param2,"Read from memory. Result type is that of second parameter, Byte if not specified"
+;,poke,val,Address,Word,,const,Data,Any,,,None,Write to memory
+;,pred,const,Value,Enumerable,,val,Count,AnyInteger,1,Optional,Param1,Returns the previous value for the type (nth prior if param 2 given)
+;,ptr,val,Value,Numeric,,,,,,,Pointer,Converts the value to a pointer
+;,read,out,Variable,Any(?),Special!,,,,,,None,Reads one or more values from input stream
+;,readln,out,Variable,Any(?),Special!,,,,,,None,Reads one or more lines from input stream
+;,sizeof,const,Type,TypeDef,,,,,,,Word,Byte size of the type
+;,sizeof,const,Variable,Any,,,,,,,Word,Byte size of the variable
+;,succ,const,Value,Enumerable,,val,Count,AnyInteger,1,Optional,Param1,Returns the next value for the type (nth next if param 2 given)
+;,swap,const,Value,AnyInteger,Not8Bit,,,,,,Param1,Swaps the high and low bytes of the parameter
+;,write,out,Value,Any(?),Special!,,,,,,None,Writes one or more values to output
+;,writeln,out,Value,Any(?),Special!,,,,,,None,Writes zero of more values to output followed by a new line
+,,,,,,,,,,,,
+;,,Param1,,,,Param2,,,,,Result,
+;,Name,Access,,VarType,Flags,Access,,VarType,,Flags,VarType,Notes
+;Strings Chars and arrays,,,,,,,,,,,,
+;,chr,val,Value,Numeric,,,,,,,Char,Returns the character with the given index
+;,downcase,val,Value,Char,,,,,,,Char,Converts the character to lower case
+;,length,val,ArrayType,TypeDef,,,,,,,Word,"Returns the element count of an array, character count of a string"
+;,length,const,Variable,Array/String,,,,,,,Word,"Returns the element count of an array, character count of a string"
+;,val,val,Value,Char,,,,,,,Byte,Returns the index of the given character
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+END,,,,,,,,,,,,

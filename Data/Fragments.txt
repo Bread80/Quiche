@@ -392,16 +392,16 @@
   or a				;Clear carry
   adc hl,<p2.r16>
 
-=inc8r
+=inc8_reg
   inc <p1.r8>
 
-=inc16r
+=inc16_reg
   inc <p1.r16>
 
-=dec8r
+=dec8_reg
   dec <p1.r8>
 
-=dec16r
+=dec16_reg
   dec <p1.r16>
   
 ;----Subtraction
@@ -497,11 +497,11 @@
   cpl
   or <p1.r8>
   
-=odd8r
+=odd8_reg
   rra
   sbc a,a
   
-=odd8r_branch
+=odd8_reg_branch
   rra
   
 ;====Conversions to Boolean

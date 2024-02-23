@@ -1,425 +1,443 @@
-﻿,,Table of available Primitives,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,
-,,For full documentation see TPrimitiveNG record in the PrimitivesEx.pas file,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,
-,,"Lines will be ignored if they begin with a semicolon, or if Operation column is empty",,,,,,,,,,,,,,,,,
-,,Terminate the file with 'END' in capitals in first column,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,
-,,;Notes: Ordering of items in the table is significant!,,,,,,,,,,,,,,,,,
-,,,;All handlers for an operation must be grouped together,,,,,,,,,,,,,,,,
-,,,";Immediate, indirect and offset locations must be listed before register locations",,,,,,,,,,,,,,,,
-,,,;Smaller types /should/ be listed before larger types (but not currently a requirement),,,,,,,,,,,,,,,,
-,,,;Immediate Indirect and Offset cannot be mixed with other locations (i.e. they must be the only item in a list),,,,,,,,,,,,,,,,
-,,,"Where there is an option for Immediate, Indirect, Offset, there *MUST* also be an identical variant which uses Registers. The compiler will fail if this is not the case!",,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,
-,,,,,,,,(Empty columns for formatting),,,,,,,,,,,
-;,,----Primitive Selection----,,,,,----Primitive Data----,,,,,,,,Special validations on type conversion,,,,
-;,Operation,Ltype,Rtype,Commutative,ResultType,Validation,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,Validate,Int8,Byte,Integer,Word,Notes
-,add,Byte,Byte,y,Byte,x,add8_reg_imm,,,a,imm,a,a;f,c_overflow,m_overflow,,,,
-,add,Byte,Byte,y,Byte,x,add8_reg_reg,,,a,a;b;c;d;e;h;l,a,a;f,c_overflow,m_overflow,,,,
-,add,Int8,Int8,y,Int8,x,add8_reg_imm,,,a,imm,a,a;f,pe_overflow,,m_overflow,,m_overflow,
-,add,Int8,Int8,y,Int8,x,add8_reg_reg,,,a,a;b;c;d;e;h;l,a,a;f,pe_overflow,,m_overflow,,m_overflow,
-,add,Word,Word,y,Word,y,add16_overflow,,,hl,hl;de;bc,hl,h;l;f,c_overflow,,,m_overflow,,"Uses ADC HL,ss which does set sign flag"
-,add,Word,Word,y,Word,x,add16_nooverflow,,,hl,hl;de;bc,hl,h;l;f,c_overflow,,,,,"Uses ADD HL,ss which doesn't set flags needed for conversions, but is faster"
-,add,Integer,Integer,y,Integer,y,add16_overflow,,,hl,hl;de;bc,hl,h;l;f,pe_overflow,,,,m_overflow,"Uses ADC HL,ss which sets all flags"
-,add,Integer,Integer,y,Integer,n,add16_nooverflow,,,hl,hl;de;bc,hl,h;l;f,,,,,,"Uses ADD HL,ss"
-,add,Integer,Word,y,Integer,n,add16_nooverflow,,,hl,hl;de;bc,hl,h;l;f,,,,,,"Uses ADD HL,ss"
-,add,Integer,Word,y,Word,n,add16_nooverflow,,,hl,hl;de;bc,hl,h;l;f,,,,,,"Uses ADD HL,ss"
-,add,Integer,Word,y,Integer,y,:add16_s_u__s_raise_errors,,,hl,de,hl,h;l;f,empty,,,,,Add signed to unsigned returning signed. Overflow raised by routine.
-,add,Integer,Word,y,Word,y,:add16_s_u__u_raise_errors,,,hl,de,hl,h;l;f,empty,,,,,Addsigned to unsigned returning unsigned. Overflow raised by routine
-;,add,Char,Char,n,String,x,:concat_char,,,a,l,hl,?,empty,,,,,c+c
-;,add,Char,String,n,String,x,:concat_char_string,,,a,hl,hl,?,empty,,,,,c+s
-;,add,String,Char,n,String,x,:concat_string_char,,,hl,a,hl,?,empty,,,,,s+c
-;,add,String,String,n,String,x,:concat_string,,,hl,de,hl,?,empty,,,,,s+s
-,,,,,,,,,,,,,,,,,,,
-,subtract,Byte,Byte,n,Byte,x,sub8_reg_imm,,,a,imm,a,a;f,c_overflow,m_overflow,,,,
-,subtract,Byte,Byte,n,Byte,x,sub8_reg_reg,,,a,a;b;c;d;e;h;l,a,a;f,c_overflow,m_overflow,,,,
-,subtract,Int8,Int8,n,Int8,x,sub8_reg_imm,,,a,imm,a,a;f,pe_overflow,,m_overflow,,m_overflow,
-,subtract,Int8,Int8,n,Int8,x,sub8_reg_reg,,,a,a;b;c;d;e;h;l,a,a;f,pe_overflow,,m_overflow,,m_overflow,
-,subtract,Word,Word,n,Word,x,sub16,,,hl,hl;de;bc,hl,h;l;f,c_overflow,,,m_overflow,,
-,subtract,Integer,Integer,n,Integer,x,sub16,,,hl,hl;de;bc,hl,h;l;f,pe_overflow,,,,m_overflow,
-,subtract,Integer,Word,n,Integer,n,sub16,,,hl,hl;de;bc,hl,h;l;f,,,,,,
-,subtract,Integer,Word,n,Word,n,sub16,,,hl,hl;de;bc,hl,h;l;f,,,,,,
-,subtract,Word,Integer,n,Integer,n,sub16,,,hl,hl;de;bc,hl,h;l;f,,,,,,
-,subtract,Word,Integer,n,Word,n,sub16,,,hl,hl;de;bc,hl,h;l;f,,,,,,
-,subtract,Integer,Word,n,Integer,y,:sub16_s_u__s_raise_errors,,,hl,de,hl,h;l;f,empty,,,,,"First param is the S16, output is s16"
-,subtract,Word,Integer,n,Integer,y,:sub16_u_s__s_raise_errors,,,hl,de,hl,h;l;f,empty,,,,,"First param is the u16, output is s16"
-,subtract,Integer,Word,n,Word,y,:sub16_s_u__u_raise_errors,,,hl,de,hl,h;l;f,empty,,,,,"First param is the S16, output is u16"
-,subtract,Word,Integer,n,Word,y,:sub16_u_s__u_raise_errors,,,hl,de,hl,h;l;f,empty,,,,,"First param is the u16, output is u16"
-,,,,,,,,,,,,,,,,,,,
-,multiply,Byte,Byte,y,Byte,x,:mult8_h_e__hl,,,h,e,l,a;f;b;d;e;h;l,hreg_nz_overflow,,,,,
-,multiply,Byte,Byte,y,Word,x,:mult8_h_e__hl,,,h,e,hl,a;f;b;d;e;h;l,empty,,,,,"Technically we could do this, but it violates other expression parsing rules."
-,multiply,Integer,Integer,y,Integer,x,:mult16_s_s__s,,,hl,de,hl,a;f;b;d;e;h;l,nc_overflow,,,,,
-,multiply,Word,Word,y,Word,x,:mult16_u_u__u,,,hl,de,hl,a;f;d;e;h;l,c_overflow,,,,,
-,multiply,Integer,Word,y,Integer,x,:mult16_s_u__s,,,hl,de,hl,a;f;b;d;e;h;l,nc_overflow,,,,,
-,multiply,Integer,Word,y,Word,x,:mult16_s_u__u,,,hl,de,hl,a;f;b;d;e;h;l,nc_overflow,,,,,
-,,,,,,,,,,,,,,,,,,,
-,div,Byte,Byte,n,Byte,x,:div8_c_d__c_a,,,c,d,c,a;f;b;c,empty,,,,,
-,div,Word,Word,n,Word,x,:div16_u_u__u,,,hl,de,hl,a;f;b;c;d;e;h;l,empty,,,,,
-,div,Integer,Integer,n,Integer,x,:div16_s_s__s,,,hl,de,hl,a;f;b;c;d;e;h;l,nc_overflow,,,,,
-,div,Integer,Word,n,Integer,x,:div16_s_u__s,,,hl,de,hl,a;f;b;c;d;e;h;l,nc_overflow,,,,,
-,div,Word,Integer,n,Integer,x,:div16_u_s__s,,,hl,de,hl,a;f;b;c;d;e;h;l,nc_overflow,,,,,
-,div,Integer,Word,n,Word,x,:div16_s_u__u,,,hl,de,hl,a;f;b;c;d;e;h;l,nc_overflow,,,,,
-,div,Word,Integer,n,Word,x,:div16_u_s__u,,,hl,de,hl,a;f;b;c;d;e;h;l,nc_overflow,,,,,
-,,,,,,,,,,,,,,,,,,,
-,mod,Byte,Byte,n,Byte,x,:div8_c_d__c_a,,,c,d,a,a;f;b;c,empty,,,,,
-,mod,Word,Word,n,Word,x,:div16_u_u__u,,,hl,de,de,a;f;b;c;d;e;h;l,empty,,,,,
-,mod,Integer,Integer,n,Integer,x,:mod16_s_s__s,,,hl,de,hl,a;f;b;c;d;e;h;l,empty,,,,,
-,mod,Integer,Word,n,Integer,x,:mod16_s_u__s,,,hl,de,hl,a;f;b;c;d;e;h;l,empty,,,,,
-,mod,Word,Integer,n,Integer,x,:mod16_u_s__s,,,hl,de,de,a;f;b;c;d;e;h;l,empty,,,,,
-,mod,Integer,Word,n,Word,x,:mod16_s_u__u,,,hl,de,hl,a;f;b;c;d;e;h;l,nc_overflow,,,,,
-,mod,Word,Integer,n,Word,x,:mod16_u_s__u,,,hl,de,de,a;f;b;c;d;e;h;l,nc_overflow,,,,,
-,,,,,,,,,,,,,,,,,,,
-,shl,Byte,Byte,n,Byte,x,:left_shift_8_by_8,,,a,b,a,,,,,,,This is crying out for optimised routines for constant shift values
-,shl,Byte,Int8,n,Byte,x,:left_shift_8_by_8,,,a,b,a,,,,,,,
-,shl,Byte,Word,n,Byte,x,:left_shift_8_by_16,,,a,bc,a,,,,,,,
-,shl,Byte,Integer,n,Byte,x,:left_shift_8_by_16,,,a,bc,a,,,,,,,
-,shl,Int8,Byte,n,Int8,x,:left_shift_8_by_8,,,a,b,a,,,,,,,
-,shl,Int8,Int8,n,Int8,x,:left_shift_8_by_8,,,a,b,a,,,,,,,
-,shl,Int8,Word,n,Int8,x,:left_shift_8_by_16,,,a,bc,a,,,,,,,
-,shl,Int8,Integer,n,Int8,x,:left_shift_8_by_16,,,a,bc,a,,,,,,,
-,shl,Integer,Byte,n,Integer,x,:left_shift_16_by_8,,,hl,b,hl,,,,,,,
-,shl,Integer,Int8,n,Integer,x,:left_shift_16_by_8,,,hl,b,hl,,,,,,,
-,shl,Integer,Word,n,Integer,x,:left_shift_16_by_16,,,hl,bc,hl,,,,,,,
-,shl,Integer,Integer,n,Integer,x,:left_shift_16_by_16,,,hl,bc,hl,,,,,,,
-,shl,Word,Byte,n,Word,x,:left_shift_16_by_8,,,hl,b,hl,,,,,,,
-,shl,Word,Int8,n,Word,x,:left_shift_16_by_8,,,hl,b,hl,,,,,,,
-,shl,Word,Integer,n,Word,x,:left_shift_16_by_16,,,hl,bc,hl,,,,,,,
-,shl,Word,Word,n,Word,x,:left_shift_16_by_16,,,hl,bc,hl,,,,,,,
-,,,,,,,,,,,,,,,,,,,
-,shr,Byte,Byte,n,Byte,x,:right_shift_8_by_8,,,a,b,a,,,,,,,
-,shr,Byte,Int8,n,Byte,x,:right_shift_8_by_8,,,a,b,a,,,,,,,
-,shr,Byte,Word,n,Byte,x,:right_shift_8_by_16,,,a,bc,a,,,,,,,
-,shr,Byte,Integer,n,Byte,x,:right_shift_8_by_16,,,a,bc,a,,,,,,,
-,shr,Int8,Byte,n,Int8,x,:right_shift_8_by_8,,,a,b,a,,,,,,,
-,shr,Int8,Int8,n,Int8,x,:right_shift_8_by_8,,,a,b,a,,,,,,,
-,shr,Int8,Word,n,Int8,x,:right_shift_8_by_16,,,a,bc,a,,,,,,,
-,shr,Int8,Integer,n,Int8,x,:right_shift_8_by_16,,,a,bc,a,,,,,,,
-,shr,Integer,Byte,n,Integer,x,:right_shift_16_by_8,,,hl,b,hl,,,,,,,
-,shr,Integer,Int8,n,Integer,x,:right_shift_16_by_8,,,hl,b,hl,,,,,,,
-,shr,Integer,Word,n,Integer,x,:right_shift_16_by_16,,,hl,bc,hl,,,,,,,
-,shr,Integer,Integer,n,Integer,x,:right_shift_16_by_16,,,hl,bc,hl,,,,,,,
-,shr,Word,Byte,n,Word,x,:right_shift_16_by_8,,,hl,b,hl,,,,,,,
-,shr,Word,Int8,n,Word,x,:right_shift_16_by_8,,,hl,b,hl,,,,,,,
-,shr,Word,Integer,n,Word,x,:right_shift_16_by_16,,,hl,bc,hl,,,,,,,
-,shr,Word,Word,n,Word,x,:right_shift_16_by_16,,,hl,bc,hl,,,,,,,
-,,,,,,,,,,,,,,,,,,,
-,,,,,,,(Empty columns for formatting),,,,,,,,,,,,
-;,,----Primitive Selection----,,,,----Primitive Data----,,,,,,,,Special validations on type conversion,,,,,
-;,Operation,Ltype,Rtype,Commutative,ResultType,Validation,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,Validate,Int8,Byte,Integer,Word,Notes
-,equal,Byte,Byte,y,<Flag>,x,compare8_reg_imm,,,a,imm,zf,f,empty,,,,,For branches - only sets flag
-,equal,Byte,Byte,y,<Flag>,x,compare8_reg_reg,,,a,a;b;c;d;e;h;l,zf,f,empty,,,,,For branches - only sets flag
-,equal,Byte,Byte,y,Boolean,x,sub8_reg_imm,,,a,imm,zfa,a;f,empty,,,,,zfa: sets z flag and a <> 0
-,equal,Byte,Byte,y,Boolean,x,sub8_reg_reg,,,a,a;b;c;d;e;h;l,zfa,a;f,empty,,,,,zfa: sets z flag and a <> 0
-,equal,Int8,Int8,y,<Flag>,x,compare8_reg_imm,,,a,imm,zf,f,empty,,,,,For branches - only sets flag
-,equal,Int8,Int8,y,<Flag>,x,compare8_reg_reg,,,a,a;b;c;d;e;h;l,zf,f,empty,,,,,For branches - only sets flag
-,equal,Int8,Int8,y,Boolean,x,sub8_reg_imm,,,a,imm,zfa,a;f,empty,,,,,zfa: sets z flag and a <> 0
-,equal,Int8,Int8,y,Boolean,x,sub8_reg_reg,,,a,a;b;c;d;e;h;l,zfa,a;f,empty,,,,,zfa: sets z flag and a <> 0
-,equal,Word,Word,y,<Flag>,x,:compare_u16,,,hl,de,zf,a;f,empty,,,,,
-,equal,Word,Word,y,Boolean,x,:compare_u16,,,hl,de,zf,a;f,empty,,,,,
-,equal,Integer,Integer,y,<Flag>,x,:compare_u16,,,hl,de,zf,a;f,empty,,,,,
-,equal,Integer,Integer,y,Boolean,x,:compare_u16,,,hl,de,zf,a;f,empty,,,,,
-,equal,Word,Integer,y,<Flag>,x,:equal_m16,,,hl,de,zf,a;h;l;f,empty,,,,,
-,equal,Integer,Word,y,<Flag>,x,:equal_m16,,,hl,de,zf,a;h;l;f,empty,,,,,
-,equal,Word,Integer,y,Boolean,x,:equal_m16,,,hl,de,zf,a;h;l;f,empty,,,,,
-,equal,Integer,Word,y,Boolean,x,:equal_m16,,,hl,de,zf,a;h;l;f,empty,,,,,
-,equal,Boolean,Boolean,y,<Flag>,x,xor8_reg_imm,,,a,imm,zf,f,empty,,,,,
-,equal,Boolean,Boolean,y,<Flag>,x,xor8_reg_reg,,,a,a;b;c;d;e;h;l,zf,f,empty,,,,,
-,equal,Boolean,Boolean,y,Boolean,x,xor8_reg_imm,,,a,imm,cpla,f,empty,,,,,Result in complement (invert) of A
-,equal,Boolean,Boolean,y,Boolean,x,xor8_reg_reg,,,a,a;b;c;d;e;h;l,cpla,f,empty,,,,,Result in complement (invert) of A
-,equal,Char,Char,y,<Flag>,x,compare8_reg_imm,,,a,imm,zf,f,empty,,,,,For branches - only sets flag
-,equal,Char,Char,y,<Flag>,x,compare8_reg_reg,,,a,a;b;c;d;e;h;l,zf,f,empty,,,,,For branches - only sets flag
-,equal,Char,Char,y,Boolean,x,sub8_reg_imm,,,a,imm,zfa,a;f,empty,,,,,zfa: sets z flag and a <> 0
-,equal,Char,Char,y,Boolean,x,sub8_reg_reg,,,a,a;b;c;d;e;h;l,zfa,a;f,empty,,,,,zfa: sets z flag and a <> 0
-,,,,,,,,,,,,,,,,,,,
-,notequal,Byte,Byte,y,<Flag>,x,compare8_reg_imm,,,a,imm,nzf,f,empty,,,,,For branches - only sets flag
-,notequal,Byte,Byte,y,<Flag>,x,compare8_reg_reg,,,a,a;b;c;d;e;h;l,nzf,f,empty,,,,,For branches - only sets flag
-,notequal,Byte,Byte,y,Boolean,x,sub8_reg_imm,,,a,imm,nzfa,a;f,empty,,,,,nzfa: sets z flag and a = 0
-,notequal,Byte,Byte,y,Boolean,x,sub8_reg_reg,,,a,a;b;c;d;e;h;l,nzfa,a;f,empty,,,,,nzfa: sets z flag and a = 0
-,notequal,Int8,Int8,y,<Flag>,x,compare8_reg_imm,,,a,imm,nzf,f,empty,,,,,For branches - only sets flag
-,notequal,Int8,Int8,y,<Flag>,x,compare8_reg_reg,,,a,a;b;c;d;e;h;l,nzf,f,empty,,,,,For branches - only sets flag
-,notequal,Int8,Int8,y,Boolean,x,sub8_reg_imm,,,a,imm,nzfa,a;f,empty,,,,,nzfa: sets z flag and a = 0
-,notequal,Int8,Int8,y,Boolean,x,sub8_reg_reg,,,a,a;b;c;d;e;h;l,nzfa,a;f,empty,,,,,nzfa: sets z flag and a = 0
-,notequal,Word,Word,y,<Flag>,x,:compare_u16,,,hl,de,nzf,a;f,empty,,,,,
-,notequal,Word,Word,y,Boolean,x,:compare_u16,,,hl,de,nzf,a;f,empty,,,,,
-,notequal,Integer,Integer,y,<Flag>,x,:compare_u16,,,hl,de,nzf,a;f,empty,,,,,
-,notequal,Integer,Integer,y,Boolean,x,:compare_u16,,,hl,de,nzf,a;f,empty,,,,,
-,notequal,Word,Integer,y,<Flag>,x,:equal_m16,,,hl,de,nzf,a;h;l;f,empty,,,,,
-,notequal,Integer,Word,y,<Flag>,x,:equal_m16,,,hl,de,nzf,a;h;l;f,empty,,,,,
-,notequal,Word,Integer,y,Boolean,x,:equal_m16,,,hl,de,nzf,a;h;l;f,empty,,,,,
-,notequal,Integer,Word,y,Boolean,x,:equal_m16,,,hl,de,nzf,a;h;l;f,empty,,,,,
-,notequal,Boolean,Boolean,y,<Flag>,x,xor8_reg_imm,,,a,imm,nzf,f,empty,,,,,
-,notequal,Boolean,Boolean,y,<Flag>,x,xor8_reg_reg,,,a,a;b;c;d;e;h;l,nzf,f,empty,,,,,
-,notequal,Boolean,Boolean,y,Boolean,x,xor8_reg_imm,,,a,imm,a,f,empty,,,,,Result in A
-,notequal,Boolean,Boolean,y,Boolean,x,xor8_reg_reg,,,a,a;b;c;d;e;h;l,a,f,empty,,,,,Result in A
-,notequal,Char,Char,y,<Flag>,x,compare8_reg_imm,,,a,imm,nzf,f,empty,,,,,For branches - only sets flag
-,notequal,Char,Char,y,<Flag>,x,compare8_reg_reg,,,a,a;b;c;d;e;h;l,nzf,f,empty,,,,,For branches - only sets flag
-,notequal,Char,Char,y,Boolean,x,sub8_reg_imm,,,a,imm,nzfa,a;f,empty,,,,,nzfa: sets z flag and a = 0
-,notequal,Char,Char,y,Boolean,x,sub8_reg_reg,,,a,a;b;c;d;e;h;l,nzfa,a;f,empty,,,,,nzfa: sets z flag and a = 0
-,,,,,,,,,,,,,,,,,,,
-,less,Byte,Byte,n,<Flag>,x,compare8_reg_imm,,,a,imm,cf,f,empty,,,,,For branches - only sets flag
-,less,Byte,Byte,n,<Flag>,x,compare8_reg_reg,,,a,a;b;c;d;e;h;l,cf,f,empty,,,,,For branches - only sets flag
-,less,Byte,Byte,n,Boolean,x,compare8_reg_imm,,,a,imm,cf,f,empty,,,,,
-,less,Byte,Byte,n,Boolean,x,compare8_reg_reg,,,a,a;b;c;d;e;h;l,cf,f,empty,,,,,
-,less,Word,Word,n,<Flag>,x,:compare_u16,,,hl,de,cf,a;f,empty,,,,,
-,less,Word,Word,n,Boolean,x,:compare_u16,,,hl,de,cf,a;f,empty,,,,,
-,less,Integer,Integer,n,<Flag>,x,:compare_s16,,,hl,de,cf,a;f,empty,,,,,
-,less,Integer,Integer,n,Boolean,x,:compare_s16,,,hl,de,cf,a;f,empty,,,,,
-,less,Word,Integer,n,<Flag>,x,:compare_u16_s16,,,hl,de,cf,a;h;l;f,empty,,,,,
-,less,Word,Integer,n,Boolean,x,:compare_u16_s16,,,hl,de,cf,a;h;l;f,empty,,,,,
-,less,Integer,Word,n,<Flag>,x,:compare_s16_u16,,,hl,de,cf,a;h;l;f,empty,,,,,
-,less,Integer,Word,n,Boolean,x,:compare_s16_u16,,,hl,de,cf,a;h;l;f,empty,,,,,
-,less,Boolean,Boolean,n,<Flag>,x,compare8_reg_imm,,,a,imm,cf,f,empty,,,,,
-,less,Boolean,Boolean,n,<Flag>,x,compare8_reg_reg,,,a,a;b;c;d;e;h;l,cf,f,empty,,,,,
-,less,Boolean,Boolean,n,Boolean,x,bool_less8_reg_imm,,,a,imm,a,f,empty,,,,,Result in A
-,less,Boolean,Boolean,n,Boolean,x,bool_less8_reg_reg,,,a,a;b;c;d;e;h;l,a,f,empty,,,,,Result in A
-,less,Char,Char,n,<Flag>,x,compare8_reg_imm,,,a,imm,cf,f,empty,,,,,For branches - only sets flag
-,less,Char,Char,n,<Flag>,x,compare8_reg_reg,,,a,a;b;c;d;e;h;l,cf,f,empty,,,,,For branches - only sets flag
-,less,Char,Char,n,Boolean,x,compare8_reg_imm,,,a,imm,cf,f,empty,,,,,
-,less,Char,Char,n,Boolean,x,compare8_reg_reg,,,a,a;b;c;d;e;h;l,cf,f,empty,,,,,
-,,,,,,,,,,,,,,,,,,,
-,greaterequal,Byte,Byte,n,<Flag>,x,compare8_reg_imm,,,a,imm,ncf,f,empty,,,,,For branches - only sets flag
-,greaterequal,Byte,Byte,n,<Flag>,x,compare8_reg_reg,,,a,a;b;c;d;e;h;l,ncf,f,empty,,,,,For branches - only sets flag
-,greaterequal,Byte,Byte,n,Boolean,x,compare8_reg_imm,,,a,imm,ncf,f,empty,,,,,
-,greaterequal,Byte,Byte,n,Boolean,x,compare8_reg_reg,,,a,a;b;c;d;e;h;l,ncf,f,empty,,,,,
-,greaterequal,Word,Word,n,<Flag>,x,:compare_u16,,,hl,de,ncf,a;f,empty,,,,,
-,greaterequal,Word,Word,n,Boolean,x,:compare_u16,,,hl,de,ncf,a;f,empty,,,,,
-,greaterequal,Integer,Integer,n,<Flag>,x,:compare_s16,,,hl,de,ncf,a;f,empty,,,,,
-,greaterequal,Integer,Integer,n,Boolean,x,:compare_s16,,,hl,de,ncf,a;f,empty,,,,,
-,greaterequal,Word,Integer,n,<Flag>,x,:compare_u16_s16,,,hl,de,ncf,a;h;l;f,empty,,,,,
-,greaterequal,Word,Integer,n,Boolean,x,:compare_u16_s16,,,hl,de,ncf,a;h;l;f,empty,,,,,
-,greaterequal,Integer,Word,n,<Flag>,x,:compare_s16_u16,,,hl,de,ncf,a;h;l;f,empty,,,,,
-,greaterequal,Integer,Word,n,Boolean,x,:compare_s16_u16,,,hl,de,ncf,a;h;l;f,empty,,,,,
-,greaterequal,Boolean,Boolean,n,<Flag>,x,compare8_reg_imm,,,a,imm,ncf,f,empty,,,,,
-,greaterequal,Boolean,Boolean,n,<Flag>,x,compare8_reg_reg,,,a,a;b;c;d;e;h;l,ncf,f,empty,,,,,
-,greaterequal,Boolean,Boolean,n,Boolean,x,bool_greaterequal8_reg_imm,,,imm,a,a,f,empty,,,,,"Operands reversed. A should be an option for param1, but allocator is greedy and would choose A for param1 and fail on param2"
-,greaterequal,Boolean,Boolean,n,Boolean,x,bool_greaterequal8_reg_reg,,,b;c;d;e;h;l,a,a,f,empty,,,,,"Operands reversed. A should be an option for param1, but allocator is greedy and would choose A for param1 and fail on param2"
-,greaterequal,Char,Char,n,<Flag>,x,compare8_reg_imm,,,a,imm,ncf,f,empty,,,,,For branches - only sets flag
-,greaterequal,Char,Char,n,<Flag>,x,compare8_reg_reg,,,a,a;b;c;d;e;h;l,ncf,f,empty,,,,,For branches - only sets flag
-,greaterequal,Char,Char,n,Boolean,x,compare8_reg_imm,,,a,imm,ncf,f,empty,,,,,
-,greaterequal,Char,Char,n,Boolean,x,compare8_reg_reg,,,a,a;b;c;d;e;h;l,ncf,f,empty,,,,,
-,,,,,,,,,,,,,,,,,,,
-,greater,Byte,Byte,n,<Flag>,x,compare8swap_reg_imm,,,imm,a,cf,f,empty,,,,,For branches - only sets flag
-,greater,Byte,Byte,n,<Flag>,x,compare8swap_reg_reg,,,b;c;d;e;h;l,a,cf,f,empty,,,,,"Operands reversed. A should be an option for param1, but allocator is greedy and would choose A for param1 and fail on param2"
-,greater,Byte,Byte,n,Boolean,x,compare8swap_reg_imm,,,imm,a,cf,f,empty,,,,,
-,greater,Byte,Byte,n,Boolean,x,compare8swap_reg_reg,,,b;c;d;e;h;l,a,cf,f,empty,,,,,"Operands reversed. A should be an option for param1, but allocator is greedy and would choose A for param1 and fail on param2"
-,greater,Word,Word,n,<Flag>,x,:compare_u16,,,de,hl,cf,a;f,empty,,,,,
-,greater,Word,Word,n,Boolean,x,:compare_u16,,,de,hl,cf,a;f,empty,,,,,
-,greater,Integer,Integer,n,<Flag>,x,:compare_s16,,,de,hl,cf,a;f,empty,,,,,
-,greater,Integer,Integer,n,Boolean,x,:compare_s16,,,de,hl,cf,a;f,empty,,,,,
-,greater,Word,Integer,n,<Flag>,x,:compare_s16_u16,,,de,hl,cf,a;h;l;f,empty,,,,,
-,greater,Word,Integer,n,Boolean,x,:compare_s16_u16,,,de,hl,cf,a;h;l;f,empty,,,,,
-,greater,Integer,Word,n,<Flag>,x,:compare_u16_s16,,,de,hl,cf,a;h;l;f,empty,,,,,
-,greater,Integer,Word,n,Boolean,x,:compare_u16_s16,,,de,hl,cf,a;h;l;f,empty,,,,,
-,greater,Boolean,Boolean,n,<Flag>,x,compare8swap_reg_imm,,,imm,a,cf,f,empty,,,,,
-,greater,Boolean,Boolean,n,<Flag>,x,compare8swap_reg_reg,,,b;c;d;e;h;l,a,cf,f,empty,,,,,"Operands reversed. A should be an option for param1, but allocator is greedy and would choose A for param1 and fail on param2"
-,greater,Boolean,Boolean,n,Boolean,x,bool_greater8_reg_imm,,,imm,a,a,f,empty,,,,,"Operands reversed. A should be an option for param1, but allocator is greedy and would choose A for param1 and fail on param2"
-,greater,Boolean,Boolean,n,Boolean,x,bool_greater8_reg_reg,,,b;c;d;e;h;l,a,a,f,empty,,,,,"Operands reversed. A should be an option for param1, but allocator is greedy and would choose A for param1 and fail on param2"
-,greater,Char,Char,n,<Flag>,x,compare8swap_reg_imm,,,imm,a,cf,f,empty,,,,,For branches - only sets flag
-,greater,Char,Char,n,<Flag>,x,compare8swap_reg_reg,,,b;c;d;e;h;l,a,cf,f,empty,,,,,"Operands reversed. A should be an option for param1, but allocator is greedy and would choose A for param1 and fail on param2"
-,greater,Char,Char,n,Boolean,x,compare8swap_reg_imm,,,imm,a,cf,f,empty,,,,,
-,greater,Char,Char,n,Boolean,x,compare8swap_reg_reg,,,b;c;d;e;h;l,a,cf,f,empty,,,,,"Operands reversed. A should be an option for param1, but allocator is greedy and would choose A for param1 and fail on param2"
-,,,,,,,,,,,,,,,,,,,
-,lessequal,Byte,Byte,n,<Flag>,x,compare8swap_reg_imm,,,imm,a,ncf,f,empty,,,,,For branches - only sets flag
-,lessequal,Byte,Byte,n,<Flag>,x,compare8swap_reg_reg,,,b;c;d;e;h;l,a,ncf,f,empty,,,,,"Operands reversed. A should be an option for param1, but allocator is greedy and would choose A for param1 and fail on param2"
-,lessequal,Byte,Byte,n,Boolean,x,compare8swap_reg_imm,,,imm,a,ncf,f,empty,,,,,
-,lessequal,Byte,Byte,n,Boolean,x,compare8swap_reg_reg,,,b;c;d;e;h;l,a,ncf,f,empty,,,,,"Operands reversed. A should be an option for param1, but allocator is greedy and would choose A for param1 and fail on param2"
-,lessequal,Word,Word,n,<Flag>,x,:compare_u16,,,de,hl,ncf,a;f,empty,,,,,
-,lessequal,Word,Word,n,Boolean,x,:compare_u16,,,de,hl,ncf,a;f,empty,,,,,
-,lessequal,Integer,Integer,n,<Flag>,x,:compare_s16,,,de,hl,ncf,a;f,empty,,,,,
-,lessequal,Integer,Integer,n,Boolean,x,:compare_s16,,,de,hl,ncf,a;f,empty,,,,,
-,lessequal,Word,Integer,n,<Flag>,x,:compare_s16_u16,,,de,hl,ncf,a;h;l;f,empty,,,,,
-,lessequal,Word,Integer,n,Boolean,x,:compare_s16_u16,,,de,hl,ncf,a;h;l;f,empty,,,,,
-,lessequal,Integer,Word,n,<Flag>,x,:compare_u16_s16,,,de,hl,ncf,a;h;l;f,empty,,,,,
-,lessequal,Integer,Word,n,Boolean,x,:compare_u16_s16,,,de,hl,ncf,a;h;l;f,empty,,,,,
-,lessequal,Boolean,Boolean,n,<Flag>,x,compare8swap_reg_imm,,,imm,a,ncf,f,empty,,,,,
-,lessequal,Boolean,Boolean,n,<Flag>,x,compare8swap_reg_reg,,,b;c;d;e;h;l,a,ncf,f,empty,,,,,"Operands reversed. A should be an option for param1, but allocator is greedy and would choose A for param1 and fail on param2"
-,lessequal,Boolean,Boolean,n,Boolean,x,bool_lessequal8_reg_imm,,,a,imm,a,f,empty,,,,,"Operands reversed. A should be an option for param1, but allocator is greedy and would choose A for param1 and fail on param2"
-,lessequal,Boolean,Boolean,n,Boolean,x,bool_lessequal8_reg_reg,,,a,b;c;d;e;h;l,a,f,empty,,,,,"Operands reversed. A should be an option for param1, but allocator is greedy and would choose A for param1 and fail on param2"
-,lessequal,Char,Char,n,<Flag>,x,compare8swap_reg_imm,,,imm,a,ncf,f,empty,,,,,For branches - only sets flag
-,lessequal,Char,Char,n,<Flag>,x,compare8swap_reg_reg,,,b;c;d;e;h;l,a,ncf,f,empty,,,,,"Operands reversed. A should be an option for param1, but allocator is greedy and would choose A for param1 and fail on param2"
-,lessequal,Char,Char,n,Boolean,x,compare8swap_reg_imm,,,imm,a,ncf,f,empty,,,,,
-,lessequal,Char,Char,n,Boolean,x,compare8swap_reg_reg,,,b;c;d;e;h;l,a,ncf,f,empty,,,,,"Operands reversed. A should be an option for param1, but allocator is greedy and would choose A for param1 and fail on param2"
-,,,,,,,,,,,,,,,,,,,
-,,,,,,,(Empty columns for formatting),,,,,,,,,,,,
-;,,----Primitive Selection----,,,,----Primitive Data----,,,,,,,,Special validations on type conversion,,,,,
-;,Operation,Ltype,Rtype,Commutative,ResultType,Validation,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,Validate,Int8,Byte,Integer,Word,Notes
-,or,Byte,Byte,y,Byte,x,or8_reg_imm,,,a,imm,a,f,empty,,,,,
-,or,Byte,Byte,y,Byte,x,or8_reg_reg,,,a,a;b;c;d;e;h;l,a,f,empty,,,,,
-,or,Int8,Int8,y,Int8,x,or8_reg_imm,,,a,imm,a,f,empty,,,,,
-,or,Int8,Int8,y,Int8,x,or8_reg_reg,,,a,a;b;c;d;e;h;l,a,f,empty,,,,,
-,or,Byte,Int8,y,Byte,x,or8_reg_imm,,,a,imm,a,f,empty,,,,,
-,or,Byte,Int8,y,Byte,x,or8_reg_reg,,,a,a;b;c;d;e;h;l,a,f,empty,,,,,
-,or,Word,Word,y,Word,x,or16_reg_imm,,,hl;de;bc,imm,param1,a;f,empty,,,,,
-,or,Word,Word,y,Word,x,or16_reg_reg,,,hl;de;bc,hl;de;bc,param1,a;f,empty,,,,,
-,or,Integer,Integer,y,Integer,x,or16_reg_imm,,,hl;de;bc,imm,param1,a;f,empty,,,,,
-,or,Integer,Integer,y,Integer,x,or16_reg_reg,,,hl;de;bc,hl;de;bc,param1,a;f,empty,,,,,
-,or,Word,Integer,y,Word,x,or16_reg_imm,,,hl;de;bc,imm,param1,a;f,empty,,,,,
-,or,Word,Integer,y,Word,x,or16_reg_reg,,,hl;de;bc,hl;de;bc,param1,a;f,empty,,,,,
-,or,Boolean,Boolean,y,Boolean,x,or8_reg_imm,,,a,imm,a,f,empty,,,,,
-,or,Boolean,Boolean,y,Boolean,x,or8_reg_reg,,,a,a;b;c;d;e;h;l,a,f,empty,,,,,
-,,,,,,,,,,,,,,,,,,,
-,and,Byte,Byte,y,Byte,x,and8_reg_imm,,,a,imm,a,f,empty,,,,,
-,and,Byte,Byte,y,Byte,x,and8_reg_reg,,,a,a;b;c;d;e;h;l,a,f,empty,,,,,
-,and,Int8,Int8,y,Int8,x,and8_reg_imm,,,a,imm,a,f,empty,,,,,
-,and,Int8,Int8,y,Int8,x,and8_reg_reg,,,a,a;b;c;d;e;h;l,a,f,empty,,,,,
-,and,Byte,Int8,y,Byte,x,and8_reg_imm,,,a,imm,a,f,empty,,,,,
-,and,Byte,Int8,y,Byte,x,and8_reg_reg,,,a,a;b;c;d;e;h;l,a,f,empty,,,,,
-,and,Word,Word,y,Word,x,and16_reg_imm,,,hl;de;bc,imm,param1,a;f,empty,,,,,
-,and,Word,Word,y,Word,x,and16_reg_reg,,,hl;de;bc,hl;de;bc,param1,a;f,empty,,,,,
-,and,Integer,Integer,y,Integer,x,and16_reg_imm,,,hl;de;bc,imm,param1,a;f,empty,,,,,
-,and,Integer,Integer,y,Integer,x,and16_reg_reg,,,hl;de;bc,hl;de;bc,param1,a;f,empty,,,,,
-,and,Word,Integer,y,Word,x,and16_reg_imm,,,hl;de;bc,imm,param1,a;f,empty,,,,,
-,and,Word,Integer,y,Word,x,and16_reg_reg,,,hl;de;bc,hl;de;bc,param1,a;f,empty,,,,,
-,and,Boolean,Boolean,y,Boolean,x,and8_reg_imm,,,a,imm,a,f,empty,,,,,
-,and,Boolean,Boolean,y,Boolean,x,and8_reg_reg,,,a,a;b;c;d;e;h;l,a,f,empty,,,,,
-,,,,,,,,,,,,,,,,,,,
-,xor,Byte,Byte,y,Byte,x,xor8_reg_imm,,,a,imm,a,f,empty,,,,,
-,xor,Byte,Byte,y,Byte,x,xor8_reg_reg,,,a,a;b;c;d;e;h;l,a,f,empty,,,,,
-,xor,Int8,Int8,y,Int8,x,xor8_reg_imm,,,a,imm,a,f,empty,,,,,
-,xor,Int8,Int8,y,Int8,x,xor8_reg_reg,,,a,a;b;c;d;e;h;l,a,f,empty,,,,,
-,xor,Byte,Int8,y,Byte,x,xor8_reg_imm,,,a,imm,a,f,empty,,,,,
-,xor,Byte,Int8,y,Byte,x,xor8_reg_reg,,,a,a;b;c;d;e;h;l,a,f,empty,,,,,
-,xor,Word,Word,y,Word,x,xor16_reg_imm,,,hl;de;bc,imm,param1,a;f,empty,,,,,
-,xor,Word,Word,y,Word,x,xor16_reg_reg,,,hl;de;bc,hl;de;bc,param1,a;f,empty,,,,,
-,xor,Integer,Integer,y,Integer,x,xor16_reg_imm,,,hl;de;bc,imm,param1,a;f,empty,,,,,
-,xor,Integer,Integer,y,Integer,x,xor16_reg_reg,,,hl;de;bc,hl;de;bc,param1,a;f,empty,,,,,
-,xor,Word,Integer,y,Word,x,xor16_reg_imm,,,hl;de;bc,imm,param1,a;f,empty,,,,,
-,xor,Word,Integer,y,Word,x,xor16_reg_reg,,,hl;de;bc,hl;de;bc,param1,a;f,empty,,,,,
-,xor,Boolean,Boolean,y,Boolean,x,xor8_reg_imm,,,a,imm,a,f,empty,,,,,
-,xor,Boolean,Boolean,y,Boolean,x,xor8_reg_reg,,,a,a;b;c;d;e;h;l,a,f,empty,,,,,
-,,,,,,,,,,,,,,,,,,,
-,,,,,,,(Empty columns for formatting),,,,,,,,,,,,
-;,,----Primitive Selection----,,,,----Primitive Data----,,,,,,,,Special validations on type conversion,,,,,
-;,Operation,Ltype,Rtype,Commutative,ResultType,Validation,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,Validate,Int8,Byte,Integer,Word,Notes
-,negate,Int8,none,n,Int8,x,negate_s8,,,a,,a,a;f,pe_overflow,,,,,
-,negate,Word,none,n,Integer,y,:negate_u16_with_overflow,,,hl,,hl,h;l;d;e;f,nc_overflow,,nz_overflow,p_overflow,nz_overflow,
-,negate,Word,none,n,Integer,n,:negate_s16,,,hl,,hl,h;l;a;f,,,,,,
-,negate,Integer,none,n,Integer,y,:negate_HL_with_overflow,,,hl,,hl,h;l;a;f,nc_overflow,,,,,
-,negate,Integer,none,n,Integer,n,:negate_s16,,,hl,,hl,h;l;a;f,,,,,,
-,,,,,,,,,,,,,,,,,,,
-,complement,Byte,none,n,Byte,x,cpla,,,a,,a,f,empty,,,,,The way we're storing Booleans means we use the same code for bitwise and logical operations
-,complement,Int8,none,n,Int8,x,cpla,,,a,,a,f,empty,,,,,The way we're storing Booleans means we use the same code for bitwise and logical operations
-,complement,Word,none,n,Word,x,cpl16_reg,,,hl;de;bc,,param1,a;f,empty,,,,,
-,complement,Integer,none,n,Integer,x,cpl16_reg,,,hl;de;bc,,param1,a;f,empty,,,,,
-,complement,Boolean,none,n,Boolean,x,cpla,,,a,,a,f,empty,,,,,
-,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,
-END,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,
-;,,,,,,Procedures,,Register options available,,,,,Special validations on type conversion,,,,,,
-;,Name ,OpType,FirstParamType,DestType,Validation,Exec,Flags,Param1,Param2,Dest,Corrupts,Validate,s8,u8,s16,u16,Notes,,
-;,Misc   ,,,,,,,,,,,,,,,,,,
-,unknown,,,,x,error   ,,,,none,,,,,,,Raises an error if encountered by the code generator,,
-,move,,,,x,empty   ,,a;b;c;d;e;h;l;bc;de;hl,,p1,,,,,,,Primitive does nothing. Used for load-store operations,,
-,phi     ,,,,x,empty   ,,,,    ,,,,,,,Dummy which does nothing,,
-,funccall,,,,x,proccall,,,,    ,,,,,,,Function call,,
-;Validation routines,,,,,,,,,,,,,,,,,,,
-;,x,,,,x,c_overflow,,,,,,,,,,,Overflow error if carry true,,
-;,x,,,,x,m_overflow,,,,,,,,,,,Overflow if sign flag is negative (high bit set),,
-,x,,,,x,b7sov,,,,p1,f,,,,,,Overflow if bit 7 set,,
-,x,,,,x,b15sov,,,,p1,f,,,,,,Overflow if bit 15 set,,
-;Assignment from immediate data - these routines both read the source data and store it to the destination.,,,,,,,,,,,,,,,,,,,
-;Thus the 'Dest' column says 'none' - we don't want the code generator also generating store code,,,,,,,,,,,,,,,,,,,
-,storeimm,x8     ,,x8     ,n,assign_abs8_imm8       ,deststaticvar,i,,none,a  ,,,,,,Assigns an immediate 8 bit value (constant) (Validation done by parser!),,
-,storeimm,x8     ,,x8     ,n,assign_rel8_imm8       ,destrelvar,i,,none,   ,,,,,,Assigns an immediate 8 bit value (constant) (Validation done by parser!),,
-,storeimm,x8     ,,boolean,n,assign_abs8_imm8       ,deststaticvar,i,,none,a  ,,,,,,Assigns an immediate 8 bit value (constant) (Validation done by parser!),,
-,storeimm,x8     ,,boolean,n,assign_rel8_imm8       ,destrelvar,i,,none,   ,,,,,,,,
-,storeimm,x8     ,,s16    ,n,proc_assign_abss16_imm8,deststaticvar,i,,none,a;f,,,,,,Zero extends to 16 bits,,
-,storeimm,s8     ,,s16    ,n,proc_assign_rels16_imm8,destrelvar,i,,none,   ,,,,,,Extends an x8 constant to x16,,
-,storeimm,x8     ,,x16    ,n,assign_abs16_imm8      ,deststaticvar,i,,none,a  ,,,,,,Zero extends to 16 bits,,
-,storeimm,x8     ,,x16    ,n,assign_rel16_imm8      ,destrelvar,i,,none,   ,,,,,,Zero extends to 16 bits,,
-,storeimm,x16    ,,x16    ,n,assign_abs16_imm16     ,deststaticvar,i,,none,a  ,,,,,,Assigns an immediate 16 bit value (validation done by parser!),,
-,storeimm,x16    ,,x16    ,n,assign_rel16_imm16     ,destrelvar,i,,none,   ,,,,,,Assigns an immediate 16 bit value (validation done by parser!),,
-,storeimm,x16    ,,x8     ,n,assign_abs8_imm8       ,deststaticvar,i,,none,a  ,,,,,,Shorten a 16 bit immediate to an 8 bit (validated by parser),,
-,storeimm,x16    ,,x8     ,n,assign_rel8_imm8       ,destrelvar,i,,none,   ,,,,,,Shorten a 16 bit immediate to an 8 bit (validated by parser),,
-,storeimm,boolean,,boolean,n,assign_abs8_imm8       ,deststaticvar,i,,none,a  ,,,,,,,,
-,storeimm,boolean,,boolean,n,assign_rel8_imm8       ,destrelvar,i,,none,   ,,,,,,,,
-;,Assignment,,,,,,,,,,,,,,,,,,
-;,assign,u8     ,,       ,x,empty                  ,,b;c;d;e;h;l;a,,p1,,,,,,,Assigning from a U8,,
-;,assign,s8     ,,       ,x,empty                  ,,b;c;d;e;h;l;a,,p1,,,,,,,Assigning from an S8,,
-;,assign,u16    ,,       ,x,empty                  ,,hl;de;bc     ,,p1,,,,,,,Assigning from a U16,,
-;,assign,s16    ,,       ,x,empty                  ,,hl;de;bc     ,,p1,,,,,,,Assigning from an S16,,
-;,assign,u8     ,,,x,push_byte_a,,a,,stackbyte,,,,,,,Pushing a byte to the stack,,
-;,assign,s8,,,x,push_byte_a,,a,,stackbyte,,,,,,,Pushing a byte to the stack,,
-;,assign,u16,,,x,push_word,,hl;de;bc     ,,stack,,,,,,,Pushing a word to the stack,,
-;,assign,s16,,,x,push_word,,hl;de;bc     ,,stack,,,,,,,Pushing a word to the stack,,
-;,,,,,,,,,,,,,,,,,,,
-;,branch,,,,,branch,,,,,,,,,,,Conditional or unconditional,,
-,condbranch,boolean,,branch,x,atozf,,a,,zf,f,,,,,,Conditional branch,,
-;,phi,,,,,phi,,,,,,,,,,,Ignored,,
-;,,,,,,,,,,,,,,,,,,,
-;,Maths,,,,,,,,,,,,,,,,,,
-,negate,s8,,s8,x,negs8,,a,,a,a;f,pe_overflow,,,,,,,
-,negate,s8,,s16,x,negs8,,a,,a,a;f,empty,,,,,,,
-;,negate,u16,,,x,negu16,,de,,hl,h;l;d;e;f,empty,,nz_overflow,p_overflow,nz_overflow,,,
-,negate,s16,,,y,:negate_HL_and_test_if_INT,,hl,,hl,h;l;a;f,nc_overflow,,,,,,,
-,negate,s16,,,n,:negate_s16,,hl,,hl,h;l;a;f,,,,,,,,
-;,,,,,,,,,,,,,,,,,,,
-;,Boolean operators,,,,,,,,,,,,,,,,,,
-;,,,,,,,,,,,,,,,,,,,
-;,Name,OpType,FirstParamType,DestType,Validation,Exec,,Param1,Param2,Dest,Corrupts,Validate,s8,u8,s16,u16,Notes,,
-,not,u8,,,x,cpla,,a,,a,f,empty,,,,,The way we're storing Booleans means we use the same code for bitwise and logical operations,,
-,not,s8,,,x,cpla,,a,,a,f,empty,,,,,The way we're storing Booleans means we use the same code for bitwise and logical operations,,
-,not,u16,,,x,not16rr,,hl;de;bc,,p1,a;f,empty,,,,,,,
-,not,s16,,,x,not16rr,,hl;de;bc,,p1,a;f,empty,,,,,,,
-,not,boolean,,,x,cpla,,a,,a,f,empty,,,,,,,
-;,,,,,,,,,,,,,,,,,,,
-;,Name,OpType,FirstParamType,DestType,Validation,Exec,,Param1,Param2,Dest,Corrupts,Validate,s8,u8,s16,u16,Notes,,
-,writechar,u8,,,x,:s_writechar,,a,,,,empty,,,,,Write character to output,,
-,writeinteger,u8,,,x,:write_byte,,l,,,a;f;h;l,empty,,,,,Write byte to the output,,
-,writeinteger,u16,,,x,:write_word,,hl,,,a;f;h;l,empty,,,,,Write word to the output,,
-,writeinteger,s16,,,x,:write_integer,,hl,,,a;f;h;l,empty,,,,,Write signed integer to the output,,
-,writeboolean,boolean,,,x,:write_bool,,a,,,a;f;h;l,empty,,,,,,,
-;,writeasciiz,u16,,,x,:write_asciiz,,hl,,,a;f;h;l,empty,,,,,Write ASCIIZ string,,
-;,writeascii7,u16,,,x,:write_ascii7,,hl,,,a;f;h;l,empty,,,,,Write ASCII7 string (bit 7 of final char set),,
-,writenewline,,,,x,:s_newline,,,,,,empty,,,,,Write end of line marker,,
-;,,,,,,,,,,,,,,,,,,,
-;,Typecasts,,,,,,,,,,,,,,,,,,
-;,,,,,,,,,,,,,,,,,,,
-,integer,x8,,x16,x,assign_abs16_r8,deststaticvar,a;b;c;d;e;h;l,,,a;f,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed,,
-,integer,x8,,x16,x,assign_rel16_r8,destrelvar,a;b;c;d;e;h;l,,,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed,,
-,integer,x16,,x16,x,empty,,hl;de;bc,,p1,,empty,empty,empty,empty,empty,,,
-,integer,boolean,,x16,x,assign_abs16_r8,deststaticvar,a;b;c;d;e;h;l,,,a;f,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed,,
-,integer,boolean,,x16,x,assign_rel16_r8,destrelvar,a;b;c;d;e;h;l,,,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed,,
-,word,x8,,x16,x,assign_abs16_r8,deststaticvar,a;b;c;d;e;h;l,,,a;f,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed,,
-,word,x8,,x16,x,assign_rel16_r8,destrelvar,a;b;c;d;e;h;l,,,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed,,
-,word,x16,,x16,x,empty,,hl;de;bc,,p1,,empty,empty,empty,empty,empty,,,
-,word,boolean,,x16,x,assign_abs16_r8,deststaticvar,a;b;c;d;e;h;l,,,a;f,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed,,
-,word,boolean,,x16,x,assign_rel16_r8,destrelvar,a;b;c;d;e;h;l,,,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed,,
-,pointer,x8,,x16,x,assign_abs16_r8,deststaticvar,a;b;c;d;e;h;l,,,a;f,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed,,
-,pointer,x8,,x16,x,assign_rel16_r8,destrelvar,a;b;c;d;e;h;l,,,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed,,
-,pointer,x16,,x16,x,empty,,hl;de;bc,,p1,,empty,empty,empty,empty,empty,,,
-,pointer,boolean,,x16,x,assign_abs16_r8,deststaticvar,a;b;c;d;e;h;l,,,a;f,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed,,
-,pointer,boolean,,x16,x,assign_rel16_r8,destrelvar,a;b;c;d;e;h;l,,,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed,,
-,int8,x8,,x8,x,empty,,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,,,
-,int8,x16,,x8,x,empty,loadrplow,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,Typecast 16 bit to 8 bit. High byte will be ignored,,
-,int8,boolean,,x8,x,empty,,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,,,
-,byte,x8,,x8,x,empty,,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,,,
-,byte,x16,,x8,x,empty,loadrplow,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,Typecast 16 bit to 8 bit. High byte will be ignored,,
-,byte,boolean,,x8,x,empty,,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,,,
-,boolean,x8,,boolean,x,empty,,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,,,
-,boolean,x16,,boolean,x,empty,loadrplow,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,Typecast 16 bit to 8 bit. High byte will be ignored,,
-,boolean,boolean,,boolean,x,empty,,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,,,
-,char,x8,,x8,x,empty,,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,,,
-,char,x16,,x8,x,empty,loadrplow,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,Typecast 16 bit to 8 bit. High byte will be ignored,,
-,char,boolean,,x8,x,empty,,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,,,
-;,,,,,,,,,,,,,,,,,,,
-;,Intrinsics (I.e. small operations mostly enacted via CPU instructions),,,,,,,,,,,,,,,,,,
-;,,,,,,,,,,,,,,,,,,,
-,abs,x16,,s16,x,:abs_hl_with_overflow,,hl,,hl,a;f;h;l,nc_overflow,,,,,,,
-,dec,u8,,u8,x,procdec8r,,a;b;c;d;e;h;l,,p1,f,empty,,,,,,,
-,dec,s8,,s8,x,procdec8r,,a;b;c;d;e;h;l,,p1,f,empty,,,,,,,
-,dec,u16,,u16,x,procdec16r,,hl;de;bc,,p1,,empty,,,,,,,
-,dec,s16,,s16,x,procdec16r,,hl;de;bc,,p1,,empty,,,,,,,
-,inc,u8,,u8,x,procinc8r,,a;b;c;d;e;h;l,,p1,f,empty,,,,,,,
-,inc,s8,,s8,x,procinc8r,,a;b;c;d;e;h;l,,p1,f,empty,,,,,,,
-,inc,u16,,u16,x,procinc16r,,hl;de;bc,,p1,,empty,,,,,,,
-,inc,s16,,s16,x,procinc16r,,hl;de;bc,,p1,,empty,,,,,,,
-,odd,x8,,branch,x,odd8r_branch,,a,,cf,a;f,,,,,,,,
-,odd,x16,,branch,x,odd8r_branch,loadrplow,a,,cf,a;f,,,,,,,,
-,odd,x8,,boolean,x,odd8r,,a,,a,a;f,,,,,,,,
-,odd,x16,,boolean,x,odd8r,loadrplow,a,,a,a;f,,,,,,,,
-,hi,x16,,u8,x,empty,loadrphigh,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,,,
-;,hi,u16,,u8,x,empty,loadrphigh,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,,,
+﻿,,Table of available Primitives,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,For full documentation see TPrimitiveNG record in the PrimitivesEx.pas file,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,"Lines will be ignored if they begin with a semicolon, or if Operation column is empty",,,,,,,,,,,,,,,,,,
+,,Terminate the file with 'END' in capitals in first column,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,;Notes: Ordering of items in the table is significant!,,,,,,,,,,,,,,,,,,
+,,,;All handlers for an operation must be grouped together,,,,,,,,,,,,,,,,,
+,,,";Immediate, indirect and offset locations must be listed before register locations",,,,,,,,,,,,,,,,,
+,,,;Smaller types /should/ be listed before larger types (but not currently a requirement),,,,,,,,,,,,,,,,,
+,,,;Immediate Indirect and Offset cannot be mixed with other locations (i.e. they must be the only item in a list),,,,,,,,,,,,,,,,,
+,,,"Where there is an option for Immediate, Indirect, Offset, there *MUST* also be an identical variant which uses Registers. The compiler will fail if this is not the case!",,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,(Empty columns for formatting),,,,,,,,,,,
+;,,----Primitive Selection----,,,,,,----Primitive Data----,,,,,,,,Special validations on type conversion,,,,
+;,Operation,Ltype,Rtype,Commutative,ResultType,Validation,,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,Validate,Int8,Byte,Integer,Word,Notes
+,add,Byte,Byte,y,Byte,x,,add8_reg_imm,,,a,imm,a,a;f,c_overflow,m_overflow,,,,
+,add,Byte,Byte,y,Byte,x,,add8_reg_reg,,,a,a;b;c;d;e;h;l,a,a;f,c_overflow,m_overflow,,,,
+,add,Int8,Int8,y,Int8,x,,add8_reg_imm,,,a,imm,a,a;f,pe_overflow,,m_overflow,,m_overflow,
+,add,Int8,Int8,y,Int8,x,,add8_reg_reg,,,a,a;b;c;d;e;h;l,a,a;f,pe_overflow,,m_overflow,,m_overflow,
+,add,Word,Word,y,Word,y,,add16_overflow,,,hl,hl;de;bc,hl,h;l;f,c_overflow,,,m_overflow,,"Uses ADC HL,ss which does set sign flag"
+,add,Word,Word,y,Word,x,,add16_nooverflow,,,hl,hl;de;bc,hl,h;l;f,c_overflow,,,,,"Uses ADD HL,ss which doesn't set flags needed for conversions, but is faster"
+,add,Integer,Integer,y,Integer,y,,add16_overflow,,,hl,hl;de;bc,hl,h;l;f,pe_overflow,,,,m_overflow,"Uses ADC HL,ss which sets all flags"
+,add,Integer,Integer,y,Integer,n,,add16_nooverflow,,,hl,hl;de;bc,hl,h;l;f,,,,,,"Uses ADD HL,ss"
+,add,Integer,Word,y,Integer,n,,add16_nooverflow,,,hl,hl;de;bc,hl,h;l;f,,,,,,"Uses ADD HL,ss"
+,add,Integer,Word,y,Word,n,,add16_nooverflow,,,hl,hl;de;bc,hl,h;l;f,,,,,,"Uses ADD HL,ss"
+,add,Integer,Word,y,Integer,y,,:add16_s_u__s_raise_errors,,,hl,de,hl,h;l;f,empty,,,,,Add signed to unsigned returning signed. Overflow raised by routine.
+,add,Integer,Word,y,Word,y,,:add16_s_u__u_raise_errors,,,hl,de,hl,h;l;f,empty,,,,,Addsigned to unsigned returning unsigned. Overflow raised by routine
+;,add,Char,Char,n,String,x,,:concat_char,,,a,l,hl,?,empty,,,,,c+c
+;,add,Char,String,n,String,x,,:concat_char_string,,,a,hl,hl,?,empty,,,,,c+s
+;,add,String,Char,n,String,x,,:concat_string_char,,,hl,a,hl,?,empty,,,,,s+c
+;,add,String,String,n,String,x,,:concat_string,,,hl,de,hl,?,empty,,,,,s+s
+,,,,,,,,,,,,,,,,,,,,
+,subtract,Byte,Byte,n,Byte,x,,sub8_reg_imm,,,a,imm,a,a;f,c_overflow,m_overflow,,,,
+,subtract,Byte,Byte,n,Byte,x,,sub8_reg_reg,,,a,a;b;c;d;e;h;l,a,a;f,c_overflow,m_overflow,,,,
+,subtract,Int8,Int8,n,Int8,x,,sub8_reg_imm,,,a,imm,a,a;f,pe_overflow,,m_overflow,,m_overflow,
+,subtract,Int8,Int8,n,Int8,x,,sub8_reg_reg,,,a,a;b;c;d;e;h;l,a,a;f,pe_overflow,,m_overflow,,m_overflow,
+,subtract,Word,Word,n,Word,x,,sub16,,,hl,hl;de;bc,hl,h;l;f,c_overflow,,,m_overflow,,
+,subtract,Integer,Integer,n,Integer,x,,sub16,,,hl,hl;de;bc,hl,h;l;f,pe_overflow,,,,m_overflow,
+,subtract,Integer,Word,n,Integer,n,,sub16,,,hl,hl;de;bc,hl,h;l;f,,,,,,
+,subtract,Integer,Word,n,Word,n,,sub16,,,hl,hl;de;bc,hl,h;l;f,,,,,,
+,subtract,Word,Integer,n,Integer,n,,sub16,,,hl,hl;de;bc,hl,h;l;f,,,,,,
+,subtract,Word,Integer,n,Word,n,,sub16,,,hl,hl;de;bc,hl,h;l;f,,,,,,
+,subtract,Integer,Word,n,Integer,y,,:sub16_s_u__s_raise_errors,,,hl,de,hl,h;l;f,empty,,,,,"First param is the S16, output is s16"
+,subtract,Word,Integer,n,Integer,y,,:sub16_u_s__s_raise_errors,,,hl,de,hl,h;l;f,empty,,,,,"First param is the u16, output is s16"
+,subtract,Integer,Word,n,Word,y,,:sub16_s_u__u_raise_errors,,,hl,de,hl,h;l;f,empty,,,,,"First param is the S16, output is u16"
+,subtract,Word,Integer,n,Word,y,,:sub16_u_s__u_raise_errors,,,hl,de,hl,h;l;f,empty,,,,,"First param is the u16, output is u16"
+,,,,,,,,,,,,,,,,,,,,
+,multiply,Byte,Byte,y,Byte,x,,:mult8_h_e__hl,,,h,e,l,a;f;b;d;e;h;l,hreg_nz_overflow,,,,,
+,multiply,Byte,Byte,y,Word,x,,:mult8_h_e__hl,,,h,e,hl,a;f;b;d;e;h;l,empty,,,,,"Technically we could do this, but it violates other expression parsing rules."
+,multiply,Integer,Integer,y,Integer,x,,:mult16_s_s__s,,,hl,de,hl,a;f;b;d;e;h;l,nc_overflow,,,,,
+,multiply,Word,Word,y,Word,x,,:mult16_u_u__u,,,hl,de,hl,a;f;d;e;h;l,c_overflow,,,,,
+,multiply,Integer,Word,y,Integer,x,,:mult16_s_u__s,,,hl,de,hl,a;f;b;d;e;h;l,nc_overflow,,,,,
+,multiply,Integer,Word,y,Word,x,,:mult16_s_u__u,,,hl,de,hl,a;f;b;d;e;h;l,nc_overflow,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,div,Byte,Byte,n,Byte,x,,:div8_c_d__c_a,,,c,d,c,a;f;b;c,empty,,,,,
+,div,Word,Word,n,Word,x,,:div16_u_u__u,,,hl,de,hl,a;f;b;c;d;e;h;l,empty,,,,,
+,div,Integer,Integer,n,Integer,x,,:div16_s_s__s,,,hl,de,hl,a;f;b;c;d;e;h;l,nc_overflow,,,,,
+,div,Integer,Word,n,Integer,x,,:div16_s_u__s,,,hl,de,hl,a;f;b;c;d;e;h;l,nc_overflow,,,,,
+,div,Word,Integer,n,Integer,x,,:div16_u_s__s,,,hl,de,hl,a;f;b;c;d;e;h;l,nc_overflow,,,,,
+,div,Integer,Word,n,Word,x,,:div16_s_u__u,,,hl,de,hl,a;f;b;c;d;e;h;l,nc_overflow,,,,,
+,div,Word,Integer,n,Word,x,,:div16_u_s__u,,,hl,de,hl,a;f;b;c;d;e;h;l,nc_overflow,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,mod,Byte,Byte,n,Byte,x,,:div8_c_d__c_a,,,c,d,a,a;f;b;c,empty,,,,,
+,mod,Word,Word,n,Word,x,,:div16_u_u__u,,,hl,de,de,a;f;b;c;d;e;h;l,empty,,,,,
+,mod,Integer,Integer,n,Integer,x,,:mod16_s_s__s,,,hl,de,hl,a;f;b;c;d;e;h;l,empty,,,,,
+,mod,Integer,Word,n,Integer,x,,:mod16_s_u__s,,,hl,de,hl,a;f;b;c;d;e;h;l,empty,,,,,
+,mod,Word,Integer,n,Integer,x,,:mod16_u_s__s,,,hl,de,de,a;f;b;c;d;e;h;l,empty,,,,,
+,mod,Integer,Word,n,Word,x,,:mod16_s_u__u,,,hl,de,hl,a;f;b;c;d;e;h;l,nc_overflow,,,,,
+,mod,Word,Integer,n,Word,x,,:mod16_u_s__u,,,hl,de,de,a;f;b;c;d;e;h;l,nc_overflow,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,shl,Byte,Byte,n,Byte,x,,:left_shift_8_by_8,,,a,b,a,,,,,,,This is crying out for optimised routines for constant shift values
+,shl,Byte,Int8,n,Byte,x,,:left_shift_8_by_8,,,a,b,a,,,,,,,
+,shl,Byte,Word,n,Byte,x,,:left_shift_8_by_16,,,a,bc,a,,,,,,,
+,shl,Byte,Integer,n,Byte,x,,:left_shift_8_by_16,,,a,bc,a,,,,,,,
+,shl,Int8,Byte,n,Int8,x,,:left_shift_8_by_8,,,a,b,a,,,,,,,
+,shl,Int8,Int8,n,Int8,x,,:left_shift_8_by_8,,,a,b,a,,,,,,,
+,shl,Int8,Word,n,Int8,x,,:left_shift_8_by_16,,,a,bc,a,,,,,,,
+,shl,Int8,Integer,n,Int8,x,,:left_shift_8_by_16,,,a,bc,a,,,,,,,
+,shl,Integer,Byte,n,Integer,x,,:left_shift_16_by_8,,,hl,b,hl,,,,,,,
+,shl,Integer,Int8,n,Integer,x,,:left_shift_16_by_8,,,hl,b,hl,,,,,,,
+,shl,Integer,Word,n,Integer,x,,:left_shift_16_by_16,,,hl,bc,hl,,,,,,,
+,shl,Integer,Integer,n,Integer,x,,:left_shift_16_by_16,,,hl,bc,hl,,,,,,,
+,shl,Word,Byte,n,Word,x,,:left_shift_16_by_8,,,hl,b,hl,,,,,,,
+,shl,Word,Int8,n,Word,x,,:left_shift_16_by_8,,,hl,b,hl,,,,,,,
+,shl,Word,Integer,n,Word,x,,:left_shift_16_by_16,,,hl,bc,hl,,,,,,,
+,shl,Word,Word,n,Word,x,,:left_shift_16_by_16,,,hl,bc,hl,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,shr,Byte,Byte,n,Byte,x,,:right_shift_8_by_8,,,a,b,a,,,,,,,
+,shr,Byte,Int8,n,Byte,x,,:right_shift_8_by_8,,,a,b,a,,,,,,,
+,shr,Byte,Word,n,Byte,x,,:right_shift_8_by_16,,,a,bc,a,,,,,,,
+,shr,Byte,Integer,n,Byte,x,,:right_shift_8_by_16,,,a,bc,a,,,,,,,
+,shr,Int8,Byte,n,Int8,x,,:right_shift_8_by_8,,,a,b,a,,,,,,,
+,shr,Int8,Int8,n,Int8,x,,:right_shift_8_by_8,,,a,b,a,,,,,,,
+,shr,Int8,Word,n,Int8,x,,:right_shift_8_by_16,,,a,bc,a,,,,,,,
+,shr,Int8,Integer,n,Int8,x,,:right_shift_8_by_16,,,a,bc,a,,,,,,,
+,shr,Integer,Byte,n,Integer,x,,:right_shift_16_by_8,,,hl,b,hl,,,,,,,
+,shr,Integer,Int8,n,Integer,x,,:right_shift_16_by_8,,,hl,b,hl,,,,,,,
+,shr,Integer,Word,n,Integer,x,,:right_shift_16_by_16,,,hl,bc,hl,,,,,,,
+,shr,Integer,Integer,n,Integer,x,,:right_shift_16_by_16,,,hl,bc,hl,,,,,,,
+,shr,Word,Byte,n,Word,x,,:right_shift_16_by_8,,,hl,b,hl,,,,,,,
+,shr,Word,Int8,n,Word,x,,:right_shift_16_by_8,,,hl,b,hl,,,,,,,
+,shr,Word,Integer,n,Word,x,,:right_shift_16_by_16,,,hl,bc,hl,,,,,,,
+,shr,Word,Word,n,Word,x,,:right_shift_16_by_16,,,hl,bc,hl,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,(Empty columns for formatting),,,,,,,,,,,,
+;,,----Primitive Selection----,,,,----Primitive Data----,,,,,,,,,Special validations on type conversion,,,,,
+;,Operation,Ltype,Rtype,Commutative,ResultType,Validation,,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,Validate,Int8,Byte,Integer,Word,Notes
+,equal,Byte,Byte,y,<Flag>,x,,compare8_reg_imm,,,a,imm,zf,f,empty,,,,,For branches - only sets flag
+,equal,Byte,Byte,y,<Flag>,x,,compare8_reg_reg,,,a,a;b;c;d;e;h;l,zf,f,empty,,,,,For branches - only sets flag
+,equal,Byte,Byte,y,Boolean,x,,sub8_reg_imm,,,a,imm,zfa,a;f,empty,,,,,zfa: sets z flag and a <> 0
+,equal,Byte,Byte,y,Boolean,x,,sub8_reg_reg,,,a,a;b;c;d;e;h;l,zfa,a;f,empty,,,,,zfa: sets z flag and a <> 0
+,equal,Int8,Int8,y,<Flag>,x,,compare8_reg_imm,,,a,imm,zf,f,empty,,,,,For branches - only sets flag
+,equal,Int8,Int8,y,<Flag>,x,,compare8_reg_reg,,,a,a;b;c;d;e;h;l,zf,f,empty,,,,,For branches - only sets flag
+,equal,Int8,Int8,y,Boolean,x,,sub8_reg_imm,,,a,imm,zfa,a;f,empty,,,,,zfa: sets z flag and a <> 0
+,equal,Int8,Int8,y,Boolean,x,,sub8_reg_reg,,,a,a;b;c;d;e;h;l,zfa,a;f,empty,,,,,zfa: sets z flag and a <> 0
+,equal,Word,Word,y,<Flag>,x,,:compare_u16,,,hl,de,zf,a;f,empty,,,,,
+,equal,Word,Word,y,Boolean,x,,:compare_u16,,,hl,de,zf,a;f,empty,,,,,
+,equal,Integer,Integer,y,<Flag>,x,,:compare_u16,,,hl,de,zf,a;f,empty,,,,,
+,equal,Integer,Integer,y,Boolean,x,,:compare_u16,,,hl,de,zf,a;f,empty,,,,,
+,equal,Word,Integer,y,<Flag>,x,,:equal_m16,,,hl,de,zf,a;h;l;f,empty,,,,,
+,equal,Integer,Word,y,<Flag>,x,,:equal_m16,,,hl,de,zf,a;h;l;f,empty,,,,,
+,equal,Word,Integer,y,Boolean,x,,:equal_m16,,,hl,de,zf,a;h;l;f,empty,,,,,
+,equal,Integer,Word,y,Boolean,x,,:equal_m16,,,hl,de,zf,a;h;l;f,empty,,,,,
+,equal,Boolean,Boolean,y,<Flag>,x,,xor8_reg_imm,,,a,imm,zf,f,empty,,,,,
+,equal,Boolean,Boolean,y,<Flag>,x,,xor8_reg_reg,,,a,a;b;c;d;e;h;l,zf,f,empty,,,,,
+,equal,Boolean,Boolean,y,Boolean,x,,xor8_reg_imm,,,a,imm,cpla,f,empty,,,,,Result in complement (invert) of A
+,equal,Boolean,Boolean,y,Boolean,x,,xor8_reg_reg,,,a,a;b;c;d;e;h;l,cpla,f,empty,,,,,Result in complement (invert) of A
+,equal,Char,Char,y,<Flag>,x,,compare8_reg_imm,,,a,imm,zf,f,empty,,,,,For branches - only sets flag
+,equal,Char,Char,y,<Flag>,x,,compare8_reg_reg,,,a,a;b;c;d;e;h;l,zf,f,empty,,,,,For branches - only sets flag
+,equal,Char,Char,y,Boolean,x,,sub8_reg_imm,,,a,imm,zfa,a;f,empty,,,,,zfa: sets z flag and a <> 0
+,equal,Char,Char,y,Boolean,x,,sub8_reg_reg,,,a,a;b;c;d;e;h;l,zfa,a;f,empty,,,,,zfa: sets z flag and a <> 0
+,,,,,,,,,,,,,,,,,,,,
+,notequal,Byte,Byte,y,<Flag>,x,,compare8_reg_imm,,,a,imm,nzf,f,empty,,,,,For branches - only sets flag
+,notequal,Byte,Byte,y,<Flag>,x,,compare8_reg_reg,,,a,a;b;c;d;e;h;l,nzf,f,empty,,,,,For branches - only sets flag
+,notequal,Byte,Byte,y,Boolean,x,,sub8_reg_imm,,,a,imm,nzfa,a;f,empty,,,,,nzfa: sets z flag and a = 0
+,notequal,Byte,Byte,y,Boolean,x,,sub8_reg_reg,,,a,a;b;c;d;e;h;l,nzfa,a;f,empty,,,,,nzfa: sets z flag and a = 0
+,notequal,Int8,Int8,y,<Flag>,x,,compare8_reg_imm,,,a,imm,nzf,f,empty,,,,,For branches - only sets flag
+,notequal,Int8,Int8,y,<Flag>,x,,compare8_reg_reg,,,a,a;b;c;d;e;h;l,nzf,f,empty,,,,,For branches - only sets flag
+,notequal,Int8,Int8,y,Boolean,x,,sub8_reg_imm,,,a,imm,nzfa,a;f,empty,,,,,nzfa: sets z flag and a = 0
+,notequal,Int8,Int8,y,Boolean,x,,sub8_reg_reg,,,a,a;b;c;d;e;h;l,nzfa,a;f,empty,,,,,nzfa: sets z flag and a = 0
+,notequal,Word,Word,y,<Flag>,x,,:compare_u16,,,hl,de,nzf,a;f,empty,,,,,
+,notequal,Word,Word,y,Boolean,x,,:compare_u16,,,hl,de,nzf,a;f,empty,,,,,
+,notequal,Integer,Integer,y,<Flag>,x,,:compare_u16,,,hl,de,nzf,a;f,empty,,,,,
+,notequal,Integer,Integer,y,Boolean,x,,:compare_u16,,,hl,de,nzf,a;f,empty,,,,,
+,notequal,Word,Integer,y,<Flag>,x,,:equal_m16,,,hl,de,nzf,a;h;l;f,empty,,,,,
+,notequal,Integer,Word,y,<Flag>,x,,:equal_m16,,,hl,de,nzf,a;h;l;f,empty,,,,,
+,notequal,Word,Integer,y,Boolean,x,,:equal_m16,,,hl,de,nzf,a;h;l;f,empty,,,,,
+,notequal,Integer,Word,y,Boolean,x,,:equal_m16,,,hl,de,nzf,a;h;l;f,empty,,,,,
+,notequal,Boolean,Boolean,y,<Flag>,x,,xor8_reg_imm,,,a,imm,nzf,f,empty,,,,,
+,notequal,Boolean,Boolean,y,<Flag>,x,,xor8_reg_reg,,,a,a;b;c;d;e;h;l,nzf,f,empty,,,,,
+,notequal,Boolean,Boolean,y,Boolean,x,,xor8_reg_imm,,,a,imm,a,f,empty,,,,,Result in A
+,notequal,Boolean,Boolean,y,Boolean,x,,xor8_reg_reg,,,a,a;b;c;d;e;h;l,a,f,empty,,,,,Result in A
+,notequal,Char,Char,y,<Flag>,x,,compare8_reg_imm,,,a,imm,nzf,f,empty,,,,,For branches - only sets flag
+,notequal,Char,Char,y,<Flag>,x,,compare8_reg_reg,,,a,a;b;c;d;e;h;l,nzf,f,empty,,,,,For branches - only sets flag
+,notequal,Char,Char,y,Boolean,x,,sub8_reg_imm,,,a,imm,nzfa,a;f,empty,,,,,nzfa: sets z flag and a = 0
+,notequal,Char,Char,y,Boolean,x,,sub8_reg_reg,,,a,a;b;c;d;e;h;l,nzfa,a;f,empty,,,,,nzfa: sets z flag and a = 0
+,,,,,,,,,,,,,,,,,,,,
+,less,Byte,Byte,n,<Flag>,x,,compare8_reg_imm,,,a,imm,cf,f,empty,,,,,For branches - only sets flag
+,less,Byte,Byte,n,<Flag>,x,,compare8_reg_reg,,,a,a;b;c;d;e;h;l,cf,f,empty,,,,,For branches - only sets flag
+,less,Byte,Byte,n,Boolean,x,,compare8_reg_imm,,,a,imm,cf,f,empty,,,,,
+,less,Byte,Byte,n,Boolean,x,,compare8_reg_reg,,,a,a;b;c;d;e;h;l,cf,f,empty,,,,,
+,less,Word,Word,n,<Flag>,x,,:compare_u16,,,hl,de,cf,a;f,empty,,,,,
+,less,Word,Word,n,Boolean,x,,:compare_u16,,,hl,de,cf,a;f,empty,,,,,
+,less,Integer,Integer,n,<Flag>,x,,:compare_s16,,,hl,de,cf,a;f,empty,,,,,
+,less,Integer,Integer,n,Boolean,x,,:compare_s16,,,hl,de,cf,a;f,empty,,,,,
+,less,Word,Integer,n,<Flag>,x,,:compare_u16_s16,,,hl,de,cf,a;h;l;f,empty,,,,,
+,less,Word,Integer,n,Boolean,x,,:compare_u16_s16,,,hl,de,cf,a;h;l;f,empty,,,,,
+,less,Integer,Word,n,<Flag>,x,,:compare_s16_u16,,,hl,de,cf,a;h;l;f,empty,,,,,
+,less,Integer,Word,n,Boolean,x,,:compare_s16_u16,,,hl,de,cf,a;h;l;f,empty,,,,,
+,less,Boolean,Boolean,n,<Flag>,x,,compare8_reg_imm,,,a,imm,cf,f,empty,,,,,
+,less,Boolean,Boolean,n,<Flag>,x,,compare8_reg_reg,,,a,a;b;c;d;e;h;l,cf,f,empty,,,,,
+,less,Boolean,Boolean,n,Boolean,x,,bool_less8_reg_imm,,,a,imm,a,f,empty,,,,,Result in A
+,less,Boolean,Boolean,n,Boolean,x,,bool_less8_reg_reg,,,a,a;b;c;d;e;h;l,a,f,empty,,,,,Result in A
+,less,Char,Char,n,<Flag>,x,,compare8_reg_imm,,,a,imm,cf,f,empty,,,,,For branches - only sets flag
+,less,Char,Char,n,<Flag>,x,,compare8_reg_reg,,,a,a;b;c;d;e;h;l,cf,f,empty,,,,,For branches - only sets flag
+,less,Char,Char,n,Boolean,x,,compare8_reg_imm,,,a,imm,cf,f,empty,,,,,
+,less,Char,Char,n,Boolean,x,,compare8_reg_reg,,,a,a;b;c;d;e;h;l,cf,f,empty,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,greaterequal,Byte,Byte,n,<Flag>,x,,compare8_reg_imm,,,a,imm,ncf,f,empty,,,,,For branches - only sets flag
+,greaterequal,Byte,Byte,n,<Flag>,x,,compare8_reg_reg,,,a,a;b;c;d;e;h;l,ncf,f,empty,,,,,For branches - only sets flag
+,greaterequal,Byte,Byte,n,Boolean,x,,compare8_reg_imm,,,a,imm,ncf,f,empty,,,,,
+,greaterequal,Byte,Byte,n,Boolean,x,,compare8_reg_reg,,,a,a;b;c;d;e;h;l,ncf,f,empty,,,,,
+,greaterequal,Word,Word,n,<Flag>,x,,:compare_u16,,,hl,de,ncf,a;f,empty,,,,,
+,greaterequal,Word,Word,n,Boolean,x,,:compare_u16,,,hl,de,ncf,a;f,empty,,,,,
+,greaterequal,Integer,Integer,n,<Flag>,x,,:compare_s16,,,hl,de,ncf,a;f,empty,,,,,
+,greaterequal,Integer,Integer,n,Boolean,x,,:compare_s16,,,hl,de,ncf,a;f,empty,,,,,
+,greaterequal,Word,Integer,n,<Flag>,x,,:compare_u16_s16,,,hl,de,ncf,a;h;l;f,empty,,,,,
+,greaterequal,Word,Integer,n,Boolean,x,,:compare_u16_s16,,,hl,de,ncf,a;h;l;f,empty,,,,,
+,greaterequal,Integer,Word,n,<Flag>,x,,:compare_s16_u16,,,hl,de,ncf,a;h;l;f,empty,,,,,
+,greaterequal,Integer,Word,n,Boolean,x,,:compare_s16_u16,,,hl,de,ncf,a;h;l;f,empty,,,,,
+,greaterequal,Boolean,Boolean,n,<Flag>,x,,compare8_reg_imm,,,a,imm,ncf,f,empty,,,,,
+,greaterequal,Boolean,Boolean,n,<Flag>,x,,compare8_reg_reg,,,a,a;b;c;d;e;h;l,ncf,f,empty,,,,,
+,greaterequal,Boolean,Boolean,n,Boolean,x,,bool_greaterequal8_reg_imm,,,imm,a,a,f,empty,,,,,"Operands reversed. A should be an option for param1, but allocator is greedy and would choose A for param1 and fail on param2"
+,greaterequal,Boolean,Boolean,n,Boolean,x,,bool_greaterequal8_reg_reg,,,b;c;d;e;h;l,a,a,f,empty,,,,,"Operands reversed. A should be an option for param1, but allocator is greedy and would choose A for param1 and fail on param2"
+,greaterequal,Char,Char,n,<Flag>,x,,compare8_reg_imm,,,a,imm,ncf,f,empty,,,,,For branches - only sets flag
+,greaterequal,Char,Char,n,<Flag>,x,,compare8_reg_reg,,,a,a;b;c;d;e;h;l,ncf,f,empty,,,,,For branches - only sets flag
+,greaterequal,Char,Char,n,Boolean,x,,compare8_reg_imm,,,a,imm,ncf,f,empty,,,,,
+,greaterequal,Char,Char,n,Boolean,x,,compare8_reg_reg,,,a,a;b;c;d;e;h;l,ncf,f,empty,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,greater,Byte,Byte,n,<Flag>,x,,compare8swap_reg_imm,,,imm,a,cf,f,empty,,,,,For branches - only sets flag
+,greater,Byte,Byte,n,<Flag>,x,,compare8swap_reg_reg,,,b;c;d;e;h;l,a,cf,f,empty,,,,,"Operands reversed. A should be an option for param1, but allocator is greedy and would choose A for param1 and fail on param2"
+,greater,Byte,Byte,n,Boolean,x,,compare8swap_reg_imm,,,imm,a,cf,f,empty,,,,,
+,greater,Byte,Byte,n,Boolean,x,,compare8swap_reg_reg,,,b;c;d;e;h;l,a,cf,f,empty,,,,,"Operands reversed. A should be an option for param1, but allocator is greedy and would choose A for param1 and fail on param2"
+,greater,Word,Word,n,<Flag>,x,,:compare_u16,,,de,hl,cf,a;f,empty,,,,,
+,greater,Word,Word,n,Boolean,x,,:compare_u16,,,de,hl,cf,a;f,empty,,,,,
+,greater,Integer,Integer,n,<Flag>,x,,:compare_s16,,,de,hl,cf,a;f,empty,,,,,
+,greater,Integer,Integer,n,Boolean,x,,:compare_s16,,,de,hl,cf,a;f,empty,,,,,
+,greater,Word,Integer,n,<Flag>,x,,:compare_s16_u16,,,de,hl,cf,a;h;l;f,empty,,,,,
+,greater,Word,Integer,n,Boolean,x,,:compare_s16_u16,,,de,hl,cf,a;h;l;f,empty,,,,,
+,greater,Integer,Word,n,<Flag>,x,,:compare_u16_s16,,,de,hl,cf,a;h;l;f,empty,,,,,
+,greater,Integer,Word,n,Boolean,x,,:compare_u16_s16,,,de,hl,cf,a;h;l;f,empty,,,,,
+,greater,Boolean,Boolean,n,<Flag>,x,,compare8swap_reg_imm,,,imm,a,cf,f,empty,,,,,
+,greater,Boolean,Boolean,n,<Flag>,x,,compare8swap_reg_reg,,,b;c;d;e;h;l,a,cf,f,empty,,,,,"Operands reversed. A should be an option for param1, but allocator is greedy and would choose A for param1 and fail on param2"
+,greater,Boolean,Boolean,n,Boolean,x,,bool_greater8_reg_imm,,,imm,a,a,f,empty,,,,,"Operands reversed. A should be an option for param1, but allocator is greedy and would choose A for param1 and fail on param2"
+,greater,Boolean,Boolean,n,Boolean,x,,bool_greater8_reg_reg,,,b;c;d;e;h;l,a,a,f,empty,,,,,"Operands reversed. A should be an option for param1, but allocator is greedy and would choose A for param1 and fail on param2"
+,greater,Char,Char,n,<Flag>,x,,compare8swap_reg_imm,,,imm,a,cf,f,empty,,,,,For branches - only sets flag
+,greater,Char,Char,n,<Flag>,x,,compare8swap_reg_reg,,,b;c;d;e;h;l,a,cf,f,empty,,,,,"Operands reversed. A should be an option for param1, but allocator is greedy and would choose A for param1 and fail on param2"
+,greater,Char,Char,n,Boolean,x,,compare8swap_reg_imm,,,imm,a,cf,f,empty,,,,,
+,greater,Char,Char,n,Boolean,x,,compare8swap_reg_reg,,,b;c;d;e;h;l,a,cf,f,empty,,,,,"Operands reversed. A should be an option for param1, but allocator is greedy and would choose A for param1 and fail on param2"
+,,,,,,,,,,,,,,,,,,,,
+,lessequal,Byte,Byte,n,<Flag>,x,,compare8swap_reg_imm,,,imm,a,ncf,f,empty,,,,,For branches - only sets flag
+,lessequal,Byte,Byte,n,<Flag>,x,,compare8swap_reg_reg,,,b;c;d;e;h;l,a,ncf,f,empty,,,,,"Operands reversed. A should be an option for param1, but allocator is greedy and would choose A for param1 and fail on param2"
+,lessequal,Byte,Byte,n,Boolean,x,,compare8swap_reg_imm,,,imm,a,ncf,f,empty,,,,,
+,lessequal,Byte,Byte,n,Boolean,x,,compare8swap_reg_reg,,,b;c;d;e;h;l,a,ncf,f,empty,,,,,"Operands reversed. A should be an option for param1, but allocator is greedy and would choose A for param1 and fail on param2"
+,lessequal,Word,Word,n,<Flag>,x,,:compare_u16,,,de,hl,ncf,a;f,empty,,,,,
+,lessequal,Word,Word,n,Boolean,x,,:compare_u16,,,de,hl,ncf,a;f,empty,,,,,
+,lessequal,Integer,Integer,n,<Flag>,x,,:compare_s16,,,de,hl,ncf,a;f,empty,,,,,
+,lessequal,Integer,Integer,n,Boolean,x,,:compare_s16,,,de,hl,ncf,a;f,empty,,,,,
+,lessequal,Word,Integer,n,<Flag>,x,,:compare_s16_u16,,,de,hl,ncf,a;h;l;f,empty,,,,,
+,lessequal,Word,Integer,n,Boolean,x,,:compare_s16_u16,,,de,hl,ncf,a;h;l;f,empty,,,,,
+,lessequal,Integer,Word,n,<Flag>,x,,:compare_u16_s16,,,de,hl,ncf,a;h;l;f,empty,,,,,
+,lessequal,Integer,Word,n,Boolean,x,,:compare_u16_s16,,,de,hl,ncf,a;h;l;f,empty,,,,,
+,lessequal,Boolean,Boolean,n,<Flag>,x,,compare8swap_reg_imm,,,imm,a,ncf,f,empty,,,,,
+,lessequal,Boolean,Boolean,n,<Flag>,x,,compare8swap_reg_reg,,,b;c;d;e;h;l,a,ncf,f,empty,,,,,"Operands reversed. A should be an option for param1, but allocator is greedy and would choose A for param1 and fail on param2"
+,lessequal,Boolean,Boolean,n,Boolean,x,,bool_lessequal8_reg_imm,,,a,imm,a,f,empty,,,,,"Operands reversed. A should be an option for param1, but allocator is greedy and would choose A for param1 and fail on param2"
+,lessequal,Boolean,Boolean,n,Boolean,x,,bool_lessequal8_reg_reg,,,a,b;c;d;e;h;l,a,f,empty,,,,,"Operands reversed. A should be an option for param1, but allocator is greedy and would choose A for param1 and fail on param2"
+,lessequal,Char,Char,n,<Flag>,x,,compare8swap_reg_imm,,,imm,a,ncf,f,empty,,,,,For branches - only sets flag
+,lessequal,Char,Char,n,<Flag>,x,,compare8swap_reg_reg,,,b;c;d;e;h;l,a,ncf,f,empty,,,,,"Operands reversed. A should be an option for param1, but allocator is greedy and would choose A for param1 and fail on param2"
+,lessequal,Char,Char,n,Boolean,x,,compare8swap_reg_imm,,,imm,a,ncf,f,empty,,,,,
+,lessequal,Char,Char,n,Boolean,x,,compare8swap_reg_reg,,,b;c;d;e;h;l,a,ncf,f,empty,,,,,"Operands reversed. A should be an option for param1, but allocator is greedy and would choose A for param1 and fail on param2"
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,(Empty columns for formatting),,,,,,,,,,,,
+;,,----Primitive Selection----,,,,----Primitive Data----,,,,,,,,,Special validations on type conversion,,,,,
+;,Operation,Ltype,Rtype,Commutative,ResultType,Validation,,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,Validate,Int8,Byte,Integer,Word,Notes
+,or,Byte,Byte,y,Byte,x,,or8_reg_imm,,,a,imm,a,f,empty,,,,,
+,or,Byte,Byte,y,Byte,x,,or8_reg_reg,,,a,a;b;c;d;e;h;l,a,f,empty,,,,,
+,or,Int8,Int8,y,Int8,x,,or8_reg_imm,,,a,imm,a,f,empty,,,,,
+,or,Int8,Int8,y,Int8,x,,or8_reg_reg,,,a,a;b;c;d;e;h;l,a,f,empty,,,,,
+,or,Byte,Int8,y,Byte,x,,or8_reg_imm,,,a,imm,a,f,empty,,,,,
+,or,Byte,Int8,y,Byte,x,,or8_reg_reg,,,a,a;b;c;d;e;h;l,a,f,empty,,,,,
+,or,Word,Word,y,Word,x,,or16_reg_imm,,,hl;de;bc,imm,param1,a;f,empty,,,,,
+,or,Word,Word,y,Word,x,,or16_reg_reg,,,hl;de;bc,hl;de;bc,param1,a;f,empty,,,,,
+,or,Integer,Integer,y,Integer,x,,or16_reg_imm,,,hl;de;bc,imm,param1,a;f,empty,,,,,
+,or,Integer,Integer,y,Integer,x,,or16_reg_reg,,,hl;de;bc,hl;de;bc,param1,a;f,empty,,,,,
+,or,Word,Integer,y,Word,x,,or16_reg_imm,,,hl;de;bc,imm,param1,a;f,empty,,,,,
+,or,Word,Integer,y,Word,x,,or16_reg_reg,,,hl;de;bc,hl;de;bc,param1,a;f,empty,,,,,
+,or,Boolean,Boolean,y,Boolean,x,,or8_reg_imm,,,a,imm,a,f,empty,,,,,
+,or,Boolean,Boolean,y,Boolean,x,,or8_reg_reg,,,a,a;b;c;d;e;h;l,a,f,empty,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,and,Byte,Byte,y,Byte,x,,and8_reg_imm,,,a,imm,a,f,empty,,,,,
+,and,Byte,Byte,y,Byte,x,,and8_reg_reg,,,a,a;b;c;d;e;h;l,a,f,empty,,,,,
+,and,Int8,Int8,y,Int8,x,,and8_reg_imm,,,a,imm,a,f,empty,,,,,
+,and,Int8,Int8,y,Int8,x,,and8_reg_reg,,,a,a;b;c;d;e;h;l,a,f,empty,,,,,
+,and,Byte,Int8,y,Byte,x,,and8_reg_imm,,,a,imm,a,f,empty,,,,,
+,and,Byte,Int8,y,Byte,x,,and8_reg_reg,,,a,a;b;c;d;e;h;l,a,f,empty,,,,,
+,and,Word,Word,y,Word,x,,and16_reg_imm,,,hl;de;bc,imm,param1,a;f,empty,,,,,
+,and,Word,Word,y,Word,x,,and16_reg_reg,,,hl;de;bc,hl;de;bc,param1,a;f,empty,,,,,
+,and,Integer,Integer,y,Integer,x,,and16_reg_imm,,,hl;de;bc,imm,param1,a;f,empty,,,,,
+,and,Integer,Integer,y,Integer,x,,and16_reg_reg,,,hl;de;bc,hl;de;bc,param1,a;f,empty,,,,,
+,and,Word,Integer,y,Word,x,,and16_reg_imm,,,hl;de;bc,imm,param1,a;f,empty,,,,,
+,and,Word,Integer,y,Word,x,,and16_reg_reg,,,hl;de;bc,hl;de;bc,param1,a;f,empty,,,,,
+,and,Boolean,Boolean,y,Boolean,x,,and8_reg_imm,,,a,imm,a,f,empty,,,,,
+,and,Boolean,Boolean,y,Boolean,x,,and8_reg_reg,,,a,a;b;c;d;e;h;l,a,f,empty,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,xor,Byte,Byte,y,Byte,x,,xor8_reg_imm,,,a,imm,a,f,empty,,,,,
+,xor,Byte,Byte,y,Byte,x,,xor8_reg_reg,,,a,a;b;c;d;e;h;l,a,f,empty,,,,,
+,xor,Int8,Int8,y,Int8,x,,xor8_reg_imm,,,a,imm,a,f,empty,,,,,
+,xor,Int8,Int8,y,Int8,x,,xor8_reg_reg,,,a,a;b;c;d;e;h;l,a,f,empty,,,,,
+,xor,Byte,Int8,y,Byte,x,,xor8_reg_imm,,,a,imm,a,f,empty,,,,,
+,xor,Byte,Int8,y,Byte,x,,xor8_reg_reg,,,a,a;b;c;d;e;h;l,a,f,empty,,,,,
+,xor,Word,Word,y,Word,x,,xor16_reg_imm,,,hl;de;bc,imm,param1,a;f,empty,,,,,
+,xor,Word,Word,y,Word,x,,xor16_reg_reg,,,hl;de;bc,hl;de;bc,param1,a;f,empty,,,,,
+,xor,Integer,Integer,y,Integer,x,,xor16_reg_imm,,,hl;de;bc,imm,param1,a;f,empty,,,,,
+,xor,Integer,Integer,y,Integer,x,,xor16_reg_reg,,,hl;de;bc,hl;de;bc,param1,a;f,empty,,,,,
+,xor,Word,Integer,y,Word,x,,xor16_reg_imm,,,hl;de;bc,imm,param1,a;f,empty,,,,,
+,xor,Word,Integer,y,Word,x,,xor16_reg_reg,,,hl;de;bc,hl;de;bc,param1,a;f,empty,,,,,
+,xor,Boolean,Boolean,y,Boolean,x,,xor8_reg_imm,,,a,imm,a,f,empty,,,,,
+,xor,Boolean,Boolean,y,Boolean,x,,xor8_reg_reg,,,a,a;b;c;d;e;h;l,a,f,empty,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,(Empty columns for formatting),,,,,,,,,,,,
+;,,----Primitive Selection----,,,,----Primitive Data----,,,,,,,,,Special validations on type conversion,,,,,
+;,Operation,Ltype,Rtype,Commutative,ResultType,Validation,,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,Validate,Int8,Byte,Integer,Word,Notes
+,negate,Int8,none,n,Int8,x,,negate_s8,,,a,,a,a;f,pe_overflow,,,,,
+,negate,Word,none,n,Integer,y,,:negate_u16_with_overflow,,,hl,,hl,h;l;d;e;f,nc_overflow,,nz_overflow,p_overflow,nz_overflow,
+,negate,Word,none,n,Integer,n,,:negate_s16,,,hl,,hl,h;l;a;f,,,,,,
+,negate,Integer,none,n,Integer,y,,:negate_HL_with_overflow,,,hl,,hl,h;l;a;f,nc_overflow,,,,,
+,negate,Integer,none,n,Integer,n,,:negate_s16,,,hl,,hl,h;l;a;f,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,complement,Byte,none,n,Byte,x,,cpla,,,a,,a,f,empty,,,,,The way we're storing Booleans means we use the same code for bitwise and logical operations
+,complement,Int8,none,n,Int8,x,,cpla,,,a,,a,f,empty,,,,,The way we're storing Booleans means we use the same code for bitwise and logical operations
+,complement,Word,none,n,Word,x,,cpl16_reg,,,hl;de;bc,,param1,a;f,empty,,,,,
+,complement,Integer,none,n,Integer,x,,cpl16_reg,,,hl;de;bc,,param1,a;f,empty,,,,,
+,complement,Boolean,none,n,Boolean,x,,cpla,,,a,,a,f,empty,,,,,
+,,,,,,,,,,,,,,,,,,,,
+;,Intrinsics (I.e. small operations mostly enacted via CPU instructions),,,,,,,,,,,,,,,,,,,
+;,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,(Empty columns for formatting),,,,,,,,,,,,
+;,,----Primitive Selection----,,,,----Primitive Data----,,,,,,,,,Special validations on type conversion,,,,,
+;,Operation,Ltype,Rtype,Commutative,ResultType,Validation,,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,Validate,Int8,Byte,Integer,Word,Notes
+,abs,Integer,none,n,Integer,x,,:abs_hl_with_overflow,,,hl,,hl,a;f;h;l,nc_overflow,,,,,
+,abs,Byte,none,n,Byte,x,,empty,,,a;b;c;d;e;h;l,,param1,,empty,,,,,Does nothing!
+,abs,Word,none,n,Word,x,,empty,,,hl;de;bc,,param1,,empty,,,,,Does nothing!
+,,,,,,,,,,,,,,,,,,,,
+,dec,Byte,Integer,n,None,x,,proc_dec8_reg,,,a;b;c;d;e;h;l,imm,param1,f,empty,,,,,No overflow checking. Proc chooses whether to use DECs or SUBs
+,dec,Byte,Word,n,None,x,,proc_dec8_reg,,,a;b;c;d;e;h;l,imm,param1,f,empty,,,,,No overflow checking. Proc chooses whether to use DECs or SUBs
+,dec,Int8,Integer,n,None,x,,proc_dec8_reg,,,a;b;c;d;e;h;l,imm,param1,f,empty,,,,,No overflow checking. Proc chooses whether to use DECs or SUBs
+,dec,Int8,Word,n,None,x,,proc_dec8_reg,,,a;b;c;d;e;h;l,imm,param1,f,empty,,,,,No overflow checking. Proc chooses whether to use DECs or SUBs
+,dec,Word,Integer,n,None,x,,proc_dec16_reg,,,hl;de;bc,imm,param1,,empty,,,,,No overflow checking. Proc chooses whether to use DECs or SUBs
+,dec,Word,Word,n,None,x,,proc_dec16_reg,,,hl;de;bc,imm,param1,,empty,,,,,No overflow checking. Proc chooses whether to use DECs or SUBs
+,dec,Integer,Integer,n,None,x,,proc_dec16_reg,,,hl;de;bc,imm,param1,,empty,,,,,No overflow checking. Proc chooses whether to use DECs or SUBs
+,dec,Integer,Word,n,None,x,,proc_dec16_reg,,,hl;de;bc,imm,param1,,empty,,,,,No overflow checking. Proc chooses whether to use DECs or SUBs
+,,,,,,,,,,,,,,,,,,,,
+,inc,Byte,Integer,n,None,x,,proc_inc8_reg,,,a;b;c;d;e;h;l,imm,param1,f,empty,,,,,No overflow checking. Proc chooses whether to use INCs or ADDs
+,inc,Byte,Word,n,None,x,,proc_inc8_reg,,,a;b;c;d;e;h;l,imm,param1,f,empty,,,,,No overflow checking. Proc chooses whether to use INCs or ADDs
+,inc,Int8,Integer,n,None,x,,proc_inc8_reg,,,a;b;c;d;e;h;l,imm,param1,f,empty,,,,,No overflow checking. Proc chooses whether to use INCs or ADDs
+,inc,Int8,Word,n,None,x,,proc_inc8_reg,,,a;b;c;d;e;h;l,imm,param1,f,empty,,,,,No overflow checking. Proc chooses whether to use INCs or ADDs
+,inc,Word,Integer,n,None,x,,proc_inc16_reg,,,hl;de;bc,imm,param1,,empty,,,,,No overflow checking. Proc chooses whether to use INCs or ADDs
+,inc,Word,Word,n,None,x,,proc_inc16_reg,,,hl;de;bc,imm,param1,,empty,,,,,No overflow checking. Proc chooses whether to use INCs or ADDs
+,inc,Integer,Integer,n,None,x,,proc_inc16_reg,,,hl;de;bc,imm,param1,,empty,,,,,No overflow checking. Proc chooses whether to use INCs or ADDs
+,inc,Integer,Word,n,None,x,,proc_inc16_reg,,,hl;de;bc,imm,param1,,empty,,,,,No overflow checking. Proc chooses whether to use INCs or ADDs
+,,,,,,,,,,,,,,,,,,,,
+,odd,Byte,none,n,<Flag>,x,,odd8_reg_branch,,,a,,cf,a;f,,,,,,
+,odd,Int8,none,n,<Flag>,x,,odd8_reg_branch,,,a,,cf,a;f,,,,,,
+,odd,Word,none,n,<Flag>,x,load_rp_low,odd8_reg_branch,,,a,,cf,a;f,,,,,,
+,odd,Integer,none,n,<Flag>,x,load_rp_low,odd8_reg_branch,,,a,,cf,a;f,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+;,addr,??,none,n,Pointer,x,,,,,,,hl,,,,,,,TODO
+,,,,,,,,,,,,,,,,,,,,
+,hi,Word,none,n,Byte,x,load_rp_high,empty,,,a;b;c;d;e;h;l,,param1,,empty,,,,,
+,hi,Integer,none,n,Byte,x,load_rp_high,empty,,,a;b;c;d;e;h;l,,param1,,empty,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,high,TypeDef,none,n,Word,x,,error,,,imm,,hl,,empty,,,,,Compile time only. Returns a constant at compile time. This is just a placeholder. ResultType 'Word' Can contain any possible return value. We can massage/hack that into a proper return type (in Eval).
+,high,TypeDef,none,n,Word,x,,error,,,a,,hl,,empty,,,,,Compile time only. Returns a constant at compile time. This is just a placeholder. ResultType 'Word' Can contain any possible return value. We can massage/hack that into a proper return type (in Eval).
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+END,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+;,,,,,,Procedures,,Register options available,,,,,Special validations on type conversion,,,,,,,
+;,Name ,OpType,FirstParamType,DestType,Validation,Exec,Flags,Param1,Param2,Dest,Corrupts,Validate,s8,u8,s16,u16,Notes,,,
+;,Misc   ,,,,,,,,,,,,,,,,,,,
+,unknown,,,,x,error   ,,,,none,,,,,,,Raises an error if encountered by the code generator,,,
+,move,,,,x,empty   ,,a;b;c;d;e;h;l;bc;de;hl,,p1,,,,,,,Primitive does nothing. Used for load-store operations,,,
+,phi     ,,,,x,empty   ,,,,    ,,,,,,,Dummy which does nothing,,,
+,funccall,,,,x,proccall,,,,    ,,,,,,,Function call,,,
+;Validation routines,,,,,,,,,,,,,,,,,,,,
+;,x,,,,x,c_overflow,,,,,,,,,,,Overflow error if carry true,,,
+;,x,,,,x,m_overflow,,,,,,,,,,,Overflow if sign flag is negative (high bit set),,,
+,x,,,,x,b7sov,,,,p1,f,,,,,,Overflow if bit 7 set,,,
+,x,,,,x,b15sov,,,,p1,f,,,,,,Overflow if bit 15 set,,,
+;Assignment from immediate data - these routines both read the source data and store it to the destination.,,,,,,,,,,,,,,,,,,,,
+;Thus the 'Dest' column says 'none' - we don't want the code generator also generating store code,,,,,,,,,,,,,,,,,,,,
+,storeimm,x8     ,,x8     ,n,assign_abs8_imm8       ,deststaticvar,i,,none,a  ,,,,,,Assigns an immediate 8 bit value (constant) (Validation done by parser!),,,
+,storeimm,x8     ,,x8     ,n,assign_rel8_imm8       ,destrelvar,i,,none,   ,,,,,,Assigns an immediate 8 bit value (constant) (Validation done by parser!),,,
+,storeimm,x8     ,,boolean,n,assign_abs8_imm8       ,deststaticvar,i,,none,a  ,,,,,,Assigns an immediate 8 bit value (constant) (Validation done by parser!),,,
+,storeimm,x8     ,,boolean,n,assign_rel8_imm8       ,destrelvar,i,,none,   ,,,,,,,,,
+,storeimm,x8     ,,s16    ,n,proc_assign_abss16_imm8,deststaticvar,i,,none,a;f,,,,,,Zero extends to 16 bits,,,
+,storeimm,s8     ,,s16    ,n,proc_assign_rels16_imm8,destrelvar,i,,none,   ,,,,,,Extends an x8 constant to x16,,,
+,storeimm,x8     ,,x16    ,n,assign_abs16_imm8      ,deststaticvar,i,,none,a  ,,,,,,Zero extends to 16 bits,,,
+,storeimm,x8     ,,x16    ,n,assign_rel16_imm8      ,destrelvar,i,,none,   ,,,,,,Zero extends to 16 bits,,,
+,storeimm,x16    ,,x16    ,n,assign_abs16_imm16     ,deststaticvar,i,,none,a  ,,,,,,Assigns an immediate 16 bit value (validation done by parser!),,,
+,storeimm,x16    ,,x16    ,n,assign_rel16_imm16     ,destrelvar,i,,none,   ,,,,,,Assigns an immediate 16 bit value (validation done by parser!),,,
+,storeimm,x16    ,,x8     ,n,assign_abs8_imm8       ,deststaticvar,i,,none,a  ,,,,,,Shorten a 16 bit immediate to an 8 bit (validated by parser),,,
+,storeimm,x16    ,,x8     ,n,assign_rel8_imm8       ,destrelvar,i,,none,   ,,,,,,Shorten a 16 bit immediate to an 8 bit (validated by parser),,,
+,storeimm,boolean,,boolean,n,assign_abs8_imm8       ,deststaticvar,i,,none,a  ,,,,,,,,,
+,storeimm,boolean,,boolean,n,assign_rel8_imm8       ,destrelvar,i,,none,   ,,,,,,,,,
+;,Assignment,,,,,,,,,,,,,,,,,,,
+;,assign,u8     ,,       ,x,empty                  ,,b;c;d;e;h;l;a,,p1,,,,,,,Assigning from a U8,,,
+;,assign,s8     ,,       ,x,empty                  ,,b;c;d;e;h;l;a,,p1,,,,,,,Assigning from an S8,,,
+;,assign,u16    ,,       ,x,empty                  ,,hl;de;bc     ,,p1,,,,,,,Assigning from a U16,,,
+;,assign,s16    ,,       ,x,empty                  ,,hl;de;bc     ,,p1,,,,,,,Assigning from an S16,,,
+;,assign,u8     ,,,x,push_byte_a,,a,,stackbyte,,,,,,,Pushing a byte to the stack,,,
+;,assign,s8,,,x,push_byte_a,,a,,stackbyte,,,,,,,Pushing a byte to the stack,,,
+;,assign,u16,,,x,push_word,,hl;de;bc     ,,stack,,,,,,,Pushing a word to the stack,,,
+;,assign,s16,,,x,push_word,,hl;de;bc     ,,stack,,,,,,,Pushing a word to the stack,,,
+;,,,,,,,,,,,,,,,,,,,,
+;,branch,,,,,branch,,,,,,,,,,,Conditional or unconditional,,,
+,condbranch,boolean,,branch,x,atozf,,a,,zf,f,,,,,,Conditional branch,,,
+;,phi,,,,,phi,,,,,,,,,,,Ignored,,,
+;,,,,,,,,,,,,,,,,,,,,
+;,Name,OpType,FirstParamType,DestType,Validation,Exec,,Param1,Param2,Dest,Corrupts,Validate,s8,u8,s16,u16,Notes,,,
+,writechar,u8,,,x,:s_writechar,,a,,,,empty,,,,,Write character to output,,,
+,writeinteger,u8,,,x,:write_byte,,l,,,a;f;h;l,empty,,,,,Write byte to the output,,,
+,writeinteger,u16,,,x,:write_word,,hl,,,a;f;h;l,empty,,,,,Write word to the output,,,
+,writeinteger,s16,,,x,:write_integer,,hl,,,a;f;h;l,empty,,,,,Write signed integer to the output,,,
+,writeboolean,boolean,,,x,:write_bool,,a,,,a;f;h;l,empty,,,,,,,,
+;,writeasciiz,u16,,,x,:write_asciiz,,hl,,,a;f;h;l,empty,,,,,Write ASCIIZ string,,,
+;,writeascii7,u16,,,x,:write_ascii7,,hl,,,a;f;h;l,empty,,,,,Write ASCII7 string (bit 7 of final char set),,,
+,writenewline,,,,x,:s_newline,,,,,,empty,,,,,Write end of line marker,,,
+;,,,,,,,,,,,,,,,,,,,,
+;,Typecasts,,,,,,,,,,,,,,,,,,,
+;,,,,,,,,,,,,,,,,,,,,
+,integer,x8,,x16,x,assign_abs16_r8,deststaticvar,a;b;c;d;e;h;l,,,a;f,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed,,,
+,integer,x8,,x16,x,assign_rel16_r8,destrelvar,a;b;c;d;e;h;l,,,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed,,,
+,integer,x16,,x16,x,empty,,hl;de;bc,,p1,,empty,empty,empty,empty,empty,,,,
+,integer,boolean,,x16,x,assign_abs16_r8,deststaticvar,a;b;c;d;e;h;l,,,a;f,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed,,,
+,integer,boolean,,x16,x,assign_rel16_r8,destrelvar,a;b;c;d;e;h;l,,,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed,,,
+,word,x8,,x16,x,assign_abs16_r8,deststaticvar,a;b;c;d;e;h;l,,,a;f,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed,,,
+,word,x8,,x16,x,assign_rel16_r8,destrelvar,a;b;c;d;e;h;l,,,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed,,,
+,word,x16,,x16,x,empty,,hl;de;bc,,p1,,empty,empty,empty,empty,empty,,,,
+,word,boolean,,x16,x,assign_abs16_r8,deststaticvar,a;b;c;d;e;h;l,,,a;f,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed,,,
+,word,boolean,,x16,x,assign_rel16_r8,destrelvar,a;b;c;d;e;h;l,,,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed,,,
+,pointer,x8,,x16,x,assign_abs16_r8,deststaticvar,a;b;c;d;e;h;l,,,a;f,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed,,,
+,pointer,x8,,x16,x,assign_rel16_r8,destrelvar,a;b;c;d;e;h;l,,,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed,,,
+,pointer,x16,,x16,x,empty,,hl;de;bc,,p1,,empty,empty,empty,empty,empty,,,,
+,pointer,boolean,,x16,x,assign_abs16_r8,deststaticvar,a;b;c;d;e;h;l,,,a;f,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed,,,
+,pointer,boolean,,x16,x,assign_rel16_r8,destrelvar,a;b;c;d;e;h;l,,,,empty,empty,empty,empty,empty,Typecast 8 bit to 16 bit. High byte will be zeroed,,,
+,int8,x8,,x8,x,empty,,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,,,,
+,int8,x16,,x8,x,empty,loadrplow,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,Typecast 16 bit to 8 bit. High byte will be ignored,,,
+,int8,boolean,,x8,x,empty,,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,,,,
+,byte,x8,,x8,x,empty,,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,,,,
+,byte,x16,,x8,x,empty,loadrplow,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,Typecast 16 bit to 8 bit. High byte will be ignored,,,
+,byte,boolean,,x8,x,empty,,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,,,,
+,boolean,x8,,boolean,x,empty,,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,,,,
+,boolean,x16,,boolean,x,empty,loadrplow,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,Typecast 16 bit to 8 bit. High byte will be ignored,,,
+,boolean,boolean,,boolean,x,empty,,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,,,,
+,char,x8,,x8,x,empty,,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,,,,
+,char,x16,,x8,x,empty,loadrplow,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,Typecast 16 bit to 8 bit. High byte will be ignored,,,
+,char,boolean,,x8,x,empty,,a;b;c;d;e;h;l,,p1,,empty,empty,empty,empty,empty,,,,

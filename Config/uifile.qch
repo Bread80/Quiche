@@ -1,3 +1,2 @@
-var a:=-32768
-var b:= a xor $8000
-var c := b xor $8000
+var i:=high(Integer)
+var j:=high(i)

@@ -76,15 +76,15 @@
 ;,Intrinsics,,,,,,,,,,,,,,,,,
 ;,,,,,,,,,,,,,,,,,,
 ;,Maths,,,,,,,,,,,,,,,,,TODO
-,abs,func,abs,abs,s8 s16,0,Numeric,N/A,N/A,N/A,,Same,Absolute value of parameter,,,,,
-,dec,proc,dec,dec,x8 x16,0,Enumerated,Integer,n,n,p1variable;p2optional;p2immediate;nooverflowchecks,Same,Optional second parameter. NO VALIDATION!,,,,,
-,inc,proc,inc,inc,x8 x16,0,Enumerated,Integer,n,n,p1variable;p2optional;p2immediate;nooverflowchecks,Same,Optional second parameter. NO VALIDATION!,,,,,
-,odd,func,odd,odd,x8 x16,0,Numeric,N/A,N/A,N/A,,Boolean,Is parameter odd?,,,,,
+;,abs,func,abs,abs,s8 s16,0,Numeric,N/A,N/A,N/A,,Same,Absolute value of parameter,,,,,
+;,dec,proc,dec,dec,x8 x16,0,Enumerated,Integer,n,n,p1variable;p2optional;p2immediate;nooverflowchecks,Same,Optional second parameter. NO VALIDATION!,,,,,
+;,inc,proc,inc,inc,x8 x16,0,Enumerated,Integer,n,n,p1variable;p2optional;p2immediate;nooverflowchecks,Same,Optional second parameter. NO VALIDATION!,,,,,
+;,odd,func,odd,odd,x8 x16,0,Numeric,N/A,N/A,N/A,,Boolean,Is parameter odd?,,,,,
 ;,pi,func,,,,,,,,,,,Pi (constant),,,,,
 ;,,,,,,,,,,,,,,,,,,
 ;,System,,,,,,,,,,,,,,,,,
 ;,addr,func,,addr,,,,,,,,,Address of variable (equivalent to @ operator),,,,,
-,hi,func,hi,hi,x16,0,Word,N/A,N/A,N/A,p1bitsize16only,Byte,High byte of 16-bit parameter,,,,,16 bit types only
+;,hi,func,hi,hi,x16,0,Word,N/A,N/A,N/A,p1bitsize16only,Byte,High byte of 16-bit parameter,,,,,16 bit types only
 ,high,func,high,high,x8 x16 boolean,0,Any,N/A,N/A,N/A,,Same,Highest value of variable or type or array bound,,,,,"Enumerable types, type names"
 ;,inp,func,,inp,,,,,,,,,Input from I/O port,,,,,
 ,lo,func,lo,lo,x16,0,Integer,N/A,N/A,N/A,,Byte,Low byte of 16-bit parameter,,,,,16 bit types

@@ -11,7 +11,7 @@ function DoParseFunctionCall(Func: PFunction;var Slug: TExprSlug): TQuicheError;
 
 
 implementation
-uses SysUtils, ILData, Operators, ParserBase, Variables;
+uses SysUtils, ILData, Operators, PrimitivesEx, ParserBase, Variables, Eval;
 
 const ParamRegToAllocLoc: array[low(TParamReg)..high(TParamReg)] of TCPUReg =
   (rNone, rA, rB, rC, rD, rE, rH, rL, rBC, rDE, rHL, rCF, rZF);
@@ -19,8 +19,8 @@ const ParamRegToAllocLoc: array[low(TParamReg)..high(TParamReg)] of TCPUReg =
 
 type TSlugArray= array[0..MaxFunctionParams] of TExprSlug;
 
-function ParseArgument(Func: PFunction;CallingConvention: TCallingConvention;
-  Arg: TParameter;var Slug: TExprSlug): TQuicheError;
+//Read an argument from the source code, and return it in a Slug
+function ParseArgument(Arg: TParameter;var Slug: TExprSlug): TQuicheError;
 var VType: TVarType;
   ILItem: PILItem;
 begin
@@ -29,26 +29,30 @@ begin
   //Parse argument - and validate type compatibility
   VType := Arg.VarType;
   Result := ParseExpressionToSlug(Slug, VType);
-  if Result <> qeNone then
-    EXIT;
+end;
 
+//Validate an argument and process as necessary, depending on the calling
+//convention (e.g. writing it to a hidden variable or pushing it onto the stack.
+function ProcessArgument(Func: PFunction;CallingConvention: TCallingConvention;
+  Arg: TParameter;var Slug: TExprSlug): TQuicheError;
+var ILItem: PILItem;
+begin
   //Validate argument:
   case Arg.Access of
     vaVal, vaConst, vaResult: ;  //Any
     vaVar, vaOut:
     begin //Argument needs to be a variable reference.
       if (Slug.ILItem <> nil) or (Slug.Operand.Kind <> pkVar) then
-        EXIT(ErrFuncCall('Parameter   ' + Arg.Name +
-          ''' must be a simple variable reference (VAR and OUT parameter).', Func));
+        EXIT(ErrFuncCall('Argument ''' + Arg.Name +
+          ''' must be a variable', Func));
       end;
-//      paIn: ;
     else
-      raise Exception.Create('Unknown access specifier');
+      Assert(False, 'Unknown access specifier');
     end;
 
   //Do we need to push this argument on the stack?
   case CallingConvention of
-    ccRegister: ; //Registers will be loaded later
+    ccRegister, ccIntrinsic: ; //Registers will be loaded later
     ccStackLocal: //Put parameters on the stack
     begin
       ILItem := Slug.ToILItemNoDest(dtData);
@@ -60,12 +64,13 @@ begin
         1: ILItem.Dest.Kind := pkStackByte;//ILItem to PUSHBYTE
         2: ILItem.Dest.Kind := pkStack;//ILItem to PUSH
       else
-        Assert(False, 'Item to large for stack - needs to be passed as pointer');
+        Assert(False, 'Item too large for stack - needs to be passed by reference');
       end;
     end;
   else
     Assert(False, 'Invalid calling convention');
   end;
+  Result := qeNone;
 end;
 
 function ParseArgList(Func: PFunction;var Slugs: TSlugArray): TQuicheError;
@@ -88,9 +93,22 @@ begin
     if ArgIndex >= Func.ParamCount then
       EXIT(ErrFuncCall('Too many parameters', Func));
 
-    Result := ParseArgument(Func, Func.CallingConvention, Func.Params[ArgIndex], Slugs[ArgIndex]);
+    Result := ParseArgument(Func.Params[ArgIndex], Slugs[ArgIndex]);
     if Result <> qeNone then
       EXIT;
+    Result := ProcessArgument(Func, Func.CallingConvention, Func.Params[ArgIndex], Slugs[ArgIndex]);
+    if Result <> qeNone then
+      EXIT;
+
+    if Func.Op in [opInc, opDec] then
+      if (ArgIndex = 1) then
+        if (Slugs[ArgIndex].ILItem <> nil) or (Slugs[ArgIndex].Operand.Kind <> pkImmediate) then
+          EXIT(errFuncCall('Argument ''' + Func.Params[1].Name + ''' must be an integer constant expression', Func));
+    if Func.Op in [opHi] then
+      if (Slugs[ArgIndex].ILItem <> nil) or (Slugs[ArgIndex].Operand.Kind <> pkImmediate) then
+        if GetTypeSize(Slugs[ArgIndex].ResultType) = 1 then
+          EXIT(errFuncCall('Argument must be larger than one byte', Func));
+
 
     //More parameters
     Parser.SkipWhiteSpace;
@@ -106,6 +124,27 @@ begin
     else
       EXIT(ErrMsg(qeSyntax, ermCommaOrCloseParensExpected));
 
+  //Set any default parameter values
+  while (ArgIndex < Func.ParamCount) and Func.Params[ArgIndex].HasDefaultValue do
+  begin
+    Slugs[ArgIndex].Initialise;
+    Slugs[ArgIndex].Operand.Kind := pkImmediate;
+    if Func.Params[ArgIndex].VarType <> vtUnknown then
+      Slugs[ArgIndex].Operand.ImmType := Func.Params[ArgIndex].VarType
+    else  //SuperTypes - we have an Intrinsic!
+      if Func.Params[ArgIndex].SuperType in [stAnyInteger, stEnumerable] then
+        //TODO: This should give a better analysis of the type
+        Slugs[ArgIndex].Operand.ImmType := vtInteger;//ValueToVarType(Func.Params[ArgIndex].DefaultValueInt);
+
+    Slugs[ArgIndex].Operand.ImmValueInt := Func.Params[ArgIndex].DefaultValueInt;
+    Slugs[ArgIndex].ResultType := Slugs[ArgIndex].Operand.ImmType;
+    Slugs[ArgIndex].ImplicitType := Slugs[ArgIndex].Operand.ImmType;
+    Result := ProcessArgument(Func, Func.CallingConvention, Func.Params[ArgIndex], Slugs[ArgIndex]);
+    if Result <> qeNone then
+      EXIT;
+    inc(ArgIndex);
+  end;
+
   //Validate number of arguments
   if ArgIndex <> Func.ParamCount then
     EXIT(ErrFuncCall('Not enough parameters (found '+ ArgIndex.ToString +
@@ -114,8 +153,145 @@ begin
   Result := qeNone;
 end;
 
+function DispatchIntrinsic(Func: PFunction;var Slugs: TSlugArray;out Slug: TExprSlug): TQuicheError;
+var LType: TVarType;
+  LRange: TNumberRange;
+  LIsRange: Boolean;
+  RRange: TNumberRange;
+  RIsRange: Boolean;
+  RType: TVarType;
+  Found: Boolean;
+  Msg: String;
+  Value: Integer;
+  V: PVariable;
+begin
+  RType := vtUnknown;
+  LType := vtUnknown;
+  LIsRange := False;
+  RIsRange := False;
+  if Func.ParamCount >= 1 then
+
+    if IsNumericType(Slugs[0].ResultType) and
+      not Assigned(Slugs[0].ILItem) and (Slugs[0].Operand.Kind = pkImmediate) then
+    begin
+      LRange := IntToNumberRange(Slugs[0].Operand.ImmValueInt);
+      LIsRange := True;
+    end
+    else
+      LType := Slugs[0].ResultType;
+  if Func.ParamCount = 2 then
+    if IsNumericType(Slugs[0].ResultType) and
+      not Assigned(Slugs[1].ILItem) and (Slugs[1].Operand.Kind = pkImmediate) then
+    begin
+      RRange := IntToNumberRange(Slugs[1].Operand.ImmValueInt);
+      RIsRange := True;
+    end
+    else
+      RType := Slugs[1].ResultType;
+
+  Slug.Initialise;
+  if LIsRange then
+    if RIsRange then
+      raise Exception.Create('We shouldn''t end up here. Error in Intrinsics data')
+    else
+      Found := PrimFindBestMatchRangeVar(Func.Op, LType, RType, LRange, Slug.ResultType)
+  else //Not LIsRange
+    if RIsRange then
+      Found := PrimFindBestMatchVarRange(Func.Op, LType, RType, RRange, Slug.ResultType)
+    else
+      Found := PrimFindBestMatchVarVar(Func.Op, LType, RType, Slug.ResultType);
+  if not Found then
+  begin
+    Msg := VarTypeToName(Slugs[0].ResultType);
+    if RType <> vtUnknown then
+      Msg := Msg + ', ' + VarTypeToName(Slugs[1].ResultType);
+    EXIT(errFuncCall('Invalid argument types for function ''' + Func.Name + ''': (' + Msg + ')', Func));
+  end;
+  Slug.ImplicitType := Slug.ResultType;
+
+  //Check for, and evaluate, contant expressions
+  if not Assigned(Slugs[0].ILItem) and (Slugs[0].Operand.Kind = pkImmediate) then
+    if Func.ParamCount = 1 then
+    begin
+      Result := EvalIntrinsicUnary(Func.Op, Slugs[0].Operand,
+        Slug.Operand.ImmValueInt, Slug.Operand.ImmType);
+      if Result <> qeNone then
+        EXIT;
+      Slug.ResultType := Slug.Operand.ImmType;
+      Slug.ImplicitType := Slug.ResultType;
+      Slug.Operand.Kind := pkImmediate;
+      //TODO: We currently use the ResultType from the available Primitives.
+      //For constants we probably want to base the ResultType on the value, but
+      //two lines below are too blunt and need refining
+//      Slug.ResultType := Slug.Operand.ImmType;
+//      Slug.ImplicitType := Slug.ResultType;
+      EXIT;
+    end
+    else //Two parameters
+      if not Assigned(Slugs[1].ILItem) and (Slugs[1].Operand.Kind = pkImmediate) then
+      begin
+        Result := EvalIntrinsicBi(Func.Op, Slugs[0].Operand, Slugs[1].Operand,
+          Slug.Operand.ImmValueInt, Slug.Operand.ImmType);
+        if Result <> qeNone then
+          EXIT;
+        Slug.Operand.Kind := pkImmediate;
+        //TODO: As previous TODO
+//        Slug.ResultType := Slug.Operand.ImmType;
+//        Slug.ImplicitType := Slug.ResultType;
+        EXIT;
+      end;
+
+
+  if (Func.ParamCount = 1) and (Slugs[0].ILItem <> nil) and (Slugs[0].ILItem.Op = opUnknown) then
+  begin //We can just 'patch' the Op into the ILItem
+    Slug := Slugs[0];
+    Slug.ILItem.Op := Func.Op;
+    Slug.ILItem.OpType := VarTypeToOpType(Slug.ResultType);
+  end
+  else
+  begin //Create the ILItem for the operation
+    Slug.ILItem := ILAppend(dtNone, Func.Op);
+    Slug.ILItem.OpType := VarTypeToOpType(Slug.ResultType);
+
+    if Func.ParamCount >= 1 then
+    begin //First parameter
+      if Slugs[0].ILItem <> nil then
+      begin //We have an ILItem. Assign it to a temp var and use that
+        Slugs[0].AssignToHiddenVar;
+        Slug.ILItem.Param1.SetVariable(Slugs[0].ILItem.Dest.Variable);
+      end
+      else  //Otherwise it's either a constant or variable we can assign directly
+        Slug.ILItem.Param1 := Slugs[0].Operand;
+    end;
+
+    if Func.ParamCount >= 2 then
+    begin //Same for second parameter
+      if Slugs[1].ILItem <> nil then
+      begin
+        Slugs[1].AssignToHiddenVar;
+        Slug.ILItem.Param2.SetVariable(Slugs[1].ILItem.Dest.Variable);
+      end
+      else
+        Slug.ILItem.Param2 := Slugs[1].Operand;
+    end;
+  end;
+
+  if Func.Params[0].Access = vaVar then
+  begin //Var parameter - result is written back to Param1
+    Slug.ILItem.DestType := dtData;
+    V := Slug.ILItem.Param1.Variable;
+    V.IncWriteCount;
+    Slug.ILItem.Dest.SetVarAndSub(V, V.WriteCount);
+    Slug.ILItem.ResultType := VarTypeToOpType(V.VarType);
+    Slug.ILItem.OpType := Slug.ILItem.ResultType;
+  end
+  else
+    Slug.ILItem.ResultType := Slug.ILItem.OpType;
+end;
+
+
 //IL code for Register calling convention
-function DoRegister(Func: PFunction;var Slugs: TSlugArray): PILItem;
+function DispatchRegister(Func: PFunction;var Slugs: TSlugArray): PILItem;
 var
   InParamCount: Integer;  //Number of parameters being passed *into* the function
                           //I.e. excluding Out and Result paramaters being returned
@@ -127,7 +303,7 @@ var
   ILItem: PILItem;
   InParamsDone: Integer;  //Number of params processed thus far
 begin
-  //NOTEL: The following assumes values being passed are appropriate for the functions arguments
+  //NOTE: The following assumes values being passed are appropriate for the functions arguments
 
   InParamCount := 0;
   for ArgIndex := 0 to Func.ParamCount-1 do
@@ -232,7 +408,7 @@ begin
 //     into vars/temp vars (temp var only for Result)
 end;
 
-function DoStack(Func: PFunction;var Slugs: TSlugArray): PILItem;
+function DispatchStack(Func: PFunction;var Slugs: TSlugArray): PILItem;
 var Param: PParameter;
 begin
   if Func.ResultCount > 0 then
@@ -268,6 +444,7 @@ end;
 
 function DoParseProcedureCall(Func: PFunction): TQuicheError;
 var Slugs: TSlugArray;  //Data and IL code for each argument
+  DummySlug: TExprSlug;  //Dummy
 begin
   //Parse and validate arguments
   Result := ParseArgList(Func, Slugs);
@@ -276,12 +453,14 @@ begin
 
   //Generate IL code for the parameters & call
   case Func.CallingConvention of
-    ccRegister: DoRegister(Func, Slugs);
-    ccStackLocal: DoStack(Func, Slugs);
-//    ccIntrinsic: Result := ErrMsg(qeBUG, 'Instrinic dispatch shouldn''t end up here');  //Special cases :)
+    ccRegister: DispatchRegister(Func, Slugs);
+    ccIntrinsic: Result := DispatchIntrinsic(Func, Slugs, DummySlug);
+    ccStackLocal: DispatchStack(Func, Slugs);
   else
     raise Exception.Create('Unknown calling convention in function despatch :(');
   end;
+  if Result <> qeNone then
+    EXIT;
 
   //Generate IL code for after call/stack cleanup etc.
 end;
@@ -297,19 +476,22 @@ begin
 
   //Generate IL code for the parameters & call
   case Func.CallingConvention of
-    ccRegister: Slug.ILItem := DoRegister(Func, Slugs);
-//    ccIntrinsic: Result := ErrMsg(qeBUG, 'Instrinic dispatch shouldn''t end up here');  //Special cases :)
-    ccStackLocal: Slug.ILItem := DoStack(Func, Slugs);
+    ccRegister: Slug.ILItem := DispatchRegister(Func, Slugs);
+    ccIntrinsic: Result := DispatchIntrinsic(Func, Slugs, Slug);
+    ccStackLocal: Slug.ILItem := DispatchStack(Func, Slugs);
   else
     raise Exception.Create('Unknown calling convention in function despatch :(');
   end;
+  if Result <> qeNone then
+    EXIT;
 
   //Generate IL code for after call/saving result
-  Param := Func.FindResult;
-//  Slug.Op := OpFuncCall;
-  Slug.ResultType := Param.VarType;
-  Slug.ImplicitType := Param.VarType;
-//  Slug.OpType := Slug.ILItem.ResultType;
+  if Func.CallingConvention <> ccIntrinsic then
+  begin
+    Param := Func.FindResult;
+    Slug.ResultType := Param.VarType;
+    Slug.ImplicitType := Param.VarType;
+  end;
 end;
 
 end.

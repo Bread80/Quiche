@@ -127,7 +127,7 @@ begin
           vtWord, vtPointer: V.ValueInt := ReadWord(V.GetAsmName);
           vtInt8: V.ValueInt := ReadInt8(V.GetAsmName);
           vtInteger: V.ValueInt := ReadInteger(V.GetAsmName);
-          vtReal, vtFlag, vtType, vtString, vtUnknown: ;//TODO?
+          vtReal, vtFlag, vtTypeDef, vtString, vtUnknown: ;//TODO?
         else
           Assert(False);
         end;
@@ -139,7 +139,7 @@ begin
           vtWord, vtPointer: V.ValueInt := Hardware.ReadMemoryWord(Addr);
           vtInt8: V.ValueInt := ReadMemoryInt8(Addr);
           vtInteger: V.ValueInt := ReadMemoryInteger(Addr);
-          vtReal, vtFlag, vtType, vtString, vtUnknown: ;//TODO?
+          vtReal, vtFlag, vtTypeDef, vtString, vtUnknown: ;//TODO?
         end;
       end;
     else
