@@ -347,8 +347,8 @@
 ,inp,Word,none,n,Byte,x,,in_reg_bc,,,bc,,a,,,,,,,Current Primitive data can't cope with multiple result register options
 ;,inp,Byte,none,n,Byte,x,,in_a_n,,,imm,,a,,,,,,,Not yet supported (How to differentiate between the two? Compiler option?)
 ,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,
+,lo,Word,none,n,Byte,x,load_rp_low,empty,,,a;b;c;d;e;h;l,,param1,,empty,,,,,
+,lo,Integer,none,n,Byte,x,load_rp_low,empty,,,a;b;c;d;e;h;l,,param1,,empty,,,,,
 ,,,,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,

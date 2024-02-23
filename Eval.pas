@@ -370,12 +370,14 @@ begin
         Value := GetMaxValue(ResultType)
       else
         EXIT(ErrMsg(qeTODO, 'TODO: intrinsic high() with type name as a parameter'))
-    end
-    else if CompareText(OpData.Name, 'lo') = 0 then
+    end;
+    opLo:
     begin
       Assert(GetTypeSize(Param.ImmType) = 2);
       Value := lo(P);
     end
+
+
     else if CompareText(OpData.Name, 'low') = 0 then
     begin
       ResultType := Param.ImmType;
