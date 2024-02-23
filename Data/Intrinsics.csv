@@ -19,11 +19,11 @@
 ;System,,,,,,,,,,,,
 ;,addr,const,Variable,Any,,,,,,,Pointer,"Returns the memory address of Variable (TODO: Const, function, return a typed pointer (vs generic pointer)"
 ,hi,val,Value,AnyInteger,,,,,,,Byte,"Returns high byte of Value. Value must be a 16-bit integer-type (Word, Pointer or Integer)"
-,high,const,Type,TypeDef,,,,,,,Param1,Highest value of enumerable type
+,high,const,Type,TypeDef,,,,,,,Param1,Returns the highest value of an enumerable type
 ;,high,const,Variable,Array,,,,,,,Word,Highest index of array
 ,inp,val,Port,Word,,,,,,,Byte,"Read data from an I/O port. Currently always uses IN C,(C) opcode. IN A,(n) is not yet supported"
 ,lo,val,Value,AnyInteger,,,,,,,Byte,"Returns low byte of Value. Value must be a 16-bit integer-type (Word, Pointer or Integer)"
-;,low,const,Type,TypeDef,,,,,,,Param1,Lowest value of enumerable type
+,low,const,Type,TypeDef,,,,,,,Param1,Returns the lowest value of an enumerable type
 ;,low,const,Variable,Array,,,,,,,Word,Lowest index of array
 ;,ord,var,Value,Enumerable,,,,,,,Param1,Ordinal value of item
 ;,out,val,Port,Numeric,,val,Data,Numeric,,,None,Write to I/O port

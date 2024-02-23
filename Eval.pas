@@ -369,22 +369,26 @@ begin
       if IsEnumerable(ResultType) then
         Value := GetMaxValue(ResultType)
       else
-        EXIT(ErrMsg(qeTODO, 'TODO: intrinsic high() with type name as a parameter'))
+        EXIT(errMsg(qeExpression, 'Invalid parameter for high()'));
     end;
     opLo:
     begin
       Assert(GetTypeSize(Param.ImmType) = 2);
       Value := lo(P);
-    end
-
-
-    else if CompareText(OpData.Name, 'low') = 0 then
+    end;
+    opLow:
     begin
       ResultType := Param.ImmType;
-      if IsEnumerable(Param.ImmType) then
-        Value := GetMinValue(Param.ImmType)
+      if ResultType = vtTypeDef then
+      begin
+        ResultType := Param.ImmValueInt;
+        Value := GetMinValue(ResultType)
+      end
       else
-        EXIT(ErrMsg(qeTODO, 'TODO: intrinsic low() with type name as a parameter'))
+      if IsEnumerable(ResultType) then
+        Value := GetMinValue(ResultType)
+      else
+        EXIT(errMsg(qeExpression, 'Invalid parameter for low()'));
     end
     else if CompareText(OpData.Name, 'ord') = 0 then
       Value := P

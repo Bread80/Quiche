@@ -350,8 +350,8 @@
 ,lo,Word,none,n,Byte,x,load_rp_low,empty,,,a;b;c;d;e;h;l,,param1,,empty,,,,,
 ,lo,Integer,none,n,Byte,x,load_rp_low,empty,,,a;b;c;d;e;h;l,,param1,,empty,,,,,
 ,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,
+,low,TypeDef,none,n,Integer,x,,error,,,imm,,hl,,empty,,,,,Compile time only. Returns a constant at compile time. This is just a placeholder. ResultType 'Integer' Can contain any possible return value. We can massage/hack that into a proper return type (in Eval).
+,low,TypeDef,none,n,Integer,x,,error,,,a,,hl,,empty,,,,,Compile time only. Returns a constant at compile time. This is just a placeholder. ResultType 'Integer' Can contain any possible return value. We can massage/hack that into a proper return type (in Eval).
 ,,,,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,
