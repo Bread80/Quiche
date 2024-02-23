@@ -126,7 +126,8 @@ function PrimFindBestMatchRangeVar(Op: TOperator;out LType: TVarType;
 //Where the right operand is an immediate value
 function PrimFindBestMatchVarRange(Op: TOperator;var LType: TVarType;
   out RType: TVarType;RRange: TNumberRange;out ResultType: TVarType): Boolean;
-
+function PrimFindBestMatchRangeRange(Op: TOperator;var LType: TVarType;
+  out RType: TVarType;LRange, RRange: TNumberRange;out ResultType: TVarType): Boolean;
 
 procedure PrimSetProc(Name: String;Proc: TCodeGenProc);
 procedure PrimSetValProc(Name: String;Proc: TValidationProc);
@@ -508,6 +509,24 @@ begin
   SearchRec.LType := LType;
   SearchRec.RType := RangeToType(Op, LType, RRange);
   SearchRec.LKind := pkVar;
+  SearchRec.RKind := pkImmediate;
+  SearchRec.LStorage := vsStack;
+  SearchRec.RStorage := vsStack;
+
+  Result := PrimFindTypeMatch(SearchRec);
+  LType := SearchRec.LType;
+  RType := SearchRec.RType;
+  ResultType := SearchRec.ResultType;
+end;
+
+function PrimFindBestMatchRangeRange(Op: TOperator;var LType: TVarType;
+  out RType: TVarType;LRange, RRange: TNumberRange;out ResultType: TVarType): Boolean;
+var SearchRec: TPrimSearchRec;
+begin
+  SearchRec.Op := Op;
+  SearchRec.LType := RangeToType(Op, vtUnknown, LRange);
+  SearchRec.RType := RangeToType(Op, LType, RRange);
+  SearchRec.LKind := pkImmediate;
   SearchRec.RKind := pkImmediate;
   SearchRec.LStorage := vsStack;
   SearchRec.RStorage := vsStack;

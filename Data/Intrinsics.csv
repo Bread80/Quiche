@@ -26,7 +26,7 @@
 ,low,const,Type,TypeDef,,,,,,,Param1,Returns the lowest value of an enumerable type
 ;,low,const,Variable,Array,,,,,,,Word,Lowest index of array
 ,ord,val,Item,Enumerable,,,,,,,Integer,Returns the ordinal value of the item
-;,out,val,Port,Numeric,,val,Data,Numeric,,,None,Write to I/O port
+,out,val,Port,Word,,val,Data,Enumerable,,,None,Write Data to the given I/O port
 ;,peek,val,Address,Word,,const,Type,TypeDef,Byte,Optional,Param2,"Read from memory. Result type is that of second parameter, Byte if not specified"
 ;,poke,val,Address,Word,,const,Data,Any,,,None,Write to memory
 ;,pred,const,Value,Enumerable,,val,Count,AnyInteger,1,Optional,Param1,Returns the previous value for the type (nth prior if param 2 given)

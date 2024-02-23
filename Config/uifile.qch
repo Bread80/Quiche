@@ -1,2 +1,6 @@
-var a:=inp(255)
-var b:=inp(a)
+  out($ff00,128)
+  var p:=$1234
+  var x:Byte=$fe
+  out(p,64)
+  out($4321,x)
+  out(p,x)

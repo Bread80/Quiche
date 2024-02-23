@@ -344,7 +344,7 @@
 ,high,TypeDef,none,n,Word,x,,error,,,imm,,hl,,empty,,,,,Compile time only. Returns a constant at compile time. This is just a placeholder. ResultType 'Word' Can contain any possible return value. We can massage/hack that into a proper return type (in Eval).
 ,high,TypeDef,none,n,Word,x,,error,,,a,,hl,,empty,,,,,Compile time only. Returns a constant at compile time. This is just a placeholder. ResultType 'Word' Can contain any possible return value. We can massage/hack that into a proper return type (in Eval).
 ,,,,,,,,,,,,,,,,,,,,
-,inp,Word,none,n,Byte,x,,in_reg_bc,,,bc,,a,,,,,,,Current Primitive data can't cope with multiple result register options
+,inp,Word,none,n,Byte,x,,in_reg_bc,,,bc,,a,f,,,,,,Current Primitive data can't cope with multiple result register options
 ;,inp,Byte,none,n,Byte,x,,in_a_n,,,imm,,a,,,,,,,Not yet supported (How to differentiate between the two? Compiler option?)
 ,,,,,,,,,,,,,,,,,,,,
 ,,,,,,,,(Empty columns for formatting),,,,,,,,,,,,
@@ -363,10 +363,10 @@
 ,ord,Boolean,none,n,Byte,x,,empty,,,a;b;c;d;e;h;l,,param1,,empty,,,,,
 ,ord,Char,none,n,Byte,x,,empty,,,a;b;c;d;e;h;l,,param1,,empty,,,,,
 ,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,
+,out,Word,Byte,n,None,x,,out_bc_reg,,,bc,a;b;c;d;e;h;l,,,,,,,,
+,out,Word,Char,n,None,x,,out_bc_reg,,,bc,a;b;c;d;e;h;l,,,,,,,,
+;,out,Byte,Byte,n,None,x,,out_n_a,,,imm,a,,,,,,,,Not yet supported (How to differentiate between the two? Compiler option?)
+;,out,Byte,Char,n,None,x,,out_n_a,,,imm,a,,,,,,,,Not yet supported (How to differentiate between the two? Compiler option?)
 ,,,,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,

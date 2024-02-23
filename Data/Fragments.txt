@@ -629,3 +629,9 @@
   
 =in_a_n
   in a,(<p1.immbyte>)
+  
+=out_bc_reg
+  out (c),<p2.r8>
+  
+=out_n_a
+  out (<p1.immbyte>),a

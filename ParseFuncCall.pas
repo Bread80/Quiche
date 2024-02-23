@@ -195,7 +195,7 @@ begin
   Slug.Initialise;
   if LIsRange then
     if RIsRange then
-      raise Exception.Create('We shouldn''t end up here. Error in Intrinsics data')
+      Found := PrimFindBestMatchRangeRange(Func.Op, LType, RType, LRange, RRange, Slug.ResultType)
     else
       Found := PrimFindBestMatchRangeVar(Func.Op, LType, RType, LRange, Slug.ResultType)
   else //Not LIsRange
