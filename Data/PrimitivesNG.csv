@@ -70,39 +70,39 @@
 ,mod,Integer,Word,n,Word,x,,:mod16_s_u__u,,,hl,de,hl,a;f;b;c;d;e;h;l,nc_overflow,,,,,
 ,mod,Word,Integer,n,Word,x,,:mod16_u_s__u,,,hl,de,de,a;f;b;c;d;e;h;l,nc_overflow,,,,,
 ,,,,,,,,,,,,,,,,,,,,
-,shl,Byte,Byte,n,Byte,x,,:left_shift_8_by_8,,,a,b,a,,,,,,,This is crying out for optimised routines for constant shift values
-,shl,Byte,Int8,n,Byte,x,,:left_shift_8_by_8,,,a,b,a,,,,,,,
-,shl,Byte,Word,n,Byte,x,,:left_shift_8_by_16,,,a,bc,a,,,,,,,
-,shl,Byte,Integer,n,Byte,x,,:left_shift_8_by_16,,,a,bc,a,,,,,,,
-,shl,Int8,Byte,n,Int8,x,,:left_shift_8_by_8,,,a,b,a,,,,,,,
-,shl,Int8,Int8,n,Int8,x,,:left_shift_8_by_8,,,a,b,a,,,,,,,
-,shl,Int8,Word,n,Int8,x,,:left_shift_8_by_16,,,a,bc,a,,,,,,,
-,shl,Int8,Integer,n,Int8,x,,:left_shift_8_by_16,,,a,bc,a,,,,,,,
-,shl,Integer,Byte,n,Integer,x,,:left_shift_16_by_8,,,hl,b,hl,,,,,,,
-,shl,Integer,Int8,n,Integer,x,,:left_shift_16_by_8,,,hl,b,hl,,,,,,,
-,shl,Integer,Word,n,Integer,x,,:left_shift_16_by_16,,,hl,bc,hl,,,,,,,
-,shl,Integer,Integer,n,Integer,x,,:left_shift_16_by_16,,,hl,bc,hl,,,,,,,
-,shl,Word,Byte,n,Word,x,,:left_shift_16_by_8,,,hl,b,hl,,,,,,,
-,shl,Word,Int8,n,Word,x,,:left_shift_16_by_8,,,hl,b,hl,,,,,,,
-,shl,Word,Integer,n,Word,x,,:left_shift_16_by_16,,,hl,bc,hl,,,,,,,
-,shl,Word,Word,n,Word,x,,:left_shift_16_by_16,,,hl,bc,hl,,,,,,,
+,shl,Byte,Byte,n,LType,x,,:left_shift_8_by_8,,,a,b,a,,,,,,,This is crying out for optimised routines for constant shift values
+,shl,Byte,Int8,n,LType,x,,:left_shift_8_by_8,,,a,b,a,,,,,,,
+,shl,Byte,Word,n,LType,x,,:left_shift_8_by_16,,,a,bc,a,,,,,,,
+,shl,Byte,Integer,n,LType,x,,:left_shift_8_by_16,,,a,bc,a,,,,,,,
+,shl,Int8,Byte,n,LType,x,,:left_shift_8_by_8,,,a,b,a,,,,,,,
+,shl,Int8,Int8,n,LType,x,,:left_shift_8_by_8,,,a,b,a,,,,,,,
+,shl,Int8,Word,n,LType,x,,:left_shift_8_by_16,,,a,bc,a,,,,,,,
+,shl,Int8,Integer,n,LType,x,,:left_shift_8_by_16,,,a,bc,a,,,,,,,
+,shl,Integer,Byte,n,LType,x,,:left_shift_16_by_8,,,hl,b,hl,,,,,,,
+,shl,Integer,Int8,n,LType,x,,:left_shift_16_by_8,,,hl,b,hl,,,,,,,
+,shl,Integer,Word,n,LType,x,,:left_shift_16_by_16,,,hl,bc,hl,,,,,,,
+,shl,Integer,Integer,n,LType,x,,:left_shift_16_by_16,,,hl,bc,hl,,,,,,,
+,shl,Word,Byte,n,LType,x,,:left_shift_16_by_8,,,hl,b,hl,,,,,,,
+,shl,Word,Int8,n,LType,x,,:left_shift_16_by_8,,,hl,b,hl,,,,,,,
+,shl,Word,Integer,n,LType,x,,:left_shift_16_by_16,,,hl,bc,hl,,,,,,,
+,shl,Word,Word,n,LType,x,,:left_shift_16_by_16,,,hl,bc,hl,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,
-,shr,Byte,Byte,n,Byte,x,,:right_shift_8_by_8,,,a,b,a,,,,,,,
-,shr,Byte,Int8,n,Byte,x,,:right_shift_8_by_8,,,a,b,a,,,,,,,
-,shr,Byte,Word,n,Byte,x,,:right_shift_8_by_16,,,a,bc,a,,,,,,,
-,shr,Byte,Integer,n,Byte,x,,:right_shift_8_by_16,,,a,bc,a,,,,,,,
-,shr,Int8,Byte,n,Int8,x,,:right_shift_8_by_8,,,a,b,a,,,,,,,
-,shr,Int8,Int8,n,Int8,x,,:right_shift_8_by_8,,,a,b,a,,,,,,,
-,shr,Int8,Word,n,Int8,x,,:right_shift_8_by_16,,,a,bc,a,,,,,,,
-,shr,Int8,Integer,n,Int8,x,,:right_shift_8_by_16,,,a,bc,a,,,,,,,
-,shr,Integer,Byte,n,Integer,x,,:right_shift_16_by_8,,,hl,b,hl,,,,,,,
-,shr,Integer,Int8,n,Integer,x,,:right_shift_16_by_8,,,hl,b,hl,,,,,,,
-,shr,Integer,Word,n,Integer,x,,:right_shift_16_by_16,,,hl,bc,hl,,,,,,,
-,shr,Integer,Integer,n,Integer,x,,:right_shift_16_by_16,,,hl,bc,hl,,,,,,,
-,shr,Word,Byte,n,Word,x,,:right_shift_16_by_8,,,hl,b,hl,,,,,,,
-,shr,Word,Int8,n,Word,x,,:right_shift_16_by_8,,,hl,b,hl,,,,,,,
-,shr,Word,Integer,n,Word,x,,:right_shift_16_by_16,,,hl,bc,hl,,,,,,,
-,shr,Word,Word,n,Word,x,,:right_shift_16_by_16,,,hl,bc,hl,,,,,,,
+,shr,Byte,Byte,n,LType,x,,:right_shift_8_by_8,,,a,b,a,,,,,,,
+,shr,Byte,Int8,n,LType,x,,:right_shift_8_by_8,,,a,b,a,,,,,,,
+,shr,Byte,Word,n,LType,x,,:right_shift_8_by_16,,,a,bc,a,,,,,,,
+,shr,Byte,Integer,n,LType,x,,:right_shift_8_by_16,,,a,bc,a,,,,,,,
+,shr,Int8,Byte,n,LType,x,,:right_shift_8_by_8,,,a,b,a,,,,,,,
+,shr,Int8,Int8,n,LType,x,,:right_shift_8_by_8,,,a,b,a,,,,,,,
+,shr,Int8,Word,n,LType,x,,:right_shift_8_by_16,,,a,bc,a,,,,,,,
+,shr,Int8,Integer,n,LType,x,,:right_shift_8_by_16,,,a,bc,a,,,,,,,
+,shr,Integer,Byte,n,LType,x,,:right_shift_16_by_8,,,hl,b,hl,,,,,,,
+,shr,Integer,Int8,n,LType,x,,:right_shift_16_by_8,,,hl,b,hl,,,,,,,
+,shr,Integer,Word,n,LType,x,,:right_shift_16_by_16,,,hl,bc,hl,,,,,,,
+,shr,Integer,Integer,n,LType,x,,:right_shift_16_by_16,,,hl,bc,hl,,,,,,,
+,shr,Word,Byte,n,LType,x,,:right_shift_16_by_8,,,hl,b,hl,,,,,,,
+,shr,Word,Int8,n,LType,x,,:right_shift_16_by_8,,,hl,b,hl,,,,,,,
+,shr,Word,Integer,n,LType,x,,:right_shift_16_by_16,,,hl,bc,hl,,,,,,,
+,shr,Word,Word,n,LType,x,,:right_shift_16_by_16,,,hl,bc,hl,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,
 ,,,,,,,,(Empty columns for formatting),,,,,,,,,,,,
 ;,,----Primitive Selection----,,,,----Primitive Data----,,,,,,,,,Special validations on type conversion,,,,,
@@ -301,6 +301,7 @@
 ,complement,Byte,none,n,Byte,x,,cpla,,,a,,a,f,empty,,,,,The way we're storing Booleans means we use the same code for bitwise and logical operations
 ,complement,Int8,none,n,Int8,x,,cpla,,,a,,a,f,empty,,,,,The way we're storing Booleans means we use the same code for bitwise and logical operations
 ,complement,Word,none,n,Word,x,,cpl16_reg,,,hl;de;bc,,param1,a;f,empty,,,,,
+,complement,Pointer,none,n,Pointer,x,,cpl16_reg,,,hl;de;bc,,param1,a;f,empty,,,,,
 ,complement,Integer,none,n,Integer,x,,cpl16_reg,,,hl;de;bc,,param1,a;f,empty,,,,,
 ,complement,Boolean,none,n,Boolean,x,,cpla,,,a,,a,f,empty,,,,,
 ,,,,,,,,,,,,,,,,,,,,
@@ -312,6 +313,7 @@
 ,abs,Integer,none,n,Integer,x,,:abs_hl_with_overflow,,,hl,,hl,a;f;h;l,nc_overflow,,,,,
 ,abs,Byte,none,n,Byte,x,,empty,,,a;b;c;d;e;h;l,,param1,,empty,,,,,Does nothing!
 ,abs,Word,none,n,Word,x,,empty,,,hl;de;bc,,param1,,empty,,,,,Does nothing!
+,abs,Pointer,none,n,Pointer,x,,empty,,,hl;de;bc,,param1,,empty,,,,,Does nothing!
 ,,,,,,,,,,,,,,,,,,,,
 ,dec,Byte,Integer,n,None,x,,proc_dec8_reg,,,a;b;c;d;e;h;l,imm,param1,f,empty,,,,,No overflow checking. Proc chooses whether to use DECs or SUBs
 ,dec,Byte,Word,n,None,x,,proc_dec8_reg,,,a;b;c;d;e;h;l,imm,param1,f,empty,,,,,No overflow checking. Proc chooses whether to use DECs or SUBs
@@ -341,24 +343,34 @@
 ,hi,Word,none,n,Byte,x,load_rp_high,empty,,,a;b;c;d;e;h;l,,param1,,empty,,,,,
 ,hi,Integer,none,n,Byte,x,load_rp_high,empty,,,a;b;c;d;e;h;l,,param1,,empty,,,,,
 ,,,,,,,,,,,,,,,,,,,,
-,high,TypeDef,none,n,Word,x,,error,,,imm,,hl,,empty,,,,,Compile time only. Returns a constant at compile time. This is just a placeholder. ResultType 'Word' Can contain any possible return value. We can massage/hack that into a proper return type (in Eval).
-,high,TypeDef,none,n,Word,x,,error,,,a,,hl,,empty,,,,,Compile time only. Returns a constant at compile time. This is just a placeholder. ResultType 'Word' Can contain any possible return value. We can massage/hack that into a proper return type (in Eval).
+,high,Byte,none,n,Byte,x,,error,,,imm,,a,,empty,,,,,Compile time only. Returns a constant at compile time. This is just a placeholder.
+,high,Word,none,n,Word,x,,error,,,imm,,hl,,empty,,,,,Compile time only. Returns a constant at compile time. This is just a placeholder.
+,high,Int8,none,n,Int8,x,,error,,,imm,,a,,empty,,,,,Compile time only. Returns a constant at compile time. This is just a placeholder.
+,high,Integer,none,n,Integer,x,,error,,,imm,,hl,,empty,,,,,Compile time only. Returns a constant at compile time. This is just a placeholder.
+,high,Pointer,none,n,Pointer,x,,error,,,imm,,hl,,empty,,,,,Compile time only. Returns a constant at compile time. This is just a placeholder.
+,high,Char,none,n,Char,x,,error,,,imm,,a,,empty,,,,,Compile time only. Returns a constant at compile time. This is just a placeholder.
+,high,Boolean,none,n,Boolean,x,,error,,,imm,,a,,empty,,,,,Compile time only. Returns a constant at compile time. This is just a placeholder.
 ,,,,,,,,,,,,,,,,,,,,
 ,inp,Word,none,n,Byte,x,,in_reg_bc,,,bc,,a,f,,,,,,Current Primitive data can't cope with multiple result register options
 ;,inp,Byte,none,n,Byte,x,,in_a_n,,,imm,,a,,,,,,,Not yet supported (How to differentiate between the two? Compiler option?)
 ,,,,,,,,,,,,,,,,,,,,
 ,,,,,,,,(Empty columns for formatting),,,,,,,,,,,,
 ;,,----Primitive Selection----,,,,----Primitive Data----,,,,,,,,,Special validations on type conversion,,,,,
-;,Operation,Ltype,Rtype,Commutative,ResultType,Validation,,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,Validate,Int8,Byte,Integer,Word,Notes
+;,Operation,Ltype,Rtype,Commutative,ResultType,Validation,Flags,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,Validate,Int8,Byte,Integer,Word,Notes
 ,lo,Word,none,n,Byte,x,load_rp_low,empty,,,a;b;c;d;e;h;l,,param1,,empty,,,,,
 ,lo,Integer,none,n,Byte,x,load_rp_low,empty,,,a;b;c;d;e;h;l,,param1,,empty,,,,,
 ,,,,,,,,,,,,,,,,,,,,
-,low,TypeDef,none,n,Integer,x,,error,,,imm,,hl,,empty,,,,,Compile time only. Returns a constant at compile time. This is just a placeholder. ResultType 'Integer' Can contain any possible return value. We can massage/hack that into a proper return type (in Eval).
-,low,TypeDef,none,n,Integer,x,,error,,,a,,hl,,empty,,,,,Compile time only. Returns a constant at compile time. This is just a placeholder. ResultType 'Integer' Can contain any possible return value. We can massage/hack that into a proper return type (in Eval).
+,low,Byte,none,n,Byte,x,,error,,,imm,,a,,empty,,,,,Compile time only. Returns a constant at compile time. This is just a placeholder.
+,low,Word,none,n,Word,x,,error,,,imm,,hl,,empty,,,,,Compile time only. Returns a constant at compile time. This is just a placeholder.
+,low,Int8,none,n,Int8,x,,error,,,imm,,a,,empty,,,,,Compile time only. Returns a constant at compile time. This is just a placeholder.
+,low,Integer,none,n,Integer,x,,error,,,imm,,hl,,empty,,,,,Compile time only. Returns a constant at compile time. This is just a placeholder.
+,low,Pointer,none,n,Pointer,x,,error,,,imm,,hl,,empty,,,,,Compile time only. Returns a constant at compile time. This is just a placeholder.
+,low,Char,none,n,Char,x,,error,,,imm,,a,,empty,,,,,Compile time only. Returns a constant at compile time. This is just a placeholder.
+,low,Boolean,none,n,Boolean,x,,error,,,imm,,a,,empty,,,,,Compile time only. Returns a constant at compile time. This is just a placeholder.
 ,,,,,,,,,,,,,,,,,,,,
 ,ord,Byte,none,n,Byte,x,,empty,,,a;b;c;d;e;h;l,,param1,,empty,,,,,
 ,ord,Int8,none,n,Int8,x,,empty,,,a;b;c;d;e;h;l,,param1,,empty,,,,,
-,ord,Word,none,n,Word,x,,empty,,,hl;de;bc,,param1,,empty,,,,,
+,ord,Word,none,n,LType,x,,empty,,,hl;de;bc,,param1,,empty,,,,,
 ,ord,Integer,none,n,Integer,x,,empty,,,hl;de;bc,,param1,,empty,,,,,
 ,ord,Boolean,none,n,Byte,x,,empty,,,a;b;c;d;e;h;l,,param1,,empty,,,,,
 ,ord,Char,none,n,Byte,x,,empty,,,a;b;c;d;e;h;l,,param1,,empty,,,,,
@@ -368,6 +380,18 @@
 ;,out,Byte,Byte,n,None,x,,out_n_a,,,imm,a,,,,,,,,Not yet supported (How to differentiate between the two? Compiler option?)
 ;,out,Byte,Char,n,None,x,,out_n_a,,,imm,a,,,,,,,,Not yet supported (How to differentiate between the two? Compiler option?)
 ,,,,,,,,,,,,,,,,,,,,
+,peek,Word,Byte,n,Byte,x,,peek8_imm,,,imm,imm,a,,empty,,,,,Param2 is consumed at compile time. We put imm here to fool the Primitive search algorithm
+,peek,Word,Int8,n,Int8,x,,peek8_imm,,,imm,imm,a,,empty,,,,,
+,peek,Word,Byte,n,Byte,x,,peek8_reg16,,,hl,imm,a,,empty,,,,,Code gen can't handle choice of result registers
+,peek,Word,Int8,n,Int8,x,,peek8_reg16,,,hl,imm,a,,empty,,,,,Code gen can't handle choice of result registers
+,peek,Word,Word,n,Word,x,,peek16_imm,,,imm,imm,hl,,empty,,,,,
+,peek,Word,Pointer,n,Pointer,x,,peek16_imm,,,imm,imm,hl,,empty,,,,,
+,peek,Word,Integer,n,Integer,x,,peek16_imm,,,imm,imm,hl,,empty,,,,,
+,peek,Word,Word,n,Word,x,,peek16_reg16,,,hl,imm,de,hl,empty,,,,,
+,peek,Word,Pointer,n,Pointer,x,,peek16_reg16,,,hl,imm,de,hl,empty,,,,,
+,peek,Word,Integer,n,Integer,x,,peek16_reg16,,,hl,imm,de,hl,empty,,,,,
+,peek,Word,Boolean,n,Boolean,x,,peek8_imm,,,imm,imm,a,,,,,,,
+,peek,Word,Char,n,Char,x,,peek8_imm,,,imm,imm,a,,empty,,,,,
 ,,,,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,

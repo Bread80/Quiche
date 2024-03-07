@@ -14,7 +14,9 @@ const
 //========================Super types
 
 //Used in data file for Intrinsics
-type TSuperType = (stAny, stNumeric, stAnyInteger, stEnumerable);
+type TSuperType = (
+  stParameterized,  //Actual type is given by a TypeDef parameter
+  stAny, stNumeric, stAnyInteger, stEnumerable);
 
 function StringToSuperType(const S: String;out Super: TSuperType): Boolean;
 function SuperTypeToString(Super: TSuperType): String;
@@ -166,31 +168,6 @@ const TypeEnumToOpType: array[low(TTypeEnum)..high(TTypeEnum)] of TOpType =
 //    'Record','Array','Enumeration','Set'
     );
 
-//Range types are used within the parser to assess how to store, expand and find
-//primitives for numeric types
-//NOTE: The compiler could be adapted for targets with different bitness by modifying
-//this table and/or the constants which go with it (NumberRangeBounds)
-//However, adaptations will almost certainly be required elsewhere.
-type TNumberRange = (
-    rgReal,   //..-32769:     Real                      n/a                      Real
-    rgS16,    //-32768..-129: Unsigned 16               Real                     S16
-    rgS8,     //-128..-1:     Signed 8 or Signed 16     Signed 16                S8
-    rgAny,    //0..127:       Signed 8 or unsigned 8    Signed 16 or Unsigned 16 Any
-    rgS16U8,  //128..255:     Signed 16 or unsigned 8   Signed 16 or Unsigned 16 S16U8
-    rgS16U16, //256..32767:   Signed 16 or Unsigned 16  Real or Unsigned 16      S16U16
-    rgU16     //32768..65535: Unsigned 16               Real                     U16
-//  (Real)      65536..:      Real                      n/a                      Real
-    );
-
-const NumberRangeBounds: array[low(TNumberRange)..high(TNumberRange)] of Integer = (
-      -32769, -129,      -1,     127,    255,       32767,     65535);
-    NumberRangeToSignedType: array[low(TNumberRange)..high(TNumberRange)] of TVarType = (
-      vtReal, vtInteger, vtInt8, vtInt8, vtInteger, vtInteger, vtReal);
-    NumberRangeToUnSignedType: array[low(TNumberRange)..high(TNumberRange)] of TVarType = (
-      vtReal, vtReal,    vtReal, vtByte, vtByte,    vtWord,    vtWord);
-
-function IntToNumberRange(Value: Integer): TNumberRange;
-
 //Validates whether the ExprType can be assigned to the variable (etc)
 //with type of AssignType
 function ValidateAssignmentType(AssignType, ExprType: TVarType): Boolean;
@@ -210,7 +187,7 @@ implementation
 uses SysUtils, Globals;
 
 const SuperTypeNames: array[low(TSuperType)..high(TSuperType)] of String = (
-  'Any', 'Numeric', 'AnyInteger', 'Enumerable');
+  'Parameterized', 'Any', 'Numeric', 'AnyInteger', 'Enumerable');
 
 function StringToSuperType(const S: String;out Super: TSuperType): Boolean;
 var LSuper: TSuperType;
@@ -397,14 +374,6 @@ begin
   raise Exception.Create('Unknown var type name');
 end;
 }
-
-function IntToNumberRange(Value: Integer): TNumberRange;
-begin
-  for Result := low(TNumberRange) to high(TNumberRange) do
-    if Value <= NumberRangeBounds[Result] then
-      EXIT;
-  Result := high(TNumberRange);
-end;
 
 function ValidateAssignmentType(AssignType, ExprType: TVarType): Boolean;
 begin

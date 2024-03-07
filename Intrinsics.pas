@@ -42,6 +42,7 @@ var Data: TStringList;
   I: Integer;
   Intrinsic: PFunction;
   Op: POpData;
+  VT: TVarType;
 begin
   Data := TStringlist.Create;
   try
@@ -106,10 +107,20 @@ begin
                 raise Exception.Create('Invalid P2VarType for Intrinsic: ' + Fields[fP2VarType]);
             if Fields[fP2DefaultValue] <> '' then
             begin
-              //Validate data type matches Param VarType?
-              if not TryStrToInt(Fields[fP2DefaultValue], Intrinsic.Params[1].DefaultValueInt) then
-                //Test for other valid value types
-                raise Exception.Create('Unable to parse default value: ' + Fields[fP2DefaultValue]);
+              if Intrinsic.Params[1].VarType = vtTypeDef then
+              begin
+                VT := StringToVarType(Fields[fP2DefaultValue]);
+                if VT = vtUnknown then
+                  raise Exception.Create('Unable to parse TypeDef default value: ' + Fields[fP2DefaultValue])
+                else
+                  Intrinsic.Params[1].DefaultValueInt := Integer(VT);
+              end
+              else
+              begin
+                if not TryStrToInt(Fields[fP2DefaultValue], Intrinsic.Params[1].DefaultValueInt) then
+                  //Test for other valid value types
+                  raise Exception.Create('Unable to parse default value: ' + Fields[fP2DefaultValue]);
+              end;
               Intrinsic.Params[1].HasDefaultValue := True;
             end;
             Assert(Fields[fP2Flags] = '');
@@ -127,7 +138,9 @@ begin
           else
           begin
             Intrinsic.Params[Intrinsic.ParamCount].VarType := StringToVarType(Fields[fResultType]);
-            Assert(Intrinsic.Params[Intrinsic.ParamCount].VarType <> vtUnknown);
+            if Intrinsic.Params[Intrinsic.ParamCount].VarType = vtUnknown then
+              if not StringToSuperType(Fields[fResultType], Intrinsic.Params[Intrinsic.ParamCount].SuperType) then
+                raise Exception.Create('Invalid ResultType for Intrinsic: ' + Fields[fResultType]);
           end;
           Intrinsic.ResultCount := 1;
         end;

@@ -76,8 +76,7 @@ implementation
 uses SysUtils, Variables, ParserBase, Eval, Globals, Scopes, ParseIntrinsics,
   Functions, PrimitivesEx, ParseFuncCall;
 
-//===============================================
-//Expressions
+//===================================== Slugs
 
 //Where the Slug has an ILItem, this routine creates a temp var and sets the
 //ILItem's Dest data to point to it.
@@ -92,11 +91,6 @@ procedure TExprSlug.Initialise;
 begin
   ILItem := nil;
   Operand.Initialise;
-{    ParamOrigin: TParamOrigin;
-
-    Negate: Boolean;    //Used when reading operators - negate next parameter (-)?
-    Invert: Boolean;    //As above, invert next parameter (NOT)?
-}
   Op := OpUnknown;
   OpType := rtUnknown;
   ResultType := vtUnknown;
@@ -128,362 +122,6 @@ begin
   end;
   Result.DestType := ADestType;
 end;
-
-//==============================Type precedence
-//These routines determine what happens when be combine types through an operator.
-//The routines determine the appropriate operator type and result type for the
-//(sub)-expression. The resulting values are then (mostly) assigned to the left
-//side slug.
-(*
-//Returns the type to be used in deciding the implicit type of the expression
-function GetOperandImplicitType(const Slug: TExprSlug): TVarType;
-begin
-  Result := Slug.Operand.GetVarType;
-  if Slug.Operand.Kind = pkImmediate then
-  begin
-    if Slug.ParamOrigin = poExplicit then
-      EXIT;
-
-    if IsSignedType(Slug.Operand.ImmType) then
-      EXIT;
-
-    if Slug.Operand.ImmValueInt >= 32768 then
-      EXIT(vtWord)
-    else
-      EXIT(vtInteger);
-  end;
-end;
-*)
-(*
-//The ultimate destination of the routines below. This sets the fields of the
-//slug once the values for those fields have been determined
-procedure SetSlugTypes(var Slug: TExprSlug;ResultType: TVarType;OpType: TOpType);
-begin
-  if Slug.ResultType = vtUnknown then
-    Slug.ResultType := ResultType;
-  Slug.OpType := OpType;
-end;
-*)
-(*
-//This routine considers the type and value of an immediate (constant) operand
-//and returns the appropriate type for operations etc.
-//This routine considers:
-//The ImmType of the operand,
-//The Origin of the operand (implicit or explicit),
-//and the value of the operand
-function MinImmType(const Imm: TExprSlug): TVarType;
-begin
-  if (Imm.ParamOrigin = poExplicit) and (Imm.Operand.ImmType in [vtByte, vtWord, vtPointer]) then
-    EXIT(Imm.Operand.ImmType);
-
-  //Signed types (we ignore ParamOrgin if unsigned)
-  if IsSignedType(Imm.Operand.ImmType) then
-  begin
-    if Imm.Operand.ImmValueInt >= (GetMinValue(vtInt8) and $ffff){ $10000-128} then
-      EXIT(vtInt8)
-    else if Imm.Operand.ImmValueInt >= GetMaxValue(vtInteger) then
-      EXIT(vtInteger)
-    else if Imm.Operand.ImmValueInt <= GetMaxValue(vtByte) then
-      EXIT(vtByte)
-    else
-      EXIT(vtWord);
-  end;
-
-  EXIT(Imm.Operand.ImmType);
-end;
-*)
-//Where one operand is a Variable, and the other an Immediate value, this routine
-//chooses appropriate Type for the operation and result type and sets those values into
-//the Left hand slug parameter.
-//If Swap is false the routine expects the Variable parameter to be the left hand one,
-//if Swap is True the routine expects the Variable parameter to be the right hand one.
-//(And in both cases the other parameter is the immediate (constant) one.
-(*
-//Returns False if there is no valid combination of types, otherwise True.
-function SetMinCommonVarImmediateType(var Left: TExprSlug;const Right: TExprSlug;Swap: Boolean): Boolean;
-var VType, ImmType: TVarType;
-  ImmValue: Word;
-begin
-  if Swap then
-  begin
-    VType := Right.Operand.GetVarType;
-    ImmType := MinImmType(Left);
-    ImmValue := Left.Operand.ImmValueInt;
-  end
-  else
-  begin
-    VType := Left.Operand.GetVarType;
-    ImmType := MinImmType(Right);
-    ImmValue := Right.Operand.ImmValueInt;
-  end;
-  //Choose a type which combines the /type/ of the variable (VType) and the
-  //size and sign of the immediate value.
-  //I.e. if the VType is an Int8 and the immediate is 0 .. 127 the common type is an Int8
-  //If VType is an Int16 and the immediate is 0..32767 the common type is an Int16
-  //I.e. We can ignore the type of the immediate value. But Explicit type???
-
-  if IsNumericType(VType) and IsNumericType(ImmType) then
-  begin
-    Result := True;
-     if (VType = vtReal) or (ImmType = vtReal) then
-      SetSlugTypes(Left, vtReal, rtReal)
-    else if (VType = vtPointer) or (ImmType = vtPointer) then
-    begin
-      if IsSignedType(VType) or IsSignedType(ImmType) then
-        //One type is a pointer so we need a U16 result
-        SetSlugTypes(Left, vtPointer, rtM16U16)
-      else
-        SetSlugTypes(Left, vtPointer, rtU16)
-    end
-    else
-    case VType of
-      vtByte:
-        if ImmValue <= 255 then
-          SetSlugTypes(Left, vtByte, rtU8)
-        else if IsSignedType(ImmType) then
-          SetSlugTypes(left, vtByte, rtS16)
-        else
-          SetSlugTypes(Left, vtByte, rtU16);
-      vtWord, vtPointer:
-        if IsSignedType(ImmType) and (ImmValue >= 32768) then
-          SetSlugTypes(Left, vtWord, rtM16U16)
-        else
-          SetSlugTypes(Left, vtWord, rtU16);
-      vtInt8:
-        if (IsSignedType(ImmType) and (ImmValue >= $10000-128)) or (ImmValue <= 127) then
-          SetSlugTypes(Left, vtInt8, rtS8)
-        else if IsSignedType(ImmType) then
-          SetSlugTypes(Left, vtInt8, rtS16)
-        else
-          SetSlugTypes(Left, vtInt8, rtM16S16);
-      vtInteger:
-        if IsSignedType(ImmType) or (ImmValue <= 32767) then
-          SetSlugTypes(Left, vtInteger, rtS16)
-        else
-          SetSlugTypes(Left, vtInteger, rtM16S16);
-    else
-      raise Exception.Create('Invalid numeric type in SetMinCommonVarImmediateType');
-    end;
-  end
-  else
-  begin
-    Result := VType = ImmType;
-    if Result then
-      SetSlugTypes(Left, VType, VarTypeToOpType(VType));
-  end;
-end;
-*)
-//Determines the operator type and result type for an operation. Used in cases
-//where both operators are in Variables, or both are immediate (constant) values.
-//Once the types have been determined, sets the appropriate fields in the Slug parameter
-
-//Typing rules (where both operands need to have the same type)
-//If either side is Real then the operation is Real and the result is Real (for future use)
-//If either side is pointer then the operation is U16 or M16 and the result is U16
-//If either side is signed then the operation is S16 or M16 and the result is S16
-//Both sides are unsigned, result will be U8 if both sides are Byte, otherwise U16
-//(An M16 operation is one where one side is signed and the other unsigned)
-(*
-//Returns False if there is no valid combination of types, otherwise True.
-function SetMinCommonType(var Slug: TExprSlug; LType, RType: TVarType): Boolean;
-begin
-  if IsNumericType(LType) and IsNumericType(RType) then
-  begin
-    Result := True;
-     if (LType = vtReal) or (RType = vtReal) then
-      SetSlugTypes(Slug, vtReal, rtReal)
-    else if (LType = vtPointer) or (RType = vtPointer) then
-    begin
-      if IsSignedType(LType) or IsSignedType(RType) then
-        //One type is a pointer so we need a U16 result
-        SetSlugTypes(Slug, vtPointer, rtM16U16)
-      else
-        SetSlugTypes(Slug, vtPointer, rtU16)
-    end
-    else if (LType = vtByte) and (RType = vtByte) then
-      SetSlugTypes(Slug, vtByte, rtU8)
-    else if (LType = vtInt8) and (RType = vtInt8) then
-      SetSlugTypes(Slug, vtInt8, rtS8)
-    else if (LType in [vtInt8, vtByte]) and (RType in [vtInt8, vtByte]) then
-      SetSlugTypes(Slug, vtInteger, rtS16)
-    else if (LType in [vtByte, vtWord]) and (RType in [vtByte, vtWord]) then
-      SetSlugTypes(Slug, vtWord, rtU16)
-    else if (LType in [vtByte, vtInteger, vtInteger, vtInt8]) and (RType in [vtByte, vtInteger, vtInt8, vtInteger]) then
-      SetSlugTypes(Slug, vtInteger, rtS16)
-    else
-      //One type is signed, the other unsigned but not a pointer so we need an S16 result
-      SetSlugTypes(Slug, vtInteger, rtM16S16);
-  end
-  else
-  begin
-    Result := LType = RType;
-    if Result then
-      SetSlugTypes(Slug, LType, VarTypeToOpType(LType));
-  end;
-end;
-*)
-//Where both operands of an operator are immediate values, this routine
-//determines the Type of the operation and result, and sets those values into the
-//Left slug parameter.
-(*
-//Returns False if there is no valid combination of types, otherwise True.
-function SetMinCommonImmediateType(var Left: TExprSlug;const Right: TExprSlug): Boolean;
-var LType, RType: TVarType;
-begin
-  LType := MinImmType(Left);
-  RType := MinImmType(Right);
-  Result := SetMinCommonType(Left, LType, RType);
-end;
-*)
-//Where both operands are Variables, this routine chooses the appropriate type
-//for the operation and result, and sets those values into the Left slug parameter.
-(*
-//Returns False if there is no valid combination of types, otherwise True.
-function SetMinCommonVarType(var Left: TExprSlug;const Right: TExprSlug): Boolean;
-var LType, RType: TVarType;
-begin
-  LType := Left.Operand.GetVarType;
-  RType := Right.Operand.GetVarType;
-  Result := SetMinCommonType(Left, LType, RType);
-end;
-*)
-//For a boolean/bitwise operator, sets the type/size of boolean operation required
-(*
-//Returns False if there is no valid combination of types, otherwise True.
-function SetBooleanOperatorType(var Left: TExprSlug;const Right: TExprSlug): Boolean;
-var LType, RType: TVarType;
-begin
-  LType := Left.Operand.GetVarType;
-  RType := Right.Operand.GetVarType;
-
-  if IsNumericType(LType) and IsNumericType(RType) then
-  begin
-    Result := True;
-    if (LType = vtReal) or (RType = vtReal) then
-      EXIT(False)
-    else if IsWordType(LType) or IsWordType(RType) then
-      SetSlugTypes(Left, vtWord, rtX16)
-    else  //Both are single byte
-      SetSlugTypes(Left, vtByte, rtX8);
-  end
-  else
-  begin
-    Result := (LType = vtBoolean) and (RType = vtBoolean);
-    if Result then
-      SetSlugTypes(Left, vtBoolean, rtX8);
-  end;
-end;
-*)
-
-(*
-function AssignSlugTypes(var Left, Right: TExprSlug): Boolean;
-begin
-  if Left.OpData.IsNG then
-    EXIT(AssignSlugTypesNG(Left, Right));
-(*
-  //Operation has a fixed result type
-  if Left.OpData.ResultType <> teUnknown then
-  begin
-    Left.ResultType := TypeEnumToVarType[Left.OpData.ResultType];
-    Left.ImplicitType := Left.ResultType;
-  end
-  else
-    Left.ResultType := vtUnknown;
-  Left.OpType := rtUnknown;
-
-  //Both operands need to be of the same type - ascertain the common type
-  if Left.OpData.MatchOperands then
-  begin
-//    if Slug.OpData.Logical then
-      //Boolean operators are special :)
-//      SetBooleanOperatorType(Slug, RightSlug)
-//    else
-    if Left.Operand.Kind = pkImmediate then
-      if Right.Operand.Kind = pkImmediate then
-        //Two immediate parameters
-        SetMinCommonImmediateType(Left, Right)
-      else
-        //Right is variable and left is immediate
-        SetMinCommonVarImmediateType(Left, Right, True)
-    else //Slug not Immediate
-      if Right.Operand.Kind = pkImmediate then
-        //Left is variable and right is immediate
-        SetMinCommonVarImmediateType(Left, Right, False)
-      else
-        //Both are variables
-        SetMinCommonVarType(Left, Right);
-  end
-  else //Unmatched operands - use the type of the left operand
-  begin
-    if Left.OpData.ResultSame then
-    begin
-      Left.ResultType := Left.Operand.GetVarType;
-      Left.OpType := VarTypeToOpType(Left.ResultType);
-    end
-    else
-      Left.OpType := VarTypeToOpType(Left.Operand.GetVarType);
-  end;
-
-  //Failure if we haven't found suitable types yet
-  Result := (Left.ResultType <> vtUnknown) and (Left.OpType <> rtUnknown);
-
-  if Result and not Left.OpData.Logical then
-  begin
-    //If no primitive is available for our OpType then upscale the
-    //operation to something which does exist. If nothing is available then
-    //error
-    while not (Left.OpType in Left.OpData.OpTypes) do
-      case Left.OpType of
-      rtS8: Left.OpType := rtS16;
-      rtU8: Left.OpType := rtU16;
-      else
-        Left.OpType := rtUnknown;
-        EXIT(False);
-      end;
-  end;
-end;
-*)
-
-//Tests whether the expression returned by Slug is compatible with the type
-//given in ExprType. If it is returns errNone, otherwise returns a suitable error code
-function ValidateExprType(ExprType: TVarType;const Slug: TExprSlug): TQuicheError;
-var Negative: Boolean;
-  Valid: Boolean;
-begin
-  if Slug.Op = OpUnknown then
-  begin //Single value, no expression
-    if Slug.Operand.Kind = pkImmediate then
-    begin
-      if IsIntegerType(ExprType) then
-        Valid := (Slug.Operand.ImmValueInt >= GetMinValue(ExprType)) and
-          (Slug.Operand.ImmValueInt <= GetMaxValue(ExprType))
-{      Negative := Slug.Operand.ImmValueInt < 0;
-      case ExprType of
-        vtByte: Valid := (Slug.Operand.ImmValueInt >= 0) and (Slug.Operand.ImmValueInt <= $ff);
-        vtWord, vtPointer: (Slug.Operand.ValueInt >= 0) and (Slug.Operand.ImmValueInt <= $ffff);
-        vtInt8: Valid := (Slug.Operand.ImmValueInt >= -128) and (Slug.Operand.ImmValueInt < $80);
-        vtInteger: Valid := Slug.Operand.ImmValueInt >= -32768 and (Slug.Operand.ImmValueInt < $8000);
-}      else
-        Valid := ValidateAssignmentType(ExprType, Slug.ResultType);
-//      end;
-      if not Valid then
-        EXIT(ErrMsg(qeConstantOutOfRange, 'Constant expresion out of range. Can''t assign value ' +
-          Slug.Operand.ImmValueToString{ImmValueInt.ToString} + ' to variable of type ' + VarTypeToName(ExprType)));
-    end
-    else
-      Valid := ValidateAssignmentType(ExprType, Slug.ResultType);
-  end
-  else
-    //Expression
-    Valid := ValidateAssignmentType(ExprType, Slug.ResultType);
-
-  if not Valid then
-    Result := ErrMsg(qeTypeMismatch, 'Incompatible types: ' + VarTypeToName(Slug.ResultType) +
-      ' and ' + VarTypeToName(ExprType))
-  else
-    Result := qeNone;
-end;
-
 
 //======================================Parsing literals
 
@@ -801,20 +439,10 @@ begin
       end;
     end;
 
-    //Test for intrinsic functions
-{    Op := IdentToIntrinsicFunc(Ident);
-    if Op <> opUnknown then
-      if Operations[Op].OpGroup = ogProc then
-        EXIT(ErrOpUsage(ermCantAssignProcedure, Op))
-      else
-        Result := ParseIntrinsic(Op, True, Slug)
-    else
-}    begin
-      //TODO: Search builtin function library
-      EXIT(ErrMsg(qeTODO, 'Library function lookup not yet implemented'));
+    //TODO: Search builtin function library
+    EXIT(ErrMsg(qeTODO, 'Library function lookup not yet implemented'));
 
-      //If we get here then it's 'Identifier not found/not declared'
-    end;
+    //If we get here then it's 'Identifier not found/not declared'
   end;
 end;
 
@@ -823,7 +451,7 @@ var EvalResult: Integer;
   Dummy: TVarType;
   VType: TVarType;
   EvalType: TVarType;
-//  ResultType: TVarType;
+  ResultType: TVarType;
 begin
   case UnaryOp of
     uoNegate: Slug.Op := OpNegate;
@@ -832,12 +460,9 @@ begin
     raise Exception.Create('Unknown unary operator');
   end;
 
-{  if ((UnaryOp = uoNegate) and IsNumericType(Slug.ImplicitType)) or
-    ((UnaryOP = uoComplement) and IsLogicalType(Slug.ImplicitType)) then
-    Result := qeNone
-  else //Unary operator with invalid operand type
+  ResultType := vtUnknown;
+  if not PrimFindParseUnary(Slug.Op, Slug, VType, ResultType) then
     EXIT(ErrOpUsage('Incorrect parameter type: ' + VarTypeToName(Slug.ImplicitType), Slug.Op));
-}
 
   if (Slug.ILItem = nil) and (Slug.Operand.Kind = pkImmediate) then
   begin
@@ -850,14 +475,8 @@ begin
   end
   else  //Parameter is not immediate
   begin
-    //TODO!!!
-    if Slug.ILItem <> nil then
-      VType := Slug.ResultType//OpTypeToVarType[Slug.ILItem.ResultType]
-    else
-      VType := Slug.Operand.GetVarType;
-    Dummy := vtUnknown;
-    Assert(PrimFindBestMatchVarVar(Slug.Op, VType, Dummy, Slug.ResultType),
-      'Unary primitive not found');
+    Slug.ResultType := ResultType;
+    Slug.ImplicitType := ResultType;
 
     if Slug.ILItem <> nil then
       //We already have an ILItem created. If so, we need to set the Dest to
@@ -1048,6 +667,40 @@ end;
 
 //==============================Expressions
 
+
+//Tests whether the expression returned by Slug is compatible with the type
+//given in ExprType. If it is returns errNone, otherwise returns a suitable error code
+function ValidateExprType(ExprType: TVarType;const Slug: TExprSlug): TQuicheError;
+var Negative: Boolean;
+  Valid: Boolean;
+begin
+  if Slug.Op = OpUnknown then
+  begin //Single value, no expression
+    if Slug.Operand.Kind = pkImmediate then
+    begin
+      if IsIntegerType(ExprType) then
+        Valid := (Slug.Operand.ImmValueInt >= GetMinValue(ExprType)) and
+          (Slug.Operand.ImmValueInt <= GetMaxValue(ExprType))
+      else
+        Valid := ValidateAssignmentType(ExprType, Slug.ResultType);
+      if not Valid then
+        EXIT(ErrMsg(qeConstantOutOfRange, 'Constant expresion out of range. Can''t assign value ' +
+          Slug.Operand.ImmValueToString + ' to variable of type ' + VarTypeToName(ExprType)));
+    end
+    else
+      Valid := ValidateAssignmentType(ExprType, Slug.ResultType);
+  end
+  else
+    //Expression
+    Valid := ValidateAssignmentType(ExprType, Slug.ResultType);
+
+  if not Valid then
+    Result := ErrMsg(qeTypeMismatch, 'Incompatible types: ' + VarTypeToName(Slug.ResultType) +
+      ' and ' + VarTypeToName(ExprType))
+  else
+    Result := qeNone;
+end;
+
 //Sets the types in the left slug (ResultType, OpType fields) for the operation when
 //used with the given input operands: Slug.Operand <Slug.Operation> RightSlug.Operand
 //Also validates that the operator can be used with the given operand types and
@@ -1055,43 +708,21 @@ end;
 //the Operands list.
 //Returns False if operands are incompatible with the operator/available primitives
 function AssignSlugTypesNG(var Left, Right: TExprSlug): Boolean;
-var Prim: PPrimitiveNG;
+var
   LType: TVarType;
-  LRange: TNumberRange;
   RType: TVarType;
-  RRange: TNumberRange;
   ResultType: TVarType;
 begin
-  if (Left.ILItem = nil) and (Left.Operand.Kind = pkImmediate) and
-    IsNumericType(Left.ResultType) then
-    if (Right.ILItem = nil) and (Right.Operand.Kind = pkImmediate) then
-      Assert(True,'AssignSlugTypesNG can''t handle left and right immediates - evalualte them instead!')
-    else
-    begin
-      LRange := IntToNumberRange(Left.Operand.immValueInt);
-      RType := Right.ResultType;
-      Result := PrimFindBestMatchRangeVar(Left.Op, LType, RType, LRange, ResultType);
-      Left.Operand.ImmType := LType;
-    end
-  else if (Right.ILItem = nil) and (Right.Operand.Kind = pkImmediate) and
-    IsNumericType(Right.ResultType) then
-  begin
-    LType := Left.ResultType;
-    RRange := IntToNumberRange(Right.Operand.immValueInt);
-    Result := PrimFindBestMatchVarRange(Left.Op, LType, RType, RRange, ResultType);
-    Right.Operand.ImmType := RType;
-  end
-  else
-  begin
-  //If either is immediate then we need to find the smallest compatible (signed vs unsigned)
-  //type and start from there
-  //PS. if both are immediate: gets evaluated at compile-time. We don't get called
-    LType := Left.ResultType;
-    RType := Right.ResultType;
-    Result := PrimFindBestMatchVarVar(Left.Op, LType, RType, ResultType);
-  end;
+  ResultType := vtUnknown;  //Find routines with any result type
+  Result := PrimFindParse(Left.Op, Left, Right, LType, RType, ResultType);
   if not Result then
     EXIT;
+
+  //Update types for constants
+  if (Left.ILItem = nil) and (Left.Operand.Kind = pkImmediate) then
+    Left.Operand.ImmType := LType;
+  if (Right.ILItem = nil) and (Right.Operand.Kind = pkImmediate) then
+    Right.Operand.ImmType := RType;
 
   Left.ResultType := ResultType;
   Left.OpType := VarTypeToOpType(Left.ResultType);

@@ -622,7 +622,7 @@
   cpl
   ld <p1.r16high>,a  
   
-;=== Input and output
+;=== Hardware
 
 =in_reg_bc
   in <d.r8>,(c)
@@ -635,3 +635,19 @@
   
 =out_n_a
   out (<p1.immbyte>),a
+
+;Loads and stores read or write to/from variables whereas peeks and pokes
+;read or write unmanaged memory
+=peek8_imm
+  ld a,(<p1.immword>)
+  
+=peek8_reg16
+  ld <d.r8>,(hl)
+  
+=peek16_imm
+  ld hl,(<p1.immword>)
+  
+=peek16_reg16
+  ld e,(hl)
+  inc hl
+  ld d,(hl)

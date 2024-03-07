@@ -1,7 +1,7 @@
 unit PrimitivesEx;
 
 interface
-uses QTypes, ILData, Operators;
+uses QTypes, ILData, Operators, ParseExpr;
 
 type
   TPrimValidation = (pvYes, pvNo, pvEither);
@@ -66,7 +66,9 @@ type
     LType: TVarType;      //Left operand type (base type)
     RType: TVarType;      //Right operand type (base type)
     Commutative: Boolean; //If True the left and right operators can be swapped
-    ResultType: TVarType; //Destination (Result) type
+    ResultType: TVarType; //Destination (Result) type, unless...
+    ResultTypeIsLType: Boolean;
+    ResultTypeIsRType: Boolean;
     Validation: TPrimValidation;  //Can this routine be used when validation is on? off? either?
 
     //Fields for primitive use
@@ -117,17 +119,10 @@ function PrimFindByProcName(AName: String): PPrimitive;
 //Returns the result type that the selected routine will return.
 //If no suitable routine was found returns vtUnknown
 //If the parameter type were expanded then LType and RType return the expanded type(s)
-function PrimFindBestMatchVarVar(Op: TOperator;var LType, RType: TVarType;
-  out ResultType: TVarType): Boolean;
-
-//Where left operand is an immediate value
-function PrimFindBestMatchRangeVar(Op: TOperator;out LType: TVarType;
-  var RType: TVarType;LRange: TNumberRange;out ResultType: TVarType): Boolean;
-//Where the right operand is an immediate value
-function PrimFindBestMatchVarRange(Op: TOperator;var LType: TVarType;
-  out RType: TVarType;RRange: TNumberRange;out ResultType: TVarType): Boolean;
-function PrimFindBestMatchRangeRange(Op: TOperator;var LType: TVarType;
-  out RType: TVarType;LRange, RRange: TNumberRange;out ResultType: TVarType): Boolean;
+function PrimFindParse(Op: TOperator;const Left, Right: TExprSlug;
+  out LeftType, RightType: TVarType;var ResultType: TVarType): Boolean;
+function PrimFindParseUnary(Op: TOperator;const Left: TExprSlug;
+  out LeftType: TVarType;var ResultType: TVarType): Boolean;
 
 procedure PrimSetProc(Name: String;Proc: TCodeGenProc);
 procedure PrimSetValProc(Name: String;Proc: TValidationProc);
@@ -142,55 +137,8 @@ procedure LoadPrimitivesNGFile(const Filename: String);
 procedure ValidatePrimitives;
 
 implementation
-uses Generics.Collections, Classes, SysUtils, Variables, Fragments;
+uses Math, Generics.Collections, Classes, SysUtils, Variables, Fragments;
 
-{Constant/literal/immediate value expansions:
-
-Range         Compatible with           Expands to[1]
-..-32769:     Real                      n/a                      Real
--32768..-129: Unsigned 16               Real                     S16
--128..-1:     Signed 8 or Signed 16     Signed 16                S8
-0..127:       Signed 8 or unsigned 8    Signed 16 or Unsigned 16 Any
-128..255:     Signed 16 or unsigned 8   Signed 16 or Unsigned 16 S16U8
-256..32767:   Signed 16 or Unsigned 16  Real or Unsigned 16      S16U16
-32768..65535: Unsigned 16               Real                     U16
-65536..:      Real                      n/a                      Real
-
-[1] Depending on the other type. Where there is a choice, if other type is Pointer
- expands to unsigned option. If other is signed expands to signe options.
-
-Expanding literal vs variable
-aka parameter matching and result type
-      S8  S16 U8  U16 P(ointer) R(eal)
-S16   S16 S16 S16 S16 P         R
-S8    S8  S16 S8? S16 P         R
-Any   S8  S16 U8  U16 P         R
-S16U8 S8  S16 U8  U16 P         R
-U16   S16 S16 U16 U16 P         R
-P     P   P   P   P   P         ??
-Real  R   R   R   R   ?         R
-
-Variable (etc) matching
-    S8  S16 U8  U16 P R
-S8  S8  S16 S16 S16 P R
-S16 S16 S16 S16 S16 P R
-U8  S8  S16 U8  U16 P R
-U16 S16 S16 U16 U16 P R
-P   P   P   P   P   P ??
-R   R   R   R   R   R R
-
-Matching var-var to Operator:
-ascertain if result will be signed or unsigned (ignore for non-numbers)
-repeat
-  Search for primitive for type - type (parse-time)
-  if not found, expand smaller type
-    (or if same size, arbitrary type)
-repeat Primitive found
-
-Matching for var-immediate:
-As above, but use Ranges for the Immediate value
-expand ranges depending on whether the result is signed or unsigned
-}
 var PrimList: TList<PPrimitive>;
   PrimListNG: TList<PPrimitiveNG>;
 
@@ -212,83 +160,58 @@ begin
   ClearPrimList;
 end;
 
+
 //==================NG Primitive matching & type matching
 
 
-//vtWord, vtByte, vtPointer, vtInt8, vtInteger, <Unused>, vtReal,
-//  vtChar, vtType, vtBoolean, vtFlag, vtString
+//Range types are used within the parser to assess how to store, expand and find
+//primitives for numeric types
+//NOTE: The compiler could be adapted for targets with different bitness by modifying
+//this table and/or the constants which go with it (NumberRangeBounds)
+//However, adaptations will almost certainly be required elsewhere.
+type TNumberRange = (
+    rgReal,   //..-32769:     Real                      n/a                      Real
+    rgS16,    //-32768..-129: Unsigned 16               Real                     S16
+    rgS8,     //-128..-1:     Signed 8 or Signed 16     Signed 16                S8
+    rgAny,    //0..127:       Signed 8 or unsigned 8    Signed 16 or Unsigned 16 Any
+    rgS16U8,  //128..255:     Signed 16 or unsigned 8   Signed 16 or Unsigned 16 S16U8
+    rgS16U16, //256..32767:   Signed 16 or Unsigned 16  Real or Unsigned 16      S16U16
+    rgU16     //32768..65535: Unsigned 16               Real                     U16
+//  (Real)      65536..:      Real                      n/a                      Real
+    );
+const SignedRanges = [rgReal, rgS16, rgS8];
 
-//Mapping between <code-type>,<primitive-type> to fitness
-const FitnessTypeType: array[vtWord..vtString,vtWord..vtString] of Integer =
-//   W   B   P  I8   I   x   R   C   T   B   F   S
-  (( 0, -1,  0, -1, -1, -1,  1, -1, -1, -1, -1, -1),  //Word
-   ( 1,  0,  1, -1,  2, -1,  3, -1, -1, -1, -1, -1),  //Byte
-   ( 0, -1,  0, -1, -1, -1,  1, -1, -1, -1, -1, -1),  //Pointer
-   (-1, -1, -1,  1,  2, -1,  3, -1, -1, -1, -1, -1),  //Int8
-   (-1, -1, -1, -1,  0, -1,  1, -1, -1, -1, -1, -1),  //Integer
-   (-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1),  //<unused>
-   (-1, -1, -1, -1, -1, -1,  0, -1, -1, -1, -1, -1),  //Real
-   (-1, -1, -1, -1, -1, -1, -1,  0, -1, -1,  1, -1),  //Char
-   (-1, -1, -1, -1, -1, -1, -1, -1,  0, -1, -1, -1),  //Type
-   (-1, -1, -1, -1, -1, -1, -1, -1, -1,  0,  1, -1),  //Boolean
-   (-1, -1, -1, -1, -1, -1, -1, -1,  1, -1,  0, -1),  //Flag
-   (-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,  0)); //String
+const NumberRangeBounds: array[low(TNumberRange)..high(TNumberRange)] of Integer = (
+      -32769, -129,      -1,     127,    255,       32767,     65535);
+    NumberRangeToSignedType: array[low(TNumberRange)..high(TNumberRange)] of TVarType = (
+      vtReal, vtInteger, vtInt8, vtInt8, vtInteger, vtInteger, vtReal);
+    NumberRangeToUnSignedType: array[low(TNumberRange)..high(TNumberRange)] of TVarType = (
+      vtReal, vtReal,    vtReal, vtByte, vtByte,    vtWord,    vtWord);
 
-//Mapping between <code-range>,<primitive-type> to fitness
-const FitnessRangeType: array[low(TNumberRange)..high(TNumberRange), vtWord..vtString] of Integer =
-//  Wrd Byt Ptr I8  Int  x  Rl  Chr Typ Boo Flg Str
-  ((-1, -1, -1, -1, -1, -1,  0, -1, -1, -1, -1, -1),  //rgReal,   //..-32769
-   (-1, -1, -1, -1,  0, -1,  1, -1, -1, -1, -1, -1),  //rgS16,    //-32768..-129
-   (-1, -1, -1,  0,  1, -1,  2, -1, -1, -1, -1, -1),  //rgS8,     //-128..-1
-   ( 2,  0,  2,  1,  3, -1,  4, -1, -1, -1, -1, -1),  //rgAny,    //0..127
-   ( 1,  0,  1, -1,  2, -1,  3, -1, -1, -1, -1, -1),  //rgS16U8,  //128..255
-   ( 0, -1,  1, -1,  1, -1,  2, -1, -1, -1, -1, -1),  //rgS16U16, //256..32767
-   ( 0, -1,  0, -1, -1, -1,  1, -1, -1, -1, -1, -1)); //rgU16     //32768..65535
-
-{PrimSearch:
-  BestFitness := MaxInt;
-  BestPrim := nil;
-  Prim := FirstPrim
-  while Prim.Op = Op
-    LeftFitness := Fitness[LType, Prim.LType];
-      (Or LType, LRange)
-    if RType = vtUnknown then
-      if Prim.RType = vtUnknown then
-        RFitness := 0
-      else
-        RFitness := -1
-    else
-      RightFitness := Fitness[RType, Prim.RType];
-        (Or RType, RRange)
-    if LFitness > 0 and RFitness > 0 then
-      **Validate any other param info - not required for ParseSearch
-      Fitness := LFitness + RFitness
-      if Fitness = 0 then
-        EXIT(Found)
-      else
-        if BestPrim = nil or Fitness < BestFitness then
-          BestFitness := Fitness
-          BestPrim := Prim
-    Prim := NextPrim
-  end;
-  NotFound
+function IntToNumberRange(Value: Integer): TNumberRange;
+begin
+  for Result := low(TNumberRange) to high(TNumberRange) do
+    if Value <= NumberRangeBounds[Result] then
+      EXIT;
+  Result := high(TNumberRange);
 end;
-}
-type TPrimSearchRec = record
-    Op: TOperator;
-    PrimIndex: Integer;
-    IsSigned: Boolean;
-//    Prim: PPrimitiveNG;
-    LType: TVarType;
-    RType: TVarType;
-    LKind: TILParamKind;
-    RKind: TILParamKind;
-    LStorage: TVarStorage;
-    RStorage: TVarStorage;
 
-    ResultType: TVarType;
-    SwapParams: Boolean;
-  end;
+function RangeToType(Op: TOperator;AType: TVarType;ARange: TNumberRange): TVarType;
+begin
+  if Operations[Op].SignCombine then
+  begin
+    if IsSignedType(AType) or (ARange in [rgS16, rgS8]) then
+      Result := NumberRangeToSignedType[ARange]
+    else
+      Result := NumberRangeToUnsignedType[ARange];
+  end
+  else if ARange < rgAny then //Negative constant
+    Result := NumberRangeToSignedType[ARange]
+  else
+    Result := NumberRangeToUnsignedType[ARange];
+end;
+
+
 
 function ParamRegMatch(Prim: PPrimitiveNG;AvailableRegs: TCPURegSet;
   Kind: TILParamKind;Storage: TVarStorage): Boolean;
@@ -311,235 +234,7 @@ begin
   Result := (AvailableRegs * [rA..rE,rH..rL, rHL..rBC]) <> [];
 end;
 
-//Finds whether a primitive available which matches the criteria. If so returns
-//the ResultType of the primitive. Criteria:
-// * Left operand can accept type LType
-// * Right operand can accept type RType
-// * The result matches the value of ISSigned. Ie if IsSigned is True the
-//   result is a signed type. If IsSigned is False result is an unsigned type.
-//   (Note: all types are considered unsigned except signed numeric types)
-// * vtPointer is considered equivalent to vtWord here
-// * If the primitive is Commutative, will also match if operands are swapped
-
-//Pass in PrimIndex = -1 to search from the start of the table.
-//        PrimIndex >= 0 to search incementally beginning at the item /after/ the indexed item.
-//Returns PrimIndex pointing to the found item.
-function PrimSearch(var SearchRec:  TPrimSearchRec): Boolean;
-var Prim: PPrimitiveNG;
-  LTest: TVarType;
-  RTest: TVarType;
-  IsPointer: Boolean;
-begin
-  if SearchRec.LType = vtPointer then
-    LTest := vtWord
-  else
-    LTest := SearchRec.LType;
-  if SearchRec.RType = vtPointer then
-    RTest := vtWord
-  else
-    RTest := SearchRec.RType;
-
-  if SearchRec.PrimIndex = -1 then
-    //First entry for this operator
-    SearchRec.PrimIndex := Operations[SearchRec.Op].FirstPrimIndex
-  else  //Start incemental search at the next item
-    inc(SearchRec.PrimIndex);
-
-  while (SearchRec.PrimIndex < PrimListNG.Count) and (PrimListNG[SearchRec.PrimIndex].Op = SearchRec.Op) do
-  begin
-    Prim := PrimListNG[SearchRec.PrimIndex];
-
-    //Ignore primitives which only accept Immediate parameters - we
-    //need to find a result which can handle all scenarios. There *should*
-    //always be a register variant available with equivalent options
-    if (Operations[SearchRec.Op].SignCombine and (IsSignedType(Prim.ResultType) = SearchRec.IsSigned)) or
-      not Operations[SearchRec.Op].SignCombine then
-    begin
-      if (Prim.LType = LTest) and (Prim.RType = RTest) then
-        if ParamRegMatch(Prim, Prim.LRegs, SearchRec.LKind, SearchRec.LStorage) and
-          (ParamRegMatch(Prim, Prim.RRegs, SearchRec.RKind, SearchRec.RStorage) or
-          (RTest = vtUnknown)) then
-        begin
-          SearchRec.SwapParams := False;
-          if (Prim.ResultType = vtWord) and ((SearchRec.LType = vtPointer) or (SearchRec.RType = vtPointer)) then
-            SearchRec.ResultType := vtPointer
-          else
-            SearchRec.ResultType := Prim.ResultType;
-          EXIT(True);
-        end;
-
-      if Prim.Commutative then
-        if (Prim.LType = RTest) and (Prim.RType = LTest) then
-          if ParamRegMatch(Prim, Prim.LRegs, SearchRec.RKind, SearchRec.RStorage) and
-            ParamRegMatch(Prim, Prim.RRegs, SearchRec.LKind, SearchRec.LStorage) then
-          begin
-            SearchRec.SwapParams := True;
-            if (Prim.ResultType = vtWord) and ((SearchRec.LType = vtPointer) or (SearchRec.RType = vtPointer)) then
-              SearchRec.ResultType := vtPointer
-            else
-              SearchRec.ResultType := Prim.ResultType;
-            EXIT(True);
-          end;
-    end;
-
-    inc(SearchRec.PrimIndex);
-  end;
-
-  //End of PrimList reached (for Op)
-  SearchRec.PrimIndex := -1;
-  Result := False;
-end;
-
-//**ExpandRange
-//Can the supplied type be expanded? And if so return the expansion.
-function ExpandType(var AType: TVarType;IsSigned: Boolean): Boolean;
-begin
-  case AType of
-    vtInt8: AType := vtInteger;
-    vtInteger: AType := vtReal;
-    vtByte:
-      if IsSigned then
-        AType := vtInteger
-      else
-        AType := vtWord;
-    vtWord: AType := vtReal;
-    vtChar: AType := vtString;
-  else
-    EXIT(False);
-  end;
-
-  Result := True;
-end;
-
-//Expands **Ranges** to find a routine with suitable types
-function PrimFindTypeMatch(var SearchRec: TPrimSearchRec): Boolean;
-begin
-  if (SearchRec.LType = vtPointer) or (SearchRec.RType = vtPointer) then
-    SearchRec.IsSigned := False
-  else
-    SearchRec.IsSigned := IsSignedType(SearchRec.LType) or IsSignedType(SearchRec.RType);
-
-  //Search from start of table
-  SearchRec.PrimIndex := -1;
-  Result := PrimSearch(SearchRec);
-
-  while not Result do
-  begin
-    //Attempt to expand operands one at a time.
-    //If we can't expand operands then the search is over :(
-    if GetTypeSize(SearchRec.LType) > GetTypeSize(SearchRec.RType) then
-    begin
-      if not ExpandType(SearchRec.RType, SearchRec.IsSigned) then
-        if not ExpandType(SearchRec.LType, SearchRec.IsSigned) then
-          EXIT;
-    end
-    else
-      if not ExpandType(SearchRec.LType, SearchRec.IsSigned) then
-        EXIT;
-
-    //Search from start of table
-    SearchRec.PrimIndex := -1;
-    Result := PrimSearch(SearchRec);
-  end;
-
-  //TEMPORARY - Return NOT found (at the moment) if we have a Real or a String anywhere
-  if (SearchRec.ResultType in [vtReal, vtString]) or (SearchRec.LType in [vtReal, vtString]) or
-    (SearchRec.RType in [vtReal, vtString]) then
-    Result := False;
-  if SearchRec.ResultType = vtFlag then
-    SearchRec.ResultType := vtBoolean;
-end;
-
-function PrimFindBestMatchVarVar(Op: TOperator;var LType, RType: TVarType;
-  out ResultType: TVarType): Boolean;
-var SearchRec: TPrimSearchRec;
-begin
-  SearchRec.Op := Op;
-  SearchRec.LType := LType;
-  SearchRec.RType := RType;
-  SearchRec.LKind := pkVar;
-  SearchRec.RKind := pkVar;
-  SearchRec.LStorage := vsStack;
-  SearchRec.RStorage := vsStack;
-
-  Result := PrimFindTypeMatch(SearchRec);
-  LType := SearchRec.LType;
-  RType := SearchRec.RType;
-  ResultType := SearchRec.ResultType;
-end;
-
-function RangeToType(Op: TOperator;AType: TVarType;ARange: TNumberRange): TVarType;
-begin
-  if Operations[Op].SignCombine then
-  begin
-    if IsSignedType(AType) or (ARange in [rgS16, rgS8]) then
-      Result := NumberRangeToSignedType[ARange]
-    else
-      Result := NumberRangeToUnsignedType[ARange];
-  end
-  else if ARange < rgAny then //Negative constant
-    Result := NumberRangeToSignedType[ARange]
-  else
-    Result := NumberRangeToUnsignedType[ARange];
-end;
-
-function PrimFindBestMatchRangeVar(Op: TOperator;out LType: TVarType;
-  var RType: TVarType;LRange: TNumberRange;out ResultType: TVarType): Boolean;
-var SearchRec: TPrimSearchRec;
-begin
-  SearchRec.Op := Op;
-  SearchRec.LType := RangeToType(Op, RType, LRange);
-  SearchRec.RType := RType;
-  SearchRec.LKind := pkImmediate;
-  SearchRec.RKind := pkVar;
-  SearchRec.LStorage := vsStack;
-  SearchRec.RStorage := vsStack;
-
-  Result := PrimFindTypeMatch(SearchRec);
-  LType := SearchRec.LType;
-  RType := SearchRec.RType;
-  ResultType := SearchRec.ResultType;
-end;
-
-function PrimFindBestMatchVarRange(Op: TOperator;var LType: TVarType;
-  out RType: TVarType;RRange: TNumberRange;out ResultType: TVarType): Boolean;
-var SearchRec: TPrimSearchRec;
-begin
-  SearchRec.Op := Op;
-  SearchRec.LType := LType;
-  SearchRec.RType := RangeToType(Op, LType, RRange);
-  SearchRec.LKind := pkVar;
-  SearchRec.RKind := pkImmediate;
-  SearchRec.LStorage := vsStack;
-  SearchRec.RStorage := vsStack;
-
-  Result := PrimFindTypeMatch(SearchRec);
-  LType := SearchRec.LType;
-  RType := SearchRec.RType;
-  ResultType := SearchRec.ResultType;
-end;
-
-function PrimFindBestMatchRangeRange(Op: TOperator;var LType: TVarType;
-  out RType: TVarType;LRange, RRange: TNumberRange;out ResultType: TVarType): Boolean;
-var SearchRec: TPrimSearchRec;
-begin
-  SearchRec.Op := Op;
-  SearchRec.LType := RangeToType(Op, vtUnknown, LRange);
-  SearchRec.RType := RangeToType(Op, LType, RRange);
-  SearchRec.LKind := pkImmediate;
-  SearchRec.RKind := pkImmediate;
-  SearchRec.LStorage := vsStack;
-  SearchRec.RStorage := vsStack;
-
-  Result := PrimFindTypeMatch(SearchRec);
-  LType := SearchRec.LType;
-  RType := SearchRec.RType;
-  ResultType := SearchRec.ResultType;
-end;
-
-//---
-
-function ValidationMatchNG(const Prim: PPrimitiveNG;const ILItem: TILItem): Boolean;
+function ValidationMatchNG(const Prim: PPrimitiveNG;const ILItem: PILItem): Boolean;
 begin
   case Prim.Validation of
     pvYes: EXIT(cgOverflowCheck in ILItem.CodeGenFlags) ;
@@ -578,6 +273,416 @@ begin
     Assert(False, 'ToDo (Branches?)');
 end;
 
+function DestMatch(Prim: PPrimitiveNG;ILItem: PILItem): Boolean;
+begin
+  if ILItem.DestType = dtCondBranch then
+    Result := Prim.ResultType in [vtBoolean, vtFlag]
+  else
+    Result := DestRegMatch(Prim, ILItem.Dest);
+end;
+
+//Fitness values for (<primitive-type>,<code-type>)
+const FitnessVarTypeVarType: array[vtWord..vtReal,vtWord..vtReal] of Integer =
+//From. This axis is the parameter type. Other is primitive argument type
+//    To	Word  Byt Ptr I8	Int	    Real
+{Word}	  ((0,  2,  1,  10,	20,	-1, 20),		//Otherwise:
+{Byte}	  (20,  0,  20, 20,	30,	-1, 40),		//	If both parameters are unsigned set Byte to Integer to 3
+{Pointer}	(1,   2,  0,  10,	20,	-1, 20),		//	Use the same values as 'unsigned'
+{Int8}	  (30,  10, 30, 0,	10,	-1, 30),		//If SignCombine is set for an operator:
+{Integer}	(10,  3,  10, 1,	0,	-1, 10),		//	If either parameter is signed, set Byte to Integer to 1
+{Unused}  (-1,  -1, -1, -1, -1, -1, -1),
+{Real}	  (4,   4,  4,  4,	4,	-1, 0));    //**This is handled in code in GetFitnessTypeType
+
+//NOTE: FINAL VALUES TODO
+const FitnessNumberRangeVarTypeUnsigned:
+  array[vtWord..vtReal,low(TNumberRange)..high(TNumberRange)] of Integer =
+//	From. This axis is the parameter type. Other is primitive argument type
+//To	NR_Real	S16	S8	Any	S16U8	S16U16	U16
+{Word}	  ((10,	10,	20,	1,	1,	0,	0),
+{Byte}	  (30,	20,	10,	0,	0,	10,	20),
+{Pointer}	(10,	10,	20,	1,	1,	0,	0),
+{Int8}	  (40,	30,	0,	0,	10,	20,	30),
+{Integer}	(20,	0,	1,	2,	2,	1,	10),
+{Unused}  (-1,  -1, -1, -1, -1, -1, -1),
+{Real}	  (0,	  4,	4,	4,	4,	4,	4));
+
+//NOTE: FINAL VALUES TODO
+const FitnessNumberRangeVarTypeSigned:
+  array[vtWord..vtReal,low(TNumberRange)..high(TNumberRange)] of Integer =
+//	From. This axis is the parameter type. Other is primitive argument type
+//To	NR_Real	S16	S8	Any	S16U8	S16U16	U16
+{Word}	  ((10,	10,	20,	2,	2,	1,	0),
+{Byte}	  (30,	20,	10,	0,	0,	10,	20),
+{Pointer}	(10,	10,	20,	2,	2,	1,	0),
+{Int8}	  (40,	30,	0,	0,	10,	20,	30),
+{Integer}	(20,	0,	1,	1,	1,	0,	10),
+{Unused}  (-1,  -1, -1, -1, -1, -1, -1),
+{Real}	  (0,	  4,	4,	4,	4,	4,	4));
+
+//See the PrimSelection.xlsx spreadsheet for calculations, validations, and notes
+//on the above fitness values.
+
+//Assesses the compatibility level between the code (variable) type and primitive's
+//parameter type.
+//  <0: totally incompatible
+//   0: exact match
+//1..9: data will need to be expanded. The lower the number the less costly the
+//      expansion
+//>=10: data will need to be shrunk - note all values in the original type can
+//      be represented in the target type. Values will need to be validated
+//      (if validation is enabled). Result may fail (run-time error) or be incorrect
+//      The higher the value the greater the incompatibility
+
+//CodeType is the Type of the value (from a variable)
+//PrimType is the type of the primitive's argument
+//Signed should be true if SignCombine is set for the operator AND the other parameter
+//is a signed type[1].
+//Signed should be false in all other cases.
+//[1] If the other parameter is a constant it's type should be established (via
+//GetFitnessTypeRange) before calling this function
+function GetFitnessTypeType(CodeType, PrimType: TVarType;Signed: Boolean): Integer;
+begin
+  if IsNumericType(CodeType) then
+  begin
+    if not IsNumericType(PrimType) then
+      Result := -1
+    else
+      if Signed and (CodeType = vtByte) and (PrimType = vtInteger) then
+        Result := 1
+      else
+        Result := FitnessVarTypeVarType[PrimType, CodeType];
+  end
+  else
+    if CodeType = PrimType then
+      Result := 0
+    else
+      Result := -1;
+end;
+
+//As GetFitnessTypeType but where the parameter is a constant AND a numerical type
+function GetFitnessTypeRange(CodeRange: TNumberRange; PrimType: TVarType;Signed: Boolean): Integer;
+begin
+  //Ranges only apply to numeric types
+  if not IsNumericType(PrimType) then
+    EXIT(-1);
+
+  if Signed then
+    Result := FitnessNumberRangeVarTypeSigned[PrimType, CodeRange]
+  else
+    Result := FitnessNumberRangeVarTypeUnsigned[PrimType, CodeRange];
+end;
+
+type TPrimSearchRec = record
+    Op: TOperator;
+    GenTime: Boolean; //Are we code generating? If so does deeper matching.
+                      //Parse time only needs to know a routine is available.
+                      //CodeGen time needs to select the exact routine
+    ILItem: PILItem;  //Only required at code gen time
+
+    IsSigned: Boolean;  //Use signed fitness values
+    IsPointer: Boolean; //Use pointer fitness values (i.e. unsigned)
+
+    LType: TVarType;
+    LIsRange: Boolean;
+    LRange: TNumberRange;
+    LKind: TILParamKind;
+    LStorage: TVarStorage;
+
+    RType: TVarType;
+    RIsRange: Boolean;
+    RRange: TNumberRange;
+    RKind: TILParamKind;
+    RStorage: TVarStorage;
+
+    MatchResultType: TVarType;  //Match if <> vtUnknown
+    ResultType: TVarType;
+
+    PrimIndex: Integer;
+    SwapParams: Boolean;
+  end;
+
+function CalcTypeFitness(const SearchRec: TPrimSearchRec;Prim: PPrimitiveNG;Swap: Boolean): Integer;
+var
+  Fitness: Integer;
+  Signed: Boolean;
+begin
+  Signed := SearchRec.IsSigned;// and not SearchRec.IsPointer;
+
+  if Swap then
+  begin
+    if SearchRec.LIsRange then
+      Fitness := GetFitnessTypeRange(SearchRec.LRange, Prim.RType, Signed)
+    else
+      Fitness := GetFitnessTypeType(SearchRec.LType, Prim.RType, Signed);
+  end
+  else
+  begin
+    if SearchRec.LIsRange then
+      Fitness := GetFitnessTypeRange(SearchRec.LRange, Prim.LType, Signed)
+    else
+      Fitness := GetFitnessTypeType(SearchRec.LType, Prim.LType, Signed);
+  end;
+  if Fitness < 0 then
+    EXIT(-1);
+  Result := Fitness;
+
+  if Swap then
+  begin
+    if SearchRec.RIsRange then
+      Fitness := GetFitnessTypeRange(SearchRec.RRange, Prim.LType, Signed)
+    else
+      Fitness := GetFitnessTypeType(SearchRec.RType, Prim.LType, Signed);
+  end
+  else
+  begin
+    if SearchRec.RIsRange then
+      Fitness := GetFitnessTypeRange(SearchRec.RRange, Prim.RType, Signed)
+    else
+      Fitness := GetFitnessTypeType(SearchRec.RType, Prim.RType, Signed);
+  end;
+  if Fitness < 0 then
+    EXIT(-1);
+
+  Result := Result + Fitness;
+
+  if SearchRec.MatchResultType <> vtUnknown then
+  begin
+    Fitness := GetFitnessTypeType(SearchRec.MatchResultType, Prim.ResultType, SearchRec.IsSigned);
+    if Fitness < 0 then
+      EXIT(-1);
+    Result := Result + Fitness;
+  end;
+end;
+
+function CalcFitness(const SearchRec: TPrimSearchRec;Prim: PPrimitiveNG;Swap: Boolean): Integer;
+begin
+  Result := CalcTypeFitness(SearchRec, Prim, Swap);
+  if Result = -1 then
+    EXIT;
+  //We want a pointer result so bias the result against signed result types
+  if SearchRec.IsPointer then
+  begin
+    if IsSignedType(Prim.ResultType) then
+      Result := Result + 10;
+  end
+  else if SearchRec.IsSigned then
+    if not IsSignedType(Prim.ResultType) then
+      Result := Result + 10;
+
+  //Validate any other param compatibility issues
+  if SearchRec.GenTime then
+  begin
+    if Swap then
+    begin
+      if not ParamRegMatch(Prim, Prim.LRegs, SearchRec.RKind, SearchRec.RStorage) then
+        EXIT(-1);
+      if (Prim.RType <> vtUnknown) and
+        not ParamRegMatch(Prim, Prim.RRegs, SearchRec.LKind, SearchRec.LStorage) then
+        EXIT(-1);
+    end
+    else
+    begin
+      if not ParamRegMatch(Prim, Prim.LRegs, SearchRec.LKind, SearchRec.LStorage) then
+        EXIT(-1);
+      if (Prim.RType <> vtUnknown) and
+        not ParamRegMatch(Prim, Prim.RRegs, SearchRec.RKind, SearchRec.RStorage) then
+        EXIT(-1);
+    end;
+
+    if not ValidationMatchNG(Prim, SearchRec.ILItem) then
+      EXIT(-1);
+    if not DestMatch(Prim, SearchRec.ILItem) then
+      EXIT(-1);
+  end;
+end;
+
+function PrimSearch(var SearchRec: TPrimSearchRec): Boolean;
+var
+  Fitness: Integer;
+  Index: Integer;
+  BestFitness: Integer;
+  BestIndex: Integer;
+  SwapParams: Boolean;
+  Prim: PPrimitiveNG;
+begin
+  BestFitness := MaxInt;
+  BestIndex := -1;
+  SwapParams := False;
+
+  //First entry for this operator
+  Index := Operations[SearchRec.Op].FirstPrimIndex;
+
+  SearchRec.SwapParams := False;
+  while (Index < PrimListNG.Count) and (PrimListNG[Index].Op = SearchRec.Op)
+    and (BestFitness <> 0) do
+  begin
+    Prim := PrimListNG[Index];
+
+    SearchRec.ResultType := Prim.ResultType;
+    //TODO: Parameterised operators (how??)
+
+    Fitness := CalcFitness(SearchRec, Prim, False);
+    if (Fitness >= 0) and (Fitness < BestFitness) then
+    begin
+      BestFitness := Fitness;
+      BestIndex := Index;
+      SwapParams := False;
+    end;
+
+    if Prim.Commutative then
+    begin
+      Fitness := CalcFitness(SearchRec, Prim, True);
+      if (Fitness >= 0) and (Fitness < BestFitness) then
+      begin
+        BestFitness := Fitness;
+        BestIndex := Index;
+        SwapParams := True;
+      end;
+    end;
+
+    Inc(Index);
+  end;
+  SearchRec.PrimIndex := BestIndex;
+  Prim := PrimListNG[SearchRec.PrimIndex];
+  if Prim.ResultTypeIsLType then
+    SearchRec.ResultType := SearchRec.LType
+  else if Prim.ResultTypeIsRType then
+    SearchRec.ResultType := SearchRec.RType
+  else
+    SearchRec.ResultType := Prim.ResultType;
+  SearchRec.LType := Prim.LType;
+  SearchRec.RType := Prim.RType;
+
+  SearchRec.SwapParams := SwapParams;
+  Result := BestFitness < MaxInt;
+end;
+
+function PrimFindParse(Op: TOperator;const Left, Right: TExprSlug;
+  out LeftType, RightType: TVarType;var ResultType: TVarType): Boolean;
+var SearchRec: TPrimSearchRec;
+begin
+//  Assert(ResultType = vtUnknown, 'Can''t search by ResultType yet');
+  SearchRec.Op := Op;
+  SearchRec.GenTime := False;
+  //Fields not used for parse-time searches.
+  SearchRec.ILItem := nil;
+  SearchRec.LStorage := vsStack;  //Don't care at parse time
+  SearchRec.RStorage := vsStack;  //Don't care at parse time
+
+  SearchRec.MatchResultType := ResultType;
+
+  SearchRec.LType := Left.ResultType;
+  if Left.ILItem <> nil then
+    SearchRec.LKind := pkVar
+  else
+    SearchRec.LKind := Left.Operand.Kind;
+
+  SearchRec.RType := Right.ResultType;
+  if Right.ILItem <> nil then
+    SearchRec.RKind := pkVar
+  else
+    SearchRec.RKind := Right.Operand.Kind;
+
+  SearchRec.LIsRange := (SearchRec.LKind = pkImmediate) and IsNumericType(SearchRec.LType);
+  if SearchRec.LIsRange then
+    SearchRec.LRange := IntToNumberRange(Left.Operand.immValueInt);
+
+  SearchRec.RIsRange := (SearchRec.RKind = pkImmediate) and IsNumericType(SearchRec.RType);
+  if SearchRec.RIsRange then
+    SearchRec.RRange := IntToNumberRange(Right.Operand.immValueInt);
+
+  if Operations[Op].SignCombine then
+  begin
+    Assert(not (SearchRec.LIsRange and SearchRec.RIsRange),'Can''t have both parameters ' +
+      'as immediates - use compile time evaluation for that!');
+
+    if SearchRec.LIsRange then
+      SearchRec.IsSigned := (SearchRec.LRange in SignedRanges) or IsSignedType(SearchRec.RType)
+    else if SearchRec.RIsRange then
+      SearchRec.IsSigned := IsSignedType(SearchRec.LType) or (SearchRec.RRange in SignedRanges)
+    else
+      SearchRec.IsSigned := IsSignedType(SearchRec.LType) or IsSignedType(SearchRec.RType);
+  end
+  else
+    SearchRec.IsSigned := False;
+
+  SearchRec.IsPointer := (not SearchRec.LIsRange and (SearchRec.LType = vtPointer)) or
+    (not SearchRec.RIsRange and (SearchRec.RType = vtPointer));
+
+  {SEARCH}
+  Result := PrimSearch(SearchRec);
+
+  if SearchRec.SwapParams then
+  begin
+    LeftType := SearchRec.RType;
+    RightType := SearchRec.LType;
+  end
+  else
+  begin
+    LeftType := SearchRec.LType;
+    RightType := SearchRec.RType;
+  end;
+  if SearchRec.IsPointer then
+    if SearchRec.ResultType = vtWord then
+      SearchRec.ResultType := vtPointer;
+
+  if (SearchRec.ResultType in [vtReal, vtString]) or (SearchRec.LType in [vtReal, vtString]) or
+    (SearchRec.RType in [vtReal, vtString]) then
+    Assert(False);
+
+  if SearchRec.ResultType = vtFlag then
+    ResultType := vtBoolean
+  else
+    ResultType := SearchRec.ResultType;
+end;
+
+function PrimFindParseUnary(Op: TOperator;const Left: TExprSlug;
+  out LeftType: TVarType;var ResultType: TVarType): Boolean;
+var SearchRec: TPrimSearchRec;
+begin
+  SearchRec.Op := Op;
+  SearchRec.GenTime := False;
+  //Fields not used for parse-time search. This stops the compiler warnings.
+  SearchRec.LKind := pkVar;
+  SearchRec.RKind := pkVar;
+  SearchRec.LStorage := vsStack;
+  SearchRec.RStorage := vsStack;
+  SearchRec.ILItem := nil;
+
+  SearchRec.MatchResultType := ResultType;
+
+  SearchRec.LType := Left.ResultType;
+  if Left.ILItem <> nil then
+    SearchRec.LKind := pkVar
+  else
+    SearchRec.LKind := Left.Operand.Kind;  SearchRec.RType := vtUnknown;
+
+  SearchRec.LIsRange := (SearchRec.LKind = pkImmediate) and IsNumericType(SearchRec.LType);
+  if SearchRec.LIsRange then
+    SearchRec.LRange := IntToNumberRange(Left.Operand.immValueInt);
+  SearchRec.RIsRange := False;
+
+  if SearchRec.LIsRange then
+    SearchRec.IsSigned := SearchRec.LRange in SignedRanges
+  else
+    SearchRec.IsSigned := IsSignedType(SearchRec.LType);
+  SearchRec.IsPointer := not SearchRec.LIsRange and (SearchRec.LType = vtPointer);
+
+  Result := PrimSearch(SearchRec);
+
+  LeftType := SearchRec.LType;
+  if (SearchRec.ResultType in [vtReal, vtString]) or (SearchRec.LType in [vtReal, vtString]) or
+    (SearchRec.RType in [vtReal, vtString]) then
+    Result := False;
+
+  if SearchRec.IsPointer and (SearchRec.ResultType = vtWord) then
+    ResultType := vtPointer
+  else if SearchRec.ResultType = vtFlag then
+    ResultType := vtBoolean
+  else
+    ResultType := SearchRec.ResultType;
+end;
+
 //Matching Primitives
 //Match operands by expanding as per ParseTime matching.
 //Once we've established the LType and RType we can match on the other parameters:
@@ -595,11 +700,18 @@ var
   V: PVariable;
 begin
   SearchRec.Op := ILItem.Op;
+  SearchRec.PrimIndex := -1;
+  SearchRec.GenTime := True;
+  SearchRec.ILItem := @ILItem;
 //Establish Ranges, for Constants and Variable
   //Deduce the initial types to search for
   SearchRec.LType := ILItem.Param1.GetVarType;
+  SearchRec.LIsRange := False;
   SearchRec.RType := ILItem.Param2.GetVarType;
-  SearchRec.IsSigned := IsSignedType(SearchRec.LType) or IsSignedType(SearchRec.RType);
+  SearchRec.RIsRange := False;
+  SearchRec.IsSigned := Operations[ILItem.Op].SignCombine and (IsSignedType(SearchRec.LType) or IsSignedType(SearchRec.RType));
+  SearchRec.IsPointer := Operations[ILItem.Op].SignCombine and ((SearchRec.LType = vtPointer) or (SearchRec.RType = vtPointer));
+  SearchRec.MatchResultType := vtUnknown;
 
   SearchRec.LKind := ILItem.Param1.Kind;
   if SearchRec.LKind = pkVar then
@@ -615,35 +727,15 @@ begin
     SearchRec.RStorage := V.Storage;
   end;
 
-//Convert Ranges to Types (with Primitives available)
-  //Finds first Prim, and expands types as needed to find a match
-  Found := PrimFindTypeMatch(SearchRec);
-
-  //Iterate entries
-  while Found do
+  if PrimSearch(SearchRec) then
   begin
-    Prim := PrimListNG[SearchRec.PrimIndex];
-
-    if ValidationMatchNG(Prim, ILItem) then
-      if ILItem.DestType = dtCondBranch then
-      begin
-        if Prim.ResultType in [vtBoolean, vtFlag] then
-        begin
-          SwapParams := SearchRec.SwapParams;
-          EXIT(Prim);
-        end;
-      end
-      else if DestRegMatch(Prim, ILItem.Dest) then
-      begin
-        SwapParams := SearchRec.SwapParams;
-        EXIT(Prim);
-      end;
-
-    Found := PrimSearch(SearchRec);
-  end;
-
-  Result := nil;
+    Result := PrimListNG[SearchRec.PrimIndex];
+    SwapParams := SearchRec.SwapParams;
+  end
+  else
+    Result := nil;
 end;
+
 
 //================================OG Prim searching and matching (and other stuff)
 
@@ -1087,7 +1179,12 @@ begin
             raise Exception.Create('Unknown RType: ' + Fields[fNGRType]);
         end;
         Prim.Commutative := StringToBoolean(Fields[fNGCommutative]);
-        if CompareText(Fields[fNGResultType], 'None') = 0 then
+
+        Prim.ResultTypeIsLType := CompareText(Fields[fNGResultType], 'LType') = 0;
+        Prim.ResultTypeIsRType := CompareText(Fields[fNGResultType], 'RType') = 0;
+        if Prim.ResultTypeIsLType or Prim.ResultTypeIsRType then
+          Prim.ResultType := vtUnknown
+        else if CompareText(Fields[fNGResultType], 'None') = 0 then
           Prim.ResultType := vtUnknown
         else
         begin

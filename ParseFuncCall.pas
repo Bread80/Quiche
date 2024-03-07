@@ -157,59 +157,63 @@ begin
 end;
 
 function DispatchIntrinsic(Func: PFunction;var Slugs: TSlugArray;out Slug: TExprSlug): TQuicheError;
-var LType: TVarType;
-  LRange: TNumberRange;
-  LIsRange: Boolean;
-  RRange: TNumberRange;
-  RIsRange: Boolean;
-  RType: TVarType;
+var
+  I: Integer;
+  ResultType: TVarType;
+  ResultTypeDebug: TVarType; //Only used for error messaging
   Found: Boolean;
+  LType: TVarType;
+  RType: TVarType;
   Msg: String;
-  Value: Integer;
   V: PVariable;
 begin
-  RType := vtUnknown;
-  LType := vtUnknown;
-  LIsRange := False;
-  RIsRange := False;
-  if Func.ParamCount >= 1 then
-
-    if IsNumericType(Slugs[0].ResultType) and
-      not Assigned(Slugs[0].ILItem) and (Slugs[0].Operand.Kind = pkImmediate) then
-    begin
-      LRange := IntToNumberRange(Slugs[0].Operand.ImmValueInt);
-      LIsRange := True;
-    end
-    else
-      LType := Slugs[0].ResultType;
-  if Func.ParamCount = 2 then
-    if IsNumericType(Slugs[0].ResultType) and
-      not Assigned(Slugs[1].ILItem) and (Slugs[1].Operand.Kind = pkImmediate) then
-    begin
-      RRange := IntToNumberRange(Slugs[1].Operand.ImmValueInt);
-      RIsRange := True;
-    end
-    else
-      RType := Slugs[1].ResultType;
-
   Slug.Initialise;
-  if LIsRange then
-    if RIsRange then
-      Found := PrimFindBestMatchRangeRange(Func.Op, LType, RType, LRange, RRange, Slug.ResultType)
-    else
-      Found := PrimFindBestMatchRangeVar(Func.Op, LType, RType, LRange, Slug.ResultType)
-  else //Not LIsRange
-    if RIsRange then
-      Found := PrimFindBestMatchVarRange(Func.Op, LType, RType, RRange, Slug.ResultType)
-    else
-      Found := PrimFindBestMatchVarVar(Func.Op, LType, RType, Slug.ResultType);
+
+  ResultType := vtUnknown;
+  //Solidify a paramaterized intrinsic:
+  //If ResultType is specified as Parameterized it's type is given via a parameter
+  //of type TypeDef. We need to find that parameter and 'solidify' the type of both
+  //that parameter and the result to the compile time value of that TypeDef parameter.
+  if Func.ResultCount > 0 then
+  begin
+    if (Func.Params[Func.ParamCount].VarType = vtUnknown) and
+      (Func.Params[Func.ParamCount].SuperType = stParameterized) then
+      for I := 0 to Func.ParamCount-1 do
+        if Func.Params[I].VarType = vtTypeDef then
+        begin
+          Assert((Slugs[I].ILItem = nil) and (Slugs[I].Operand.Kind = pkImmediate));
+          //Update the Result Type of the slug
+          ResultType := Slugs[I].Operand.ImmValueInt;
+          Slugs[I].ResultType := ResultType;
+          //Convert the TypeDef value to be the type. The actual value is ignored and irrelevent
+          Slugs[I].Operand.ImmType := ResultType;
+          //Prim search plays havoc with constants. Here we force the Range value
+          if IsSignedType(ResultType) then
+            Slugs[I].Operand.ImmValueInt := GetMinValue(ResultType)
+          else
+            Slugs[I].Operand.ImmValueInt := GetMaxValue(ResultType)
+        end;
+  end;
+  ResultTypeDebug := ResultType;
+
+  if Func.ParamCount = 1 then
+    Found := PrimFindParseUnary(Func.Op, Slugs[0], LType, ResultType)
+  else //2 params
+    Found := PrimFindParse(Func.Op, Slugs[0], Slugs[1], LType, RType, ResultType);
+  Slug.ResultType := ResultType;
+
   if not Found then
   begin
     Msg := VarTypeToName(Slugs[0].ResultType);
     if RType <> vtUnknown then
       Msg := Msg + ', ' + VarTypeToName(Slugs[1].ResultType);
-    EXIT(errFuncCall('Invalid argument types for function ''' + Func.Name + ''': (' + Msg + ')', Func));
+    Msg := '(' + Msg + ')';
+    if ResultTypeDebug <> vtUnknown then
+      Msg := Msg + ': ' + VarTypeToName(ResultTypeDebug);
+
+    EXIT(errFuncCall('Couldn''t find a primitive with matching argument types: ''' + Func.Name + Msg + '''', Func));
   end;
+  Slug.ResultType := ResultType;
   Slug.ImplicitType := Slug.ResultType;
 
   //Check for, and evaluate, contant expressions

@@ -361,6 +361,7 @@ begin
       else
         Result := 'True';
     vtChar: Result := chr(ImmValueInt);
+    vtTypeDef: Result := VarTypeToName(ImmValueInt);
   else
     Assert(False);
   end;
