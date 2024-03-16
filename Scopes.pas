@@ -43,6 +43,9 @@ type
     AsmCode: TStringList;  //Assembly code for Code segment for this scope (from CodeGen)
     AsmData: TStringList;   //Assembly code for Data segment (from CodeGen)
     ILList: TILList;
+
+    //Returns the storage type for local variables
+    function GetLocalStorage: TVarStorage;
   end;
 
 //Only to be used with caution!!
@@ -100,7 +103,7 @@ function ScopeSelectByName(Name: String): Boolean;
 
 
 implementation
-uses Generics.Collections, SysUtils;
+uses Generics.Collections, SysUtils, Globals;
 
 var
   MainScope: PScope;    //Scope for the program itself/highest level
@@ -280,6 +283,16 @@ begin
     end;
 
   Result := False;
+end;
+
+{ TScope }
+
+function TScope.GetLocalStorage: TVarStorage;
+begin
+  if Func = nil then
+    Result := optDefaultVarStorage
+  else
+    Result := Func.GetLocalStorage;
 end;
 
 initialization

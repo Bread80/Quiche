@@ -381,23 +381,46 @@
 ;,out,Byte,Char,n,None,x,,out_n_a,,,imm,a,,,,,,,,Not yet supported (How to differentiate between the two? Compiler option?)
 ,,,,,,,,,,,,,,,,,,,,
 ,peek,Word,Byte,n,Byte,x,,peek8_imm,,,imm,imm,a,,empty,,,,,Param2 is consumed at compile time. We put imm here to fool the Primitive search algorithm
-,peek,Word,Int8,n,Int8,x,,peek8_imm,,,imm,imm,a,,empty,,,,,
-,peek,Word,Byte,n,Byte,x,,peek8_reg16,,,hl,imm,a,,empty,,,,,Code gen can't handle choice of result registers
+,peek,Word,Byte,n,Byte,x,,peek8_reg16,,,hl,imm,a,,empty,,,,,
+,peek,Word,Int8,n,Int8,x,,peek8_imm,,,imm,imm,a,,empty,,,,,Code gen can't handle choice of result registers
 ,peek,Word,Int8,n,Int8,x,,peek8_reg16,,,hl,imm,a,,empty,,,,,Code gen can't handle choice of result registers
 ,peek,Word,Word,n,Word,x,,peek16_imm,,,imm,imm,hl,,empty,,,,,
-,peek,Word,Pointer,n,Pointer,x,,peek16_imm,,,imm,imm,hl,,empty,,,,,
-,peek,Word,Integer,n,Integer,x,,peek16_imm,,,imm,imm,hl,,empty,,,,,
 ,peek,Word,Word,n,Word,x,,peek16_reg16,,,hl,imm,de,hl,empty,,,,,
+,peek,Word,Pointer,n,Pointer,x,,peek16_imm,,,imm,imm,hl,,empty,,,,,
 ,peek,Word,Pointer,n,Pointer,x,,peek16_reg16,,,hl,imm,de,hl,empty,,,,,
+,peek,Word,Integer,n,Integer,x,,peek16_imm,,,imm,imm,hl,,empty,,,,,
 ,peek,Word,Integer,n,Integer,x,,peek16_reg16,,,hl,imm,de,hl,empty,,,,,
-,peek,Word,Boolean,n,Boolean,x,,peek8_imm,,,imm,imm,a,,,,,,,
+,peek,Word,Boolean,n,Boolean,x,,peek8_imm,,,imm,imm,a,,empty,,,,,
+,peek,Word,Boolean,n,Boolean,x,,peek8_reg16,,,hl,imm,a,,empty,,,,,
 ,peek,Word,Char,n,Char,x,,peek8_imm,,,imm,imm,a,,empty,,,,,
+,peek,Word,Char,n,Char,x,,peek8_reg16,,,hl,imm,a,,empty,,,,,
 ,,,,,,,,,,,,,,,,,,,,
+,poke,Word,Byte,n,None,x,,poke_imm_a,,,imm,a,,,,,,,,
+,poke,Word,Byte,n,None,x,,poke_hl_imm8,,,hl,imm,,,,,,,,
+,poke,Word,Byte,n,None,x,,poke_hl_reg8,,,hl,a;b;c;d;e;h;l,,,,,,,,
+,poke,Word,Int8,n,None,x,,poke_imm_a,,,imm,a,,,,,,,,
+,poke,Word,Int8,n,None,x,,poke_hl_imm8,,,hl,imm,,,,,,,,
+,poke,Word,Int8,n,None,x,,poke_hl_reg8,,,hl,a;b;c;d;e;h;l,,,,,,,,
+,poke,Word,Word,n,None,x,load_rp_low,poke_imm_a,,,imm,a,,,,,,,,
+,poke,Word,Integer,n,None,x,load_rp_low,poke_imm_a,,,imm,a,,,,,,,,
+,poke,Word,Word,n,None,x,,poke_hl_imm8,,,hl,imm,,hl,,,,,,
+,poke,Word,Integer,n,None,x,,poke_hl_imm8,,,hl,imm,,hl,,,,,,
+,poke,Word,Word,n,None,x,load_rp_low,poke_hl_reg8,,,hl,e;d;c;b;a,,hl,,,,,,
+,poke,Word,Integer,n,None,x,load_rp_low,poke_hl_reg8,,,hl,e;d;c;b;a,,hl,,,,,,
+,poke,Word,Boolean,n,None,x,,poke_imm_a,,,imm,a,,,,,,,,
+,poke,Word,Boolean,n,None,x,,poke_hl_imm8,,,hl,imm,,,,,,,,
+,poke,Word,Boolean,n,None,x,,poke_hl_reg8,,,hl,a;b;c;d;e;h;l,,,,,,,,
+,poke,Word,Char,n,None,x,,poke_imm_a,,,imm,a,,,,,,,,
+,poke,Word,Char,n,None,x,,poke_hl_imm8,,,hl,imm,,,,,,,,
+,poke,Word,Char,n,None,x,,poke_hl_reg8,,,hl,a;b;c;d;e;h;l,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,
+,pred,Byte,None,n,None,x,,proc_dec8_reg,,,a;b;c;d;e;h;l,,param1,f,empty,,,,,No overflow checking
+,pred,Int8,None,n,None,x,,proc_dec8_reg,,,a;b;c;d;e;h;l,,param1,f,empty,,,,,No overflow checking
+,pred,Word,None,n,None,x,,proc_dec16_reg,,,hl;de;bc,,param1,,empty,,,,,No overflow checking
+,pred,Pointer,None,n,None,x,,proc_dec16_reg,,,hl;de;bc,,param1,,empty,,,,,No overflow checking
+,pred,Integer,None,n,None,x,,proc_dec16_reg,,,hl;de;bc,,param1,,empty,,,,,No overflow checking
+,pred,Boolean,None,n,None,x,,proc_dec8_reg,,,hl;de;bc,,param1,f,empty,,,,,No overflow checking
+,pred,Char,None,n,None,x,,proc_dec8_reg,,,hl;de;bc,,param1,f,empty,,,,,No overflow checking
 END,,,,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,
 ;,,,,,,Procedures,,Register options available,,,,,Special validations on type conversion,,,,,,,

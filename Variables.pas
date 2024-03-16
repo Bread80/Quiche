@@ -87,12 +87,12 @@ procedure VarRollback;
 //-----------Creating
 
 //Creates a new, uniquely named variable. If a variable with that name already exists
-//returns nil
-function VarCreate(AName: String;VarType: TVarType;Storage: TVarStorage): PVariable;
+//returns nil. Uses storage type for current Scope (and/or Func)
+function VarCreate(AName: String;VarType: TVarType): PVariable;
 //Creates a variable with no name. The name *must* be assigned as soon as they
 //are known.
-function VarCreateUnknown(VarType: TVarType;Storage: TVarStorage): PVariable;
-function VarCreateHidden(VarType: TVarType;Storage: TVarStorage): PVariable;
+function VarCreateUnknown(VarType: TVarType): PVariable;
+function VarCreateHidden(VarType: TVarType): PVariable;
 //Creates a parameter for a function. Sets the access specifier and also
 //initialises the stack offset (if Storage is vsRelative)
 function VarCreateParameter(AName: String;VarType: TVarType;Storage: TVarStorage;
@@ -299,30 +299,36 @@ begin
 }  Vars.Add(Result);
 end;
 
-function VarCreateHidden(VarType: TVarType;Storage: TVarStorage): PVariable;
+function VarCreateHidden(VarType: TVarType): PVariable;
 begin
-  Result := VarCreateInt('',VarType, Storage);
+  Result := VarCreateInt('',VarType, GetCurrentScope.GetLocalStorage);
 //  Result.SetName('%'+IntToStr(Index));
 end;
 
-function VarCreate(AName: String;VarType: TVarType;Storage: TVarStorage): PVariable;
+function VarCreate(AName: String;VarType: TVarType): PVariable;
 begin
   Assert(AName <> '');
   if VarFindByNameInScope(AName) <> nil then
     Result := nil
   else
-    Result := VarCreateInt(AName, VarType, Storage);
+    Result := VarCreateInt(AName, VarType, GetCurrentScope.GetLocalStorage);
 end;
 
-function VarCreateUnknown(VarType: TVarType;Storage: TVarStorage): PVariable;
+function VarCreateUnknown(VarType: TVarType): PVariable;
 begin
-  Result := VarCreateInt('', VarType, Storage);
+  Result := VarCreateInt('', VarType, GetCurrentScope.GetLocalStorage);
 end;
 
-
+//Adds a variable for a function parameter. To be called at the beginning of a function
+//declaration.
+//If Storage is vsStack space will be allocated on the stack and the Offset property
+//of the variable initialised (unless Access is vsResult)
+//If Access is vsResult: Results are parsed as local variable to the function. The
+//Offset property for them will be initiated to -1.
 function VarCreateParameter(AName: String;VarType: TVarType;Storage: TVarStorage;
   Access: TVarAccess): PVariable;
-var Offset: Integer;
+var Offset: Integer;  //Offset to the /previous/ stack variable (parameter)
+  PrevIndex: Integer; //Indesx of last Parameter added to the variable list
 begin
   //If variable is being stored on the stack we need to ascertain the offset of
   //the variable from SP. Otherwise we set offset to -1 to signify no offset has
@@ -330,18 +336,27 @@ begin
   if (Storage = vsStatic) or (Access = vaResult) then
     Offset := -1
   else  //vsRelative
-    if Vars.Count = 0 then  //First parameter
+  begin
+    //Get index of the last parameter which has already been added as a variable.
+    //We need to ignore any Result parameters, so step backwards through Vars
+    PrevIndex := Vars.Count-1;
+    while (PrevIndex >= 0) and (Vars[PrevIndex].Access = vaResult) do
+      dec(PrevIndex);
+
+    if PrevIndex < 0 then
+      //This is the first parameter to be added
       Offset := iStackOffsetForFirstParam
     else
     begin
-      Offset := Vars[Vars.Count-1].Offset;
+      Offset := Vars[PrevIndex].Offset;
       //Offsets for 'regular' variables are assigned later. Offsets for parameters
       //are assigned here. If previous variable does not have an offset assigned we have a bug.
       Assert(Offset <> -1,'Adding a parameter variable, but previous variable is NOT a parameter variable');
-      Offset := Offset + GetTypeSize(Vars[Vars.Count-1].VarType);
+      Offset := Offset + GetTypeSize(Vars[PrevIndex].VarType);
     end;
+  end;
 
-  Result := VarCreate(AName, VarType, Storage);
+  Result := VarCreateInt(AName, VarType, Storage);
   Result.Offset := Offset;
   Result.Access := Access;
 end;
@@ -359,14 +374,49 @@ begin
   VarType := VType;
 end;
 
+function VarInList(AVar: PVariable): Boolean;
+var V: PVariable;
+begin
+  for V in Vars do
+    if V = AVar then
+      EXIT(True);
+  Result := False;
+end;
+
+function VarToScope(V: PVariable): PScope;
+var OldScope: PScope;
+  Done: Boolean;
+begin
+  OldScope := GetCurrentScope;
+
+  Result := nil;
+  Done := False;
+  repeat
+    if VarInList(V) then
+    begin
+      Result := GetCurrentScope;
+      Done := True;
+    end
+    else
+      Done := not SetParentScope;
+  until Done;
+
+  SetCurrentScope(OldScope);
+end;
+
 function TVariable.GetAsmName: String;
 var LName: String;
+  Scope: PScope;
 begin
+  //Find the Scope which 'owns' the variable
+  Scope := VarToScope(@Self);
+  Assert(Scope <> nil, 'Scope not found (for variable)');
+
   if Name = '' then
-    LName := 'temp_'+Vars.IndexOf(@Self).ToString
+    LName := '_temp_' + Vars.IndexOf(@Self).ToString
   else
     LName := Name;
-  Result := 'v_' + GetCurrentScope.Name + '_' + LName;
+  Result := 'v_' + Scope.Name + '_' + LName;
 end;
 
 function TVariable.IncWriteCount: Integer;

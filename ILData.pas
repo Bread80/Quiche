@@ -115,7 +115,7 @@ type
                             //operation will be found. From here it can be used in a branch,
                             //store, moved to enother register etc
     procedure SetVarAndSub(AVariable: PVariable; AVarSub: Integer);
-    function CreateAndSetHiddenVar(ResultType: TVarType; Storage: TVarStorage): PVariable;
+//    function CreateAndSetHiddenVar(ResultType: TVarType): PVariable;
 
     function ToVariable: PVariable;
 
@@ -229,6 +229,15 @@ type
 
     Param1: TILParam;       //Data for the first parameter
     Param2: TILParam;       //Data for the second parameter
+
+    //Set the DestType and initialise the relevant fields.
+    //Normally this is done by ILAppend/ILAssert but will be necessary if
+    //changing the DestType or setting it later in the creation process.
+    //Will raise an exception if current DestType <> dtNone
+    procedure SetDestType(ADestType: TDestType);
+    //Creates a hidden variable of the given type, sets it as the Dest,
+    //and sets DestType to dtData using SetDestType
+    function AssignToHiddenVar(VarType: TVarType): PVariable;
 
     procedure SwapParams;   //For Operations. Swap order of Param1 and Param2
     function ToString: String;  //For debugging
@@ -472,18 +481,14 @@ begin
   else
     Result.CodeGenFlags := [];
 
-  Result.DestType := DestType;
+  Result.DestType := dtNone;
+  Result.SetDestType(DestType);
+
   Result.ResultType := rtUnknown;
   Result.Func := nil;
-  if Result.DestType = dtData then
-    Result.Dest.Kind := pkNone;
+
   Result.Param1.Initialise;
   Result.Param2.Initialise;
-
-  if Result.DestType = dtDataLoad then
-    Result.Param3.Initialise
-  else
-    Result.Dest.Reg := rNone;
 end;
 
 function ILAppend(DestType: TDestType;AnOp: TOperator): PILItem;
@@ -515,14 +520,6 @@ begin
   Kind := pkVar;
   Variable := AVariable;
   VarSub := AVarSub;
-end;
-
-function TILDest.CreateAndSetHiddenVar(ResultType: TVarType; Storage: TVarStorage): PVariable;
-begin
-  Kind := pkVar;
-  Result := VarCreateHidden(ResultType, Storage);
-  Variable := Result;
-  VarSub := Result.WriteCount;
 end;
 
 function TILDest.ToVariable: PVariable;
@@ -564,6 +561,42 @@ begin
   end;
 end;
 
+function TILItem.AssignToHiddenVar(VarType: TVarType): PVariable;
+begin
+  SetDestType(dtData);
+  Dest.Kind := pkVar;
+  Result := VarCreateHidden(VarType);
+  Dest.Variable := Result;
+  Dest.VarSub := Result.WriteCount;
+end;
+
+procedure TILItem.SetDestType(ADestType: TDestType);
+begin
+  Assert(DestType = dtNone);
+
+  DestType := ADestType;
+  case ADestType of
+    dtNone: ;
+    dtData:
+    begin
+      Dest.Kind := pkNone;
+      Dest.Reg := rNone;
+    end;
+    dtDataLoad:
+      Param3.Initialise;
+    dtCondBranch:
+    begin
+      BranchReg := rNone;
+      TrueBlockID := -1;
+      FalseBlockID := -1;
+    end;
+    dtBranch:
+      BranchBlockID := -1;
+  else
+    Assert(False);
+  end;
+end;
+
 procedure TILItem.SwapParams;
 var Temp: TILParam;
 begin
@@ -601,6 +634,7 @@ begin
       end;
       if not (Dest.Kind in [pkNone, pkPhiVar]) then
         Result := Result + ':' + OpTypeNames[ResultType];
+      Result := Result + '/' + CPURegStrings[Dest.Reg];
     end;
     dtCondBranch:
     begin

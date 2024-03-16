@@ -452,19 +452,8 @@ begin
   //Setup scope for function
   CreateCurrentScope(Func, Func.Name);
 
-  case Func.CallingConvention of
-{    ccRegister: ;No parameter storage!
-    begin
-      LocalStorage := vsAbsolute;
-    end;
-}    ccStackLocal:
-    begin
-      ParamStorage := vsStack;
-      LocalStorage := vsStack;
-    end;
-  else
-    EXIT(ErrMsg(qeToDo, 'Unknown calling convention'));
-  end;
+  ParamStorage := Func.GetParamStorage;
+  LocalStorage := Func.GetLocalStorage;
 
   //Add Parameters to variables list for the function
   for I := Func.ParamCount + Func.ResultCount - 1 downto 0 do

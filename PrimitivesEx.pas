@@ -248,37 +248,54 @@ end;
 function DestRegMatch(const Prim: PPrimitiveNG;const ILDest: TILDest): Boolean;
 var V: PVariable;
 begin
-  if ILDest.Kind = pkNone then
-    EXIT(True);
+  case ILDest.Kind of
+    pkNone: EXIT(True);
+    pkStack:
+      //TODO: Update this to have more regs available
+      if Prim.ResultInLReg then
+        Result := [rHL,rDE,rBC] * Prim.LRegs <> []
+      else
+        Result := Prim.ResultReg in [rHL, rDE, rBC];
+    pkStackByte:
+      //TODO: Update this to have more regs available
+      if Prim.ResultInLReg then
+        Result := [rA,rB,rD,rH, rZFA,rNZFA,rCPLA] * Prim.LRegs <> []
+      else
+        Result := Prim.ResultReg in [rA,rB,rD,rH, rZFA,rNZFA,rCPLA];
+    pkVar:
+    begin //We need a result suitable for writing to a variable
+//      if ILDest.Kind in [pkVar] then
+      begin
+        if ((Prim.ResultInLReg) and (Prim.LRegs = [rIndirect])) or (Prim.ResultReg = rIndirect) then
+        begin
+          V := ILDest.ToVariable;
+          EXIT(V.Storage = vsStatic);
+        end;
 
-  //We need a result suitable for writing to a variable
-  if ILDest.Kind in [pkVar] then
-  begin
-    if ((Prim.ResultInLReg) and (Prim.LRegs = [rIndirect])) or (Prim.ResultReg = rIndirect) then
-    begin
-      V := ILDest.ToVariable;
-      EXIT(V.Storage = vsStatic);
+        if ((Prim.ResultInLReg) and (Prim.LRegs = [rOffset])) or (Prim.ResultReg = rOffset) then
+        begin
+          V := ILDest.ToVariable;
+          EXIT(V.Storage = vsStack);
+        end;
+
+        //If it's anything else then we can convert it as needed
+        Result := True;
+      end
     end;
-
-    if ((Prim.ResultInLReg) and (Prim.LRegs = [rOffset])) or (Prim.ResultReg = rOffset) then
-    begin
-      V := ILDest.ToVariable;
-      EXIT(V.Storage = vsStack);
-    end;
-
-    //If it's anything else then we can convert it as needed
-    Result := True;
-  end
   else
     Assert(False, 'ToDo (Branches?)');
+  end;
 end;
 
 function DestMatch(Prim: PPrimitiveNG;ILItem: PILItem): Boolean;
 begin
-  if ILItem.DestType = dtCondBranch then
-    Result := Prim.ResultType in [vtBoolean, vtFlag]
+  case ILItem.DestType of
+    dtCondBranch: Result := Prim.ResultType in [vtBoolean, vtFlag];
+    dtData: Result := DestRegMatch(Prim, ILItem.Dest);
+    dtNone: Result := True;
   else
-    Result := DestRegMatch(Prim, ILItem.Dest);
+    Assert(False);
+  end;
 end;
 
 //Fitness values for (<primitive-type>,<code-type>)
@@ -542,6 +559,10 @@ begin
 
     Inc(Index);
   end;
+  Result := BestIndex >= 0;
+  if not Result then
+    EXIT;
+
   SearchRec.PrimIndex := BestIndex;
   Prim := PrimListNG[SearchRec.PrimIndex];
   if Prim.ResultTypeIsLType then
@@ -554,7 +575,6 @@ begin
   SearchRec.RType := Prim.RType;
 
   SearchRec.SwapParams := SwapParams;
-  Result := BestFitness < MaxInt;
 end;
 
 function PrimFindParse(Op: TOperator;const Left, Right: TExprSlug;
@@ -703,7 +723,6 @@ begin
   SearchRec.PrimIndex := -1;
   SearchRec.GenTime := True;
   SearchRec.ILItem := @ILItem;
-//Establish Ranges, for Constants and Variable
   //Deduce the initial types to search for
   SearchRec.LType := ILItem.Param1.GetVarType;
   SearchRec.LIsRange := False;

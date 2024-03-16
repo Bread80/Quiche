@@ -135,7 +135,7 @@ begin
     if Func.Params[ArgIndex].VarType <> vtUnknown then
       Slugs[ArgIndex].Operand.ImmType := Func.Params[ArgIndex].VarType
     else  //SuperTypes - we have an Intrinsic!
-      if Func.Params[ArgIndex].SuperType in [stAnyInteger, stEnumerable] then
+      if Func.Params[ArgIndex].SuperType in [stAnyInteger, stOrdinal] then
         //TODO: This should give a better analysis of the type
         Slugs[ArgIndex].Operand.ImmType := vtInteger;//ValueToVarType(Func.Params[ArgIndex].DefaultValueInt);
 
@@ -296,7 +296,7 @@ begin
 
   if Func.Params[0].Access = vaVar then
   begin //Var parameter - result is written back to Param1
-    Slug.ILItem.DestType := dtData;
+    Slug.ILItem.SetDestType(dtData);
     V := Slug.ILItem.Param1.Variable;
     V.IncWriteCount;
     Slug.ILItem.Dest.SetVarAndSub(V, V.WriteCount);
@@ -366,10 +366,7 @@ begin
         begin
           if (InParamCount - InParamsDone) < 3 then
           begin
-            if Func.ResultCount > 0 then
-              ILItem := ILAppend(dtData, OpFuncCall)
-            else
-              ILItem := ILAppend(dtNone, OpFuncCall);
+            ILItem := ILAppend(dtNone, OpFuncCall);
             Result := ILItem; //Pass CALL back in case we're in a function call
             ILItem.Func := Func;
           end
@@ -429,22 +426,23 @@ end;
 function DispatchStack(Func: PFunction;var Slugs: TSlugArray): PILItem;
 var Param: PParameter;
 begin
-  if Func.ResultCount > 0 then
-    Result := ILAppend(dtData, OpFuncCall)
-  else
-    Result := ILAppend(dtNone, OpFuncCall);
+  Result := ILAppend(dtNone, OpFuncCall);
   Result.Func := Func;
 
   //Process return value(s)
   if Func.ResultCount > 0 then
   begin
-    Param := Func.FindResult;
+    //NOTE: Setting Dest data is now the task of the Register allocator
+    //THIS (COMMENTED) CODE TO BE REMOVED
+{    Result.SetDestType(dtData);
     case GetTypeSize(Param.VarType) of
       1: Result.Dest.Reg := rA;   //Byte params returned in A
       2: Result.Dest.Reg := rHL;  //2 byte params returned in HL
     else
       Assert(False, 'Uncoded result type');
     end;
+}
+    Param := Func.FindResult;
     Result.ResultType := VarTypeToOpType(Param.VarType);
     Result.OpType := Result.ResultType;
   end;

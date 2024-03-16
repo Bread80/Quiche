@@ -105,7 +105,7 @@ var
   CommandLine: String;
 begin
   //-oa option takes output file path from input file path
-  CommandLine := RASM + ' ' + TPath.GetFullPath(Filename) + ' -oa -s -sa -map';
+  CommandLine := RASM + ' ' + TPath.GetFullPath(Filename) + ' -oa -s -sa -map -eo';
   Result := GetDosOutput(CommandLine, WorkDir);
 
   Result := ExtractMapFile(Filename, Result);

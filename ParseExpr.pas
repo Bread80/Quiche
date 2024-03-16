@@ -83,8 +83,7 @@ uses SysUtils, Variables, ParserBase, Eval, Globals, Scopes, ParseIntrinsics,
 procedure TExprSlug.AssignToHiddenVar;
 begin
   Assert(ILItem <> nil);
-  ILItem.DestType := dtData;
-  Operand.SetVariable(ILItem.Dest.CreateAndSetHiddenVar(ResultType, optDefaultVarStorage));
+  Operand.SetVariable(ILItem.AssignToHiddenVar(ResultType));
 end;
 
 procedure TExprSlug.Initialise;
@@ -112,15 +111,17 @@ end;
 function TExprSlug.ToILItemNoDest(ADestType: TDestType): PILItem;
 begin
   if ILItem <> nil then
-    Result := ILItem
+  begin
+    Result := ILItem;
+    Result.SetDestType(ADestType);
+  end
   else
   begin
-    Result := ILAppend(dtNone, opUnknown);
+    Result := ILAppend(ADestType, opUnknown);
     Result.Param1 := Operand;
     Result.OpType := OpType;
     Result.ResultType := OpType;
   end;
-  Result.DestType := ADestType;
 end;
 
 //======================================Parsing literals
@@ -483,7 +484,7 @@ begin
       //assign it to a temp var and use that in our calculations
       Slug.AssignToHiddenVar;
 
-    Slug.ILItem := ILAppend(dtData, Slug.Op);
+    Slug.ILItem := ILAppend(dtNone, Slug.Op);
     Slug.ILItem.Param1 := Slug.Operand;
     Slug.ILItem.Param2.Kind := pkNone;
     Slug.ILItem.OpType := VarTypeToOpType(Slug.ResultType);
@@ -522,9 +523,9 @@ begin
         EXIT;
 
       //If the expression parser generated any IL code
-      if Slug.ILItem <> nil then
+{      if Slug.ILItem <> nil then
         Slug.AssignToHiddenVar;
-
+}
       if Parser.TestChar <> ')' then
         EXIT(Err(qeUnmatchedBrackets));
       Parser.SkipChar;
@@ -653,9 +654,6 @@ end;
 function ParseExprSlug(out Slug: TExprSlug): TQuicheError;
 begin
   Slug.Initialise;
-  Slug.ResultType := vtUnknown;
-  Slug.OpType := rtUnknown;
-  Slug.ILItem := nil;
   Result := ParseOperand(Slug, uoNone);
   if Result <> qeNone then
     EXIT;
@@ -755,6 +753,7 @@ begin
 
     //If the rightslug returned an ILItem then we need to set it's Dest to a temp var
     if Right.ILItem <> nil then
+      if Right.ILItem.DestType = dtNone then
       //We already have an ILItem created. If so, we need to set the Dest to
       //assign it to a temp var and use that in our calculations
       Right.AssignToHiddenVar;
@@ -775,8 +774,7 @@ begin
         //Add sub-expression to IL list
         //with dest as temp data
         //Update right slug for next iteration
-        Right.Operand.SetVariable(ILItem.Dest.CreateAndSetHiddenVar(
-          Left.ResultType, optDefaultVarStorage));
+        Right.Operand.SetVariable(ILItem.AssignToHiddenVar(Left.ResultType));
     end;
 
     EvalType := vtUnknown;
@@ -809,7 +807,7 @@ begin
 
       //Add current operation to list.
       //Dest info will be added by later
-      ILItem := ILAppend(dtData, Left.Op);
+      ILItem := ILAppend(dtNone, Left.Op);
       ILItem.OpType := Left.OpType;
       ILItem.ResultType := VarTypeToOpType(Left.ResultType);
       ILItem.Param1 := Left.Operand;
@@ -832,7 +830,7 @@ begin
       //Add item to IL list
       //with dest as temp data
       //Update slug data...
-      Left.Operand.SetVariable(ILItem.Dest.CreateAndSetHiddenVar(Left.ResultType, optDefaultVarStorage));
+      Left.Operand.SetVariable(ILItem.AssignToHiddenVar(Left.ResultType));
 
       //Right slug operation becomes left slug operation
       Left.Op := Right.Op;
@@ -907,6 +905,7 @@ begin
 
   //If the slug returned an ILItem then we need to set it's Dest to a temp var
   if Slug.ILItem <> nil then
+    if Slug.ILItem.DestType = dtNone then
     //We already have an ILItem created. If so, we need to set the Dest to
     //assign it to a temp var and use that in our calculations
     Slug.AssignToHiddenVar;
@@ -918,8 +917,12 @@ begin
       EXIT;
 
     if Slug.Op <> OpUnknown then
-      Slug.Operand.SetVariable(ILItem.Dest.CreateAndSetHiddenVar(
-        Slug.ResultType, optDefaultVarStorage));
+    begin
+      Slug.Operand.SetVariable(ILItem.AssignToHiddenVar(Slug.ResultType));
+
+//      ILItem.SetDestType(dtData);
+//      Slug.Operand.SetVariable(ILItem.Dest.CreateAndSetHiddenVar(Slug.ResultType));
+    end;
   until Slug.Op = opUnknown;
 
 
@@ -965,7 +968,7 @@ begin
     ILItem := Slug.ILItem
   else
   begin
-    ILItem := ILAppend(dtData, OpUnknown);
+    ILItem := ILAppend(dtNone, OpUnknown);
     ILItem.Param1 := Slug.Operand;
     ILItem.Param2.Kind := pkNone;
   end;

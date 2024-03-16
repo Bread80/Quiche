@@ -90,8 +90,7 @@ end;
 //*after* the expression has been evaluated. If the variable is created before
 //then it will be possible to reference the variable within the expression which
 //would, of course, be an bug.
-function ParseAssignmentExpr(var Variable: PVariable;Storage: TVarStorage;
-  VType: TVarType): TQuicheError;
+function ParseAssignmentExpr(var Variable: PVariable;VType: TVarType): TQuicheError;
 var
   ILItem: PILItem;
   VarSub: Integer;
@@ -108,9 +107,9 @@ begin
   if Variable = nil then
   begin
     if VType = vtUnknown then
-      Variable := VarCreateUnknown(Slug.ImplicitType, Storage)
+      Variable := VarCreateUnknown(Slug.ImplicitType)
     else
-      Variable := VarCreateUnknown(VType, Storage);
+      Variable := VarCreateUnknown(VType);
   end;
 
   VarSub := Variable.IncWriteCount;
@@ -123,6 +122,7 @@ begin
         ILItem.Op := OpStoreImm
       else
         ILItem.Op := OpMove;
+    ILItem.SetDestType(dtData);
   end
   else
   begin
@@ -136,7 +136,6 @@ begin
     ILItem.ResultType := VarTypeToOpType(Variable.VarType);
   end;
 
-  ILItem.DestType := dtData;
   ILItem.Dest.SetVarAndSub(Variable, VarSub);
 
 //  if VType <> vtUnknown then
@@ -185,7 +184,7 @@ begin
   begin
     ILItem := Slug.ILItem;
     //Convert item to a branch
-    ILItem.DestType := dtCondBranch;
+    ILItem.SetDestType(dtCondBranch);
     if ILItem.Op in [opUnknown, OpMove, OpStoreImm] then
       ILItem.Op := OpBranch;
   end
@@ -316,7 +315,7 @@ begin
 //    if Variable <> nil then
 //      Result := ParseAssignmentExpr(Variable, VarIndex, Variable.VarType)
 //    else
-      Result := ParseAssignmentExpr(Variable, Storage, VarType);
+      Result := ParseAssignmentExpr(Variable, VarType);
     if Result <> qeNone then
       EXIT;
 
@@ -341,7 +340,7 @@ begin
   end
   else
   begin //Otherwise just create it. Meh. Boring
-    Variable := VarCreate(VarName, VarType, Storage);
+    Variable := VarCreate(VarName, VarType);
     if Variable = nil then
       EXIT(ErrSub(qeVariableRedeclared, VarName));
     Result := qeNone;
@@ -420,7 +419,7 @@ begin
   //Eval TO expression
   EndValue := nil;
   //Parse and create EndValue
-  Result := ParseAssignmentExpr(EndValue, Storage, LoopVar.VarType);
+  Result := ParseAssignmentExpr(EndValue, LoopVar.VarType);
   if Result <> qeNone then
     EXIT;
 

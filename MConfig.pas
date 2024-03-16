@@ -1,3 +1,9 @@
+//IDE configuration
+
+//This file won't be present when compiling for running on device. It should never
+//be 'used' by compiler source
+
+//Settings for the compiler itself are in the Globals unit.
 unit MConfig;
 
 interface

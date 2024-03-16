@@ -4,13 +4,14 @@
 
 TXT_OUTPUT equ $bb5a
 
-org $8000
+org $1000
 __quiche_start:
 	push ix
 				;TODO: Preserve system stack and initialise quiche stack
-	ld ix,$a000	;TEMP: Initial starting point for stack variables
-	pop ix
-	jp __global					;Jump to generated code
+	ld ix,$8000	;TEMP: Initial starting point for stack variables
+	ld sp,ix
+	call __global					;Jump to generated code
+	halt
   
 ;Error codes etc.
 last_error_code: 	;$800a

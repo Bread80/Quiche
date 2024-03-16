@@ -169,6 +169,9 @@
 
 =load_p2r8_abs_a
   ld a,(<p2.varname>)	;$$
+
+=load_p2r8_abslow_a
+  ld a,(<p2.varname>)	;$$
   
 =load_p2r8_abs_via_a
   ld a,(<p2.varname>)	;$$
@@ -190,6 +193,9 @@
 =load_p2r8_rel
   ld <p2.r8>,(ix<p2.offset>)	;$$
 
+=load_p2r8_rellow
+  ld <p2.r8>,(ix<p2.offset>)	;$$
+  
 =load_p2r16_rel
   ld <p2.r16low>,(ix<p2.offsetlow>)	;$$  
   ld <p2.r16high>,(ix<p2.offsethigh>)
@@ -651,3 +657,29 @@
   ld e,(hl)
   inc hl
   ld d,(hl)
+  
+=poke_imm_a
+  ld (<p1.immword>),a
+  
+=poke_hl_imm8
+  ld (hl),<p2.immbyte>
+  
+=poke_hl_reg8
+  ld (hl),<p2.r8>
+
+=poke_hl_reg16low
+  ld (hl),<p2.r16low>
+  
+;!!at pokes, at the moment, are 8 bit
+;=poke_imm_hl
+;  ld (<p1.immword>),hl
+  
+;=poke_hl_imm16
+;  ld (hl),<p2.immwordlow>
+;  inc hl
+;  ld (hl),<p2.immwordhigh>
+  
+;=poke_hl_reg16
+;  ld (hl),<p2.r16low>
+;  inc hl
+;  ld (hl),<p2.r16high>

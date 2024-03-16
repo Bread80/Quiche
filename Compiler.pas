@@ -1,3 +1,10 @@
+//This file gives a 'high level' overview of the compiler, and gives a convenient
+//interface for using it from the IDE.
+//This is not part of the compiler 'proper'. Ie it won't be present in on-device
+//builds.
+//It provides access to the compiler, data structures, code generator, assembler
+//emulator, running (deployments) etc., as well as making errors and error messages
+//easy to access and understand.
 unit Compiler;
 
 interface
@@ -253,6 +260,7 @@ end;
 function Parse(BlockType: TBlockType;ParseType: TParseType): Boolean;
 begin
   LastError := qeNone;
+  try
 
   //Declaration level
   case ParseType of
@@ -272,6 +280,10 @@ begin
       else
         raise Exception.Create('Unknown compile scope in Compiler.Parse');
       end;
+  end;
+  except
+    on E:Exception do
+      LastError := ErrMsg(qeBUG, 'BUG (Exception/Assertion):'+#13+E.Message);
   end;
 
   LastErrorNo := Integer(LastError);
@@ -388,10 +400,10 @@ begin
     end;
 
     Shell.Emulate(Deploy.Run, 'C:\');
-
+{
     WriteBuffer :=  Variables.LoadVarsFromMemoryDump(TPath.Combine(OutputFolder, scRAMDump),
       StackBase - StackFrameSize, RunTimeError, RunTimeErrorAddress);
-  end;
+}  end;
 
   Result := True;
 end;

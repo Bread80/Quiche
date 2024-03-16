@@ -93,6 +93,9 @@ type
     //If none is found raises an exception
     function FindResult: PParameter;
 
+    //Returns variable storage (specified by the calling convention)
+    function GetParamStorage: TVarStorage;
+    function GetLocalStorage: TVarStorage;
 
     //Returns the assembly instruction to call this function.
     //(Could be a CALL or an RST, or something fancier).
@@ -318,6 +321,32 @@ begin
     Result := 'call _' + Name
   else
     raise exception.Create('GetCallInstruction: Dispatch type not implemented yet');
+end;
+
+function TFunction.GetLocalStorage: TVarStorage;
+begin
+  case CallingConvention of
+{    ccRegister: ;No parameter storage!
+    begin
+      LocalStorage := vsAbsolute;
+    end;
+}    ccStackLocal: Result := vsStack;
+  else
+    Assert(False);
+  end;
+end;
+
+function TFunction.GetParamStorage: TVarStorage;
+begin
+  case CallingConvention of
+{    ccRegister: ;No parameter storage!
+    begin
+      LocalStorage := vsAbsolute;
+    end;
+}    ccStackLocal: Result := vsStack;
+  else
+    Assert(False);
+  end;
 end;
 
 function TFunction.ToString: String;

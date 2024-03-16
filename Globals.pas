@@ -1,3 +1,4 @@
+//Globals data and current settings for the compiler.
 unit Globals;
 
 interface

@@ -16,7 +16,7 @@ const
 //Used in data file for Intrinsics
 type TSuperType = (
   stParameterized,  //Actual type is given by a TypeDef parameter
-  stAny, stNumeric, stAnyInteger, stEnumerable);
+  stAny, stNumeric, stAnyInteger, stOrdinal);
 
 function StringToSuperType(const S: String;out Super: TSuperType): Boolean;
 function SuperTypeToString(Super: TSuperType): String;
@@ -187,7 +187,7 @@ implementation
 uses SysUtils, Globals;
 
 const SuperTypeNames: array[low(TSuperType)..high(TSuperType)] of String = (
-  'Parameterized', 'Any', 'Numeric', 'AnyInteger', 'Enumerable');
+  'Parameterized', 'Any', 'Numeric', 'AnyInteger', 'Ordinal');
 
 function StringToSuperType(const S: String;out Super: TSuperType): Boolean;
 var LSuper: TSuperType;
