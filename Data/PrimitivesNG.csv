@@ -429,7 +429,9 @@
 ,pred,Char,Integer,n,Char,n,,proc_dec8_reg,,,a;b;c;d;e;h;l,imm,param1,f,empty,,,,,No overflow checking
 ,pred,Char,Byte,n,Char,y,,sub8_reg_imm,,,a,imm,a,a;f,c_overflow,m_overflow,,,,
 ,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,
+;,,----Primitive Selection----,,,,----Primitive Data----,,,,,,,,,Special validations on type conversion,,,,,
+;,Operation,Ltype,Rtype,Commutative,ResultType,Validation,Flags,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,Validate,Int8,Byte,Integer,Word,Notes
+,sizeof,Typedef,none,n,Word,x,,,,,hl,,hl,,empty,,,,,Compile time only (until we have variant arrays <g>)
 ,,,,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,

@@ -364,7 +364,6 @@ begin
       end;
       opOrd:
         Value := P;
-{
     else if (CompareText(OpData.Name, 'pred') = 0) then
     begin
       if Param.ImmType = vtBoolean then
@@ -373,17 +372,23 @@ begin
           EXIT(Err(qeConstantExpressionOverflow))
         else
           Value := valueFalse;
-        RType := vtBoolean;
+        ResultType := vtBoolean;
       end
       else
         Value := P - 1;
     end
     else if CompareText(OpData.Name, 'sizeof') = 0 then
     begin //TODO: type names
-      Value := GetTypeSize(Param.ImmType);
-      ResultType := vtInteger;
+      if Param.ImmType = vtTypeDef then
+        Value := GetTypeSize(Param.ImmValueInt)
+      else
+        Value := GetTypeSize(Param.ImmType);
+      if Value < 256 then
+        ResultType := vtByte
+      else
+        ResultType := vtWord;
     end
-    else if (CompareText(OpData.Name, 'succ') = 0) then
+{    else if (CompareText(OpData.Name, 'succ') = 0) then
     begin
       if Param.ImmType = vtBoolean then
       begin

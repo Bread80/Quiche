@@ -33,8 +33,8 @@
 ;,ptr,val,Value,Numeric,,,,,,,Pointer,Converts the value to a pointer
 ;,read,out,Variable,Any(?),Special!,,,,,,None,Reads one or more values from input stream
 ;,readln,out,Variable,Any(?),Special!,,,,,,None,Reads one or more lines from input stream
-;,sizeof,const,Type,TypeDef,,,,,,,Word,Byte size of the type
-;,sizeof,const,Variable,Any,,,,,,,Word,Byte size of the variable
+,sizeof,const,Type,TypeDef,,,,,,,Word,Byte size of the type
+,sizeof,const,Variable,Any,,,,,,,Word,Byte size of the variable
 ;,succ,const,Value,Ordinal,,,,,,,Param1,Returns the next value to the parameter
 ;,swap,const,Value,AnyInteger,Not8Bit,,,,,,Param1,Swaps the high and low bytes of the parameter
 ;,write,out,Value,Any(?),Special!,,,,,,None,Writes one or more values to output
