@@ -29,7 +29,7 @@
 ,out,val,Port,Word,,val,Data,Ordinal,,,None,Write Data to the given I/O port
 ,peek,val,Address,Word,,val,Type,TypeDef,Byte,,Parameterized,"Read from memory. Result type is that of second parameter, Byte if not specified"
 ,poke,val,Address,Word,,const,Data,Any,,,None,"Writes Data to the given memory address. NOTE: If Data is a numeric type, always writes a single byte (otherwise data size could be unclear)."
-,pred,const,Value,Ordinal,,,,,,,Param1,Returns the previous value to the parameter
+,pred,val,Value,Ordinal,,val,Count,Integer,1,,Param1,Returns the Count'th previous value to the parameter
 ;,ptr,val,Value,Numeric,,,,,,,Pointer,Converts the value to a pointer
 ;,read,out,Variable,Any(?),Special!,,,,,,None,Reads one or more values from input stream
 ;,readln,out,Variable,Any(?),Special!,,,,,,None,Reads one or more lines from input stream

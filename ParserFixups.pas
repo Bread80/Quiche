@@ -4,8 +4,8 @@ interface
 
 //Performs branch fixups.
 //Branch fixups are needed after mutliple execution paths have been parsed.
-//Each variable stores the current sub (assign version) index. If the variable has
-//been assigned a value in an earlier (alternate) code branch then it's Sub version
+//Each variable stores the current assign version index. If the variable has
+//been assigned a value in an earlier (alternate) code branch then it's Version
 //will be incorrect on entry to the second path. This routine resolves that issue,
 //and needs to be called once the branches merge.
 //Index and StopIndex are indexes into the IL list of the first and last items of
@@ -20,7 +20,7 @@ procedure BranchFixupRight(Index, StopIndex: Integer);
 //Walk the IL data and append phi nodes
 //Phi nodes are used where paths merge and we need to establish which varsions
 //of variables are needed for different paths. For each path the phi node stores the
-//variable subscript and the block which branches to it.
+//variable version and the block which branches to it.
 //Must only be called at the start of a Block, and where multiple paths merge
 //Path1Index is the Index of the last IL item in the first path
 //Path2Index is the Index of the last IL item in the second path, or -1 if there
@@ -49,8 +49,8 @@ implementation
 uses SysUtils, ILData, Variables, Operators;
 
 //Scan all the IL items between Index and StopIndex inclusive
-//For the first assignment to each variable, record (Sub-1) to
-//AdjustSubTo of the variables data.
+//For the first assignment to each variable, record (Version-1) to
+//AdjustVersionTo of the variables data.
 //Returns a count of the variable assignments found
 function BranchFixupLeft(Index, StopIndex: Integer): Integer;
 var ILItem: PILItem;
@@ -60,16 +60,15 @@ begin
   while Index <= StopIndex do
   begin
     ILItem := ILIndexToData(Index);
-    if ILItem.DestType = dtData then
-      if ILItem.Dest.Kind = pkVar then
+    if ILItem.Dest.Kind = pkVarDest then
+    begin
+      Variable := ILItem.Dest.Variable;
+      if Variable.AdjustVersionTo = -1 then
       begin
-        Variable := ILItem.Dest.Variable;
-        if Variable.AdjustSubTo = -1 then
-        begin
-          Variable.AdjustSubTo := ILItem.Dest.VarSub - 1;
-          inc(Result);
-        end;
+        Variable.AdjustVersionTo := ILItem.Dest.VarVersion - 1;
+        inc(Result);
       end;
+    end;
 
     inc(Index);
   end;
@@ -77,10 +76,10 @@ end;
 
 //Scan the IL items between Index and StopIndex inclusive
 //For each variable assignment: if it's the first to that variable, set the
-//AdjustSubFrom for that var to the Sub of the assignment.
-//For each read of a var (i.e as a parameter), adjust the Sub if it's to
-//a version of the var prior to the path. I.e. if it's Sub is < AdjustSubFrom,
-//or if AdjustSubFrom has yet to be assigned a value.
+//AdjustVersionFrom for that var to the Version of the assignment.
+//For each read of a var (i.e as a parameter), adjust the Version if it's to
+//a version of the var prior to the path. I.e. if it's Version is < AdjustVersionFrom,
+//or if AdjustVersionFrom has yet to be assigned a value.
 procedure BranchFixupRight(Index, StopIndex: Integer);
 var ILItem: PILItem;
   Variable: PVariable;
@@ -88,46 +87,45 @@ begin
   while Index <= StopIndex do
   begin
     ILItem := ILIndexToData(Index);
-    if ILItem.DestType = dtData then
-      if ilItem.Dest.Kind = pkVar then
-      begin
-        Variable := ILItem.Dest.Variable;
-        if Variable.AdjustSubTo >= 0 then
-          if Variable.AdjustSubFrom = -1 then
-            Variable.AdjustSubFrom := ILItem.Dest.VarSub - 1;
-      end;
+    if ilItem.Dest.Kind = pkVarDest then
+    begin
+      Variable := ILItem.Dest.Variable;
+      if Variable.AdjustVersionTo >= 0 then
+        if Variable.AdjustVersionFrom = -1 then
+          Variable.AdjustVersionFrom := ILItem.Dest.VarVersion - 1;
+    end;
 
     case ILItem.Param1.Kind of
-      pkVar:
+      pkVarSource:
       begin
         Variable := ILItem.Param1.Variable;
-        if Variable.AdjustSubTo >= 0 then
-          if (Variable.AdjustSubFrom = -1) or (ILItem.Param1.VarSub = Variable.AdjustSubFrom) then
-            ILItem.Param1.VarSub := Variable.AdjustSubTo;
+        if Variable.AdjustVersionTo >= 0 then
+          if (Variable.AdjustVersionFrom = -1) or (ILItem.Param1.VarVersion = Variable.AdjustVersionFrom) then
+            ILItem.Param1.VarVersion := Variable.AdjustVersionTo;
       end;
-      pkPhiVar:
+      pkPhiVarSource:
       begin
         Variable := ILItem.Dest.PhiVar;
-        if Variable.AdjustSubTo >= 0 then
-          if (Variable.AdjustSubFrom = -1) or (ILItem.Param1.PhiSub = Variable.AdjustSubFrom) then
-            ILItem.Param1.PhiSub := Variable.AdjustSubTo;
+        if Variable.AdjustVersionTo >= 0 then
+          if (Variable.AdjustVersionFrom = -1) or (ILItem.Param1.PhiSourceVersion = Variable.AdjustVersionFrom) then
+            ILItem.Param1.PhiSourceVersion := Variable.AdjustVersionTo;
       end;
     end;
 
     case ILItem.Param2.Kind of
-      pkVar:
+      pkVarSource:
       begin
         Variable := ILItem.Param2.Variable;
-        if Variable.AdjustSubTo >= 0 then
-          if (Variable.AdjustSubFrom = -1) or (ILItem.Param2.VarSub = Variable.AdjustSubFrom) then
-            ILItem.Param2.VarSub := Variable.AdjustSubTo;
+        if Variable.AdjustVersionTo >= 0 then
+          if (Variable.AdjustVersionFrom = -1) or (ILItem.Param2.VarVersion = Variable.AdjustVersionFrom) then
+            ILItem.Param2.VarVersion := Variable.AdjustVersionTo;
       end;
-      pkPhiVar:
+      pkPhiVarSource:
       begin
         Variable := ILItem.Dest.PhiVar;
-        if Variable.AdjustSubTo >= 0 then
-          if (Variable.AdjustSubFrom = -1) or (ILItem.Param2.VarSub = Variable.AdjustSubFrom) then
-            ILItem.Param2.PhiSub := Variable.AdjustSubTo;
+        if Variable.AdjustVersionTo >= 0 then
+          if (Variable.AdjustVersionFrom = -1) or (ILItem.Param2.VarVersion = Variable.AdjustVersionFrom) then
+            ILItem.Param2.PhiSourceVersion := Variable.AdjustVersionTo;
       end;
     end;
 
@@ -146,7 +144,7 @@ end;
 
 
 //Sub to PhiWalk. Walks backwards along a Path to find the first assignment to the
-//given variable and returns the Sub version of that assignment
+//given variable and returns the Version version of that assignment
 //If not found returns zero
 //VarIndex the Index of the variable to find
 //Index is the IL item to begin walking from
@@ -159,9 +157,8 @@ begin
   begin
     //If assignment to var found
     ILItem := ILIndexToData(Index);
-    if ILItem.DestType = dtData then
-      if (ILItem.Dest.Kind = pkVar) and (ILItem.Dest.Variable = AVariable) then
-        EXIT(ILItem.Dest.VarSub);
+    if (ILItem.Dest.Kind = pkVarDest) and (ILItem.Dest.Variable = AVariable) then
+      EXIT(ILItem.Dest.VarVersion);
 
     dec(Index);
   end;
@@ -175,7 +172,7 @@ end;
 //  * Walks the second path to identify the last assigment
 //    (or, if not found in the second path, walks the origin path to identify the same)
 //  * Appends a phi node
-//  * Sets the AdjustSubFrom and AdjustSubTo fields of the variable ready for BranchFixupRight
+//  * Sets the AdjustVersionFrom and AdjustVersionTo fields of the variable ready for BranchFixupRight
 //    (after inserting phi nodes BranchFixupRight will be needed on the following code)
 //
 //Parameters are as PhiWalk except:
@@ -195,7 +192,7 @@ var
   Index: Integer;
   ILItem: PILItem;
   Variable: PVariable;
-  Path2Sub: Integer;
+  Path2Version: Integer;
   ILPhi: PILItem;
 begin
   Result := 0;  //Added count
@@ -206,30 +203,30 @@ begin
   begin
     //For each assignment to an untouched var
     ILItem := ILIndexToData(Index);
-    if (ILItem.DestType = dtData) and (ILItem.Dest.Kind = pkVar) then
+    if ILItem.Dest.Kind = pkVarDest then
     begin
       Variable := ILItem.Dest.Variable;
       if not Variable.Touched then
       begin
-        Path2Sub := 0;
+        Path2Version := 0;
 
         //If Path2, Search Path2
         if Path2Index > 0 then
-          Path2Sub := PhiFindVar(ILItem.Dest.Variable, Path2Index, Path1Index);
+          Path2Version := PhiFindVar(ILItem.Dest.Variable, Path2Index, Path1Index);
 
         //If No Path 2 or Not found in Path 1
         //Search Origin Path
-        if Path2Sub = 0 then
-          Path2Sub := PhiFindVar(ILItem.Dest.Variable, OriginIndex, -1);
+        if Path2Version = 0 then
+          Path2Version := PhiFindVar(ILItem.Dest.Variable, OriginIndex, -1);
 
-        //If Path2Sub is still zero then it was not assigned in either the other
-        //path or the origin path. We'll stick with Sub=0 to show this
+        //If Path2Version is still zero then it was not assigned in either the other
+        //path or the origin path. We'll stick with Version=0 to show this
         //(either a warning or a chance to auto-initialise tha variable)
         if InsertIndex = -1 then
-          ILPhi := ILAppend(dtData, OpPhi)
+          ILPhi := ILAppend(OpPhi)
         else
         begin
-          ILPhi := ILInsert(InsertIndex, dtData, OpPhi);
+          ILPhi := ILInsert(InsertIndex, OpPhi);
           if Index > InsertIndex then
             inc(Index);
           if Path2Index > InsertIndex then
@@ -238,28 +235,26 @@ begin
             inc(OriginIndex);
         end;
 
-        ILPhi.Dest.Kind := pkPhiVar;//ILItem.Dest.Loc;
-        ILPhi.Dest.PhiVar := ILItem.Dest.Variable;
-        ILPhi.Dest.PhiSub := Variable.IncWriteCount;
+        ILPhi.Dest.SetPhiVarDest(ILItem.Dest.Variable, Variable.IncWriteCount);
 
         case ILItem.Dest.Kind of
-          pkVar:
+          pkVarDest:
           begin
-            ILPhi.Param1.Kind := pkPhiVar;
+            ILPhi.Param1.Kind := pkPhiVarSource;
             ILPhi.Param1.PhiBlockID := Path1BlockID;
 
-            ILPhi.Param2.Kind := pkPhiVar;
+            ILPhi.Param2.Kind := pkPhiVarSource;
             ILPhi.Param2.PhiBlockID := Path2BlockID;
 
             if not Swap then
             begin
-              ILPhi.Param1.PhiSub := ILItem.Dest.VarSub;
-              ILPhi.Param2.PhiSub := Path2Sub;
+              ILPhi.Param1.PhiSourceVersion := ILItem.Dest.VarVersion;
+              ILPhi.Param2.PhiSourceVersion := Path2Version;
             end
             else
             begin
-              ILPhi.Param1.PhiSub := Path2Sub;
-              ILPhi.Param2.PhiSub := ILItem.Dest.VarSub;
+              ILPhi.Param1.PhiSourceVersion := Path2Version;
+              ILPhi.Param2.PhiSourceVersion := ILItem.Dest.VarVersion;
             end;
           end;
         else
@@ -268,8 +263,8 @@ begin
 
         //When inserting nodes fixups will be needed to any variable references after
         //the point where the nodes have been inserted. Used (eg) by FOR loops.
-        Variable.AdjustSubFrom := Path2Sub;
-        Variable.AdjustSubTo := ILPhi.Dest.PhiSub;
+        Variable.AdjustVersionFrom := Path2Version;
+        Variable.AdjustVersionTo := ILPhi.Dest.PhiDestVersion;
 
         inc(Result);  //Inc count
 

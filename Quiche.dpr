@@ -19,7 +19,7 @@ uses
   Scopes in 'Scopes.pas',
   ParserFixups in 'ParserFixups.pas',
   PrimitivesEx in 'PrimitivesEx.pas',
-  CodeGenZ80AsmEx in 'CodeGenZ80AsmEx.pas',
+  Z80.CodeGen in 'Z80.CodeGen.pas',
   Eval in 'Eval.pas',
   QTypes in 'QTypes.pas',
   Globals in 'Globals.pas',
@@ -32,7 +32,10 @@ uses
   TextBrowser in '..\TextEditor\TextBrowser.pas',
   EditableText in '..\TextEditor\EditableText.pas',
   Emulator in 'Emulator.pas',
-  Intrinsics in 'Intrinsics.pas';
+  Intrinsics in 'Intrinsics.pas',
+  Z80.Optimise in 'Z80.Optimise.pas',
+  Z80.CPUState in 'Z80.CPUState.pas',
+  Z80.CPU in 'Z80.CPU.pas';
 
 {$R *.res}
 

@@ -44,7 +44,7 @@ type
     //Converts the Slug to an ILItem but does not assign a Dest
     //(If the Slug already has an ILItem returns it, otherwise
     //creates and assigns one).
-    function ToILItemNoDest(ADestType: TDestType): PILItem;
+    function ToILItemNoDest: PILItem;
 
     function OpData: POpData;
   end;
@@ -83,7 +83,7 @@ uses SysUtils, Variables, ParserBase, Eval, Globals, Scopes, ParseIntrinsics,
 procedure TExprSlug.AssignToHiddenVar;
 begin
   Assert(ILItem <> nil);
-  Operand.SetVariable(ILItem.AssignToHiddenVar(ResultType));
+  Operand.SetVarSource(ILItem.AssignToHiddenVar(ResultType));
 end;
 
 procedure TExprSlug.Initialise;
@@ -108,16 +108,16 @@ begin
   ResultType := AImmType;
 end;
 
-function TExprSlug.ToILItemNoDest(ADestType: TDestType): PILItem;
+function TExprSlug.ToILItemNoDest: PILItem;
 begin
   if ILItem <> nil then
   begin
     Result := ILItem;
-    Result.SetDestType(ADestType);
+    Result.Dest.Initialise;
   end
   else
   begin
-    Result := ILAppend(ADestType, opUnknown);
+    Result := ILAppend(opUnknown);
     Result.Param1 := Operand;
     Result.OpType := OpType;
     Result.ResultType := OpType;
@@ -403,7 +403,7 @@ begin
       itVar:
       begin
         V := PVariable(Item);
-        Slug.Operand.SetVariable(V);
+        Slug.Operand.SetVarSource(V);
         Slug.ParamOrigin := poExplicit;
         Slug.ResultType := V.VarType;
         Slug.ImplicitType := V.VarType;
@@ -484,7 +484,7 @@ begin
       //assign it to a temp var and use that in our calculations
       Slug.AssignToHiddenVar;
 
-    Slug.ILItem := ILAppend(dtNone, Slug.Op);
+    Slug.ILItem := ILAppend(Slug.Op);
     Slug.ILItem.Param1 := Slug.Operand;
     Slug.ILItem.Param2.Kind := pkNone;
     Slug.ILItem.OpType := VarTypeToOpType(Slug.ResultType);
@@ -753,7 +753,7 @@ begin
 
     //If the rightslug returned an ILItem then we need to set it's Dest to a temp var
     if Right.ILItem <> nil then
-      if Right.ILItem.DestType = dtNone then
+      if Right.ILItem.Dest.Kind = pkNone then
       //We already have an ILItem created. If so, we need to set the Dest to
       //assign it to a temp var and use that in our calculations
       Right.AssignToHiddenVar;
@@ -774,7 +774,7 @@ begin
         //Add sub-expression to IL list
         //with dest as temp data
         //Update right slug for next iteration
-        Right.Operand.SetVariable(ILItem.AssignToHiddenVar(Left.ResultType));
+        Right.Operand.SetVarSource(ILItem.AssignToHiddenVar(Left.ResultType));
     end;
 
     EvalType := vtUnknown;
@@ -807,7 +807,7 @@ begin
 
       //Add current operation to list.
       //Dest info will be added by later
-      ILItem := ILAppend(dtNone, Left.Op);
+      ILItem := ILAppend(Left.Op);
       ILItem.OpType := Left.OpType;
       ILItem.ResultType := VarTypeToOpType(Left.ResultType);
       ILItem.Param1 := Left.Operand;
@@ -830,7 +830,7 @@ begin
       //Add item to IL list
       //with dest as temp data
       //Update slug data...
-      Left.Operand.SetVariable(ILItem.AssignToHiddenVar(Left.ResultType));
+      Left.Operand.SetVarSource(ILItem.AssignToHiddenVar(Left.ResultType));
 
       //Right slug operation becomes left slug operation
       Left.Op := Right.Op;
@@ -905,7 +905,7 @@ begin
 
   //If the slug returned an ILItem then we need to set it's Dest to a temp var
   if Slug.ILItem <> nil then
-    if Slug.ILItem.DestType = dtNone then
+    if Slug.ILItem.Dest.Kind = pkNone then
     //We already have an ILItem created. If so, we need to set the Dest to
     //assign it to a temp var and use that in our calculations
     Slug.AssignToHiddenVar;
@@ -918,7 +918,7 @@ begin
 
     if Slug.Op <> OpUnknown then
     begin
-      Slug.Operand.SetVariable(ILItem.AssignToHiddenVar(Slug.ResultType));
+      Slug.Operand.SetVarSource(ILItem.AssignToHiddenVar(Slug.ResultType));
 
 //      ILItem.SetDestType(dtData);
 //      Slug.Operand.SetVariable(ILItem.Dest.CreateAndSetHiddenVar(Slug.ResultType));
@@ -968,7 +968,7 @@ begin
     ILItem := Slug.ILItem
   else
   begin
-    ILItem := ILAppend(dtNone, OpUnknown);
+    ILItem := ILAppend(OpUnknown);
     ILItem.Param1 := Slug.Operand;
     ILItem.Param2.Kind := pkNone;
   end;

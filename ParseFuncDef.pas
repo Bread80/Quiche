@@ -17,7 +17,7 @@ Stack:
 }
 
 interface
-uses ParserBase, ParseErrors;
+uses ParserBase, ParseErrors, Z80.CPU;
 
 // <function-def> := FUNCTION [ <param-def-list> ] <type-def> ; [<directive>] [,<directive>]
 //                |  PROCEDURE [ <param-def-list> ] ; [ <directive> ] [, <directive> ]
@@ -479,12 +479,12 @@ begin
   //If we're a function, load Result into A if 8-bit or DE if 16-bit
   if Func.ResultCount > 0 then
   begin
-    ILItem := ILAppend(dtDataLoad, OpDataLoad);
-    ILItem.Param1.Kind := pkVar;
+    ILItem := ILAppend(OpDataLoad);
+    ILItem.Param1.Kind := pkVarSource;
     Variable := VarFindResult;
     Assert(Variable <> nil);
     ILItem.Param1.Variable := Variable;
-    ILItem.Param1.VarSub := Variable.WriteCount;
+    ILItem.Param1.VarVersion := Variable.WriteCount;
     case GetTypeSize(Variable.VarType) of
       1: ILItem.Param1.Reg := rA;
       2: ILItem.Param1.Reg := rDE;

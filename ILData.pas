@@ -1,71 +1,23 @@
 unit ILData;
 
 interface
-uses Generics.Collections, Classes, QTypes, Variables, Functions, Operators;
-
-type
-  //This list details the CPU-level places where primitives can find input data
-  //and place result data.
-  //For a primitive this specifies the options available for register selection.
-  //For ILData this specifies where a primitive must find or place data. I.e.
-  //after primitive selection and register allocation has taken place.
-  //Not all values are valid in all situtions (inputs, results, primitives, ILData)
-  TCPUReg = (
-    rNone,      //No parameter or unassigned
-    rImm,       //Immediate (constant) value
-    rIndirect,  //Indirect data, i.e. (HL)
-    rOffset,    //Offset data, i.e. (IX+d)
-    rP1,        //Data is output in the same register as param1
-    rA, rB, rC, rD, rE, rH, rL, //8 bit registers
-    rAF,        //Only for stack operations
-    rHL, rDE, rBC, rIX, rIY,    //16 bit register pairs
-    rZF, rZFA,  //Zero flag Set. The second variant also sets A as a boolean
-    rNZF, rNZFA,//Zero flag Clear. The second variant also sets A as a boolean
-    rCF,        //Carry flag set
-    rNCF,       //Carry flag clear
-    rCPLA,      //Result is complement of A (for boolean results only)
-    rFlags      //Flags (for corrupt only)
-    );
-  TCPURegSet = set of TCPUReg;
-
-//All 'registers' which are truly 'registers'
-const CPURegRegs = [rA..rL,rHL..rIY,rZFA,rNZFA,rCPLA];
-  CPURegFlags = [rZF,rNZF,rCF,rNCF,rCPLA];
-
-const
-  //Mappings between register and register name
-  CPUReg8ToChar: array[low(TCPUReg)..High(TCPUReg)] of Char = (
-  #0,#0,#0,#0,#0,
-  'a','b','c','d','e','h','l',
-  #0,#0,#0,#0,#0,#0,
-  #0,#0,#0,#0,#0,#0,#0,#0);
-  CPURegPairToString: array[low(TCPUReg)..High(TCPUReg)] of String = (
-  #0,#0,#0,#0,#0,
-  #0,#0,#0,#0,#0,#0,#0,
-  'af','hl','de','bc','ix','iy',
-  #0,#0,#0,#0,#0,#0,#0,#0);
-  //Low reg of a pair
-  CPURegLowToChar: array[low(TCPUReg)..High(TCPUReg)] of Char = (
-  #0,#0,#0,#0,#0,
-  #0,#0,#0,#0,#0,#0,#0,
-  #0,'l','e','c',#0,#0,
-  #0,#0,#0,#0,#0,#0,#0,#0);
-  //High reg of a pair
-  CPURegHighToChar: array[low(TCPUReg)..High(TCPUReg)] of Char = (
-  #0,#0,#0,#0,#0,
-  #0,#0,#0,#0,#0,#0,#0,
-  #0,'h','d','b',#0,#0,
-  #0,#0,#0,#0,#0,#0,#0,#0);
-
+uses Generics.Collections, Classes, QTypes, Variables, Functions, Operators,
+  Z80.CPU;
 
 //Locations where an operation will find and store it's data
 type TILParamKind = (
-    pkNone,      //No parameter
-    pkImmediate, //Immediate data (constant)
-    pkPhiVar,    //Parameter for a phi function for a variable
-    pkVar,       //Variable
-    pkStack,     //The stack
-    pkStackByte  //Single byte on the stack
+    pkNone,         //No parameter
+    pkImmediate,    //Immediate data (constant)
+    pkPhiVarSource, //Parameter for a phi function for a variable
+    pkPhiVarDest,   // "
+    pkVarSource,    //Read from variable
+    pkVarDest,      //Write to variable
+    pkPop,          //The stack
+    pkPopByte,      //Single byte on the stack
+    pkPush,
+    pkPushByte,
+    pkBranch,        //Unconditional branch. Only valid as Param1
+    pkCondBranch     //Conditional branch. Only valid as Param3
     );
 
 type
@@ -75,10 +27,16 @@ type
 
     procedure Initialise;
 
+    //These routines set the Kind and (usually) the payload. They also perform
+    //validation where possible
     procedure SetImmediate(AImmValue: Integer;AImmType: TVarType);
-    procedure SetVariableAndSub(AVariable: PVariable; AVarSub: Integer);
-    //Obtains VarSub from AVarIndex
-    procedure SetVariable(AVariable: PVariable);
+    procedure SetPhiVarSource(ABlockID: Integer; AVarVersion: Integer);
+    procedure SetPhiVarDest(AVar: PVariable;AVersion: Integer);
+    procedure SetVarSourceAndVersion(AVariable: PVariable; AVersion: Integer);
+    //Obtains Version from AVariable
+    procedure SetVarSource(AVariable: PVariable);
+    procedure SetVarDestAndVersion(AVariable: PVariable; AVersion: Integer);
+    procedure SetCondBranch;
 
     //If a Param has an immediate value, convert that value to a 'modern'
     //(cross-compiler native) Integer value
@@ -91,68 +49,38 @@ type
     //For error messages
     function ImmValueToString: String;
 
+    function ToString: String;
+
     case Kind: TILParamKind of
       pkNone: ();
       pkImmediate: (
         ImmValueInt: Integer;       //Immediate (constant) data
         ImmType: TVarType; ); //Type of the above value
-      pkPhiVar: (            //Phi variable (specified in the Dest data)
+      pkPhiVarSource: (            //Phi variable (specified in the Dest data)
         PhiBlockID: Integer;  //If we come from this block...
-        PhiSub: Integer; );   //...use this version of the variable
-      pkVar: (
+        PhiSourceVersion: Integer; );   //...use this version of the variable
+      pkPhiVarDest: (
+        PhiVar: PVariable;
+        PhiDestVersion: Integer; );
+      pkVarSource, pkVarDest: (
         Variable: PVariable;  //The variable
-        VarSub: Integer; );   //Current Sub (version) of the variable
-      pkStack: ();           //Currently invalid for input params
-      pkStackByte: ();       //Currently invalid for input params
-    end;
-
-  TDestType = (dtNone, dtData, dtBranch, dtCondBranch,
-    dtDataLoad);  // <- this is not a Dest. We use it as a third param when loading data for calls
-
-  PILDest = ^TILDest;
-  TILDest = record
-    Reg: TCPUReg;           //The register or other location where the result of the
-                            //operation will be found. From here it can be used in a branch,
-                            //store, moved to enother register etc
-    procedure SetVarAndSub(AVariable: PVariable; AVarSub: Integer);
-//    function CreateAndSetHiddenVar(ResultType: TVarType): PVariable;
-
-    function ToVariable: PVariable;
-
-    function GetOpType: TOpType;
-
-    case Kind: TILParamKind of
-      pkNone: ();
-      pkImmediate: ();       //Invalid for destinations
-      pkPhiVar: (
-        PhiVar: PVariable;    //The variable
-        PhiSub: Integer; );   //Sub (version) of the resulting variable
-      pkVar: (
-        Variable: PVariable;    //The variable
-        VarSub: Integer; );   //Sub of variable assignment
-      pkStack: ();
-      pkStackByte: ();
-    end;
-
+        VarVersion: Integer; );   //Current version of the variable
+      pkPop: ();           //Currently invalid for input params
+      pkPopByte: ();       //Currently invalid for input params
+      pkPush: ();
+      pkPushByte: ();
+      pkBranch: (           //For unconditional branches.
+        BranchBlockID: Integer; );  //Block number to branch to
+      pkCondBranch: (        //For conditional branches
+        BranchInvert: Boolean;    //Value has been NOTted
+        TrueBlockID: Integer;     //Block number to branch to if condition is true
+        FalseBlockID: Integer;    //Block number to branch to if condition is false
+      );
+    end; {TILParam}
 
 type TCodeGenFlags = (cgOverFlowCheck);
   TCodeGenFlagSet = set of TCodeGenFlags;
 
-{
-//POTENTIAL DESIGN OF IL DATA:
-
-type TILItemAction =
-  (acOperation,     //Unary or binary operation
-  acPhiFunction,    //Phi function
-  acBranch,         //Unconditional
-  acCondBranch,     //Branch to one of two destination (True/False)
-  acFunctionCall,   //Dispatch a function with return value
-  acProcedureCall,  //Dispatch a procedure
-  acDataLoad        //Load values into registers
-//  acDataStore??
-  );
-
-
 //Record for an atomic IL item
 //The operation combines paramer1 and parameter2 and writes the result (if it has one) to
 //the temp location specified in Dest
@@ -161,80 +89,26 @@ type
   TILItem = record
     BlockID: Integer;       //Contains +ve value on first line of a block, otherwise -1
     SourceLineNo: Integer;  //For commented code generation
+    Comments: String;       //For debugging <g>. Current only used if BlockID <> -1
 
-    case Action of
-    acOperation: (
-      Op: TOperator;       //The operation
-?      OpType: TOpType;     //Raw data type
-?      ResultType: TOpType; //If overflow checking is on, specifies the output type
-                           //May also be used by typecasts to change/reduce value size
-      CodeGenFlags: TCodeGenFlagSet;
-      Left: TILParam;
-      Right: TILParam;
-      Dest: TILDest;
-    );
-    acPhiFunction: (
-      Variable: PVariable;  //The variable this function is for
-      DestSub: Integer;     //The Sub version of the resulting variable
-      FromBlock1: Integer;  //If we come from this block...
-      FromSub1: Integer;    //...variable will have this Sub
-      FromBlock2: Integer;  //If we come from this block...
-      FromSub2: Integer;    //...variable will have this sub
-      //Possibly extend for more options, eg after a case statement
-    );
-    acBranch: (
-      ToBlock: Integer;
-    );
-    acCondBranch: (
-//      Condition: ??;
-      ToBlock1: Integer;
-      ToBlock2: Integer;
-      //Possibly more options - e.g. after a case statement
-    );
-    acFunctionCall: (
-      Func: PFunction;
-      FParam1: TILParam;
-      FParam2: TILParam;
-      FResult: TILDest;
-    );
-    acProcedureCall: (
-      Proc: PFunction;
-      PParam1: TILParam;
-      PParam2: TILParam;
-      PParam3: TILParam;
-    );
-    acDataLoad: (
-      LParam1: TILParam;
-      LParam2: TILParam;
-      LParam3: TILParam;
-    );
-  end;
-}
-
-//Record for an atomic IL item
-//The operation combines paramer1 and parameter2 and writes the result (if it has one) to
-//the temp location specified in Dest
-type
-  PILItem = ^TILItem;
-  TILItem = record
-    BlockID: Integer;       //Contains +ve value on first line of a block, otherwise -1
-    SourceLineNo: Integer;  //For commented code generation
     Op: TOperator;          //The operation
     OpType: TOpType;        //Raw data type
     ResultType: TOpType;    //If overflow checking is on, specifies the output type
                             //May also be used by typecasts to change/reduce value size
-    Func: PFunction;        //If OpIndex is OpIndexCall this contains details of the function
+    Func: PFunction;        //If OpIndex is OpFuncCall this contains details of the function
                             //to call
     CodeGenFlags: TCodeGenFlagSet;
 
+    //We can have up to three parameters. Each parameter can be Source or Destination
+    //far depending on it's Kind. Dest is a pseudonym for Param3 for times when
+    //that is useful. Actual Param usage depends on the operation
     Param1: TILParam;       //Data for the first parameter
     Param2: TILParam;       //Data for the second parameter
 
-    //Set the DestType and initialise the relevant fields.
-    //Normally this is done by ILAppend/ILAssert but will be necessary if
-    //changing the DestType or setting it later in the creation process.
-    //Will raise an exception if current DestType <> dtNone
-    procedure SetDestType(ADestType: TDestType);
+    //Where Op = dtBranch
+    function GetBranchBlockID: Integer;
+    procedure SetBranchBlockID(BlockID: Integer);
+
     //Creates a hidden variable of the given type, sets it as the Dest,
     //and sets DestType to dtData using SetDestType
     function AssignToHiddenVar(VarType: TVarType): PVariable;
@@ -242,23 +116,9 @@ type
     procedure SwapParams;   //For Operations. Swap order of Param1 and Param2
     function ToString: String;  //For debugging
 
-    case DestType: TDestType of
-      dtNone: ();
-      dtData: (
-        Dest: TILDest;      //Data for the destination
-        );
-      dtCondBranch:         //For conditional branches
-      (
-        BranchInvert: Boolean;    //Value has been NOTted
-        TrueBlockID: Integer;     //Block number to branch to if condition is true
-        FalseBlockID: Integer;    //Block number to branch to if condition is false
-
-        BranchReg: TCPUReg; //Assigned by register allocator
-      );
-      dtBranch: (           //For unconditional branches
-        BranchBlockID: Integer; );  //Block number to branch to
-      dtDataLoad: (         //When loading data into registers for Calls
-        Param3: TILParam; );
+    case Integer of       //Third param (usually result or destination)
+    1: (Param3: TILParam);
+    2: (Dest: TILParam);
   end;
 
 procedure InitialiseILData;
@@ -277,14 +137,21 @@ procedure ILMark;
 //Removes any IL code after the marker set by ILMark
 procedure ILRollback;
 
+//If set True the next ILItem to be created will be a new block
 var NewBlock: Boolean;
+  //Sets the comments field of the next block created (see NewBlock)
+  //Used by control structure parsing code to add debugging comments
+  NewBlockComment: String;
 function GetCurrBlockID: Integer;
 function GetNextBlockID: Integer;
 
 //Allocates a new IL item and appends it to the list
-function ILAppend(DestType: TDestType;AnOp: TOperator): PILItem;
+function ILAppend(AnOp: TOperator): PILItem;
 //Allocates a new IL item and inserts it into the IL list at the given Index
-function ILInsert(Index: Integer;DestType: TDestType;AnOp: TOperator): PILItem;
+function ILInsert(Index: Integer;AnOp: TOperator): PILItem;
+
+//Append an ILItem for an unconditional branch
+function ILAppendBranch(BranchID: Integer): PILItem;
 
 //Returns the current number of items in the IL list
 function ILGetCount: Integer;
@@ -309,86 +176,6 @@ const CPURegStrings: array[low(TCPUReg)..high(TCPUReg)] of String = (
     'AF',
     'HL','DE','BC','IX','IY',
     'ZF','ZFandA','NZF','NZFandA','CF','NCF','CPLofA','Flags');
-
-procedure TILParam.SetImmediate(AImmValue: Integer;AImmType: TVarType);
-begin
-  Kind := pkImmediate;
-  ImmValueInt := AImmValue;
-  ImmType := AImmType;
-end;
-
-procedure TILParam.SetVariableAndSub(AVariable: PVariable;AVarSub: Integer);
-begin
-  Kind := pkVar;
-  Variable := AVariable;
-  VarSub := AVarSub;
-end;
-
-procedure TILParam.SetVariable(AVariable: PVariable);
-begin
-   SetVariableAndSub(AVariable, AVariable.WriteCount);
-end;
-
-function TILParam.ImmToInteger: Integer;
-begin
-  Assert(Kind = pkImmediate);
-
-  Result := ImmValueInt;
-//  if IsSignedType(ImmType) and (Result >= $8000) then
-//    Result := Result or (-1 xor $ffff);
-end;
-
-
-function TILParam.GetVarType: TVarType;
-begin
-  case Kind of
-    pkNone, pkPhiVar: EXIT(vtUnknown);
-    pkImmediate:
-      Result := ImmType;
-    pkVar:
-      Result := Variable.VarType;
-  else
-    raise Exception.Create('Unknown parameter kind');
-  end;
-end;
-
-function TILParam.GetRawType: TOpType;
-begin
-  Result := VarTypeToOpType(GetVarType);
-end;
-
-function TILParam.ImmValueToString: String;
-begin
-  Assert(Kind = pkImmediate);
-  case ImmType of
-    vtByte: Result := '$' + IntToHex(ImmValueInt, 2);
-    vtWord, vtPointer: Result := '$' + IntToHex(ImmValueInt, 4);
-    vtInt8, vtInteger: Result := ImmValueInt.ToString;
-    vtBoolean:
-      if ImmValueInt = 0 then
-        Result := 'False'
-      else
-        Result := 'True';
-    vtChar: Result := chr(ImmValueInt);
-    vtTypeDef: Result := VarTypeToName(ImmValueInt);
-  else
-    Assert(False);
-  end;
-end;
-
-procedure TILParam.Initialise;
-begin
-  Reg := rNone;
-  Kind := pkNone;
-end;
-
-function TILParam.ToVariable: PVariable;
-begin
-  Assert(Kind = pkVar);
-  Result := Variable;
-end;
-
-
 
 var
   ILList: TILList;
@@ -435,6 +222,7 @@ function CreateILList: TILList;
 begin
   Result := TILList.Create;
   NewBlock := True;
+  NewBlockComment := '';
   NewSourceLine := True;
 
   //We can't SkipMode over a change of scope
@@ -457,7 +245,7 @@ begin
   ILList := List;
 end;
 
-function ILCreate(DestType: TDestType): PILItem;
+function ILCreate: PILItem;
 begin
   New(Result);
   if NewBlock then
@@ -467,6 +255,8 @@ begin
   end
   else
     Result.BlockID := -1;
+  Result.Comments := NewBlockComment;
+  NewBlockComment := '';
 
   if Parser.LineNo <> CurrSourceLineNo then
   begin
@@ -476,33 +266,38 @@ begin
   else
     Result.SourceLineNo := -1;
   Result.Op := opUnknown;
+  Result.OpType := rtUnknown;
   if optOverflowChecks then
     Result.CodeGenFlags := [cgOverflowCheck]
   else
     Result.CodeGenFlags := [];
-
-  Result.DestType := dtNone;
-  Result.SetDestType(DestType);
 
   Result.ResultType := rtUnknown;
   Result.Func := nil;
 
   Result.Param1.Initialise;
   Result.Param2.Initialise;
+  Result.Param3.Initialise;
 end;
 
-function ILAppend(DestType: TDestType;AnOp: TOperator): PILItem;
+function ILAppend(AnOp: TOperator): PILItem;
 begin
-  Result := ILCreate(DestType);
+  Result := ILCreate;
   Result.Op := AnOp;
   ILList.Add(Result);
 end;
 
-function ILInsert(Index: Integer;DestType: TDestType;AnOp: TOperator): PILItem;
+function ILInsert(Index: Integer;AnOp: TOperator): PILItem;
 begin
-  Result := ILCreate(DestType);
+  Result := ILCreate;
   Result.Op := AnOp;
   ILList.Insert(Index, Result);
+end;
+
+function ILAppendBranch(BranchID: Integer): PILItem;
+begin
+  Result := ILAppend(opBranch);
+  Result.SetBranchBlockID(BranchID);
 end;
 
 function ILGetCount: Integer;
@@ -515,86 +310,193 @@ begin
   Result := ILList[Index];
 end;
 
-procedure TILDest.SetVarAndSub(AVariable: PVariable;AVarSub: Integer);
+{ TILParam }
+
+procedure TILParam.SetCondBranch;
 begin
-  Kind := pkVar;
+  Assert(Kind in [pkNone, pkCondBranch]);
+  Kind := pkCondBranch;
+  TrueBlockID := -1;
+  FalseBlockID := -1;
+  BranchInvert := False;
+end;
+
+procedure TILParam.SetImmediate(AImmValue: Integer;AImmType: TVarType);
+begin
+  //Assert(Kind in [pkNone, pkImmediate]);
+  Kind := pkImmediate;
+  ImmValueInt := AImmValue;
+  ImmType := AImmType;
+end;
+
+procedure TILParam.SetPhiVarDest(AVar: PVariable; AVersion: Integer);
+begin
+  Assert(Kind = pkNone);
+  Kind := pkPhiVarDest;
+  PhiVar := AVar;
+  PhiDestVersion := AVersion;
+end;
+
+procedure TILParam.SetPhiVarSource(ABlockID, AVarVersion: Integer);
+begin
+  Assert(Kind = pkNone);
+  Kind := pkPhiVarSource;
+  PhiBlockID := ABlockID;
+  PhiSourceVersion := AVarVersion;
+end;
+
+procedure TILParam.SetVarSourceAndVersion(AVariable: PVariable;AVersion: Integer);
+begin
+//  Assert(Kind = pkNone);
+  Kind := pkVarSource;
   Variable := AVariable;
-  VarSub := AVarSub;
+  VarVersion := AVersion;
 end;
 
-function TILDest.ToVariable: PVariable;
+procedure TILParam.SetVarDestAndVersion(AVariable: PVariable;
+  AVersion: Integer);
 begin
-  Assert(Kind = pkVar);
-  Result := Variable;
+  Assert(Kind in [pkNone, pkVarDest]);
+  Kind := pkVarDest;
+  Variable := AVariable;
+  VarVersion := AVersion;
 end;
 
-function TILDest.GetOpType: TOpType;
+procedure TILParam.SetVarSource(AVariable: PVariable);
 begin
-  Assert(Kind = pkVar, 'ILDestToOpType: Invalid Dest type');
+   SetVarSourceAndVersion(AVariable, AVariable.WriteCount);
+end;
 
-  if Variable = nil then
-    EXIT(rtUnknown);
+function TILParam.ImmToInteger: Integer;
+begin
+  Assert(Kind = pkImmediate);
 
-  Result := VarTypeToOpType(Variable.VarType);
+  Result := ImmValueInt;
+//  if IsSignedType(ImmType) and (Result >= $8000) then
+//    Result := Result or (-1 xor $ffff);
 end;
 
 
-function ILParamToString(ILItem: PILItem;Param: PILParam): String;
+function TILParam.GetVarType: TVarType;
 begin
-  case Param.Kind of
-    pkNone: ;
+  case Kind of
+    pkNone, pkPhiVarSource, pkPhiVarDest: EXIT(vtUnknown);
     pkImmediate:
-    begin
-      Result := Param.ImmValueToString + ':' +
-        VarTypeToName(Param.ImmType);
-    end;
-    pkPhiVar:
-     Result := '[%' + ILItem.Dest.PhiVar.Name + '_' +
-      IntToStr(Param.PhiSub) + ' {' + IntToStr(Param.PhiBlockID) + '}] ';
-    pkVar:
-    begin
-      Result := '%' + Param.Variable.Name + '_' + IntToStr(Param.VarSub) +
-        ':' + VarTypeToName(Param.Variable.VarType);
-    end;
+      Result := ImmType;
+    pkVarSource:
+      Result := Variable.VarType;
   else
-    Result := '<INVALID PARAM>';
+    raise Exception.Create('Unknown parameter kind');
   end;
 end;
 
-function TILItem.AssignToHiddenVar(VarType: TVarType): PVariable;
+function TILParam.GetRawType: TOpType;
 begin
-  SetDestType(dtData);
-  Dest.Kind := pkVar;
-  Result := VarCreateHidden(VarType);
-  Dest.Variable := Result;
-  Dest.VarSub := Result.WriteCount;
+  Result := VarTypeToOpType(GetVarType);
 end;
 
-procedure TILItem.SetDestType(ADestType: TDestType);
+function TILParam.ImmValueToString: String;
 begin
-  Assert(DestType = dtNone);
-
-  DestType := ADestType;
-  case ADestType of
-    dtNone: ;
-    dtData:
-    begin
-      Dest.Kind := pkNone;
-      Dest.Reg := rNone;
-    end;
-    dtDataLoad:
-      Param3.Initialise;
-    dtCondBranch:
-    begin
-      BranchReg := rNone;
-      TrueBlockID := -1;
-      FalseBlockID := -1;
-    end;
-    dtBranch:
-      BranchBlockID := -1;
+  Assert(Kind = pkImmediate);
+  case ImmType of
+    vtByte: Result := '$' + IntToHex(ImmValueInt, 2);
+    vtWord, vtPointer: Result := '$' + IntToHex(ImmValueInt, 4);
+    vtInt8, vtInteger: Result := ImmValueInt.ToString;
+    vtBoolean:
+      if ImmValueInt = 0 then
+        Result := 'False'
+      else
+        Result := 'True';
+    vtChar: Result := chr(ImmValueInt);
+    vtTypeDef: Result := VarTypeToName(ImmValueInt);
   else
     Assert(False);
   end;
+end;
+
+procedure TILParam.Initialise;
+begin
+  Reg := rNone;
+  Kind := pkNone;
+end;
+
+function TILParam.ToString: String;
+
+  function VarToString: String;
+  begin
+    Result := '%' + Variable.Name + '_' + IntToStr(VarVersion) +
+      ':' + VarTypeToName(Variable.VarType) + '/' + CPURegStrings[Reg];
+  end;
+
+begin
+  case Kind of
+    pkNone: Result := '_';
+    pkImmediate:
+    begin
+      Result := ImmValueToString + ':' +
+        VarTypeToName(ImmType) + '/' + CPURegStrings[Reg];
+    end;
+    pkPhiVarSource:
+      Result := '[%_' + IntToStr(PhiSourceVersion) + ' {' + IntToStr(PhiBlockID) + '}] ';
+    pkPhiVarDest:
+    begin
+      Assert(Assigned(PhiVar));
+      Result := '%' + PhiVar.Name + '_' + IntToStr(PhiDestVersion);
+    end;
+    pkVarSource, pkVarDest:
+    begin
+      Assert(Assigned(Variable));
+      Result := VarToString;
+    end;
+    pkPush: Result := Result + 'PUSH /' + CPURegStrings[Reg];
+    pkPushByte: Result := Result + 'PUSHBYTE /' + CPURegStrings[Reg];
+    pkBranch:
+    begin
+//      Assert(Param = @ILItem.Param1, 'pkBranch must be Param1');
+      Result := 'Branch ' + '{' + IntToStr(BranchBlockID) + '} ';
+    end;
+    pkCondBranch:
+    begin
+//      Assert(Param = @ILItem.Param3, 'pkCondBranch must be Param3');
+      Result := 'CondBranch ';
+      if FalseBlockID = -1 then
+        Result := Result + '{' + IntToStr(TrueBlockID) + '} '
+      else
+        Result := Result + '{' + IntToStr(TrueBlockID) + ',' + IntToStr(FalseBlockID) + '} ';
+      Result := Result + '/' + CPURegStrings[Reg];
+    end;
+  else
+    Assert(False);
+  end;
+end;
+
+function TILParam.ToVariable: PVariable;
+begin
+  Assert(Kind in [pkVarSource, pkVarDest]);
+  Result := Variable;
+end;
+
+
+{ TILItem }
+
+function TILItem.AssignToHiddenVar(VarType: TVarType): PVariable;
+begin
+  Result := VarCreateHidden(VarType);
+  Dest.SetVarDestAndVersion(Result, Result.WriteCount);
+end;
+
+function TILItem.GetBranchBlockID: Integer;
+begin
+  Assert(Op = opBranch);
+  Assert(Dest.Kind = pkBranch);
+  Result := Dest.BranchBlockID;
+end;
+
+procedure TILItem.SetBranchBlockID(BlockID: Integer);
+begin
+  Assert(Op = opBranch);
+  Dest.Kind := pkBranch;
+  Dest.BranchBlockID := BlockID;
 end;
 
 procedure TILItem.SwapParams;
@@ -609,80 +511,51 @@ function TILItem.ToString: String;
 begin
   Result := '';
 
-  case DestType of
-    dtNone: Result := Result + '_ ';
-    dtData:
+  case Op of
+    //Special case operation types
+    opDataLoad:
     begin
-      case Dest.Kind of
-        pkNone: ;
-        pkImmediate: ;
-        pkPhiVar: Result := Result + '%' + Dest.PhiVar.Name + '_' + IntToStr(Dest.PhiSub);
-        pkVar:
-          try
-          if Assigned(Dest.Variable) then
-            Result := Result + '%' + Dest.Variable.Name + '_' + IntToStr(Dest.VarSub)
-          else
-            Result := Result + '<UNASSIGNED>';
-          except
-            Result := Result + 'ACCESS VIOLATION ON VARIABLE';
-          end;
-        pkStack: Result := Result + 'PUSH';
-        pkStackByte: Result := Result + 'PUSHBYTE';
-      else
-        Result := Result + 'Invalid Dest Kind';
-//    raise Exception.Create('Invalid DestKind');
-      end;
-      if not (Dest.Kind in [pkNone, pkPhiVar]) then
-        Result := Result + ':' + OpTypeNames[ResultType];
-      Result := Result + '/' + CPURegStrings[Dest.Reg];
-    end;
-    dtCondBranch:
-    begin
-      Result := Result + 'CondBranch ';
-      if FalseBlockID = -1 then
-        Result := Result + '{' + IntToStr(TrueBlockID) + '} '
-      else
-        Result := Result + '{' + IntToStr(TrueBlockID) + ',' + IntToStr(FalseBlockID) + '} ';
-      Result := Result + ':' + OpTypeNames[ResultType] + ' ';
-    end;
-    dtBranch:
-      Result := Result + 'Branch ' + '{' + IntToStr(BranchBlockID) + '} ';
-    dtDataLoad:
-    begin
+      Assert(Param1.Kind in [pkImmediate, pkVarSource]);
+      Assert(Param2.Kind in [pkNone, pkImmediate, pkVarSource]);
+      Assert(Param3.Kind in [pkNone, pkImmediate, pkVarSource]);
       Result := Result + 'DATALOAD: ';
       if Param1.Kind <> pkNone then
-        Result := Result + CPURegStrings[Param1.Reg] + ':=' + ILParamToString(@Self, @Param1);
+        Result := Result + CPURegStrings[Param1.Reg] + ':=' + Param1.ToString;
       if Param2.Kind <> pkNone then
-        Result := Result + CPURegStrings[Param2.Reg] + ':=' + ILParamToString(@Self, @Param2);
+        Result := Result + CPURegStrings[Param2.Reg] + ':=' + Param2.ToString;
       if Param3.Kind <> pkNone then
-        Result := Result + CPURegStrings[Dest.Reg] + ':=' + ILParamToString(@Self, @Param3);
-    end
-    else
-      raise Exception.Create('Unkown block type');
-  end;
+        Result := Result + CPURegStrings[Param3.Reg] + ':=' + Param3.ToString;
+    end;
+(*    opBranch:
+    begin
+      Assert(Param1.Kind = pkBranch);
+      Assert(Param2.Kind = pkNone);
+      Assert(Param3.Kind = pkNone);
+      Result := Result + 'Branch ' + '{' + IntToStr(Param1.BranchBlockID) + '} ';
+    end;
+*)  else //General operation types
+    Assert(Param1.Kind in [pkNone, pkImmediate, pkVarSource, pkPhiVarSource]);
+    Assert(Param2.Kind in [pkNone, pkImmediate, pkVarSource, pkPhiVarSource]);
+    Assert(Dest.Kind in [pkNone, pkCondBranch, pkBranch, pkVarDest, pkPhiVarDest, pkPush, pkPushByte]);
+    Result := Result + Param3.ToString;
 
-  //Ignore unconditional branches
-  if not (DestType in [dtBranch]) then
-  begin
-    if DestType = dtData then
-      Result := Result + '=';
+    if Dest.Kind in [pkVarDest, pkPhiVarDest, pkCondbranch, pkPush, pkPushByte] then
+      Result := Result + ' = ';
     if Op <> opUnknown then
+    begin
+//      Assert(Op in [low(Operations)..high(Operations)], 'Invalid Op');
+//      if not (OpType in [low(OpTypeNames)..high(OpTypeNames)]) then
+//        Assert(OpType in [low(OpTypeNames)..high(OpTypeNames)], 'Invalid OpType');
       Result := Result + Operations[Op].Name;
-    if ((DestType = dtData) and not (Dest.Kind in [pkNone, pkPhiVar])) or
-      (DestType = dtCondBranch) then
-      Result := Result + ':' + OpTypeNames[OpType];
-    Result := Result + ' ';
+      if Dest.Kind <> pkPhiVarDest then
+        Result := Result + ':' + OpTypeNames[OpType] + ' ';
+    end;
+    Result := Result + Param1.ToString + ', ';
+    Result := Result + Param2.ToString;
 
-    //First operand
-    Result := Result + ILParamToString(@Self, @Param1);
-
-    //Second operand
-    if Dest.Kind <> pkNone then
-      Result := Result + ' ' + ILParamToString(@Self, @Param2);
+    if Func <> nil then
+      Result := Result + #13'    ' + Func.ToString;
   end;
-
-  if Func <> nil then
-    Result := Result + Func.ToString;
 end;
 
 procedure ILToStrings(S: TStrings);
@@ -694,7 +567,7 @@ begin
   begin
     Item := ILIndexToData(I);
     if Item.BlockID <> -1 then
-      S.Add('   ' + IntToStr(Item.BlockID)+':  ');
+      S.Add('   ' + IntToStr(Item.BlockID)+':  ' + Item.Comments);
     S.Add(IntToStr(I)+'- ' + Item.ToString);
   end;
 end;

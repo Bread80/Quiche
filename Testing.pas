@@ -33,7 +33,7 @@ procedure RunAllTests(Folder: String;StopOnError: Boolean);
 procedure TestLogToStrings(SL: TStrings);
 
 implementation
-uses SysUtils, IOUtils, Compiler, Variables, QTypes, Globals, CodeGenZ80AsmEx;
+uses SysUtils, IOUtils, Compiler, Variables, QTypes, Globals, Z80.CodeGen;
 
 var
   TestName: String;
@@ -306,7 +306,7 @@ begin
 
   CompileNeeded(True);
 
-  Result := CodeGenZ80AsmEx.UsesPrimitive(PrimName);
+  Result := Z80.CodeGen.UsesPrimitive(PrimName);
   if not Result then
     DoTest(Result, 'Compiler failed to use primitive: ' + PrimName)
 end;
@@ -372,9 +372,9 @@ begin
     EXIT(False);
 
   if CompareText(Fields[1], 'on') = 0 then
-    CodeGenZ80AsmEx.LogPrimitives := True
+    Z80.CodeGen.LogPrimitives := True
   else if CompareText(Fields[1], 'off') = 0 then
-    CodeGenZ80AsmEx.LogPrimitives := False
+    Z80.CodeGen.LogPrimitives := False
   else
     EXIT(False);
 

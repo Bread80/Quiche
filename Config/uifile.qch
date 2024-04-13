@@ -3,7 +3,8 @@
 //work arounds for not-yet-implemented, or just plain buggy, features. The code here
 //will be updates as the compiler progresses.
 
-//This variation uses a much more optimised algorithm than that in Life.qch
+//The code here is deliberately not optimised in order to give the compiler more work to
+//do (or, at least that's my story).
 
 //Language features to note:
 //* Quiche is a variant of Pascal. Most Pascal code will work as-is. Extra features are
@@ -70,7 +71,7 @@ var  BufSize: Word  //Buffer size is (ColCount + 2) * (RowCount + 2)
 procedure InitBuffer(Buffer: Pointer)
 begin
   for Buffer := Buffer to Buffer + BufSize - 1 do
-    poke(Buffer, 0)
+    poke(Buffer, False)
 end
 
 procedure InitScreen
@@ -95,7 +96,7 @@ begin
   Result := Peek(Buffer + CoordToOffset(X, Y), Boolean)
 end
 
-procedure WriteCell(Buffer: Pointer;X, Y: Word;Value: Byte)
+procedure WriteCell(Buffer: Pointer;X, Y: Word;Value: Boolean)
 begin
   //Parenthesis are optional (see notes at top)
   //Sometimes it just feels natural to omit them
@@ -106,90 +107,48 @@ end
 //Here we're creating a glider
 procedure SetInitialState(Buffer: Pointer)
 begin
-  WriteCell(Buffer, 2,3, 1)
-  WriteCell(Buffer, 3,4, 1)
-  WriteCell(Buffer, 4,2, 1)
-  WriteCell(Buffer, 4,3, 1)
-  WriteCell(Buffer, 4,4, 1)
+  WriteCell(Buffer, 2,3, True)
+  WriteCell(Buffer, 3,4, True)
+  WriteCell(Buffer, 4,2, True)
+  WriteCell(Buffer, 4,3, True)
+  WriteCell(Buffer, 4,4, True)
 end
 
-//Update the cell at the given Offset.
-//Returns:
-//  0 if the cell was alive but has died,
-//  1 if the cell was dead but is now alive
-//  2 if the cell is unchanged
-function UpdateCell(OldBuf, NewBuf: Pointer;Offset: Word): Byte
-var Alive: Byte	//Neighbour count
+procedure UpdateCell(OldBuf, NewBuf: Pointer;X, Y: Word)
+var Alive: Byte
 begin
-  var Base: Pointer = OldBuf + Offset
-  
-  //Row above
-  Alive := peek(Base - ColCount-3) +
-  peek(Base - ColCount-2) + peek(Base - ColCount-1) +
-  
-  //Current row
-  peek(Base - 1) + peek(Base + 1) +
-  
-  //Row below
-  peek(Base + ColCount+1) + peek(Base + ColCount+2) +
-  peek(Base + ColCount+3)
-  
-  if peek(Base) <> 0 then
-  begin	//Live cell, die unless two or three neighbours
-    if (Alive = 2) or (Alive = 3) then
-	begin
-	  Poke(NewBuf + Offset, 1)
-	  Result := 2
-	end
-    else
-    begin
-      poke(NewBuf + Offset, 0)
-      Result := 0
-    end
-  end
+  Alive := 0
+  if ReadCell(OldBuf, X-1, Y-1) then
+    inc(Alive)
+  if ReadCell(OldBuf, X, Y-1) then
+    inc(Alive)
+  if ReadCell(OldBuf, X+1, Y-1) then
+    inc(Alive)
+  if ReadCell(OldBuf, X-1, Y) then
+    inc(Alive)
+  if ReadCell(OldBuf, X+1, Y) then
+    inc(Alive)
+  if ReadCell(OldBuf, X-1, Y+1) then
+    inc(Alive)
+  if ReadCell(OldBuf, X, Y+1) then
+    inc(Alive)
+  if ReadCell(OldBuf, X+1, Y+1) then
+    inc(Alive)
+
+  if ReadCell(OldBuf, X, Y) then
+    WriteCell(NewBuf, X, Y, (Alive = 2) or (Alive = 3))
   else
-  begin //Empty cell, generate life if three neighbours
-    if Alive = 3 then
-	 begin
-	   poke(NewBuf + Offset, 1)
-	   Result := 1
-	 end
-	 else
-	 begin
-	   Poke(NewBuf + Offset, 0)
-	   Result := 2
-	 end
-  end
+    WriteCell(NewBuf, X, Y, Alive = 3)
 end
 
-//Set the state of NewBuf based on the state of OldBuf and the game rules.
-//Also updates the display as it goes for maximum speed.
-procedure Update(OldBuf, NewBuf: Pointer)
-var Offset: Word
+//Set the state of NewBuf based on the state of OldBuf and the game rules
+procedure UpdateBuffer(OldBuf, NewBuf: Pointer)
 var X:Word
 var Y:Word
 begin
-  //Position of first active pixel (second address of second row)
-  Offset := ColCount+3
   for Y := 1 to RowCount do
-  begin
     for X := 1 to ColCount do
-	begin
-      var State := UpdateCell(OldBuf, NewBuf, Offset)
-	  if State < 2 then
-	  begin
-  	    TXT_SET_CURSOR(X, Y)
-        if State = 0 then
-          TXT_OUTPUT(' ')
-	    else //State = 1
-          TXT_OUTPUT(#$e9)
-	  end
-
-	  inc(Offset)
-	end
-	//Step of right and left margin bytes
-	inc(Offset,2)
-  end
+      UpdateCell(OldBuf, NewBuf, X, Y)
 end
 
 //Update the display to show the state of Buffer
@@ -237,13 +196,12 @@ begin
 
   //Set initial pattern
   SetInitialState(Buffer1)
-  UpdateScreen(Buffer1)
 
-  //We don't have while loops yet so can't do a 'while true'
-  for var gen:=1 to 50 do
+  //We don't have while loops yet
+  for var gen:=1 to 20 do
   begin
-    //Calculates next generation and updates the screen
-    Update(Buffer1, Buffer2)
+    UpdateScreen(Buffer1)
+    UpdateBuffer(Buffer1, Buffer2)
 
     //Swap buffers
     var Temp := Buffer1

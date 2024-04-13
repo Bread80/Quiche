@@ -414,13 +414,59 @@
 ,poke,Word,Char,n,None,x,,poke_hl_imm8,,,hl,imm,,,,,,,,
 ,poke,Word,Char,n,None,x,,poke_hl_reg8,,,hl,a;b;c;d;e;h;l,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,
-,pred,Byte,None,n,None,x,,proc_dec8_reg,,,a;b;c;d;e;h;l,,param1,f,empty,,,,,No overflow checking
-,pred,Int8,None,n,None,x,,proc_dec8_reg,,,a;b;c;d;e;h;l,,param1,f,empty,,,,,No overflow checking
-,pred,Word,None,n,None,x,,proc_dec16_reg,,,hl;de;bc,,param1,,empty,,,,,No overflow checking
-,pred,Pointer,None,n,None,x,,proc_dec16_reg,,,hl;de;bc,,param1,,empty,,,,,No overflow checking
-,pred,Integer,None,n,None,x,,proc_dec16_reg,,,hl;de;bc,,param1,,empty,,,,,No overflow checking
-,pred,Boolean,None,n,None,x,,proc_dec8_reg,,,hl;de;bc,,param1,f,empty,,,,,No overflow checking
-,pred,Char,None,n,None,x,,proc_dec8_reg,,,hl;de;bc,,param1,f,empty,,,,,No overflow checking
+,pred,Byte,Byte,n,Byte,n,,proc_dec8_reg,,,a;b;c;d;e;h;l,imm,param1,f,empty,,,,,No overflow checking
+,pred,Byte,Byte,n,Byte,y,,sub8_reg_imm,,,a,imm,a,a;f,c_overflow,m_overflow,,,,
+,pred,Int8,Int8,n,Int8,n,,proc_dec8_reg,,,a;b;c;d;e;h;l,imm,param1,f,empty,,,,,No overflow checking
+,pred,Int8,Int8,n,Int8,y,,sub8_reg_imm,,,a,imm,a,a;f,pe_overflow,,m_overflow,,m_overflow,
+,pred,Word,Integer,n,Word,n,,proc_dec16_reg,,,hl;de;bc,imm,param1,,empty,,,,,No overflow checking
+,pred,Word,Word,n,Word,y,,sub16,,,hl,hl;de;bc,hl,h;l;f,c_overflow,,,m_overflow,,
+,pred,Pointer,Integer,n,Pointer,n,,proc_dec16_reg,,,hl;de;bc,imm,param1,,empty,,,,,No overflow checking
+,pred,Pointer,Word,n,Pointer,y,,sub16,,,hl,hl;de;bc,hl,h;l;f,c_overflow,,,m_overflow,,
+,pred,Integer,Integer,n,Integer,n,,proc_dec16_reg,,,hl;de;bc,imm,param1,,empty,,,,,No overflow checking
+,pred,Integer,Integer,n,Integer,y,,sub16,,,hl,hl;de;bc,hl,h;l;f,pe_overflow,,,,m_overflow,
+,pred,Boolean,Integer,n,Boolean,n,,proc_dec8_reg,,,a;b;c;d;e;h;l,imm,param1,f,empty,,,,,No overflow checking
+,pred,Boolean,Byte,n,Boolean,y,,sub8_reg_imm,,,a,imm,a,a;f,c_overflow,m_overflow,,,,TODO: BoolDEC should be INC!! Error if result not $00
+,pred,Char,Integer,n,Char,n,,proc_dec8_reg,,,a;b;c;d;e;h;l,imm,param1,f,empty,,,,,No overflow checking
+,pred,Char,Byte,n,Char,y,,sub8_reg_imm,,,a,imm,a,a;f,c_overflow,m_overflow,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
 END,,,,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,
 ;,,,,,,Procedures,,Register options available,,,,,Special validations on type conversion,,,,,,,

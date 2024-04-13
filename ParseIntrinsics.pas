@@ -47,8 +47,6 @@ begin
       if Result <> qeNone then
         EXIT;
 
-      ILItem.DestType := dtNone;  //No result
-      ILItem.Dest.Kind := pkNone; //No result
       ILItem.OpType := VarTypeToOpType(VType);
 
       case VType of
@@ -76,7 +74,7 @@ begin
   end;
 
   if NewLine then
-    ILItem := ILAppend(dtNone, OpWriteNewLine);
+    ILItem := ILAppend(OpWriteNewLine);
   Result := qeNone;
 end;
 

@@ -11,7 +11,8 @@ function DoParseFunctionCall(Func: PFunction;var Slug: TExprSlug): TQuicheError;
 
 
 implementation
-uses SysUtils, ILData, Operators, PrimitivesEx, ParserBase, Variables, Eval;
+uses SysUtils, ILData, Operators, PrimitivesEx, ParserBase, Variables, Eval,
+  Z80.CPU;
 
 const ParamRegToAllocLoc: array[low(TParamReg)..high(TParamReg)] of TCPUReg =
   (rNone, rA, rB, rC, rD, rE, rH, rL, rBC, rDE, rHL, rCF, rZF);
@@ -42,7 +43,7 @@ begin
     vaVal, vaConst, vaResult: ;  //Any
     vaVar, vaOut:
     begin //Argument needs to be a variable reference.
-      if (Slug.ILItem <> nil) or (Slug.Operand.Kind <> pkVar) then
+      if (Slug.ILItem <> nil) or (Slug.Operand.Kind <> pkVarSource) then
         EXIT(ErrFuncCall('Argument ''' + Arg.Name +
           ''' must be a variable', Func));
       end;
@@ -55,14 +56,14 @@ begin
     ccRegister, ccIntrinsic: ; //Registers will be loaded later
     ccStackLocal: //Put parameters on the stack
     begin
-      ILItem := Slug.ToILItemNoDest(dtData);
+      ILItem := Slug.ToILItemNoDest;
       if ILItem.Op = OpUnknown then
         ILItem.Op := OpMove;
       ILItem.ResultType := VarTypeToOpType(Arg.VarType);
       //Slug to ILItem
       case GetTypeSize(Arg.VarType) of
-        1: ILItem.Dest.Kind := pkStackByte;//ILItem to PUSHBYTE
-        2: ILItem.Dest.Kind := pkStack;//ILItem to PUSH
+        1: ILItem.Param3.Kind := pkPushByte;//ILItem to PUSHBYTE
+        2: ILItem.Param3.Kind := pkPush;//ILItem to PUSH
       else
         Assert(False, 'Item too large for stack - needs to be passed by reference');
       end;
@@ -268,7 +269,7 @@ begin
   end
   else
   begin //Create the ILItem for the operation
-    Slug.ILItem := ILAppend(dtNone, Func.Op);
+    Slug.ILItem := ILAppend(Func.Op);
     Slug.ILItem.OpType := VarTypeToOpType(Slug.ResultType);
 
     if Func.ParamCount >= 1 then
@@ -276,7 +277,7 @@ begin
       if Slugs[0].ILItem <> nil then
       begin //We have an ILItem. Assign it to a temp var and use that
         Slugs[0].AssignToHiddenVar;
-        Slug.ILItem.Param1.SetVariable(Slugs[0].ILItem.Dest.Variable);
+        Slug.ILItem.Param1.SetVarSource(Slugs[0].ILItem.Dest.Variable);
       end
       else  //Otherwise it's either a constant or variable we can assign directly
         Slug.ILItem.Param1 := Slugs[0].Operand;
@@ -287,7 +288,7 @@ begin
       if Slugs[1].ILItem <> nil then
       begin
         Slugs[1].AssignToHiddenVar;
-        Slug.ILItem.Param2.SetVariable(Slugs[1].ILItem.Dest.Variable);
+        Slug.ILItem.Param2.SetVarSource(Slugs[1].ILItem.Dest.Variable);
       end
       else
         Slug.ILItem.Param2 := Slugs[1].Operand;
@@ -296,10 +297,9 @@ begin
 
   if Func.Params[0].Access = vaVar then
   begin //Var parameter - result is written back to Param1
-    Slug.ILItem.SetDestType(dtData);
     V := Slug.ILItem.Param1.Variable;
     V.IncWriteCount;
-    Slug.ILItem.Dest.SetVarAndSub(V, V.WriteCount);
+    Slug.ILItem.Dest.SetVarDestAndVersion(V, V.WriteCount);
     Slug.ILItem.ResultType := VarTypeToOpType(V.VarType);
     Slug.ILItem.OpType := Slug.ILItem.ResultType;
   end
@@ -345,7 +345,7 @@ begin
 //       * Immediate data
   if Func.ParamCount = 0 then
   begin
-    ILItem := ILAppend(dtNone, OpFuncCall);
+    ILItem := ILAppend(OpFuncCall);
     ILItem.Func := Func;
   end
   else
@@ -366,13 +366,13 @@ begin
         begin
           if (InParamCount - InParamsDone) < 3 then
           begin
-            ILItem := ILAppend(dtNone, OpFuncCall);
+            ILItem := ILAppend(OpFuncCall);
             Result := ILItem; //Pass CALL back in case we're in a function call
             ILItem.Func := Func;
           end
           else
 //            raise Exception.Create('Register function with more than three params.');
-            ILItem := ILAppend(dtDataLoad, OpDataLoad);
+            ILItem := ILAppend(OpDataLoad);
         end;
 
         //Set parameter data into ILItem
@@ -395,7 +395,7 @@ begin
               2:
               begin
                 ILItem.Param3 := Slugs[ArgIndex].Operand;
-                ILItem.Dest.Reg := ParamRegToAllocLoc[Func.Params[ArgIndex].Reg];
+                ILItem.Param3.Reg := ParamRegToAllocLoc[Func.Params[ArgIndex].Reg];
               end;
             end;
 {
@@ -426,7 +426,7 @@ end;
 function DispatchStack(Func: PFunction;var Slugs: TSlugArray): PILItem;
 var Param: PParameter;
 begin
-  Result := ILAppend(dtNone, OpFuncCall);
+  Result := ILAppend(OpFuncCall);
   Result.Func := Func;
 
   //Process return value(s)

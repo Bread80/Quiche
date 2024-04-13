@@ -80,23 +80,23 @@ begin
   Result := -1;
   case Param.Kind of
     pkNone: RaiseError('Attempt to read a param which is locNone');
-    pkPhiVar:
+    pkPhiVarSource:
     begin
-      Variable := ILItem.Dest.PhiVar;
+      Variable := ILItem.Param3.PhiVar;
 //      ExecTest(Variable.Sub = Sub, 'Variable Sub doesn''t match param Sub version (Phi node)');
       Result := Variable.ValueInt;
       ValueType := Variable.VarType;
-      SubMismatch := Variable.WriteCount <> Param.VarSub;
+      SubMismatch := Variable.WriteCount <> Param.VarVersion;
     end;
     pkImmediate:
     begin
       Result := Param.ImmValueInt;
       ValueType := Param.ImmType;
     end;
-    pkVar:
+    pkVarSource:
     begin
       Variable := Param.Variable;
-      ExecTest(Variable.WriteCount = Param.VarSub, 'Variable Sub doesn''t match param Sub version (normal node)');
+      ExecTest(Variable.WriteCount = Param.VarVersion, 'Variable Sub doesn''t match param Sub version (normal node)');
       Result := Variable.ValueInt;
       ValueType := Variable.VarType;
     end;
@@ -153,7 +153,7 @@ begin
   Result := Index + 1;
 
   Op := @Operations[ILItem.Op];
-  if ILItem.DestType = dtBranch then
+  if ILItem.Op = opBranch then
     //Unconditional branch - don't evaluate parameters
   else
   begin
@@ -272,29 +272,27 @@ begin
 *)  end;
 
   //Assign result to Dest/Do branch
-  case ILItem.DestType of
-    dtData:
       case ILItem.Dest.Kind of
         pkNone: RaiseError('Dest assignment to <locNone>');
-        pkPhiVar:
+        pkPhiVarDest:
         begin
-          Variable := ILItem.Dest.PhiVar;
+          Variable := ILItem.Param3.PhiVar;
           Variable.ValueInt := Value;
           Variable.VarType := ValueType;
-          Variable.WriteCount := ILItem.Dest.PhiSub;
+          Variable.WriteCount := ILItem.Param3.PhiDestVersion;
         end;
-        pkVar:
+        pkVarDest:
         begin
-          Variable := ILItem.Dest.Variable;
+          Variable := ILItem.Param3.Variable;
           Variable.ValueInt := Value;
           Variable.VarType := ValueType;
-          Variable.WriteCount := ILItem.Dest.VarSub;
+          Variable.WriteCount := ILItem.Param3.VarVersion;
         end;
         pkImmediate: RaiseError('Dest assignment to <locImmediate>');
       else
         RaiseError('Unknown Dest type');
       end;
-    dtCondBranch:
+{    dtCondBranch:
     begin
       if ILItem.FalseBlockID < 0 then
         //Unconditional jump
@@ -307,9 +305,7 @@ begin
         else
           Result := BlockIDToILIndex(ILItem.FalseBlockID);
     end;
-  else
-    RaiseError('Unknown DestType');
-  end;
+}
 end;
 
 

@@ -1,7 +1,7 @@
 unit PrimitivesEx;
 
 interface
-uses QTypes, ILData, Operators, ParseExpr;
+uses QTypes, ILData, Operators, ParseExpr, Z80.CPU;
 
 type
   TPrimValidation = (pvYes, pvNo, pvEither);
@@ -245,24 +245,24 @@ begin
   end;
 end;
 
-function DestRegMatch(const Prim: PPrimitiveNG;const ILDest: TILDest): Boolean;
+function DestRegMatch(const Prim: PPrimitiveNG;const ILDest: TILParam): Boolean;
 var V: PVariable;
 begin
   case ILDest.Kind of
     pkNone: EXIT(True);
-    pkStack:
+    pkPush:
       //TODO: Update this to have more regs available
       if Prim.ResultInLReg then
         Result := [rHL,rDE,rBC] * Prim.LRegs <> []
       else
         Result := Prim.ResultReg in [rHL, rDE, rBC];
-    pkStackByte:
+    pkPushByte:
       //TODO: Update this to have more regs available
       if Prim.ResultInLReg then
         Result := [rA,rB,rD,rH, rZFA,rNZFA,rCPLA] * Prim.LRegs <> []
       else
         Result := Prim.ResultReg in [rA,rB,rD,rH, rZFA,rNZFA,rCPLA];
-    pkVar:
+    pkVarDest:
     begin //We need a result suitable for writing to a variable
 //      if ILDest.Kind in [pkVar] then
       begin
@@ -289,10 +289,10 @@ end;
 
 function DestMatch(Prim: PPrimitiveNG;ILItem: PILItem): Boolean;
 begin
-  case ILItem.DestType of
-    dtCondBranch: Result := Prim.ResultType in [vtBoolean, vtFlag];
-    dtData: Result := DestRegMatch(Prim, ILItem.Dest);
-    dtNone: Result := True;
+  case ILItem.Dest.Kind of
+    pkNone, pkPush, pkPushByte: Result := True;
+    pkCondBranch: Result := Prim.ResultType in [vtBoolean, vtFlag];
+    pkVarDest: Result := DestRegMatch(Prim, ILItem.Dest);
   else
     Assert(False);
   end;
@@ -593,13 +593,13 @@ begin
 
   SearchRec.LType := Left.ResultType;
   if Left.ILItem <> nil then
-    SearchRec.LKind := pkVar
+    SearchRec.LKind := pkVarSource
   else
     SearchRec.LKind := Left.Operand.Kind;
 
   SearchRec.RType := Right.ResultType;
   if Right.ILItem <> nil then
-    SearchRec.RKind := pkVar
+    SearchRec.RKind := pkVarSource
   else
     SearchRec.RKind := Right.Operand.Kind;
 
@@ -663,8 +663,8 @@ begin
   SearchRec.Op := Op;
   SearchRec.GenTime := False;
   //Fields not used for parse-time search. This stops the compiler warnings.
-  SearchRec.LKind := pkVar;
-  SearchRec.RKind := pkVar;
+  SearchRec.LKind := pkVarSource;
+  SearchRec.RKind := pkVarSource;
   SearchRec.LStorage := vsStack;
   SearchRec.RStorage := vsStack;
   SearchRec.ILItem := nil;
@@ -673,7 +673,7 @@ begin
 
   SearchRec.LType := Left.ResultType;
   if Left.ILItem <> nil then
-    SearchRec.LKind := pkVar
+    SearchRec.LKind := pkVarSource
   else
     SearchRec.LKind := Left.Operand.Kind;  SearchRec.RType := vtUnknown;
 
@@ -733,14 +733,14 @@ begin
   SearchRec.MatchResultType := vtUnknown;
 
   SearchRec.LKind := ILItem.Param1.Kind;
-  if SearchRec.LKind = pkVar then
+  if SearchRec.LKind = pkVarSource then
   begin
     V := ILItem.Param1.ToVariable;
     SearchRec.LStorage := V.Storage;
   end;
 
   SearchRec.RKind := ILItem.Param2.Kind;
-  if SearchRec.RKind = pkVar then
+  if SearchRec.RKind = pkVarSource then
   begin
     V := ILItem.Param2.ToVariable;
     SearchRec.RStorage := V.Storage;
@@ -810,7 +810,7 @@ begin
   case ILParam.Kind of
     pkNone: EXIT(AvailableRegs = []);
     pkImmediate: EXIT(True);//ProcLoc = [plImm]);
-    pkVar: //Special cases which can handle variable types directly
+    pkVarSource: //Special cases which can handle variable types directly
     begin
       V := ILParam.ToVariable;
       if pfP1StaticVar in Prim.Flags then
@@ -832,29 +832,25 @@ var V: PVariable;
 begin
 //  Result := (Prim.IsBranch and (ILItem.DestType = dtCondBranch)) or not Prim.IsBranch then
   if Prim.IsBranch then
-    EXIT(ILItem.DestType = dtCondBranch);
+    EXIT(ILItem.Param3.Kind = pkCondBranch);
 
-  if ILItem.DestType = dtData then
-  begin
-    case ILItem.Dest.Kind of
-      pkVar:
-      begin
-        //For an assign to a variable (Anything other than Assign is handled after the Primitive)
-        V := ILItem.Dest.ToVariable;
-        if pfDestStaticVar in Prim.Flags then
-          EXIT(V.Storage = vsStatic);
-        if pfDestRelVar in Prim.Flags then
-          EXIT(V.Storage = vsStack);
+  case ILItem.Dest.Kind of
+    pkVarDest:
+    begin
+      //For an assign to a variable (Anything other than Assign is handled after the Primitive)
+      V := ILItem.Dest.ToVariable;
+      if pfDestStaticVar in Prim.Flags then
+        EXIT(V.Storage = vsStatic);
+      if pfDestRelVar in Prim.Flags then
+        EXIT(V.Storage = vsStack);
 
-        EXIT(True);
-      end;
-      pkStack, pkStackByte: EXIT(True);
+      EXIT(True);
     end;
-  end
+    pkPush, pkPushByte:
+      EXIT(True);
   else  //DestType <> dtData - return true because value can be massaged for branches
     EXIT(True);
-
-  Result := False;
+  end;
 end;
 
 function ILItemToPrimitive(const ILItem: TILItem): PPrimitive;

@@ -115,7 +115,7 @@ const SubErrors : array[TQuicheError] of String = (
 
   '',
   '',
-  '',
+  'Invalid keyword: ''%s''',
   '',
   '',
   '',
@@ -260,7 +260,7 @@ function ErrSub(ErrClass: TQuicheError;Sub: String): TQuicheError;
 begin
   LastErrorMessage := Format(SubErrors[ErrClass], [Sub]);
   if LastErrorMessage = '' then
-    raise Exception.Create('Nothing to sub! (in error message)');
+    raise Exception.Create('ERROR WHILE REPORTING AN ERROR: Nothing to substitute! (in error message)');
   LastErrorHelp := '';
   Result := ErrClass;
 end;

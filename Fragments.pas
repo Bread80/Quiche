@@ -20,7 +20,7 @@ function FragmentSub(AName: String;ILItem: PILItem;Scope: PScope): String;
 
 
 implementation
-uses Classes, Generics.Collections, SysUtils, Variables, QTypes;
+uses Classes, Generics.Collections, SysUtils, Variables, QTypes, Z80.CPU;
 
 var  FragList: TList<PFragment>;
 
@@ -188,7 +188,7 @@ begin
 
       //8 bit registers
       else if CompareText(PName, 'd.r8') = 0 then
-        Sub := CPUReg8ToChar[ILItem.Dest.Reg]
+        Sub := CPUReg8ToChar[ILItem.Param3.Reg]
       else if CompareText(PName, 'p1.r8') = 0 then
         Sub := CPUReg8ToChar[ILItem.Param1.Reg]
       else if CompareText(PName, 'p2.r8') = 0 then
@@ -196,11 +196,11 @@ begin
 
       //16 bit registers
       else if CompareText(PName, 'd.r16') = 0 then
-        Sub := CPURegPairToString[ILItem.Dest.Reg]
+        Sub := CPURegPairToString[ILItem.Param3.Reg]
       else if CompareText(PName, 'd.r16low') = 0 then
-        Sub := CPURegLowToChar[ILItem.Dest.Reg]
+        Sub := CPURegLowToChar[ILItem.Param3.Reg]
       else if CompareText(PName, 'd.r16high') = 0 then
-        Sub := CPURegHighToChar[ILItem.Dest.Reg]
+        Sub := CPURegHighToChar[ILItem.Param3.Reg]
 
       else if CompareText(PName, 'p1.r16') = 0 then
         Sub := CPURegPairToString[ILItem.Param1.Reg]
@@ -218,7 +218,7 @@ begin
 
       //Absolutes (fixed/global variables)
       else if CompareText(PName, 'd.varname') = 0 then
-        Sub := CodeVarName(@ILItem.Dest, Comment)
+        Sub := CodeVarName(@ILItem.Param3, Comment)
       else if CompareText(PName, 'p1.varname') = 0 then
         Sub := CodeVarName(@ILItem.Param1, Comment)
       else if CompareText(PName, 'p2.varname') = 0 then
@@ -226,11 +226,11 @@ begin
 
       //Offsets (stack variables)
       else if CompareText(PName, 'd.offset') = 0 then
-        Sub := CodeOffset(@ILItem.Dest, Comment)
+        Sub := CodeOffset(@ILItem.Param3, Comment)
       else if CompareText(PName, 'd.offsetlow') = 0 then
-        Sub := CodeOffset(@ILItem.Dest, Comment)
+        Sub := CodeOffset(@ILItem.Param3, Comment)
       else if CompareText(PName, 'd.offsethigh') = 0 then
-        Sub := CodeOffsetHigh(@ILItem.Dest, Comment)
+        Sub := CodeOffsetHigh(@ILItem.Param3, Comment)
 
       else if CompareText(PName, 'p1.offset') = 0 then
         Sub := CodeOffset(@ILItem.Param1, Comment)

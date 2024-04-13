@@ -396,7 +396,7 @@
         <DCCReference Include="Scopes.pas"/>
         <DCCReference Include="ParserFixups.pas"/>
         <DCCReference Include="PrimitivesEx.pas"/>
-        <DCCReference Include="CodeGenZ80AsmEx.pas"/>
+        <DCCReference Include="Z80.CodeGen.pas"/>
         <DCCReference Include="Eval.pas"/>
         <DCCReference Include="QTypes.pas"/>
         <DCCReference Include="Globals.pas"/>
@@ -410,6 +410,9 @@
         <DCCReference Include="..\TextEditor\EditableText.pas"/>
         <DCCReference Include="Emulator.pas"/>
         <DCCReference Include="Intrinsics.pas"/>
+        <DCCReference Include="Z80.Optimise.pas"/>
+        <DCCReference Include="Z80.CPUState.pas"/>
+        <DCCReference Include="Z80.CPU.pas"/>
         <None Include="Tests.txt"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>

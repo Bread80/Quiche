@@ -8,9 +8,9 @@
 ;,,,,,,Procedures,,Register options available,,,,,Special validations on type conversion,,,,
 ;,Name ,OpType,FirstParamType,DestType,Validation,Exec,Flags,Param1,Param2,Dest,Corrupts,Validate,s8,u8,s16,u16,Notes
 ;,Misc   ,,,,,,,,,,,,,,,,
-,unknown,,,,x,error   ,,,,none,,,,,,,Raises an error if encountered by the code generator
+;,unknown,,,,x,error   ,,,,none,,,,,,,Raises an error if encountered by the code generator
 ,move,,,,x,empty   ,,a;b;c;d;e;h;l;bc;de;hl,,p1,,,,,,,Primitive does nothing. Used for load-store operations
-,phi     ,,,,x,empty   ,,,,    ,,,,,,,Dummy which does nothing
+;,phi     ,,,,x,empty   ,,,,    ,,,,,,,Dummy which does nothing
 ,funccall,,,,x,proccall,,,,    ,,,,,,,Function call
 ;Validation routines,,,,,,,,,,,,,,,,,
 ;,x,,,,x,c_overflow,,,,,,,,,,,Overflow error if carry true

@@ -37,14 +37,14 @@ type  //Controls accessibility of variables and function parameters
                       //vsOffset, this is the offset from the stack base address
                       //vsFixed: the offset from the start of the Data segment
 
-    //Compile and execution time data
+    //Parse and execution time data
     WriteCount: Integer;
 
     //Compile time only data
     Touched: Boolean; //Temporary data used when generating phi functions
-    AdjustSubFrom: Integer;  //Temp data used while doing branch fixups.
-                            //If a variable read has the given sub (version) index...
-    AdjustSubTo: Integer;   //...we need to change that read to reference this sub version.
+    AdjustVersionFrom: Integer;  //Temp data used while doing branch fixups.
+                            //If a variable read has the given version index...
+    AdjustVersionTo: Integer;   //...we need to change that read to reference this version.
 
     //Execution time only data
     ValueInt: Integer;
@@ -292,16 +292,13 @@ begin
   Result.Touched := False;
   Result.Offset := -1;
   Result.Access := vaLocal;
-{  if Vars.Count = 0 then
-    Result.Offset := 0
-  else  //Adding to current Scope
-    Result.Offset := Vars[Vars.Count-1].Offset + GetTypeSize(Vars[Vars.Count-1].VarType);
-}  Vars.Add(Result);
+  Vars.Add(Result);
 end;
 
 function VarCreateHidden(VarType: TVarType): PVariable;
 begin
   Result := VarCreateInt('',VarType, GetCurrentScope.GetLocalStorage);
+  Result.Name := '_temp' + Vars.IndexOf(Result).ToString;
 //  Result.SetName('%'+IntToStr(Index));
 end;
 
@@ -413,7 +410,7 @@ begin
   Assert(Scope <> nil, 'Scope not found (for variable)');
 
   if Name = '' then
-    LName := '_temp_' + Vars.IndexOf(@Self).ToString
+    LName := '_temp' + Vars.IndexOf(@Self).ToString
   else
     LName := Name;
   Result := 'v_' + Scope.Name + '_' + LName;
@@ -463,8 +460,8 @@ var V: PVariable;
 begin
   for V in Vars do
   begin
-    V.AdjustSubFrom := -1;
-    V.AdjustSubTo := -1;
+    V.AdjustVersionFrom := -1;
+    V.AdjustVersionTo := -1;
   end;
 end;
 
