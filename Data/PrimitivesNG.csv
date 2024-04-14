@@ -424,8 +424,8 @@
 ,pred,Pointer,Word,n,Pointer,y,,sub16,,,hl,hl;de;bc,hl,h;l;f,c_overflow,,,m_overflow,,
 ,pred,Integer,Integer,n,Integer,n,,proc_dec16_reg,,,hl;de;bc,imm,param1,,empty,,,,,No overflow checking
 ,pred,Integer,Integer,n,Integer,y,,sub16,,,hl,hl;de;bc,hl,h;l;f,pe_overflow,,,,m_overflow,
-,pred,Boolean,Integer,n,Boolean,n,,proc_dec8_reg,,,a;b;c;d;e;h;l,imm,param1,f,empty,,,,,No overflow checking
-,pred,Boolean,Byte,n,Boolean,y,,sub8_reg_imm,,,a,imm,a,a;f,c_overflow,m_overflow,,,,TODO: BoolDEC should be INC!! Error if result not $00
+,pred,Boolean,Integer,n,Boolean,n,,proc_inc8_reg,,,a;b;c;d;e;h;l,imm,param1,f,empty,,,,,No overflow checking
+,pred,Boolean,Byte,n,Boolean,y,,cpla,,,a,imm,a,a;f,c_overflow,m_overflow,,,,TODO: BoolDEC should be INC!! Error if result not $00
 ,pred,Char,Integer,n,Char,n,,proc_dec8_reg,,,a;b;c;d;e;h;l,imm,param1,f,empty,,,,,No overflow checking
 ,pred,Char,Byte,n,Char,y,,sub8_reg_imm,,,a,imm,a,a;f,c_overflow,m_overflow,,,,
 ,,,,,,,,,,,,,,,,,,,,
@@ -433,23 +433,23 @@
 ;,Operation,Ltype,Rtype,Commutative,ResultType,Validation,Flags,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,Validate,Int8,Byte,Integer,Word,Notes
 ,sizeof,Typedef,none,n,Word,x,,,,,hl,,hl,,empty,,,,,Compile time only (until we have variant arrays <g>)
 ,,,,,,,,,,,,,,,,,,,,
+,succ,Byte,Byte,n,Byte,n,,proc_inc8_reg,,,a;b;c;d;e;h;l,imm,param1,f,empty,,,,,No overflow checking
+,succ,Byte,Byte,n,Byte,y,,add8_reg_imm,,,a,imm,a,a;f,c_overflow,m_overflow,,,,
+,succ,Int8,Int8,n,Int8,n,,proc_inc8_reg,,,a;b;c;d;e;h;l,imm,param1,f,empty,,,,,No overflow checking
+,succ,Int8,Int8,n,Int8,y,,add8_reg_imm,,,a,imm,a,a;f,pe_overflow,,m_overflow,,m_overflow,
+,succ,Word,Integer,n,Word,n,,proc_inc16_reg,,,hl;de;bc,imm,param1,,empty,,,,,No overflow checking
+,succ,Word,Word,n,Word,y,,add16_overflow,,,hl,hl;de;bc,hl,h;l;f,c_overflow,,,m_overflow,,
+,succ,Pointer,Integer,n,Pointer,n,,proc_inc16_reg,,,hl;de;bc,imm,param1,,empty,,,,,No overflow checking
+,succ,Pointer,Word,n,Pointer,y,,add16_overflow,,,hl,hl;de;bc,hl,h;l;f,c_overflow,,,m_overflow,,
+,succ,Integer,Integer,n,Integer,n,,proc_inc16_reg,,,hl;de;bc,imm,param1,,empty,,,,,No overflow checking
+,succ,Integer,Integer,n,Integer,y,,add16_overflow,,,hl,hl;de;bc,hl,h;l;f,pe_overflow,,,,m_overflow,
+,succ,Boolean,Integer,n,Boolean,n,,proc_dec8_reg,,,a;b;c;d;e;h;l,imm,param1,f,empty,,,,,No overflow checking
+,succ,Boolean,Byte,n,Boolean,y,,cpla,,,a,imm,a,a;f,c_overflow,m_overflow,,,,TODO: BoolINC should be DEC!! Error if result not $ff
+,succ,Char,Integer,n,Char,n,,proc_inc8_reg,,,a;b;c;d;e;h;l,imm,param1,f,empty,,,,,No overflow checking
+,succ,Char,Byte,n,Char,y,,add8_reg_imm,,,a,imm,a,a;f,c_overflow,m_overflow,,,,
 ,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,
+,swap,Word,none,n,Word,x,,swap_reg_reg,,,hl;de;bc,,Param1,a,empty,,,,,Lreg and ResultReg must be different
+,swap,Integer,none,n,Integer,x,,swap_reg_reg,,,hl;de;bc,,Param1,a,empty,,,,,Lreg and ResultReg must be different
 ,,,,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,

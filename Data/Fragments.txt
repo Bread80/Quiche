@@ -628,6 +628,11 @@
   cpl
   ld <p1.r16high>,a  
   
+=swap_reg_reg
+  ld a,<p1.r16low>
+  ld <p1.r16low>,<p1.r16high>
+  ld <p1.r16high>,a
+  
 ;=== Hardware
 
 =in_reg_bc

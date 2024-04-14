@@ -5,7 +5,7 @@
 ,,"Lines will be ignored if they begin with a semicolon, or if Operation column is empty",,,,,,,,,,
 ,,Terminate the file with 'END' in capitals in first column,,,,,,,,,,
 ,,,,,,,,,,,,
-;,,Param1,,,Param2,,,,Result,,,
+;,,Param1,,,,Param2,,,Result,,,
 ;,Name,Access,Name,VarType,Flags,Access,Name,VarType,DefaultValue,Flags,VarType,Notes
 ;Maths,,,,,,,,,,,,
 ,abs,val,Value,Numeric,,,,,,,Param1,"Absolute value (i.e. if Value is negative returns -Value, otherwise returns Value). No effect on unsigned types."
@@ -29,14 +29,14 @@
 ,out,val,Port,Word,,val,Data,Ordinal,,,None,Write Data to the given I/O port
 ,peek,val,Address,Word,,val,Type,TypeDef,Byte,,Parameterized,"Read from memory. Result type is that of second parameter, Byte if not specified"
 ,poke,val,Address,Word,,const,Data,Any,,,None,"Writes Data to the given memory address. NOTE: If Data is a numeric type, always writes a single byte (otherwise data size could be unclear)."
-,pred,val,Value,Ordinal,,val,Count,Integer,1,,Param1,Returns the Count'th previous value to the parameter
+,pred,val,Value,Ordinal,,val,Count,Integer,1,,Param1,Returns the Count'th previous value to the parameter. If used with Count=1 and Overflow checks off generates DEC opcodes.
 ;,ptr,val,Value,Numeric,,,,,,,Pointer,Converts the value to a pointer
 ;,read,out,Variable,Any(?),Special!,,,,,,None,Reads one or more values from input stream
 ;,readln,out,Variable,Any(?),Special!,,,,,,None,Reads one or more lines from input stream
-,sizeof,const,Type,TypeDef,,,,,,,Word,Byte size of the type
-,sizeof,const,Variable,Any,,,,,,,Word,Byte size of the variable
-;,succ,const,Value,Ordinal,,,,,,,Param1,Returns the next value to the parameter
-;,swap,const,Value,AnyInteger,Not8Bit,,,,,,Param1,Swaps the high and low bytes of the parameter
+,sizeof,const,Type,TypeDef,,,,,,,Word,Returns the (memory) byte size of Type
+,sizeof,const,Variable,Any,,,,,,,Word,"Returns the (memory) byte size of the Variable. A constant expression can also be passed, but may be ambiguous for numeric types"
+,succ,const,Value,Ordinal,,val,Count,Integer,1,,Param1,Returns the Count'th successive value to the parameter. If used with Count=1 and Overflow checks off generates DEC opcodes.
+,swap,const,Value,AnyInteger,,,,,,,Param1,"Swaps the high and low bytes of the parameter. Must be a 16-bit integer type (Word, Pointer or Integer)"
 ;,write,out,Value,Any(?),Special!,,,,,,None,Writes one or more values to output
 ;,writeln,out,Value,Any(?),Special!,,,,,,None,Writes zero of more values to output followed by a new line
 ,,,,,,,,,,,,

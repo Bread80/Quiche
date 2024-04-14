@@ -107,7 +107,7 @@ begin
         //First arg must be an integer constant
         if (Slugs[ArgIndex].ILItem <> nil) or (Slugs[ArgIndex].Operand.Kind <> pkImmediate) then
           EXIT(errFuncCall('Argument ''' + Func.Params[1].Name + ''' must be an integer constant expression', Func));
-    if Func.Op in [opHi, opLo] then
+    if Func.Op in [opHi, opLo, opSwap] then
       //Arg must be > 8 bits wide
       if (Slugs[ArgIndex].ILItem <> nil) or (Slugs[ArgIndex].Operand.Kind <> pkImmediate) then
         if GetTypeSize(Slugs[ArgIndex].ResultType) = 1 then
