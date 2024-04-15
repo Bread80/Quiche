@@ -15,8 +15,8 @@
 ;Validation routines,,,,,,,,,,,,,,,,,
 ;,x,,,,x,c_overflow,,,,,,,,,,,Overflow error if carry true
 ;,x,,,,x,m_overflow,,,,,,,,,,,Overflow if sign flag is negative (high bit set)
-,x,,,,x,b7sov,,,,p1,f,,,,,,Overflow if bit 7 set
-,x,,,,x,b15sov,,,,p1,f,,,,,,Overflow if bit 15 set
+,x,,,,x,bit7_set_overflow,,,,p1,f,,,,,,Overflow if bit 7 set
+,x,,,,x,bit15_set_overflow,,,,p1,f,,,,,,Overflow if bit 15 set
 ;Assignment from immediate data - these routines both read the source data and store it to the destination.,,,,,,,,,,,,,,,,,
 ;Thus the 'Dest' column says 'none' - we don't want the code generator also generating store code,,,,,,,,,,,,,,,,,
 ,storeimm,x8     ,,x8     ,n,assign_abs8_imm8       ,deststaticvar,i,,none,a  ,,,,,,Assigns an immediate 8 bit value (constant) (Validation done by parser!)

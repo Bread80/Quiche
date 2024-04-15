@@ -364,68 +364,72 @@ begin
       end;
       opOrd:
         Value := P;
-    else if (CompareText(OpData.Name, 'pred') = 0) then
-    begin
-      if Param.ImmType = vtBoolean then
+      opPred:
       begin
-        if P = valueFalse then
-          EXIT(Err(qeConstantExpressionOverflow))
+        if Param.ImmType = vtBoolean then
+        begin
+          if P = valueFalse then
+            EXIT(Err(qeConstantExpressionOverflow))
+          else
+            Value := valueFalse;
+          ResultType := vtBoolean;
+        end
         else
-          Value := valueFalse;
-        ResultType := vtBoolean;
-      end
-      else
-        Value := P - 1;
-    end
-    else if CompareText(OpData.Name, 'sizeof') = 0 then
-    begin //TODO: type names
-      if Param.ImmType = vtTypeDef then
-        Value := GetTypeSize(Param.ImmValueInt)
-      else
-        Value := GetTypeSize(Param.ImmType);
-      if Value < 256 then
-        ResultType := vtByte
-      else
-        ResultType := vtWord;
-    end
-{    else if (CompareText(OpData.Name, 'succ') = 0) then
-    begin
-      if Param.ImmType = vtBoolean then
+          Value := P - 1;
+      end;
+      opSizeof:
       begin
-        if P = valueTrue then
-          EXIT(Err(qeConstantExpressionOverflow))
+        if Param.ImmType = vtTypeDef then
+          Value := GetTypeSize(Param.ImmValueInt)
         else
-          Value := valueTrue;
-        RType := vtBoolean;
-      end
-      else
-        Value := P + 1;
-    end
-    else if CompareText(OpData.Name, 'swap') = 0 then
-    begin
-      Assert(GetTypeSize(Param.ImmType) = 2);
-      Value := swap(P);
-    end
+          Value := GetTypeSize(Param.ImmType);
+        if Value < 256 then
+          ResultType := vtByte
+        else
+          ResultType := vtWord;
+      end;
+      opSucc:
+      begin
+        if Param.ImmType = vtBoolean then
+        begin
+          if P = valueTrue then
+            EXIT(Err(qeConstantExpressionOverflow))
+          else
+            Value := valueTrue;
+          ResultType := vtBoolean;
+        end
+        else
+          Value := P + 1;
+      end;
+      opSwap:
+      begin
+        Assert(GetTypeSize(Param.ImmType) = 2);
+        Value := swap(P);
+      end;
 
-    //----- Char/String functions
-    else if CompareText(OpData.Name, 'chr') = 0 then
-    begin
-      if not (P in [0..255]) then
-        EXIT(Err(qeConstantExpressionOverflow));
-      Value := P;
-      ResultType := vtChar;
-    end
-    else if CompareText(OpData.Name, 'downcase') = 0 then
-    begin
-      Value := ord(chr(P).ToLower);
-      ResultType := vtChar;
-    end
-    else if CompareText(OpData.Name, 'upcase') = 0 then
-    begin
-      Value := ord(chr(P).ToUpper);
-      ResultType := vtChar;
-    end
-}    //----End
+      //----- Char/String functions
+      opChr:
+      begin
+        if not (P in [0..255]) then
+          EXIT(Err(qeConstantExpressionOverflow));
+        Value := P;
+        ResultType := vtChar;
+      end;
+      opDowncase:
+      begin
+        if not (P in [0..255]) then
+          EXIT(Err(qeConstantExpressionOverflow));
+        Value := ord(chr(P).ToLower);
+        ResultType := vtChar;
+      end;
+      opUpcase:
+      begin
+        if not (P in [0..255]) then
+          EXIT(Err(qeConstantExpressionOverflow));
+        Value := ord(chr(P).ToUpper);
+        ResultType := vtChar;
+      end;
+    //----End
     else
       EXIT(qeIntrinsicCantBeEvaluatedAtCompileTime);
   end;
@@ -449,12 +453,36 @@ begin
   P2 := Param2.ImmToInteger;
   ResultType := vtUnknown;
 
-{  case Op of
-
-  if CompareText(OpData.Name, 'inc') = 0 then
-      Value := P1 + P2
+  case Op of
+    opPred:
+    begin
+      if Param1.ImmType = vtBoolean then
+      begin
+        if (P1 = valueFalse) or (P2 > 1) then
+          EXIT(Err(qeConstantExpressionOverflow))
+        else
+          Value := valueFalse;
+        ResultType := vtBoolean;
+      end
+      else
+        Value := P1 - P2;
+    end;
+    opSucc:
+    begin
+      if Param1.ImmType = vtBoolean then
+      begin
+        if (P1 = valueTrue) or (P2 > 1) then
+          EXIT(Err(qeConstantExpressionOverflow))
+        else
+          Value := valueTrue;
+        ResultType := vtBoolean;
+      end
+      else
+        Value := P1 + P2;
+    end
   else
-}    EXIT(qeIntrinsicCantBeEvaluatedAtCompileTime);
+    EXIT(qeIntrinsicCantBeEvaluatedAtCompileTime);
+  end;
 
   if ResultType = vtUnknown then
     Result := ValueToResultType(Value, ResultType)

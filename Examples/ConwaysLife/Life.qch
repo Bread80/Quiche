@@ -190,7 +190,8 @@ begin
 
   //Clear buffers
   InitBuffer(Buffer1)
-  InitBuffer(Buffer2)
+  //Brackets around parameter lists can often be omitted
+  InitBuffer Buffer2	
 
   InitScreen
 
@@ -200,8 +201,8 @@ begin
   //We don't have while loops yet
   for var gen:=1 to 20 do
   begin
-    UpdateScreen(Buffer1)
-    UpdateBuffer(Buffer1, Buffer2)
+    UpdateScreen Buffer1 
+    UpdateBuffer Buffer1, Buffer2 
 
     //Swap buffers
     var Temp := Buffer1

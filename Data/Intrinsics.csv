@@ -43,11 +43,11 @@
 ;,,Param1,,,,Param2,,,,,Result,
 ;,Name,Access,,VarType,Flags,Access,,VarType,,Flags,VarType,Notes
 ;Strings Chars and arrays,,,,,,,,,,,,
-;,chr,val,Value,Numeric,,,,,,,Char,Returns the character with the given index
-;,downcase,val,Value,Char,,,,,,,Char,Converts the character to lower case
+,chr,val,Index,Numeric,,,,,,,Char,Returns the character with the given index
+,downcase,val,Character,Char,,,,,,,Char,Converts the character to lower case
 ;,length,val,ArrayType,TypeDef,,,,,,,Word,"Returns the element count of an array, character count of a string"
 ;,length,const,Variable,Array/String,,,,,,,Word,"Returns the element count of an array, character count of a string"
-;,val,val,Value,Char,,,,,,,Byte,Returns the index of the given character
+,upcase,val,Character,Char,,,,,,,Char,Converts the character to upper case
 ,,,,,,,,,,,,
 ,,,,,,,,,,,,
 ,,,,,,,,,,,,

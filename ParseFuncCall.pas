@@ -89,7 +89,8 @@ begin
 
   Ch := Parser.TestChar;
   //Test for empty list
-  if Brace or (Brace and (Ch <> ')')) then
+  if ((not Brace) and (Ch <> #0)) or  //No Brace and #0 (EOLN) -> no arguments
+    (Brace and (Ch <> ')')) then      //Bace and ')' -> no arguments
   repeat
     if ArgIndex >= Func.ParamCount then
       EXIT(ErrFuncCall('Too many parameters', Func));

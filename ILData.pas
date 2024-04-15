@@ -407,7 +407,11 @@ begin
         Result := 'False'
       else
         Result := 'True';
-    vtChar: Result := chr(ImmValueInt);
+    vtChar:
+      if ImmValueInt in [32..127] then
+        Result := ''''+chr(ImmValueInt)+''''
+      else
+        Result := '#' + ImmValueInt.ToString;
     vtTypeDef: Result := VarTypeToName(ImmValueInt);
   else
     Assert(False);
@@ -526,14 +530,7 @@ begin
       if Param3.Kind <> pkNone then
         Result := Result + CPURegStrings[Param3.Reg] + ':=' + Param3.ToString;
     end;
-(*    opBranch:
-    begin
-      Assert(Param1.Kind = pkBranch);
-      Assert(Param2.Kind = pkNone);
-      Assert(Param3.Kind = pkNone);
-      Result := Result + 'Branch ' + '{' + IntToStr(Param1.BranchBlockID) + '} ';
-    end;
-*)  else //General operation types
+  else //General operation types
     Assert(Param1.Kind in [pkNone, pkImmediate, pkVarSource, pkPhiVarSource]);
     Assert(Param2.Kind in [pkNone, pkImmediate, pkVarSource, pkPhiVarSource]);
     Assert(Dest.Kind in [pkNone, pkCondBranch, pkBranch, pkVarDest, pkPhiVarDest, pkPush, pkPushByte]);
@@ -543,9 +540,6 @@ begin
       Result := Result + ' = ';
     if Op <> opUnknown then
     begin
-//      Assert(Op in [low(Operations)..high(Operations)], 'Invalid Op');
-//      if not (OpType in [low(OpTypeNames)..high(OpTypeNames)]) then
-//        Assert(OpType in [low(OpTypeNames)..high(OpTypeNames)], 'Invalid OpType');
       Result := Result + Operations[Op].Name;
       if Dest.Kind <> pkPhiVarDest then
         Result := Result + ':' + OpTypeNames[OpType] + ' ';

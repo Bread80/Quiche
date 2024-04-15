@@ -97,7 +97,7 @@
 ;,ptr,func,,ptr,,,,,,,,,??,,,,,
 ;,sizeof,func,,sizeof,any,0,Any,N/A,N/A,N/A,,Integer,Size in bytes required to store a variable or type,,,,,Any type or Type name
 ;,succ,func,,succ,x8 x16 boolean,0,Enumerated,N/A,N/A,N/A,p2optional,Same,Next value of an ordinal type,,,,,Enumerable types
-,swap,func,,swap,x16,0,Integer,N/A,N/A,N/A,,Same,Swap high and low bytes of a 16 bit variable,,,,,16-bit types
+;,swap,func,,swap,x16,0,Integer,N/A,N/A,N/A,,Same,Swap high and low bytes of a 16 bit variable,,,,,16-bit types
 ;,read,func,,read,,,,,,,,,Read from input,,,,,
 ;,readln,func,,readln,,,,,,,,,Read entire line from input,,,,,
 ,write,proc,,write,any,0,Any,N/A,n,n,,none,Write to display,,,,,
@@ -108,7 +108,7 @@
 ,writeboolean,system,,writeboolean,boolean,0,Boolean,N/A,n,n,,none,Write boolean as a string,,,,,
 ;,,,,,,,,,,,,,,,,,,
 ;,Strings/Chars/Arrays,,,,,,,,,,,,,,,,,
-,chr,func,,chr,x8 x16,0,Integer,N/A,N/A,N/A,,char,Convert number to character,,,,,
+;,chr,func,,chr,x8 x16,0,Integer,N/A,N/A,N/A,,char,Convert number to character,,,,,
 ,downcase,func,,downcase,x8,0,Char,N/A,N/A,N/A,,char,Convert character or string to lower case,,,,,
 ;,length,func,,length,,,,,,,,,Length of an array or string,,,,,
 ,upcase,func,,upcase,x8,0,Char,N/A,N/A,N/A,,char,Uppercase a character or string,,,,,

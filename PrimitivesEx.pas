@@ -1276,11 +1276,11 @@ begin
   if not Assigned(Prim.Proc) then
     ValidateProc(Prim.ProcName);
 
-  ValidateProc(Prim.ValProcName);
-  ValidateProc(Prim.ValProcS8);
-  ValidateProc(Prim.ValProcU8);
-  ValidateProc(Prim.ValProcS16);
-  ValidateProc(Prim.ValProcU16);
+//  ValidateProc(Prim.ValProcName);
+//  ValidateProc(Prim.ValProcS8);
+//  ValidateProc(Prim.ValProcU8);
+//  ValidateProc(Prim.ValProcS16);
+//  ValidateProc(Prim.ValProcU16);
 end;
 
 procedure ValidatePrimitiveNG(PrimNG: PPrimitiveNG);
@@ -1288,11 +1288,11 @@ begin
   if not Assigned(PrimNG.Proc) then
     ValidateProc(PrimNG.ProcName);
 
-  ValidateProc(PrimNG.ValidateProcName);
-  ValidateProc(PrimNG.ValidateToS8);
-  ValidateProc(PrimNG.ValidateToU8);
-  ValidateProc(PrimNG.ValidateToS16);
-  ValidateProc(PrimNG.ValidateToU16);
+//  ValidateProc(PrimNG.ValidateProcName);
+//  ValidateProc(PrimNG.ValidateToS8);
+//  ValidateProc(PrimNG.ValidateToU8);
+//  ValidateProc(PrimNG.ValidateToS16);
+//  ValidateProc(PrimNG.ValidateToU16);
 end;
 
 procedure ValidatePrimitives;

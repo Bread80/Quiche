@@ -1057,7 +1057,7 @@ begin
     GenCode(Prim.ValidateProcName, ILItem);
 end;
 
-//Specifies the routine to use to validate a convetsion from the type given in the row
+//Specifies the routine to use to validate a conversion from the type given in the row
 //to the type given in the column.
 //err: invalid conversion - generates an error
 //'' (empty): no validation is necessary for this conversion
@@ -1068,10 +1068,20 @@ end;
 const ConversionMatrix: array[low(TOpType)..high(TOpType),low(TOpType)..high(TOpType)] of String = (
 //Unkn  U8      U16       S8        S16       M16S16  M16U16   X8      X16     Real    Bool  <- Destination (ResultType)
 ('err', 'err',  'err',    'err',    'err',    'err',  'err',  'err',  'err',  'err',  'err'), //Unkown
-('err', '',     '',       'b7sov',  '',       'err',  'err',  'err',  'err',  'err',  'err'), //U8
-('err', 'hnzov','',       'h9nzov', 'b15sov', 'err',  'err',  'err',  'err',  'err',  'err'), //U16
-('err', 'b7sov','b7sov',  '',       '',       'err',  'err',  'err',  'err',  'err',  'err'), //S8
-('err', 'hnzov','b15sov', 'h9neov', 'b15sov', 'err',  'err',  'err',  'err',  'err',  'err'), //S16
+('err', '',     '',       'bit7_set_overflow',
+                                    '',       'err',  'err',  'err',  'err',  'err',  'err'), //U8
+('err', 'high_nz_overflow',
+                '',       'high9_nz_overflow',
+                                    'bit15_set_overflow',
+                                              'err',  'err',  'err',  'err',  'err',  'err'), //U16
+('err', 'bit7_set_overflow',
+                'bit7_set_overflow',
+                          '',       '',       'err',  'err',  'err',  'err',  'err',  'err'), //S8
+('err', 'high_nz_overflow',
+                'bit15_set_overflow',
+                          'high9_neq_overflow',
+                                    'bit15_set_overflow',
+                                              'err',  'err',  'err',  'err',  'err',  'err'), //S16
 ('err', 'err',  'err',    'err',    'err',    'err',  'err',  'err',  'err',  'err',  'err'), //M16S16
 ('err', 'err',  'err',    'err',    'err',    'err',  'err',  'err',  'err',  'err',  'err'), //M16U16
 ('err', 'err',  'err',    'err',    'err',    'err',  'err',  'err',  'err',  'err',  'err'), //X8
@@ -1079,11 +1089,11 @@ const ConversionMatrix: array[low(TOpType)..high(TOpType),low(TOpType)..high(TOp
 ('err', 'err',  'err',    'err',    'err',    'err',  'err',  'err',  'err',  '',     'err'), //Real
 ('err', 'err',  'err',    'err',    'err',    'err',  'err',  'err',  'err',  'err',  ''));   //Boolean
                                                                                 //^^ Source (OpType)
-//b7sov: test if bit 7 set. If so, overflow
-//b15sov: test if bit 15 is set. If so, overflow
-//h9neov: overflow unless all of the highest 9 bits are equal (ie. all set or all clear)
-//h9nzov: raise an overflow error unless the highest 9 bits are zero
-//hnzov: overflow if the high register is non-zero
+//bit7_set_overflow: test if bit 7 set. If so, overflow
+//bit15_set_overflow: test if bit 15 is set. If so, overflow
+//high9_neq_overflow: overflow unless all of the highest 9 bits are equal (ie. all set or all clear)
+//high9_nz_overflow: raise an overflow error unless the highest 9 bits are zero
+//high_nz_overflow: overflow if the high register is non-zero
 
 procedure StoreToVariable(ILItem: PILItem;OpType: TOpType);
 var
@@ -1538,8 +1548,8 @@ begin
   PrimSetProc('proc_assign_relS16_imm8',ProcAssignRelS16Imm8);
   PrimSetProc('proc_assign_absS16_imm8',ProcAssignAbsS16Imm8);
 
-  PrimSetProc('b7sov',ProcDestB7SetOverflow);
-  PrimSetProc('b15sov',ProcDestB15SetOverflow);
+  PrimSetProc('bit7_set_overflow',ProcDestB7SetOverflow);
+  PrimSetProc('bit15_set_overflow',ProcDestB15SetOverflow);
 
   PrimSetProc('proc_dec8_reg',ProcDec8Reg);
   PrimSetProc('proc_dec16_reg',ProcDec16Reg);

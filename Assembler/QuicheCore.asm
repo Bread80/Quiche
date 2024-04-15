@@ -965,7 +965,7 @@ stacklocal_enter:
   
   
 ;JumPed to on function exit. de=16 bit return value (if any), hl=<vars.paramsbytesize>  
-:stacklocal_exit:
+stacklocal_exit:
 ;exit 
   ld sp,ix 			;remove locals from stack
 ;  ld hl,<vars.paramsbytesize> ;remove parameters - passed in
@@ -976,3 +976,30 @@ stacklocal_enter:
   ex hl,de			;hl=return value
   push bc			;Return address
   ret  
+  
+;===================================
+;Chars and Strings
+
+;Convert a character to uppercase
+;Entry: A=character
+;Exit: A=character, Flags corrupt
+upcase_char:
+  cp 'a'
+  ret c
+  cp 'z'+1
+  ret nc
+  sub $20
+  ret
+  
+;Convert a character to lowercase
+;Entry: A=character
+;Exit: A=character, Flags corrupt
+downcase_char:
+  cp 'A'
+  ret c
+  cp 'Z'+1
+  ret nc
+  add $20
+  ret  
+  
+  
