@@ -47,8 +47,6 @@ begin
       if Result <> qeNone then
         EXIT;
 
-      ILItem.OpType := VarTypeToOpType(VType);
-
       case VType of
         vtChar:
           ILItem.Op := OpWriteChar;

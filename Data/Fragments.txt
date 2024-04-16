@@ -107,6 +107,68 @@
 ;Loads  
 ;====================================================
 
+=load_r8_imm
+  ld <p.r8>,<p.immbyte>
+
+=load_r16_imm
+  ld <p.r16>,<p.immword>
+  
+=load_r16high_zero
+  ld <p.r16high>,$00
+  
+  
+=load_r8_abs_a
+  ld a,(<p.varname>)	;$$
+
+=load_r8_abs_via_a
+  ld a,(<p.varname>)	;$$
+  ld <p.r8>,a
+
+=load_r8_abslow_a
+  ld a,(<p.varname>)	;$$
+  
+=load_r8_abslow_via_a
+  ld a,(<p.varname>)	;$$
+  ld <p.r8>,a
+
+=load_r8_abshigh_a
+  ld a,(<p.varname> + 1)	;$$
+  
+=load_r8_abshigh_via_a
+  ld a,(<p.varname> + 1)	;$$
+  ld <p.r8>,a
+ 
+=load_r16_abs
+  ld <p.r16>,(<p.varname>)	;$$
+  
+=load_r16low_abslow_a
+  ld a,(<p.varname>)	;$$
+
+=load_r16low_abslow_via_a
+  ld a,(<p.varname>)	;$$
+  ld <p.r16low>,a  
+
+
+=load_r8_rel
+  ld <p.r8>,(ix<p.offset>)	;$$
+
+=load_r8_rellow
+  ld <p.r8>,(ix<p.offsetlow>)	;$$
+  
+=load_r8_relhigh
+  ld <p.r8>,(ix<p.offsethigh>)	;$$
+    
+=load_r16_rel
+  ld <p.r16low>,(ix<p.offsetlow>)	;$$  
+  ld <p.r16high>,(ix<p.offsethigh>)
+
+=load_pr16low_rellow
+  ld <p.r16low>,(ix<p.offsetlow>)	;$$
+  
+  
+  
+  
+  
 =load_p1r8_imm
   ld <p1.r8>,<p1.immbyte>
 
@@ -214,12 +276,26 @@
 
 ;Assigns
 ;===================================================
-;An assignment copies one register, or an immediate value, to
-;another
-  
-=assign_abs8_imm8
-  ld a,<p1.immbyte>
+;Assigns are used to (usually) set varaibles from constant values.
+
+;Where an assign can directly use an immediate value it will. If not
+;the Primitive will specify a register or choice of registers to place
+;value into and the Assign will store the value in that register. The
+;end result here is that if the Assign is storing a value from a register
+;it will use the /Param1/ register, whereas a store will use the Dest 
+;register. The Primitive will use the code generator load-before-primitive
+;functionality to put the value into that register.
+
+;PS. Most of these are a hangover from the days when numeric constants where
+;stored by the compiler in Z80 type sized variables. They're now in x86 sized
+;variables, but may well be needed on a Z80 hosted compiler so worth keeping 
+;around
+
+=assign_abs8_a
   ld (<d.varname>),a		;$$
+
+=assign_abs16_r16
+  ld (<d.varname>),<p1.r16>	;$$  
   
 =assign_abs16_imm8_neg
   ld a,<p1.immbyte>
@@ -239,9 +315,9 @@
   ld a,<p1.immwordhigh>
   ld (<d.varname> + 1),a
  
- 
+
 =assign_rel8_imm8
-  ld (ix<d.offset>),<p1.immbyte>	;$$
+  ld (ix<d.offset>),<p1.immbyte>	;$$ 
   
 =assign_rel16_imm8
   ld (ix<d.offsetlow>),<p1.immbyte>	;$$
@@ -254,6 +330,7 @@
 =assign_rel16_imm16
   ld (ix<d.offsetlow>),<p1.immwordlow>	;$$
   ld (ix<d.offsethigh>),<p1.immwordhigh>
+
 
 
 =assign_abs16_r8
@@ -295,6 +372,7 @@
 =store_abs8_r8_via_a
   ld a,<d.r8>
   ld (<d.varname>),a	;$$
+
 
 =store_abs16_r8_a
   ld (<d.varname>),a
@@ -339,11 +417,15 @@
   
 =store_rel8_r8
   ld (ix<d.offset>),<d.r8>	;$$
+
+=store_rel8_r16low
+  ld (ix<d.offsetlow>),<d.r16low>	;$$
+    
   
 =store_rel16_r8
   ld (ix<d.offsethigh>),$00	;$$
   ld (ix<d.offsetlow>),<d.r8>
-  
+
 ;For use before a sign extend
 =store_rel16low_r8
   ld (ix<d.offsetlow>),<d.r8>	;$$
@@ -360,9 +442,6 @@
   ld (ix<d.offsetlow>),<d.r16low>	;$$
   ld (ix<d.offsethigh>),<d.r16high>
 
-=store_rel8_r16low
-  ld (ix<d.offsetlow>),<d.r16low>	;$$
-  
 ;Stack operations
 ;================
 

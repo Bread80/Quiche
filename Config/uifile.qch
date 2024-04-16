@@ -190,6 +190,7 @@ begin
 
   //Clear buffers
   InitBuffer(Buffer1)
+  //Brackets around parameter lists can often be omitted
   InitBuffer Buffer2
 
   InitScreen

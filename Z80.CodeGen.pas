@@ -150,24 +150,50 @@ begin
   end;
 end;
 
+procedure GenLibraryParamProc(ProcName: String;const Param: TILParam;const Prefix: String);
+var Code: String;
+begin
+{  if ProcName.Chars[0] = ':' then
+    Instr('call ' + ProcName.SubString(1) + ' ;Call')
+  else
+}  begin
+    Code := Fragments.FragmentParamSub(ProcName, Param, Prefix);
+    if Code = '' then
+      raise Exception.Create('Validation library code not found: ' + ProcName);
+    Line('                     ;Fragment: ' + ProcName);
+    Lines(Code);
+  end;
+end;
+
 procedure GenCode(ProcName: String;ILItem: PILItem);
 var
-  Prim: PPrimitive;
+  Prim: PPrimitiveNG;
+  Proc: TCodeGenProc;
 begin
-  if ProcName <> '' then
-    if ProcName.Chars[0] = ':' then
-      GenLibraryProc(ProcName, ILItem)
+  if ProcName = 'empty' then
+    EXIT;
+  if ProcName = '' then
+    EXIT;
+
+  if ProcName.Chars[0] = ':' then
+    GenLibraryProc(ProcName, ILItem)
+  else
+  begin
+    Prim := PrimFindByProcNameNG(ProcName);
+    if Assigned(Prim) then
+    begin
+      Line('                     ;Prim: ' + ProcName);
+      Prim.Proc(ILItem);
+    end
     else
     begin
-      Prim := PrimFindByProcName(ProcName);
-      if Assigned(Prim) then
-      begin
-        Line('                     ;Prim: ' + ProcName);
-        Prim.Proc(ILItem);
-      end
+      Proc := FindCodeGenProc(ProcName);
+      if Assigned(Proc) then
+        Proc(ILItem)
       else
         GenLibraryProc(ProcName, ILItem);
     end;
+  end;
 end;
 
 //Sign extend register RIn to ROut
@@ -286,17 +312,17 @@ end;
 
 //Generates the code to convert a boolean value from various sources into a boolean
 //value in A
-procedure GenToBoolean(Reg: TCPUReg;ILItem: PILItem);
+procedure GenToBoolean(Reg: TCPUReg;const Param: TILParam);
 begin
   case Reg of
     rA, rAF: ;
-    rZF:   GenLibraryProc('zftoboolean', ILItem);
-    rZFA:  GenLibraryProc('notatoboolean', ILItem);
-    rNZF:  GenLibraryProc('nzftoboolean', ILItem);
-    rNZFA: GenLibraryProc('atoboolean', ILItem);
-    rCPLA: GenLibraryProc('cpla', ILItem);
-    rCF:   GenLibraryProc('cftoboolean', ILItem);
-    rNCF:  GenLibraryProc('ncftoboolean', ILItem);
+    rZF:   GenLibraryParamProc('zftoboolean', Param, 'd');
+    rZFA:  GenLibraryParamProc('notatoboolean', Param, 'd');
+    rNZF:  GenLibraryParamProc('nzftoboolean', Param, 'd');
+    rNZFA: GenLibraryParamProc('atoboolean', Param, 'd');
+    rCPLA: GenLibraryParamProc('cpla', Param, 'd');
+    rCF:   GenLibraryParamProc('cftoboolean', Param, 'd');
+    rNCF:  GenLibraryParamProc('ncftoboolean', Param, 'd');
   else
     Assert(False);
   end;
@@ -467,131 +493,8 @@ end;
 
 
 
-//Register allocation (temprary)
+//Register allocation (temporary)
 //----------------------------------------------------------
-
-//Allocate which registers (if any) parameters need to be loaded (or moved) into
-//before a primitive can be generated
-procedure TEMPRegAlloc(var ILItem: PILItem;const Prim: PPrimitive);
-var Reg: TCPUReg;
-  Regs: TCPURegSet;
-begin
-  if ILItem.Param1.Reg = rNone then
-  begin
-    //Prim doesn't use this parameter?
-    if Prim.Param1Regs = [] then
-      ILItem.Param1.Reg := rNone
-    //Param is immediate and Prim can handle an immediate value?
-    else if (ILItem.Param1.Kind = pkImmediate) and (rImm in Prim.Param1Regs) then
-      ILItem.Param1.Reg := rImm
-    else  //...otherwise assign a register for the parameter to be loaded into
-    begin
-      //Get allowable registers
-      if ILItem.Op = opMove then
-      begin
-        if ILItem.Dest.Kind = pkPushByte then
-          Regs := [rA]
-        else if ILItem.Dest.Kind = pkPush then
-          Regs := [rHL, rDE, rBC]
-//            Regs := [rA, rB, rD, rH]
-        else if ILItem.Param1.GetRawType in [rtX8, rtS8, rtU8] then
-          Regs := [rA, rB, rC, rD, rE, rH, rL]
-        else
-          Regs := [rHL, rDE, rBC]
-      end
-      else
-        Regs := Prim.Param1Regs;
-
-      //Find an available register
-      Reg := Pred(rA);
-      ILItem.Param1.Reg := rNone;
-      repeat
-        Reg := Succ(Reg);
-        if Reg in Regs then
-          ILItem.Param1.Reg := Reg;
-      until (ILItem.Param1.Reg <> rNone) or (Reg = high(TCPUReg));
-      if ILItem.Param1.Reg = rNone then
-        raise Exception.Create('TEMNRegAlloc couldn''t find suitable Param1 register');
-    end;
-  end;
-
-  if ILItem.Param2.Reg = rNone then
-  begin
-    if Prim.Param2Regs = [] then
-      ILItem.Param2.Reg := rNone
-    else if (ILItem.Param2.Kind = pkImmediate) and (rImm in Prim.Param2Regs) then
-      ILItem.Param2.Reg := rImm
-    else
-    begin
-      //Get allowable registers
-      //TODO: Needs to be more flexible!
-      Regs := Prim.Param2Regs - [ILItem.Param1.Reg];
-
-      Reg := Pred(rA);
-      ILItem.Param2.Reg := rNone;
-      repeat
-        Reg := Succ(Reg);
-        if Reg in Regs then
-          ILItem.Param2.Reg := Reg;
-      until (ILItem.Param2.Reg <> rNone) or (Reg = high(TCPUReg));
-      if ILItem.Param2.Reg = rNone then
-        raise Exception.Create('TEMNRegAlloc couldn''t find suitable Param2 register');
-    end;
-  end;
-
-
-  case ILItem.Op of
-    opBranch, opDataLoad: Reg := rA;  //Dummy value - The rest of this code only operates if = rNone
-  else
-    case ILItem.Dest.Kind of
-      pkNone: Reg := rA;
-      pkCondBranch, pkVarDest, pkPush, pkPushByte:
-        Reg := ILItem.Dest.Reg
-    else
-      Assert(False);
-    end;
-  end;
-
-  if Reg = rNone then
-  begin
-    if ILItem.Op = opFuncCall then
-    begin
-      if ILItem.Func.ResultCount > 0 then
-        if GetTypeSize(ILItem.Func.FindResult.VarType) = 1 then
-          Reg := rA
-        else
-          Reg := rHL
-    end
-    else
-    case Prim.DestReg of
-      rP1:
-        if ILItem.Dest.Kind in [pkPushByte, pkPush] then
-          case ILItem.Param1.Reg of
-            rA: Reg := rAF;
-            rB: Reg := rBC;
-            rD: Reg := rDE;
-            rH: Reg := rHL;
-          else
-            Reg := ILItem.Param1.Reg;
-//            Assert(False, 'Invalid Byte register for stack value');
-          end
-        else
-          Reg := ILItem.Param1.Reg;
-      rNone: Reg := rNone;
-    else
-      Reg := Prim.DestReg;
-    end;
-
-    case ILItem.Dest.Kind of
-      pknone: ;
-      pkCondBranch, pkVarDest, pkPush, pkPushByte:
-        ILItem.Dest.Reg := Reg
-    else
-      Assert(False);  //Should never arrive here
-    end;
-  end;
-end;
-
 
 //Allocate which registers (if any) parameters need to be loaded (or moved) into
 //before a primitive can be generated
@@ -617,7 +520,7 @@ begin
         else if ILItem.Dest.Kind = pkPush then
           Regs := [rHL, rDE, rBC]
 //            Regs := [rA, rB, rD, rH]
-        else if ILItem.Param1.GetRawType in [rtX8, rtS8, rtU8] then
+        else if GetTypeSize(ILItem.Param1.GetVarType) = 1 then
           Regs := [rA, rB, rC, rD, rE, rH, rL]
         else
           Regs := [rHL, rDE, rBC]
@@ -711,9 +614,8 @@ begin
   end;
 end;
 
-procedure LoadParam(ILItem: PILItem;ParamNo: Integer;Prim: PPrimitive);
+procedure LoadParamNG(const Param: TILParam;Prim: PPrimitiveNG);
 var
-  Param: PILParam;
   Variable: PVariable;
   V: PVariable;
 
@@ -721,96 +623,15 @@ var
   StoreStr: String;
   Suffix: String;
 begin
-  Prefix := 'load_p' + IntToStr(ParamNo);
-  if ParamNo = 1 then
-    Param := @ILItem.Param1
-  else
-    Param := @ILItem.Param2;
+  Prefix := 'load_';
 
   case Param.Kind of
     pkNone: ; //No param to load
     pkImmediate:
       case Param.Reg of
         rNone, rImm: ; //Nothing to do. Imm is handled by Primitive itself
-        rA..rL:         GenLibraryProc(Prefix + 'r8_imm', ILItem);
-        rHL, rDE, rBC:  GenLibraryProc(Prefix + 'r16_imm', ILItem);
-      else
-        Assert(False, 'Invalid Reg for load');
-      end;
-    pkVarSource:
-    begin
-      V := Param.ToVariable;
-      case V.Storage of
-        vsStatic: StoreStr := '_abs';
-        vsStack: StoreStr := '_rel';
-      end;
-      //Suffix only used for 8 bit loads
-      if V.Storage = vsStack then
-        Suffix := ''
-      else if Param.Reg = rA then
-        Suffix := '_a'
-      else
-        Suffix := '_via_a';
-      case Param.Reg of
-        rNone, rImm: ;  //Nothing to do. Imm is handled by Primitive itself
-        rA..rL:
-          begin
-            if pfLoadRPHigh in Prim.Flags then
-              GenLibraryProc(Prefix + 'r8' + StoreStr + 'high' + Suffix, ILItem)
-            else if pfLoadRPLow in Prim.Flags then
-              GenLibraryProc(Prefix + 'r8' + StoreStr + 'low' + Suffix, ILItem)
-            else
-              GenLibraryProc(Prefix + 'r8' + StoreStr + Suffix, ILItem);
-          end;
-        rHL..rBC:
-          begin
-            Variable := Param.ToVariable;
-            case GetTypeSize(Variable.VarType) of
-              1:
-              begin
-                GenLibraryProc(Prefix + 'r16low' + StoreStr + 'low' + Suffix, ILItem);
-                if Variable.VarType = vtInt8 then
-                  GenSignExtend(CPURegLowToChar[Param.Reg], CPURegHighToChar[Param.Reg])
-                else
-                  GenLibraryProc(Prefix + 'r16high_zero', ILItem);
-              end;
-              2: GenLibraryProc(Prefix + 'r16'+StoreStr, ILItem);
-            else
-              raise Exception.Create('Invalid type size for parameter');
-            end;
-          end;
-      else
-        raise Exception.Create('Invalid Reg for load');
-      end;
-    end;
-  else
-    Assert(False, 'Invalid param kind for param load');
-  end;
-end;
-
-procedure LoadParamNG(ILItem: PILItem;ParamNo: Integer;Prim: PPrimitiveNG);
-var
-  Param: PILParam;
-  Variable: PVariable;
-  V: PVariable;
-
-  Prefix: String;
-  StoreStr: String;
-  Suffix: String;
-begin
-  Prefix := 'load_p' + IntToStr(ParamNo);
-  if ParamNo = 1 then
-    Param := @ILItem.Param1
-  else
-    Param := @ILItem.Param2;
-
-  case Param.Kind of
-    pkNone: ; //No param to load
-    pkImmediate:
-      case Param.Reg of
-        rNone, rImm: ; //Nothing to do. Imm is handled by Primitive itself
-        rA..rL:         GenLibraryProc(Prefix + 'r8_imm', ILItem);
-        rHL, rDE, rBC:  GenLibraryProc(Prefix + 'r16_imm', ILItem);
+        rA..rL:         GenLibraryParamProc(Prefix + 'r8_imm', Param, 'p');
+        rHL, rDE, rBC:  GenLibraryParamProc(Prefix + 'r16_imm', Param, 'p');
       else
         Assert(False, 'Invalid Reg for load');
       end;
@@ -833,11 +654,11 @@ begin
         rA..rL:
           begin
             if pfnLoadRPHigh in Prim.Flags then
-              GenLibraryProc(Prefix + 'r8' + StoreStr + 'high' + Suffix, ILItem)
+              GenLibraryParamProc(Prefix + 'r8' + StoreStr + 'high' + Suffix, Param, 'p')
             else if pfnLoadRPLow in Prim.Flags then
-              GenLibraryProc(Prefix + 'r8' + StoreStr + 'low' + Suffix, ILItem)
+              GenLibraryParamProc(Prefix + 'r8' + StoreStr + 'low' + Suffix, Param, 'p')
             else
-              GenLibraryProc(Prefix + 'r8' + StoreStr + Suffix, ILItem);
+              GenLibraryParamProc(Prefix + 'r8' + StoreStr + Suffix, Param, 'p');
           end;
         rHL..rBC:
           begin
@@ -845,13 +666,13 @@ begin
             case GetTypeSize(Variable.VarType) of
               1:
               begin
-                GenLibraryProc(Prefix + 'r16low' + StoreStr + 'low' + Suffix, ILItem);
+                GenLibraryParamProc(Prefix + 'r16low' + StoreStr + 'low' + Suffix, Param, 'p');
                 if Variable.VarType = vtInt8 then
                   GenSignExtend(CPURegLowToChar[Param.Reg], CPURegHighToChar[Param.Reg])
                 else
-                  GenLibraryProc(Prefix + 'r16high_zero', ILItem);
+                  GenLibraryParamProc(Prefix + 'r16high_zero', Param, 'p');
               end;
-              2: GenLibraryProc(Prefix + 'r16'+StoreStr, ILItem);
+              2: GenLibraryParamProc(Prefix + 'r16'+StoreStr, Param, 'p');
             else
               raise Exception.Create('Invalid type size for parameter');
             end;
@@ -865,46 +686,16 @@ begin
   end;
 end;
 
-//Loads parameters from memory into registers as needed.
-//Data is loaded from the locations specified by the ILItem parameters into the
-//registers specified by ILItem.Param1Alloc and ILItem.Param2Alloc, if any registers
-//are specified there.
-procedure LoadBeforePrim(ILItem: PILItem; Prim: PPrimitive);
-var Swap: Boolean;
-begin
-  //Select a register loading order so the second load won't trash the first.
-  //A will get trashed by an 8-bit load into a register other than A
-  Swap := ILItem.Param1.Reg = rA;
-
-  if Swap then
-  begin
-    LoadParam(ILItem, 2, Prim);
-    LoadParam(ILItem, 1, Prim);
-  end
-  else
-  begin
-    LoadParam(ILItem, 1, Prim);
-    LoadParam(ILItem, 2, Prim);
-  end;
-end;
-
 //Sub to LoadBeforePrim
 //Loads the Param in the register specified in the Param whilst preserving the value
 //in the register named in Reg. (Reg can either not be touched, or can be moved
 //elsewhere (e.g. another register or the stack) and move back before the function
 //returns.
-procedure LoadPreservingNG(ILItem: PILItem;ParamNo: Integer;Reg: TCPUReg;Prim: PPrimitiveNG);
-var Param: TILParam;
+procedure LoadPreservingNG(const Param: TILParam;Reg: TCPUReg;Prim: PPrimitiveNG);
+var
   V: PVariable;
   PreserveIn: TCPUReg;
 begin
-  case ParamNo of
-    1: Param := ILItem.Param1;
-    2: Param := ILItem.Param2;
-  else
-    Assert(False);
-  end;
-
   PreserveIn := rNone;
   //Do we need to move P1 to avoid it getting trashed during the load?
   //Trashing only happens if we load an 8-bit from static address (which
@@ -919,30 +710,23 @@ begin
     end;
   end;
 
-  LoadParamNG(ILItem, ParamNo, Prim);
+  LoadParamNG(Param, Prim);
 
   if PreserveIn <> rNone then
     GenRegMove(PreserveIn, Reg, False);
 end;
 
-procedure LoadWithMoveNG(ILItem: PILItem;ParamNo: Integer; FromReg, ToReg: TCPUReg;
+procedure LoadWithMoveNG(const Param: TILParam; FromReg, ToReg: TCPUReg;
   Prim: PPrimitiveNG);
-var Param: TILParam;
+var
   MoveBefore: Boolean;  //Do the move before or after the load?
 begin
-  case ParamNo of
-    1: Param := ILItem.Param1;
-    2: Param := ILItem.Param2;
-  else
-    Assert(False);
-  end;
-
   //Move before if we're loading into FromReg, or if we're using FromReg during the load
   //(only A can be trashed by a load. It's easier to always move before if FromReg is A)
   MoveBefore := (FromReg = Param.Reg) or (FromReg = rA);
   if MoveBefore then
     GenRegMove(FromReg, ToReg, False);
-  LoadParamNG(ILItem, ParamNo, Prim);
+  LoadParamNG(Param, Prim);
   if not MoveBefore then
     GenRegMove(FromReg, ToReg, False);
 end;
@@ -955,13 +739,13 @@ begin
   //swap load order just in case
   if ILItem.Param1.Reg = rA then
   begin
-    LoadParamNG(ILItem, 2, Prim);
-    LoadParamNG(ILItem, 1, Prim);
+    LoadParamNG(ILItem.Param2, Prim);
+    LoadParamNG(ILItem.Param1, Prim);
   end
   else
   begin
-    LoadParamNG(ILItem, 1, Prim);
-    LoadParamNG(ILItem, 2, Prim);
+    LoadParamNG(ILItem.Param1, Prim);
+    LoadParamNG(ILItem.Param2, Prim);
   end;
 end;
 
@@ -1001,15 +785,15 @@ begin
       LoadBothNG(ILItem, Prim)
     else if P2Move then
       //P2 is in a Reg but needs moving
-      LoadWithMoveNG(ILItem, 1, P2Reg, ILItem.Param2.Reg, Prim)
+      LoadWithMoveNG(ILItem.Param1, P2Reg, ILItem.Param2.Reg, Prim)
     else //P2 is in the correct Reg
-      LoadPreservingNG(ILItem, 1, P2Reg, Prim)
+      LoadPreservingNG(ILItem.Param1, P2Reg, Prim)
   end
   else if P1Move then
   begin //P1 is in a Reg but needs moving
     if P2Reg = rNone then
       //Load P2 data
-      LoadWithMoveNG(ILItem, 2, P1Reg, ILItem.Param1.Reg, Prim)
+      LoadWithMoveNG(ILItem.Param2, P1Reg, ILItem.Param1.Reg, Prim)
     else if P2Move then
     begin //P2 is in a Reg but needs moving
       Assert(False);
@@ -1023,7 +807,7 @@ begin
   begin //P1 is in the correct Reg
     if P2Reg = rNone then
       //Load P2 data
-      LoadPreservingNG(ILItem, 2, P1Reg, Prim)
+      LoadPreservingNG(ILItem.Param2, P1Reg, Prim)
     else if P2Move then
     begin //P2 is in a Reg but needs moving
       Assert(False);
@@ -1039,17 +823,6 @@ end;
 //This routine is called after the primitive has executed.
 //The validation routine (if there is one) is specifiied in the 'Validate' column
 //of the Primitives table (spreadsheet)
-procedure ValidateAfterPrim(ILItem: PILItem;Prim: PPrimitive);
-begin
-  if cgOverflowCheck in ILItem.CodeGenFlags then
-    //Validation for the operation itself
-    GenCode(Prim.ValProcName, ILItem);
-end;
-
-//If validation is enabled, applies such validation.
-//This routine is called after the primitive has executed.
-//The validation routine (if there is one) is specifiied in the 'Validate' column
-//of the Primitives table (spreadsheet)
 procedure ValidateAfterPrimNG(ILItem: PILItem;Prim: PPrimitiveNG);
 begin
   if cgOverflowCheck in ILItem.CodeGenFlags then
@@ -1057,249 +830,27 @@ begin
     GenCode(Prim.ValidateProcName, ILItem);
 end;
 
+const //Routine names to keep the table source code size reasonable
+  b7s = 'bit7_set_overflow';    //test if bit 7 set. If so, overflow
+  b15s = 'bit15_set_overflow';  //test if bit 15 is set. If so, overflow
+  h9neq = 'high9_neq_overflow'; //overflow unless all of the highest 9 bits are equal (ie. all set or all clear)
+  h9nz = 'high9_nz_overflow';   //raise an overflow error unless the highest 9 bits are zero
+  hbnz = 'high_nz_overflow';    //overflow if the high register is non-zero
+
 //Specifies the routine to use to validate a conversion from the type given in the row
 //to the type given in the column.
-//err: invalid conversion - generates an error
 //'' (empty): no validation is necessary for this conversion
-//Note: the following types are invalid as a destination: Unknown, M16S16, M16U16, X8, X16
 //If a more optimised routine is available this can be specified in the primitives
 //table ('Special validations on type conversion'). If so that routine will be used
 //in preference to this table.
-const ConversionMatrix: array[low(TOpType)..high(TOpType),low(TOpType)..high(TOpType)] of String = (
-//Unkn  U8      U16       S8        S16       M16S16  M16U16   X8      X16     Real    Bool  <- Destination (ResultType)
-('err', 'err',  'err',    'err',    'err',    'err',  'err',  'err',  'err',  'err',  'err'), //Unkown
-('err', '',     '',       'bit7_set_overflow',
-                                    '',       'err',  'err',  'err',  'err',  'err',  'err'), //U8
-('err', 'high_nz_overflow',
-                '',       'high9_nz_overflow',
-                                    'bit15_set_overflow',
-                                              'err',  'err',  'err',  'err',  'err',  'err'), //U16
-('err', 'bit7_set_overflow',
-                'bit7_set_overflow',
-                          '',       '',       'err',  'err',  'err',  'err',  'err',  'err'), //S8
-('err', 'high_nz_overflow',
-                'bit15_set_overflow',
-                          'high9_neq_overflow',
-                                    'bit15_set_overflow',
-                                              'err',  'err',  'err',  'err',  'err',  'err'), //S16
-('err', 'err',  'err',    'err',    'err',    'err',  'err',  'err',  'err',  'err',  'err'), //M16S16
-('err', 'err',  'err',    'err',    'err',    'err',  'err',  'err',  'err',  'err',  'err'), //M16U16
-('err', 'err',  'err',    'err',    'err',    'err',  'err',  'err',  'err',  'err',  'err'), //X8
-('err', 'err',  'err',    'err',    'err',    'err',  'err',  'err',  'err',  'err',  'err'), //X16
-('err', 'err',  'err',    'err',    'err',    'err',  'err',  'err',  'err',  '',     'err'), //Real
-('err', 'err',  'err',    'err',    'err',    'err',  'err',  'err',  'err',  'err',  ''));   //Boolean
-                                                                                //^^ Source (OpType)
-//bit7_set_overflow: test if bit 7 set. If so, overflow
-//bit15_set_overflow: test if bit 15 is set. If so, overflow
-//high9_neq_overflow: overflow unless all of the highest 9 bits are equal (ie. all set or all clear)
-//high9_nz_overflow: raise an overflow error unless the highest 9 bits are zero
-//high_nz_overflow: overflow if the high register is non-zero
-
-procedure StoreToVariable(ILItem: PILItem;OpType: TOpType);
-var
-  V: PVariable;
-  Reg: Char;
-  StoreStr: String;
-  Suffix: String;
-begin
-  V := ILItem.Dest.ToVariable;
-  case V.Storage of
-    vsStatic: StoreStr := 'store_abs';
-    vsStack: StoreStr := 'store_rel';
-  end;
-
-  //Store the output to the appropriate destination
-  case ILItem.Dest.Reg of
-    rNone: ;
-    rA..rL:
-    begin
-      SetRegStateVariable(ILItem.Dest.Reg, ILItem.Dest.Variable, ILItem.Dest.VarVersion);
-
-      if V.Storage = vsStack then
-        Suffix := ''
-      else if ILItem.Dest.Reg = rA then
-        Suffix := '_a'
-      else
-        Suffix := '_via_a';
-
-      //Are we storing to a 1 or two byte destination?
-      case OpTypeSize[ILItem.ResultType] of
-        1:
-          case GetTypeSize(V.VarType) of
-            1: GenLibraryProc(StoreStr + '8_r8' + Suffix,ILItem);
-            //If destiniation is 16 bit, zero extend data
-            2: GenLibraryProc(StoreStr + '16_r8' + Suffix, ILItem);
-          else
-            raise Exception.Create('Invalid variable size in StoreAfterPrim');
-          end;
-        2:
-          //Do we need to sign extend?
-          if (OpType in [rtS8, rtX8]) and
-            ((ILItem.ResultType = rtS16) or
-            ((ILItem.ResultType = rtU16) and not (cgOverflowCheck in ILItem.CodeGenFlags))) then
-          begin
-            GenLibraryProc(StoreStr + '16low_r8' + Suffix,ILItem);
-            Reg := CPUReg8ToChar[ILItem.Dest.Reg];
-            GenSignExtend(Reg, 'a');  ///'a'!!!
-            GenLibraryProc(StoreStr + '16high_a',ILItem);
-          end
-          else
-            GenLibraryProc(StoreStr + '16_r8' + Suffix,ILItem);
-      else
-        raise Exception.Create('Invalid type size in StoreAfterPrim');
-      end;
-    end;
-    rHL..rBC:
-    begin
-      SetRegStateVariable(ILItem.Dest.Reg, ILItem.Dest.Variable, ILItem.Dest.VarVersion);
-
-      if V.Storage = vsStack then
-        Suffix := ''
-      else if ILItem.Dest.Reg = rA then
-        Suffix := '_a'
-      else
-        Suffix := '_via_a';
-
-      //Are we storing to a 1 or two byte destination?
-      case OpTypeSize[ILItem.ResultType] of
-        //When shortening, any validation should have been done above
-        1: GenLibraryProc(StoreStr + '8_r16low' + Suffix, ILItem);
-        2: GenLibraryProc(StoreStr + '16_r16',ILItem);
-      else
-        raise Exception.Create('Invalid type size in StoreAfterPrim');
-      end;
-    end;
-    rZF, rZFA, rNZF, rNZFA, rCPLA, rCF, rNCF:
-    begin //For assignments
-      GenToBoolean(ILItem.Dest.Reg, ILItem);
-      GenLibraryProc(StoreStr + '8_a', ILItem);
-    end;
-  else
-    raise Exception.Create('Illegal DestAlloc in AllocAfterPrim');
-  end;
-end;
-
-//Takes the result from the register specified in ILItem.DestAlloc and stores it
-//into the location specified in ILItem.Dest
-//If a type conversion is to take place then:
-// * if validation is enabled, will generate code to ensure the value will fit into
-//the destination type
-// * generates code to handle the type conversion (if necessary)
-procedure StoreAfterPrim(ILItem: PILItem;Prim: PPrimitive);
-var
-  OpType: TOpType;
-  ValProcName: String;
-begin
-  case ILItem.OpType of
-    rtM16S16: OpType := rtS16;
-    rtM16U16: OpType := rtU16;
-  else
-    OpType := ILItem.OpType;
-  end;
-
-  //Validation for type conversions, if needed. No conversion needed if operator has fixed result type
-  if (OpType <> ILItem.ResultType) and (Operations[ILItem.Op].ResultType = teUnknown) then
-    if cgOverflowCheck in ILItem.CodeGenFlags then
-    begin
-      ValProcName := '';
-      //Do we have a special case validation routine for conversion to said type?
-      case ILItem.ResultType of
-        rtS8: ValProcName := Prim.ValProcS8;
-        rtU8: ValProcName := Prim.ValProcU8;
-        rtS16: ValProcName := Prim.ValProcS16;
-        rtU16: ValProcName := Prim.ValProcU16;
-      else
-        raise Exception.Create('Unhandled type in GenValidation');
-      end;
-      if ValProcName = '' then
-        //No special case so use validation matrix!!
-        ValProcName := ConversionMatrix[OpType, ILItem.ResultType];
-
-      GenCode(ValProcName, ILItem);
-    end;
-
-  case ILItem.Dest.Kind of
-    pkNone, pkImmediate, pkPhiVarDest: Assert(False, 'Invalid destination location');
-    pkVarDest:        StoreToVariable(ILItem, OpType);
-    pkPush:      GenLibraryProc('push_word', ILItem);     //The stack
-    pkPushByte:
-    begin
-      GenToBoolean(ILItem.Dest.Reg, ILItem);
-      GenLibraryProc('push_byte_a', ILItem);  //Single byte on the stack
-    end;
-  else
-    Assert(False, 'Invalid Dest Location');
-  end;
-end;
-
-//Takes the result from the register specified in ILItem.DestAlloc and stores it
-//into the location specified in ILItem.Dest
-//If a type conversion is to take place then:
-// * if validation is enabled, will generate code to ensure the value will fit into
-//the destination type
-// * generates code to handle the type conversion (if necessary)
-procedure StoreAfterPrimNG(ILItem: PILItem;Prim: PPrimitiveNG);
-var
-  OpType: TOpType;
-  ValProcName: String;
-begin
-  case ILItem.OpType of
-    rtM16S16: OpType := rtS16;
-    rtM16U16: OpType := rtU16;
-  else
-    OpType := ILItem.OpType;
-  end;
-
-  //Validation for type conversions, if needed. No conversion needed if operator has fixed result type
-  if (OpType <> ILItem.ResultType) and (Operations[ILItem.Op].ResultType = teUnknown) then
-    if cgOverflowCheck in ILItem.CodeGenFlags then
-    begin
-      ValProcName := '';
-      //Do we have a special case validation routine for conversion to said type?
-      case ILItem.ResultType of
-        rtS8: ValProcName := Prim.ValidateToS8;
-        rtU8: ValProcName := Prim.ValidateToU8;
-        rtS16: ValProcName := Prim.ValidateToS16;
-        rtU16: ValProcName := Prim.ValidateToU16;
-      else
-        raise Exception.Create('Unhandled type in StoreAfterPrimNG');
-      end;
-      if ValProcName = '' then
-        //No special case so use validation matrix!!
-        ValProcName := ConversionMatrix[OpType, ILItem.ResultType];
-
-      GenCode(ValProcName, ILItem);
-    end;
-
-  case ILItem.Dest.Kind of
-    pkNone, pkImmediate, pkPhiVarDest: Assert(False, 'Invalid destination location');
-    pkVarDest:        StoreToVariable(ILItem, OpType);
-    pkPush:      GenLibraryProc('push_word', ILItem);     //The stack
-    pkPushByte:
-    begin
-      GenToBoolean(ILItem.Dest.Reg, ILItem);
-      GenLibraryProc('push_byte_a', ILItem);  //Single byte on the stack
-    end;
-  else
-    Assert(False, 'Invalid Dest Location');
-  end;
-end;
-
-//Generate a branch after the
-procedure CondBranchAfterPrim(ILItem: PILItem;Prim: PPrimitive);
-begin
-  Assert(ILItem.Param3.Kind = pkCondBranch);
-  //If True block is following block then generate conditional jump for False
-  if ILItem.Param3.TrueBlockID = CurrBlockID + 1 then
-    GenCondJump(ILItem, True, ILItem.Param3.FalseBlockID)
-  else
-  begin //Otherwise generate condition jump for True...
-    GenCondJump(ILItem, False, ILItem.Param3.TrueBlockID);
-    //...and False doesn't 'fall though' then an unconditional jump for it.
-    if ILItem.Param3.FalseBlockID <> CurrBlockID + 1 then
-      GenUncondJump(ILItem.Param3.FalseBlockID);
-  end;
-end;
+const ValidationMatrix: array[vtInt8..vtPointer,vtInt8..vtPointer] of String =
+//  To:
+//From    Int8  Integer Byte  Word  Pointer
+{Int8}    (('',   '',   b7s,  b7s,  b7s),
+{Integer} (h9neq, '',   h9nz, b15s, b15s),
+{Byte}    (b7s,   '',   '',   '',   ''),
+{Word}    (h9nz,  b15s, hbnz,  '',  ''),
+{Pointer} (h9nz,  b15s, hbnz, '',   ''));
 
 //Generate a branch after the
 procedure CondBranchAfterPrimNG(ILItem: PILItem;Prim: PPrimitiveNG);
@@ -1316,11 +867,157 @@ begin
   end;
 end;
 
+//Store a value into a variable. Param contains the data for the variable including the
+//Reg which currently contains the data.
+//FromType is the current type of the data. This routine will arrange for it to be
+//extended (or shortened) as necessary. No validation is performed (that should have
+//been done by the caller)
+procedure StoreToVariable(const Param: TILParam;FromType: TVarType);
+var
+  Reg: Char;
+  StoreStr: String;
+  Suffix: String;
+begin
+  Assert(Param.Kind = pkVarDest);
+
+  case Param.Variable.Storage of
+    vsStatic: StoreStr := 'store_abs';
+    vsStack: StoreStr := 'store_rel';
+  end;
+
+  //Store the output to the appropriate destination
+  case Param.Reg of
+    rNone: ;
+    rA..rL: //We have data in an 8-bit register
+    begin
+      SetRegStateVariable(Param.Reg, Param.Variable, Param.VarVersion);
+
+      if Param.Variable.Storage = vsStack then
+        Suffix := ''
+      else if Param.Reg = rA then
+        Suffix := '_a'
+      else
+        Suffix := '_via_a';
+
+      //Are we storing to a 1 or two byte destination?
+      case GetTypeSize(Param.Variable.VarType) of
+        1:
+          case GetTypeSize(FromType) of
+            1: GenLibraryParamProc(StoreStr + '8_r8' + Suffix, Param, 'd');
+            //If destination is 16 bit, zero extend data
+//            2: GenLibraryParamProc(StoreStr + '16_r8' + Suffix, ILItem);
+          else
+            raise Exception.Create('Invalid variable size in StoreAfterPrim');
+          end;
+        2:
+          //Do we need to sign extend?
+          if IsSignedType(FromType) then
+          begin //Sign extend
+            GenLibraryParamProc(StoreStr + '16low_r8' + Suffix, Param, 'd');
+            Reg := CPUReg8ToChar[Param.Reg];
+            GenSignExtend(Reg, 'a');  ///'a'!!!
+            GenLibraryParamProc(StoreStr + '16high_a', Param, 'd');
+          end
+          else //Zero extend
+            GenLibraryParamProc(StoreStr + '16_r8' + Suffix, Param, 'd');
+      else
+        raise Exception.Create('Invalid type size in StoreAfterPrim');
+      end;
+    end;
+    rHL..rBC:
+    begin
+      SetRegStateVariable(Param.Reg, Param.Variable, Param.VarVersion);
+
+      if Param.Variable.Storage = vsStack then
+        Suffix := ''
+      else if Param.Reg = rA then
+        Suffix := '_a'
+      else
+        Suffix := '_via_a';
+
+      //Are we storing to a 1 or two byte destination?
+      case GetTypeSize(Param.Variable.VarType) of
+        //When shortening, any validation should have been done above
+        1: GenLibraryParamProc(StoreStr + '8_r16low' + Suffix, Param, 'd');
+        2: GenLibraryParamProc(StoreStr + '16_r16', Param, 'd');
+      else
+        raise Exception.Create('Invalid type size in StoreAfterPrim');
+      end;
+    end;
+    rZF, rZFA, rNZF, rNZFA, rCPLA, rCF, rNCF:
+    begin //For assignments
+      GenToBoolean(Param.Reg, Param);
+      GenLibraryParamProc(StoreStr + '8_a', Param, 'd');
+    end;
+  else
+    raise Exception.Create('Illegal DestAlloc in AllocAfterPrim');
+  end;
+end;
+
+//Takes the result from the register specified in ILItem.DestAlloc and stores it
+//into the location specified in ILItem.Dest
+//If a type conversion is to take place then:
+// * if validation is enabled, will generate code to ensure the value will fit into
+//the destination type
+// * generates code to handle the type conversion (if necessary)
+procedure StoreAfterPrimNG(ILItem: PILItem;Prim: PPrimitiveNG);
+var
+  DestType: TVarType;
+  ValProcName: String;
+begin
+  case ILItem.Op of
+    opDataLoad: ;
+  else
+    case ILItem.Dest.Kind of
+      pkNone: EXIT;
+      pkVarDest:
+      begin
+        DestType := ILItem.Dest.Variable.VarType;
+
+        //Validation for type conversions, if needed. No conversion needed if operator has fixed result type
+        if IsNumericType(DestType) then
+          if (DestType <> vtUnknown) and (ILItem.ResultType <> DestType) then
+            if cgOverflowCheck in ILItem.CodeGenFlags then
+            begin
+              ValProcName := '';
+              //Do we have a special case validation routine for conversion to said type?
+              case ILItem.ResultType of
+                vtInt8: ValProcName := Prim.ValidateToS8;
+                vtByte: ValProcName := Prim.ValidateToU8;
+                vtInteger: ValProcName := Prim.ValidateToS16;
+                vtWord, vtPointer: ValProcName := Prim.ValidateToU16;
+              else
+                raise Exception.Create('Unhandled type in StoreAfterPrimNG');
+              end;
+              if ValProcName = '' then
+                //No special case so use validation matrix!!
+                ValProcName := ValidationMatrix[ILItem.ResultType, DestType];
+
+              if ValProcName <> '' then
+                GenCode(ValProcName, ILItem);
+            end;
+
+        StoreToVariable(ILItem.Dest, ILItem.ResultType);
+      end;
+      pkCondBranch:
+        CondBranchAfterPrimNG(ILItem, Prim);
+      pkPush:
+        GenLibraryProc('push_word', ILItem);     //The stack
+      pkPushByte:
+      begin
+        GenToBoolean(ILItem.Dest.Reg, ILItem.Dest);
+        GenLibraryProc('push_byte_a', ILItem);  //Single byte on the stack
+      end;
+    else
+      Assert(False, 'Invalid Dest Location');
+    end;
+  end;
+end;
+
 //=========================
 
 procedure DoCodeGenItem(ILIndex: Integer);
 var ILItem: PILItem;
-  Prim: PPrimitive;
   PrimNG: PPrimitiveNG;
   SwapParams: Boolean;
 begin
@@ -1344,94 +1041,46 @@ begin
   end;
 
 
-  Prim := nil;
-  if Operations[ILItem.Op].IsNG then
-  begin
-    PrimNG := nil;
-    case ILItem.Op of
-      opPhi: ; //Do nothing - ignore
-      opBranch: GenUncondBranch(ILItem);
-//      opFuncCall: PrimNG := ProcCall;
-    else
-      PrimNG := ILItemToPrimitiveNG(ILItem^, SwapParams);
-      if not assigned(PrimNG) then
-        Error('No primitiveNG found:'#13#10 + ILItem.ToString);
-      if SwapParams then
-        ILItem.SwapParams;
-    end;
-
-    if Assigned(PrimNG) then
+  PrimNG := nil;
+  case ILItem.Op of
+    opPhi: ; //Do nothing - ignore
+    opBranch: GenUncondBranch(ILItem);
+    opMove: PrimNG := PrimFindByProcNameNG('empty');
+    opDataLoad: PrimNG := PrimFindByProcNameNG('empty');
+    opFuncCall: PrimNG := PrimFindByProcNameNG('proccall');
+    opStoreImm:
     begin
-      if LogPrimitives then
-        PrimitiveLog.Add(PrimNG.ProcName);
-
-      //Temp
-      TEMPRegAllocNG(ILItem, PrimNG);
-      LoadBeforePrimNG(ILItem, PrimNG);
-      if Assigned(PrimNG.Proc) then
-        PrimNG.Proc(ILItem)
-      else
-        GenLibraryProc(PrimNG.ProcName, ILItem);
-      RegStateInitialise;
-      ValidateAfterPrimNG(ILItem, PrimNG);
-      case ILItem.Op of
-        opDataLoad: ;
-      else
-        case ILItem.Dest.Kind of
-          pkNone: ;
-          pkCondBranch:
-            CondBranchAfterPrimNG(ILItem, PrimNG);
-          pkVarDest, pkPush, pkPushByte:
-            StoreAfterPrimNG(ILItem, PrimNG);
-        else
-          Assert(False);
-        end;
-      end;
+      Assert(ILItem.Dest.Kind = pkVarDest);
+      PrimNG := PrimFindStoreImm(ILItem.Dest.Variable);
+      Assert(PrimNG <> nil, 'StoreImm primitive not found' + ILItem.ToString);
     end;
-//Assert(False, 'TODO');
-  end
-  else  //OG Operators/Primitives
-  begin
-    case ILItem.Op of
-      OpPhi:      Assert(False);  //Ignore
-      OpBranch:   Assert(False);  //GenUncondBranch(ILItem);
-      OpFuncCall: Prim := PrimFindByProcName('proccall');
-      OpDataLoad, OpMove: Prim := PrimFindByProcName('empty');
-    else
-      Prim := ILItemToPrimitive(ILItem^);
-    if not assigned(Prim) then
-      Error('No primitive found:'#13#10 + ILItem.ToString);
-    end;
-
-    if Assigned(Prim) then
-    begin
-      if LogPrimitives then
-        PrimitiveLog.Add(Prim.ProcName);
-
-      //Temp
-      TEMPRegAlloc(ILItem, Prim);
-      LoadBeforePrim(ILItem, Prim);
-      if Assigned(Prim.Proc) then
-        Prim.Proc(ILItem)
-      else
-        GenLibraryProc(Prim.ProcName, ILItem);
-      RegStateInitialise;
-      ValidateAfterPrim(ILItem, Prim);
-      case ILItem.Op of
-        opDataLoad: ;
-      else
-        case ILItem.Dest.Kind of
-          pkNone: ;
-          pkCondBranch:
-            CondBranchAfterPrim(ILItem, Prim);
-          pkVarDest, pkPush, pkPushByte:
-            StoreAfterPrim(ILItem, Prim);
-        else
-          Assert(False);
-        end;
-      end;
-    end
+  else
+    //Find the Prim based on the operation and parameter data type(s)
+    PrimNG := ILItemToPrimitiveNG(ILItem^, SwapParams);
+    if not assigned(PrimNG) then
+      Error('No primitiveNG found:'#13#10 + ILItem.ToString);
+    if SwapParams then
+      ILItem.SwapParams;
   end;
+
+  if Assigned(PrimNG) then
+  begin
+    if LogPrimitives then
+      PrimitiveLog.Add(PrimNG.ProcName);
+
+    //Temp
+    TEMPRegAllocNG(ILItem, PrimNG);
+    LoadBeforePrimNG(ILItem, PrimNG);
+    if Assigned(PrimNG.Proc) then
+      PrimNG.Proc(ILItem)
+    else
+      GenLibraryProc(PrimNG.ProcName, ILItem);
+    RegStateInitialise;
+    ValidateAfterPrimNG(ILItem, PrimNG);
+    //Also generates branches
+    StoreAfterPrimNG(ILItem, PrimNG);
+  end;
+
   Line(';'+CPUStateToString);
 end;
 
@@ -1542,6 +1191,9 @@ end;
 procedure InitPrimitives;
 begin
   //Assignment
+  //Assign Procs used by Primitives table
+  //PrimSetProc will raise an error if the Proc is not used anywhere
+  //Unused Proc probably ought to be removed
   PrimSetProc('error', ProcError);
   PrimSetProc('empty',ProcEmpty);
 
@@ -1558,6 +1210,8 @@ begin
 
   PrimSetProc('proccall',ProcCall);
 
+  //Verifies that all fragments, library routines(??), used by primitives
+  //are available, and any Proc which need to be assigned have been assigned
   ValidatePrimitives;
 
 //  PrimSetProc('proctypecastX8X16R',ProcTypecastX8X16R);

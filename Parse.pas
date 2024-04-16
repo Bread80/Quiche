@@ -131,8 +131,7 @@ begin
       ILItem := ILAppend(OpMove);
     ILItem.Param1 := Slug.Operand;
     ILItem.Param2.Kind := pkNone;
-    ILItem.OpType := Slug.OpType;
-    ILItem.ResultType := VarTypeToOpType(Variable.VarType);
+    ILItem.ResultType := Slug.ResultType;
   end;
 
   ILItem.Dest.SetVarDestAndVersion(Variable, VarVersion);
@@ -142,8 +141,8 @@ begin
     //I.e. if VType is smaller than ResultType then we need to downsize the value
 //    ILItem.ResultType := GetExprResultType(VType, Slug.ResultType);
 
-
-  if (ILItem.Op in [OpMove, OpStoreImm]) and (ILItem.OpType = rtUnknown) then
+(* ???
+  if (ILItem.Op in [OpMove, OpStoreImm]) and (ILItem.ResultType = vtUnknown) then
     if Slug.Operand.Kind = pkImmediate then
       case GetTypeSize(Slug.ResultType) of
         1: Slug.OpType := rtX8;
@@ -153,7 +152,7 @@ begin
       end
     else
       Slug.OpType := VarTypeToOpType(Slug.ResultType);
-
+*)
   //Overflows for an immediate assignment must be validated by the parser
   if ILItem.Op = OpStoreImm then
     ILItem.CodeGenFlags := ILItem.CodeGenFlags - [cgOverflowCheck];
@@ -199,8 +198,7 @@ begin
     ILItem := ILAppend(OpCondBranch);
     ILItem.Param1 := Slug.Operand;
     ILItem.Param2.Kind := pkNone;
-    ILItem.OpType := rtBoolean;
-    ILItem.ResultType := rtBoolean; //(Not technically needed)
+    ILItem.ResultType := vtBoolean; //(Not technically needed)
   end;
 end;
 
@@ -465,8 +463,7 @@ begin
     ExitTestItem := ILAppend(OpLessEqual)
   else
     ExitTestItem := ILAppend(OpGreaterEqual);
-  ExitTestItem.OpType := VarTypeToOpType(LoopVar.VarType);
-  ExitTestItem.ResultType := rtBoolean;
+  ExitTestItem.ResultType := vtBoolean;
 
   ExitTestItem.Param1.SetVarSource(LoopVar);
   ExitTestItem.Param2.SetVarSource(EndValue);
@@ -498,8 +495,7 @@ begin
     ILItem := ILAppend(OpAdd)
   else
   ILItem := ILAppend(OpSubtract);
-  ILItem.OpType := VarTypeToOpType(LoopVar.VarType);
-  ILItem.ResultType := ILItem.OpType;
+  ILItem.ResultType := LoopVar.VarType;
   ILItem.Param1.SetVarSource(LoopVar);
   //(Uncomment to add Step value)
   ILItem.Param2.SetImmediate(1, vtByte);

@@ -287,7 +287,7 @@ begin
 //  Assert(OpData <> nil);
   Assert(Param.Kind = pkImmediate);
 
-  if OpData.OpGroup = ogTypecast then
+(*  if OpData.OpGroup = ogTypecast then
   begin
     ResultType := TypeEnumToVarType[OpData.ResultType];
     case GetTypeSize(ResultType) of
@@ -310,7 +310,7 @@ begin
     Result := qeNone;
   end
   else  //Functions
-  begin
+*)  begin
     P := Param.ImmToInteger;
     ResultType := vtUnknown;
 
@@ -334,7 +334,7 @@ begin
         ResultType := Param.ImmType;
         if ResultType = vtTypeDef then
         begin
-          ResultType := Param.ImmValueInt;
+          ResultType := TVarType(Param.ImmValueInt);
           Value := GetMaxValue(ResultType)
         end
         else
@@ -353,7 +353,7 @@ begin
         ResultType := Param.ImmType;
         if ResultType = vtTypeDef then
         begin
-          ResultType := Param.ImmValueInt;
+          ResultType := TVarType(Param.ImmValueInt);
           Value := GetMinValue(ResultType)
         end
         else
@@ -380,7 +380,7 @@ begin
       opSizeof:
       begin
         if Param.ImmType = vtTypeDef then
-          Value := GetTypeSize(Param.ImmValueInt)
+          Value := GetTypeSize(TVarType(Param.ImmValueInt))
         else
           Value := GetTypeSize(Param.ImmType);
         if Value < 256 then

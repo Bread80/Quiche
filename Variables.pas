@@ -508,7 +508,7 @@ var Mem: TBytes;
   BufHead: Byte;
   BufPtr: Word;
 begin
-  Assert(sizeof(TQType) = 1,'LoadVarsFromMemoryDump: sizeof vtType needs updating');
+  Assert(sizeof(TVarType) = 1,'LoadVarsFromMemoryDump: sizeof vtType needs updating');
   Mem := TFile.ReadAllBytes(Filename);
 
   RuntimeError := Mem[$800b];
@@ -578,7 +578,7 @@ begin
           Result := Result + 'ILLEGAL BOOLEAN: ' + IntToStr(ValueInt);
         end;
       vtChar: Result := Result + '''' + chr(ValueInt and $ff) + '''';
-      vtTypeDef: Result := Result + 'type ' + VarTypeToName(ValueInt);
+      vtTypeDef: Result := Result + 'type ' + VarTypeToName(TVarType(ValueInt));
 //      vtString: ;
 //      vtReal: ;
     else

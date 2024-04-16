@@ -23,7 +23,12 @@ type TILParamKind = (
 type
   PILParam = ^TILParam;
   TILParam = record
-    Reg: TCPUReg; //Register of other location to place datainto before the primitive
+    //If the parameter is Sourcing data (ie. before an operation) this is the
+    //register the data will be loaded or move into
+    //If the parameter is a Deestination/Result this is the register in which the
+    //data will found after the operation. The code generator will store the value
+    //back into the variable (or other location) specified by the other values
+    Reg: TCPUReg;
 
     procedure Initialise;
 
@@ -44,13 +49,14 @@ type
     function ToVariable: PVariable;
 
     function GetVarType: TVarType;
-    function GetRawType: TOpType;
+//    function GetRawType: TOpType;
 
     //For error messages
     function ImmValueToString: String;
 
     function ToString: String;
 
+    //The payload data
     case Kind: TILParamKind of
       pkNone: ();
       pkImmediate: (
@@ -92,8 +98,8 @@ type
     Comments: String;       //For debugging <g>. Current only used if BlockID <> -1
 
     Op: TOperator;          //The operation
-    OpType: TOpType;        //Raw data type
-    ResultType: TOpType;    //If overflow checking is on, specifies the output type
+    ResultType: TVarType;   //CURRENT: The type which will be output by the Operation
+                            //OLD: If overflow checking is on, specifies the output type
                             //May also be used by typecasts to change/reduce value size
     Func: PFunction;        //If OpIndex is OpFuncCall this contains details of the function
                             //to call
@@ -266,13 +272,12 @@ begin
   else
     Result.SourceLineNo := -1;
   Result.Op := opUnknown;
-  Result.OpType := rtUnknown;
   if optOverflowChecks then
     Result.CodeGenFlags := [cgOverflowCheck]
   else
     Result.CodeGenFlags := [];
 
-  Result.ResultType := rtUnknown;
+  Result.ResultType := vtUnknown;
   Result.Func := nil;
 
   Result.Param1.Initialise;
@@ -383,18 +388,18 @@ begin
     pkNone, pkPhiVarSource, pkPhiVarDest: EXIT(vtUnknown);
     pkImmediate:
       Result := ImmType;
-    pkVarSource:
+    pkVarSource, pkVarDest:
       Result := Variable.VarType;
   else
     raise Exception.Create('Unknown parameter kind');
   end;
 end;
 
-function TILParam.GetRawType: TOpType;
+(*function TILParam.GetRawType: TOpType;
 begin
   Result := VarTypeToOpType(GetVarType);
 end;
-
+*)
 function TILParam.ImmValueToString: String;
 begin
   Assert(Kind = pkImmediate);
@@ -412,7 +417,7 @@ begin
         Result := ''''+chr(ImmValueInt)+''''
       else
         Result := '#' + ImmValueInt.ToString;
-    vtTypeDef: Result := VarTypeToName(ImmValueInt);
+    vtTypeDef: Result := VarTypeToName(TVarType(ImmValueInt));
   else
     Assert(False);
   end;
@@ -542,7 +547,7 @@ begin
     begin
       Result := Result + Operations[Op].Name;
       if Dest.Kind <> pkPhiVarDest then
-        Result := Result + ':' + OpTypeNames[OpType] + ' ';
+        Result := Result + ':' + VarTypeToName(ResultType) + ' ';
     end;
     Result := Result + Param1.ToString + ', ';
     Result := Result + Param2.ToString;

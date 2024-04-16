@@ -29,7 +29,7 @@ type
 
     Op: TOperator;    //Index into Operators list
 
-    OpType: TOpType;    //Type for the operator
+//    OpType: TOpType;    //Type for the operator
     ResultType: TVarType; //Type for the result
     ImplicitType: TVarType;//?? Type for type inference
 
@@ -91,7 +91,6 @@ begin
   ILItem := nil;
   Operand.Initialise;
   Op := OpUnknown;
-  OpType := rtUnknown;
   ResultType := vtUnknown;
   ImplicitType := vtUnknown;
 end;
@@ -119,8 +118,7 @@ begin
   begin
     Result := ILAppend(opUnknown);
     Result.Param1 := Operand;
-    Result.OpType := OpType;
-    Result.ResultType := OpType;
+    Result.ResultType := ResultType;
   end;
 end;
 
@@ -433,7 +431,7 @@ begin
         raise Exception.Create('TYpecasts aren''t functional at the moment')
       else
       begin
-        Slug.SetImmediate(VarType, vtTypeDef);
+        Slug.SetImmediate(Integer(VarType), vtTypeDef);
         Slug.ParamOrigin := poExplicit;
         Slug.ImplicitType := vtTypeDef;
         EXIT(qeNone);
@@ -487,8 +485,7 @@ begin
     Slug.ILItem := ILAppend(Slug.Op);
     Slug.ILItem.Param1 := Slug.Operand;
     Slug.ILItem.Param2.Kind := pkNone;
-    Slug.ILItem.OpType := VarTypeToOpType(Slug.ResultType);
-    Slug.ILItem.ResultType := Slug.ILItem.OpType;
+    Slug.ILItem.ResultType := Slug.ResultType;
 
 //  Slug.ResultType := ILParamToVarType(@Slug.Operand);
 //  Slug.OpType := VarTypeToOpType(Slug.ResultType);
@@ -723,8 +720,6 @@ begin
     Right.Operand.ImmType := RType;
 
   Left.ResultType := ResultType;
-  Left.OpType := VarTypeToOpType(Left.ResultType);
-
   Left.ImplicitType := ResultType;
   Right.ImplicitType := ResultType;
 end;
@@ -751,14 +746,14 @@ begin
     if Result <> qeNone then
       EXIT;
 
-    //If the rightslug returned an ILItem then we need to set it's Dest to a temp var
+    //If the right slug returned an ILItem then we need to set it's Dest to a temp var
     if Right.ILItem <> nil then
       if Right.ILItem.Dest.Kind = pkNone then
-      //We already have an ILItem created. If so, we need to set the Dest to
-      //assign it to a temp var and use that in our calculations
-      Right.AssignToHiddenVar;
+        //We already have an ILItem created. If so, we need to set the Dest to
+        //assign it to a temp var and use that in our calculations
+        Right.AssignToHiddenVar;
 
-    //Is next slug higher precedence?
+    //While next slug is higher precedence
     while (Right.Op <> OpUnknown) and (Left.OpData.Precedence < Right.OpData.Precedence) do
     begin
       Result := ParseSubExpression(Right, ILItem);
@@ -777,6 +772,7 @@ begin
         Right.Operand.SetVarSource(ILItem.AssignToHiddenVar(Left.ResultType));
     end;
 
+    //Evaluate constant expressions
     EvalType := vtUnknown;
     if (Left.Operand.Kind = pkImmediate) and (Right.Operand.Kind = pkImmediate) then
     begin
@@ -787,7 +783,6 @@ begin
       if EvalType <> vtUnknown then
       begin
         Left.SetImmediate(EvalResult, EvalType);
-        Left.OpType := VarTypeToOpType(EvalType);
         Left.ImplicitType := EvalType;
         Left.Op := Right.Op;
         if Right.Op = OpUnknown then
@@ -798,8 +793,10 @@ begin
       end;
     end;
 
+    //If we didn't evaluate as a constant expression
     if EvalType = vtUnknown then
-    begin //not Evaluated
+    begin
+      //Modifies operand types and result type based on available primitives
       if not AssignSlugTypesNG(Left, Right) then
         EXIT(ErrOpUsage('No operator available for operand types ' +
           VarTypeToName(Left.Operand.GetVarType) + ' and ' +
@@ -808,27 +805,25 @@ begin
       //Add current operation to list.
       //Dest info will be added by later
       ILItem := ILAppend(Left.Op);
-      ILItem.OpType := Left.OpType;
-      ILItem.ResultType := VarTypeToOpType(Left.ResultType);
+      ILItem.ResultType := Left.ResultType;
       ILItem.Param1 := Left.Operand;
       ILItem.Param2 := Right.Operand;
 
-      //End of expression or lower precedence
+      //Exit if end of expression or lower precedence
       if (Right.Op = opUnknown) or
         (Left.OpData.Precedence > Right.OpData.Precedence) then
       begin
         //Note: Dest info will be added by the caller
         //Update slug and return
         Left.Op := Right.Op;
-        Left.OpType := Right.OpType;
 
         //...and return
         EXIT(qeNone);
       end;
 
-      //Same precedence
+      //Same precedence:
       //Add item to IL list
-      //with dest as temp data
+      //with dest as temp data (hidden variable)
       //Update slug data...
       Left.Operand.SetVarSource(ILItem.AssignToHiddenVar(Left.ResultType));
 
@@ -851,10 +846,10 @@ begin
     //Can't do this for expressions (at least, not yet! - TODO)
     if Slug.ILItem = nil then
     begin
-      Slug.Operand.SetImmediate(Slug.Operand.GetVarType, vtTypeDef);
+      Slug.Operand.SetImmediate(Integer(Slug.Operand.GetVarType), vtTypeDef);
       Slug.ResultType := vtTypeDef;
     end;
-
+(* ???
   if Slug.OpType = rtUnknown then
     if Slug.Operand.Kind = pkImmediate then
       if ExprType <> vtUnknown then
@@ -873,7 +868,7 @@ begin
       end
     else
       Slug.OpType := VarTypeToOpType(Slug.ResultType);
-
+*)
   if ExprType <> vtUnknown then
   begin
     Result := ValidateExprType(ExprType, Slug);
@@ -906,9 +901,9 @@ begin
   //If the slug returned an ILItem then we need to set it's Dest to a temp var
   if Slug.ILItem <> nil then
     if Slug.ILItem.Dest.Kind = pkNone then
-    //We already have an ILItem created. If so, we need to set the Dest to
-    //assign it to a temp var and use that in our calculations
-    Slug.AssignToHiddenVar;
+      //We already have an ILItem created. If so, we need to set the Dest to
+      //assign it to a temp var and use that in our calculations
+      Slug.AssignToHiddenVar;
 
   //Loop until end of expression
   repeat
@@ -916,13 +911,9 @@ begin
     if Result <> qeNone then
       EXIT;
 
+    //Unless end of expression :- assign value to hidden variable
     if Slug.Op <> OpUnknown then
-    begin
       Slug.Operand.SetVarSource(ILItem.AssignToHiddenVar(Slug.ResultType));
-
-//      ILItem.SetDestType(dtData);
-//      Slug.Operand.SetVariable(ILItem.Dest.CreateAndSetHiddenVar(Slug.ResultType));
-    end;
   until Slug.Op = opUnknown;
 
 
@@ -934,18 +925,15 @@ begin
       if Result <> qeNone then
         EXIT;
     end;
-
-    if ExprType <> vtUnknown then
-      Slug.ResultType := ExprType;
   end
   else // ILItem <> nil
-  begin
+//???ValidateExprType??
     Slug.ILItem := ILItem;
-    if ExprType <> vtUnknown then
-      ILItem.ResultType := VarTypeToOpType(ExprType)
-    else
-      ILItem.ResultType := VarTypeToOpType(Slug.ImplicitType);
-  end;
+
+  if ExprType <> vtUnknown then
+//    ILItem.ResultType := ExprType
+  else
+    ExprType := Slug.ImplicitType;
 
   Result := qeNone;
 end;

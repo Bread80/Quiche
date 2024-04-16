@@ -59,11 +59,11 @@ begin
       ILItem := Slug.ToILItemNoDest;
       if ILItem.Op = OpUnknown then
         ILItem.Op := OpMove;
-      ILItem.ResultType := VarTypeToOpType(Arg.VarType);
+      ILItem.ResultType := Arg.VarType;
       //Slug to ILItem
       case GetTypeSize(Arg.VarType) of
-        1: ILItem.Param3.Kind := pkPushByte;//ILItem to PUSHBYTE
-        2: ILItem.Param3.Kind := pkPush;//ILItem to PUSH
+        1: ILItem.Dest.Kind := pkPushByte;//ILItem to PUSHBYTE
+        2: ILItem.Dest.Kind := pkPush;//ILItem to PUSH
       else
         Assert(False, 'Item too large for stack - needs to be passed by reference');
       end;
@@ -185,7 +185,7 @@ begin
         begin
           Assert((Slugs[I].ILItem = nil) and (Slugs[I].Operand.Kind = pkImmediate));
           //Update the Result Type of the slug
-          ResultType := Slugs[I].Operand.ImmValueInt;
+          ResultType := TVarType(Slugs[I].Operand.ImmValueInt);
           Slugs[I].ResultType := ResultType;
           //Convert the TypeDef value to be the type. The actual value is ignored and irrelevent
           Slugs[I].Operand.ImmType := ResultType;
@@ -266,12 +266,10 @@ begin
   begin //We can just 'patch' the Op into the ILItem
     Slug := Slugs[0];
     Slug.ILItem.Op := Func.Op;
-    Slug.ILItem.OpType := VarTypeToOpType(Slug.ResultType);
   end
   else
   begin //Create the ILItem for the operation
     Slug.ILItem := ILAppend(Func.Op);
-    Slug.ILItem.OpType := VarTypeToOpType(Slug.ResultType);
 
     if Func.ParamCount >= 1 then
     begin //First parameter
@@ -301,11 +299,10 @@ begin
     V := Slug.ILItem.Param1.Variable;
     V.IncWriteCount;
     Slug.ILItem.Dest.SetVarDestAndVersion(V, V.WriteCount);
-    Slug.ILItem.ResultType := VarTypeToOpType(V.VarType);
-    Slug.ILItem.OpType := Slug.ILItem.ResultType;
+    Slug.ILItem.ResultType := V.VarType;
   end
   else
-    Slug.ILItem.ResultType := Slug.ILItem.OpType;
+    Slug.ILItem.ResultType := Slug.ResultType;
 end;
 
 
@@ -444,8 +441,7 @@ begin
     end;
 }
     Param := Func.FindResult;
-    Result.ResultType := VarTypeToOpType(Param.VarType);
-    Result.OpType := Result.ResultType;
+    Result.ResultType := Param.VarType;
   end;
 end;
 
