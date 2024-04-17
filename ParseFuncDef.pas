@@ -312,7 +312,7 @@ begin
     EXIT;
   if (Slug.ILItem <> nil) or (Slug.Operand.Kind <> pkImmediate) then
     EXIT(Err(qeConstantExpressionExpected));
-  Func.CodeAddress := Slug.Operand.immValueInt;
+  Func.CodeAddress := Slug.Operand.Imm.IntValue;
   Result := qeNone;
 end;
 

@@ -135,15 +135,15 @@ begin
     Slugs[ArgIndex].Initialise;
     Slugs[ArgIndex].Operand.Kind := pkImmediate;
     if Func.Params[ArgIndex].VarType <> vtUnknown then
-      Slugs[ArgIndex].Operand.ImmType := Func.Params[ArgIndex].VarType
+      Slugs[ArgIndex].Operand.Imm.VarType := Func.Params[ArgIndex].VarType
     else  //SuperTypes - we have an Intrinsic!
       if Func.Params[ArgIndex].SuperType in [stAnyInteger, stOrdinal] then
         //TODO: This should give a better analysis of the type
-        Slugs[ArgIndex].Operand.ImmType := vtInteger;//ValueToVarType(Func.Params[ArgIndex].DefaultValueInt);
+        Slugs[ArgIndex].Operand.Imm.VarType := vtInteger;//ValueToVarType(Func.Params[ArgIndex].DefaultValueInt);
 
-    Slugs[ArgIndex].Operand.ImmValueInt := Func.Params[ArgIndex].DefaultValueInt;
-    Slugs[ArgIndex].ResultType := Slugs[ArgIndex].Operand.ImmType;
-    Slugs[ArgIndex].ImplicitType := Slugs[ArgIndex].Operand.ImmType;
+    Slugs[ArgIndex].Operand.Imm := Func.Params[ArgIndex].DefaultValue;
+    Slugs[ArgIndex].ResultType := Slugs[ArgIndex].Operand.Imm.VarType;
+    Slugs[ArgIndex].ImplicitType := Slugs[ArgIndex].Operand.Imm.VarType;
     Result := ProcessArgument(Func, Func.CallingConvention, Func.Params[ArgIndex], Slugs[ArgIndex]);
     if Result <> qeNone then
       EXIT;
@@ -185,15 +185,15 @@ begin
         begin
           Assert((Slugs[I].ILItem = nil) and (Slugs[I].Operand.Kind = pkImmediate));
           //Update the Result Type of the slug
-          ResultType := TVarType(Slugs[I].Operand.ImmValueInt);
+          ResultType := Slugs[I].Operand.Imm.TypeValue;
           Slugs[I].ResultType := ResultType;
           //Convert the TypeDef value to be the type. The actual value is ignored and irrelevent
-          Slugs[I].Operand.ImmType := ResultType;
+          Slugs[I].Operand.Imm.VarType := ResultType;
           //Prim search plays havoc with constants. Here we force the Range value
           if IsSignedType(ResultType) then
-            Slugs[I].Operand.ImmValueInt := GetMinValue(ResultType)
+            SetMinValue(Slugs[I].Operand.Imm)
           else
-            Slugs[I].Operand.ImmValueInt := GetMaxValue(ResultType)
+            SetMaxValue(Slugs[I].Operand.Imm);
         end;
   end;
   ResultTypeDebug := ResultType;
@@ -223,7 +223,7 @@ begin
     if Func.ParamCount = 1 then
     begin
       Result := EvalIntrinsicUnary(Func.Op, Slugs[0].Operand,
-        Slug.Operand.ImmValueInt, Slug.Operand.ImmType);
+        Slug.Operand.Imm);
       if Result = qeIntrinsicCantBeEvaluatedAtCompileTime then
         //Continue with IL code generatio
         Result := qeNone
@@ -231,7 +231,7 @@ begin
       begin
         if Result <> qeNone then
           EXIT;
-        Slug.ResultType := Slug.Operand.ImmType;
+        Slug.ResultType := Slug.Operand.Imm.VarType;
         Slug.ImplicitType := Slug.ResultType;
         Slug.Operand.Kind := pkImmediate;
       //TODO: We currently use the ResultType from the available Primitives.
@@ -246,7 +246,7 @@ begin
       if not Assigned(Slugs[1].ILItem) and (Slugs[1].Operand.Kind = pkImmediate) then
       begin
         Result := EvalIntrinsicBi(Func.Op, Slugs[0].Operand, Slugs[1].Operand,
-          Slug.Operand.ImmValueInt, Slug.Operand.ImmType);
+          Slug.Operand.Imm);
         if Result = qeIntrinsicCantBeEvaluatedAtCompileTime then
           Result := qeNone
         else

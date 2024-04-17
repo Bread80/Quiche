@@ -387,13 +387,13 @@ procedure ProcAssignAbsS16Imm8(ILItem: PILItem);
 var Variable: PVariable;
 begin
   Assert(ILItem.Param1.Kind = pkImmediate);
-  Assert(ILItem.Param1.ImmType in [vtInt8, vtByte]);
+  Assert(ILItem.Param1.Imm.VarType in [vtInt8, vtByte]);
   Assert(ILItem.Dest.Kind = pkVarDest);
 
   Variable := ILItem.Dest.ToVariable;
   Assert(Variable.Storage = vsStatic);
 
-  if (ILItem.Param1.ImmType = vtInt8) and (ILItem.Param1.ImmValueInt < 0) then
+  if (ILItem.Param1.Imm.VarType = vtInt8) and (ILItem.Param1.Imm.IntValue < 0) then
     GenLibraryProc('assign_abs16_imm8_neg', ILItem)
   else
     GenLibraryProc('assign_abs16_imm8', ILItem);
@@ -404,13 +404,13 @@ procedure ProcAssignRelS16Imm8(ILItem: PILItem);
 var Variable: PVariable;
 begin
   Assert(ILItem.Param1.Kind = pkImmediate);
-  Assert(ILItem.Param1.ImmType = vtInt8);
+  Assert(ILItem.Param1.Imm.VarType = vtInt8);
   Assert(ILItem.Dest.Kind = pkVarDest);
 
   Variable := ILItem.Dest.ToVariable;
   Assert(Variable.Storage = vsStack);
 
-  if ILItem.Param1.ImmValueInt < 0 then
+  if ILItem.Param1.Imm.IntValue < 0 then
     GenLibraryProc('assign_rel16_imm8_neg', ILItem)
   else
     GenLibraryProc('assign_rel16_imm8', ILItem);
@@ -426,7 +426,7 @@ begin
   if ILItem.Param2.Kind = pkNone then
     Count := 1
   else
-    Count := ILItem.Param2.ImmToInteger;
+    Count := ILItem.Param2.Imm.ToInteger;
 
   for I := 1 to abs(Count) do
     if Count > 0 then
@@ -442,7 +442,7 @@ begin
   if ILItem.Param2.Kind = pkNone then
     Count := 1
   else
-    Count := ILItem.Param2.ImmToInteger;
+    Count := ILItem.Param2.Imm.ToInteger;
 
   for I := 1 to abs(Count) do
     if Count > 0 then
@@ -458,7 +458,7 @@ begin
   if ILItem.Param2.Kind = pkNone then
     Count := 1
   else
-    Count := ILItem.Param2.ImmToInteger;
+    Count := ILItem.Param2.Imm.ToInteger;
 
   for I := 1 to abs(Count) do
     if Count > 0 then
@@ -474,7 +474,7 @@ begin
   if ILItem.Param2.Kind = pkNone then
     Count := 1
   else
-    Count := ILItem.Param2.ImmToInteger;
+    Count := ILItem.Param2.Imm.ToInteger;
 
   for I := 1 to abs(Count) do
     if Count > 0 then

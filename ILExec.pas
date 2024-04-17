@@ -90,8 +90,8 @@ begin
     end;
     pkImmediate:
     begin
-      Result := Param.ImmValueInt;
-      ValueType := Param.ImmType;
+//      Result := Param.ImmValueInt;
+      ValueType := Param.Imm.VarType;
     end;
     pkVarSource:
     begin

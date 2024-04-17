@@ -106,6 +106,7 @@
   
 ;Loads  
 ;====================================================
+;Load data from a constant or variable into a register
 
 =load_r8_imm
   ld <p.r8>,<p.immbyte>
@@ -164,114 +165,7 @@
 
 =load_pr16low_rellow
   ld <p.r16low>,(ix<p.offsetlow>)	;$$
-  
-  
-  
-  
-  
-=load_p1r8_imm
-  ld <p1.r8>,<p1.immbyte>
 
-=load_p1r16_imm
-  ld <p1.r16>,<p1.immword>
-  
-=load_p1r16high_zero
-  ld <p1.r16high>,$00
-  
-  
-=load_p1r8_abs_a
-  ld a,(<p1.varname>)	;$$
-
-=load_p1r8_abs_via_a
-  ld a,(<p1.varname>)	;$$
-  ld <p1.r8>,a
-
-=load_p1r8_abslow_a
-  ld a,(<p1.varname>)	;$$
-  
-=load_p1r8_abslow_via_a
-  ld a,(<p1.varname>)	;$$
-  ld <p1.r8>,a
-
-=load_p1r8_abshigh_a
-  ld a,(<p1.varname> + 1)	;$$
-  
-=load_p1r8_abshigh_via_a
-  ld a,(<p1.varname> + 1)	;$$
-  ld <p1.r8>,a
- 
-=load_p1r16_abs
-  ld <p1.r16>,(<p1.varname>)	;$$
-  
-=load_p1r16low_abslow_a
-  ld a,(<p1.varname>)	;$$
-
-=load_p1r16low_abslow_via_a
-  ld a,(<p1.varname>)	;$$
-  ld <p1.r16low>,a  
-
-
-=load_p1r8_rel
-  ld <p1.r8>,(ix<p1.offset>)	;$$
-
-=load_p1r8_rellow
-  ld <p1.r8>,(ix<p1.offsetlow>)	;$$
-  
-=load_p1r8_relhigh
-  ld <p1.r8>,(ix<p1.offsethigh>)	;$$
-    
-=load_p1r16_rel
-  ld <p1.r16low>,(ix<p1.offsetlow>)	;$$  
-  ld <p1.r16high>,(ix<p1.offsethigh>)
-
-=load_p1r16low_rellow
-  ld <p1.r16low>,(ix<p1.offsetlow>)	;$$
-  
-  
-=load_p2r8_imm
-  ld <p2.r8>,<p2.immbyte>
-
-=load_p2r16_imm
-  ld <p2.r16>,<p2.immword>
-  
-=load_p2r16high_zero
-  ld <p2.r16high>,$00
-
-=load_p2r8_abs_a
-  ld a,(<p2.varname>)	;$$
-
-=load_p2r8_abslow_a
-  ld a,(<p2.varname>)	;$$
-  
-=load_p2r8_abs_via_a
-  ld a,(<p2.varname>)	;$$
-  ld <p2.r8>,a
-
-
- 
-=load_p2r16_abs
-  ld <p2.r16>,(<p2.varname>)	;$$
-
-=load_p2r16low_abs_a
-  ld a,(<p2.varname>)	;$$ 
-  
-=load_p2r16low_abslow_via_a
-  ld a,(<p2.varname>)	;$$
-  ld <p2.r16low>,a
-  
-
-=load_p2r8_rel
-  ld <p2.r8>,(ix<p2.offset>)	;$$
-
-=load_p2r8_rellow
-  ld <p2.r8>,(ix<p2.offset>)	;$$
-  
-=load_p2r16_rel
-  ld <p2.r16low>,(ix<p2.offsetlow>)	;$$  
-  ld <p2.r16high>,(ix<p2.offsethigh>)
-
-=load_p2r16low_rellow
-  ld <p2.r16low>,(ix<p2.offsetlow>)	;$$
 
 
 ;Assigns

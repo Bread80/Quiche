@@ -54,7 +54,7 @@ type
     SuperType: TSuperType;  //Only for intrinsics. Only valid where VarType is vtUnknown.
 
     HasDefaultValue: Boolean;
-    DefaultValueInt: Integer;   //If the parameter is optional.
+    DefaultValue: TImmValue;   //If the parameter is optional.
                           //(only usable by Intrinsics at the moment)
 
     function ToString: String;
@@ -220,6 +220,7 @@ begin
     Result.Params[I].VarType := vtUnknown;
 //    Result.Params[I].VarTypes := [];
     Result.Params[I].Access := vaVal;
+    Result.Params[I].HasDefaultValue := False;
 //    Result.Params[I].DefaultValue := 0;
   end;
 end;
@@ -286,7 +287,7 @@ begin
     Result := Result + SuperTypeToString(SuperType);
 
   if HasDefaultValue then
-    Result := Result + ' = ' + DefaultValueInt.ToString;
+    Result := Result + ' = ' + DefaultValue.ToString;
 end;
 
 { TFunction }

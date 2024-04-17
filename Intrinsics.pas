@@ -106,18 +106,23 @@ begin
               if not StringToSuperType(Fields[fP2VarType], Intrinsic.Params[1].SuperType) then
                 raise Exception.Create('Invalid P2VarType for Intrinsic: ' + Fields[fP2VarType]);
             if Fields[fP2DefaultValue] <> '' then
-            begin
+            begin //TODO: A proper parse value to TImmValue!
               if Intrinsic.Params[1].VarType = vtTypeDef then
               begin
                 VT := StringToVarType(Fields[fP2DefaultValue]);
                 if VT = vtUnknown then
                   raise Exception.Create('Unable to parse TypeDef default value: ' + Fields[fP2DefaultValue])
                 else
-                  Intrinsic.Params[1].DefaultValueInt := Integer(VT);
+                begin
+                  Intrinsic.Params[1].DefaultValue.VarType := vtTypeDef;
+                  Intrinsic.Params[1].DefaultValue.TypeValue := VT;
+                end
               end
               else
               begin
-                if not TryStrToInt(Fields[fP2DefaultValue], Intrinsic.Params[1].DefaultValueInt) then
+                //TODO: Set type based on value
+                Intrinsic.Params[1].DefaultValue.VarType := vtInteger;
+                if not TryStrToInt(Fields[fP2DefaultValue], Intrinsic.Params[1].DefaultValue.IntValue) then
                   //Test for other valid value types
                   raise Exception.Create('Unable to parse default value: ' + Fields[fP2DefaultValue]);
               end;

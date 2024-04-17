@@ -99,17 +99,27 @@ end;
 
 function ImmByte(const Param: TILParam): String;
 begin
-  Result := ByteToStr(lo(Param.ImmValueInt));
+  case Param.Imm.VarType of
+    vtBoolean: Result := ByteToStr(Param.Imm.ToInteger);
+    vtChar:
+      if Param.Imm.CharValue in [#32..#127] then
+        Result := '''' + Param.Imm.CharValue + ''''
+      else
+        Result := ByteToStr(Param.Imm.ToInteger);
+  else
+    Result := Param.Imm.ToString;//ByteToStr(lo(Param.ImmValueInt));
+  end;
 end;
 
 function ImmHighByte(const Param: TILParam): String;
 begin
-  Result := ByteToStr(hi(Param.ImmValueInt));
+  Assert(IsIntegerType(Param.Imm.VarType));
+  Result := ByteToStr(hi(Param.Imm.IntValue));
 end;
 
 function ImmWord(const Param: TILParam): String;
 begin
-  Result := '$' + IntToHex(Param.ImmValueInt and iCPUWordMask, 4).ToLower;
+  Result := Param.Imm.ToString;//'$' + IntToHex(Param.ImmValueInt and iCPUWordMask, 4).ToLower;
 end;
 
 function OffsetToStr(Offset: Integer): String;

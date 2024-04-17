@@ -136,23 +136,6 @@ begin
 
   ILItem.Dest.SetVarDestAndVersion(Variable, VarVersion);
 
-//  if VType <> vtUnknown then
-    //Sets any validation needed to assign the result to the variable
-    //I.e. if VType is smaller than ResultType then we need to downsize the value
-//    ILItem.ResultType := GetExprResultType(VType, Slug.ResultType);
-
-(* ???
-  if (ILItem.Op in [OpMove, OpStoreImm]) and (ILItem.ResultType = vtUnknown) then
-    if Slug.Operand.Kind = pkImmediate then
-      case GetTypeSize(Slug.ResultType) of
-        1: Slug.OpType := rtX8;
-        2: Slug.OpType := rtX16;
-      else
-        raise Exception.Create('Unknown Assignment type size');
-      end
-    else
-      Slug.OpType := VarTypeToOpType(Slug.ResultType);
-*)
   //Overflows for an immediate assignment must be validated by the parser
   if ILItem.Op = OpStoreImm then
     ILItem.CodeGenFlags := ILItem.CodeGenFlags - [cgOverflowCheck];
@@ -189,9 +172,9 @@ begin
   //ILItem = nil
   else if Slug.Operand.Kind = pkImmediate then
   begin //Constant
-    Assert(Slug.Operand.ImmType = vtBoolean);
+    Assert(Slug.Operand.Imm.VarType = vtBoolean);
     ILItem := nil;
-    ConstExprValue := (Slug.Operand.ImmValueInt and $ff) = (valueTrue and $ff);
+    ConstExprValue := Slug.Operand.Imm.BoolValue;//(Slug.Operand.ImmValueInt and $ff) = (valueTrue and $ff);
   end
   else  //Variable
   begin //ILItem = nil and OpIndex <> None
@@ -498,7 +481,8 @@ begin
   ILItem.ResultType := LoopVar.VarType;
   ILItem.Param1.SetVarSource(LoopVar);
   //(Uncomment to add Step value)
-  ILItem.Param2.SetImmediate(1, vtByte);
+  ILItem.Param2.SetImmediate(vtByte);
+  ILItem.Param2.Imm.IntValue := 1;
 
   ILItem.Dest.SetVarDestAndVersion(LoopVar, LoopVar.IncWriteCount);
 

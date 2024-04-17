@@ -34,7 +34,7 @@ type
 
     //These routines set the Kind and (usually) the payload. They also perform
     //validation where possible
-    procedure SetImmediate(AImmValue: Integer;AImmType: TVarType);
+    procedure SetImmediate(AImmType: TVarType);
     procedure SetPhiVarSource(ABlockID: Integer; AVarVersion: Integer);
     procedure SetPhiVarDest(AVar: PVariable;AVersion: Integer);
     procedure SetVarSourceAndVersion(AVariable: PVariable; AVersion: Integer);
@@ -45,7 +45,7 @@ type
 
     //If a Param has an immediate value, convert that value to a 'modern'
     //(cross-compiler native) Integer value
-    function ImmToInteger: Integer;
+//    function ImmToInteger: Integer;
     function ToVariable: PVariable;
 
     function GetVarType: TVarType;
@@ -59,9 +59,8 @@ type
     //The payload data
     case Kind: TILParamKind of
       pkNone: ();
-      pkImmediate: (
-        ImmValueInt: Integer;       //Immediate (constant) data
-        ImmType: TVarType; ); //Type of the above value
+      pkImmediate: (  //Immediate (constant) data
+        Imm: TImmValue );
       pkPhiVarSource: (            //Phi variable (specified in the Dest data)
         PhiBlockID: Integer;  //If we come from this block...
         PhiSourceVersion: Integer; );   //...use this version of the variable
@@ -326,12 +325,11 @@ begin
   BranchInvert := False;
 end;
 
-procedure TILParam.SetImmediate(AImmValue: Integer;AImmType: TVarType);
+procedure TILParam.SetImmediate(AImmType: TVarType);
 begin
   //Assert(Kind in [pkNone, pkImmediate]);
   Kind := pkImmediate;
-  ImmValueInt := AImmValue;
-  ImmType := AImmType;
+  Imm.VarType := AImmType;
 end;
 
 procedure TILParam.SetPhiVarDest(AVar: PVariable; AVersion: Integer);
@@ -372,7 +370,7 @@ begin
    SetVarSourceAndVersion(AVariable, AVariable.WriteCount);
 end;
 
-function TILParam.ImmToInteger: Integer;
+(*function TILParam.ImmToInteger: Integer;
 begin
   Assert(Kind = pkImmediate);
 
@@ -380,14 +378,14 @@ begin
 //  if IsSignedType(ImmType) and (Result >= $8000) then
 //    Result := Result or (-1 xor $ffff);
 end;
-
+*)
 
 function TILParam.GetVarType: TVarType;
 begin
   case Kind of
     pkNone, pkPhiVarSource, pkPhiVarDest: EXIT(vtUnknown);
     pkImmediate:
-      Result := ImmType;
+      Result := Imm.VarType;
     pkVarSource, pkVarDest:
       Result := Variable.VarType;
   else
@@ -403,24 +401,7 @@ end;
 function TILParam.ImmValueToString: String;
 begin
   Assert(Kind = pkImmediate);
-  case ImmType of
-    vtByte: Result := '$' + IntToHex(ImmValueInt, 2);
-    vtWord, vtPointer: Result := '$' + IntToHex(ImmValueInt, 4);
-    vtInt8, vtInteger: Result := ImmValueInt.ToString;
-    vtBoolean:
-      if ImmValueInt = 0 then
-        Result := 'False'
-      else
-        Result := 'True';
-    vtChar:
-      if ImmValueInt in [32..127] then
-        Result := ''''+chr(ImmValueInt)+''''
-      else
-        Result := '#' + ImmValueInt.ToString;
-    vtTypeDef: Result := VarTypeToName(TVarType(ImmValueInt));
-  else
-    Assert(False);
-  end;
+  Result := Imm.ToString;
 end;
 
 procedure TILParam.Initialise;
@@ -443,7 +424,7 @@ begin
     pkImmediate:
     begin
       Result := ImmValueToString + ':' +
-        VarTypeToName(ImmType) + '/' + CPURegStrings[Reg];
+        VarTypeToName(Imm.VarType) + '/' + CPURegStrings[Reg];
     end;
     pkPhiVarSource:
       Result := '[%_' + IntToStr(PhiSourceVersion) + ' {' + IntToStr(PhiBlockID) + '}] ';

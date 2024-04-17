@@ -624,11 +624,11 @@ begin
 
   SearchRec.LIsRange := (SearchRec.LKind = pkImmediate) and IsNumericType(SearchRec.LType);
   if SearchRec.LIsRange then
-    SearchRec.LRange := IntToNumberRange(Left.Operand.immValueInt);
+    SearchRec.LRange := IntToNumberRange(Left.Operand.Imm.IntValue);
 
   SearchRec.RIsRange := (SearchRec.RKind = pkImmediate) and IsNumericType(SearchRec.RType);
   if SearchRec.RIsRange then
-    SearchRec.RRange := IntToNumberRange(Right.Operand.immValueInt);
+    SearchRec.RRange := IntToNumberRange(Right.Operand.Imm.IntValue);
 
   if Operations[Op].SignCombine then
   begin
@@ -701,7 +701,7 @@ begin
 
   SearchRec.LIsRange := (SearchRec.LKind = pkImmediate) and IsNumericType(SearchRec.LType);
   if SearchRec.LIsRange then
-    SearchRec.LRange := IntToNumberRange(Left.Operand.immValueInt);
+    SearchRec.LRange := IntToNumberRange(Left.Operand.Imm.IntValue);
   SearchRec.RIsRange := False;
 
   if SearchRec.LIsRange then

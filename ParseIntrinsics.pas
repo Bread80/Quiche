@@ -1,4 +1,14 @@
 (*
+
+
+
+
+THIS UNIT IS NO LONGER USED. IT'S FUNCTIONALITY IS MOVING/HAS MOVED TO PARSEFUNCCALL.
+It will be removed when the migration is complete.
+
+
+
+
 Intrinsics are functions and procedures which generate inline code or call core
 library rouitines, as opposed to those which generate a (stack framed) function call
 *)

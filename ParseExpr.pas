@@ -39,7 +39,7 @@ type
     //ILItem's Dest data to point to it.
     procedure AssignToHiddenVar;
 
-    procedure SetImmediate(AImmValue: Integer;AImmType: TVarType);
+    procedure SetImmediate(AImmType: TVarType);
 
     //Converts the Slug to an ILItem but does not assign a Dest
     //(If the Slug already has an ILItem returns it, otherwise
@@ -100,10 +100,10 @@ begin
   Result := @Operations[Op];
 end;
 
-procedure TExprSlug.SetImmediate(AImmValue: Integer;AImmType: TVarType);
+procedure TExprSlug.SetImmediate(AImmType: TVarType);
 begin
   Assert(ILItem = nil);
-  Operand.SetImmediate(AImmValue, AImmType);
+  Operand.SetImmediate(AImmType);
   ResultType := AImmType;
 end;
 
@@ -146,9 +146,10 @@ begin
       '_': ; //Ignore
     else
       if Value < 256 then
-        Slug.SetImmediate(Value, vtByte)
+        Slug.SetImmediate(vtByte)
       else
-        Slug.SetImmediate(Value, vtWord);
+        Slug.SetImmediate(vtWord);
+      Slug.Operand.Imm.IntValue := Value;
       Slug.ParamOrigin := poImplicit;
       Slug.ImplicitType := vtInteger;
       EXIT(qeNone);
@@ -165,9 +166,10 @@ begin
   if Result <> qeNone then
     EXIT;
 
-  if Slug.Operand.ImmValueInt <= -(GetMinValue(vtInteger)) then
+  if Slug.Operand.Imm.IntValue <= -(GetMinValue(vtInteger)) then
   begin
-    Slug.SetImmediate(-Slug.Operand.ImmValueInt, vtInteger);
+    Slug.SetImmediate(vtInteger);
+    Slug.Operand.Imm.IntValue := -Slug.Operand.Imm.IntValue;
     Slug.ParamOrigin := poImplicit;
     Slug.ImplicitType := vtInteger;
   end
@@ -204,11 +206,12 @@ begin
       'A'..'F': Digit := ord(Ch) - ord('A') + 10;
       else
         if Digits < 2 then
-          Slug.SetImmediate(Value, vtByte)
+          Slug.SetImmediate(vtByte)
         else
-          Slug.SetImmediate(Value, vtPointer);
+          Slug.SetImmediate(vtPointer);
+        Slug.Operand.Imm.IntValue := Value;
         Slug.ParamOrigin := poExplicit;
-        Slug.ImplicitType := Slug.Operand.ImmType;
+        Slug.ImplicitType := Slug.Operand.Imm.VarType;
         EXIT(qeNone);
       end;
 
@@ -250,11 +253,12 @@ begin
     else if Ch <> '_' then
     begin
       if Digits <= 8 then
-        Slug.SetImmediate(Value, vtByte)
+        Slug.SetImmediate(vtByte)
       else
-        Slug.SetImmediate(Value, vtWord);
+        Slug.SetImmediate(vtWord);
+      Slug.Operand.Imm.IntValue := Value;
       Slug.ParamOrigin := poExplicit;
-      Slug.ImplicitType := Slug.Operand.ImmType;
+      Slug.ImplicitType := Slug.Operand.Imm.VarType;
       EXIT(qeNone);
     end;
 
@@ -291,7 +295,8 @@ begin
       begin
         if Length(S) = 1 then
         begin
-          Slug.SetImmediate(Ord(S.Chars[0]), vtChar);
+          Slug.SetImmediate(vtChar);
+          Slug.Operand.Imm.CharValue := S.Chars[0];
           Slug.ParamOrigin := poExplicit;
           Slug.ImplicitType := vtChar;
         end
@@ -333,9 +338,10 @@ begin
   if Result <> qeNone then
     EXIT;
 
-  if Slug.Operand.ImmValueInt < 256 then
+  if Slug.Operand.Imm.IntValue < 256 then
   begin
-    Slug.Operand.ImmType := vtChar;
+    Slug.Operand.Imm.VarType := vtChar;
+    Slug.Operand.Imm.CharValue := chr(Slug.Operand.Imm.IntValue);
     Slug.ParamOrigin := poExplicit;
     Slug.ImplicitType := vtChar;
     Slug.ResultType := vtChar;
@@ -364,31 +370,54 @@ begin
   //System constants - TODO - this needs to be somewhere else!
   if CompareText(Ident, 'False') = 0 then
   begin
-    Slug.SetImmediate(valueFalse, vtBoolean);
+    Slug.SetImmediate(vtBoolean);
+    Slug.Operand.Imm.BoolValue := False;
     Slug.ParamOrigin := poExplicit;
     Slug.ImplicitType := vtBoolean;
     EXIT(qeNone);
   end;
   if CompareText(Ident, 'True') = 0 then
   begin
-    Slug.SetImmediate(valueTrue, vtBoolean);
+    Slug.SetImmediate(vtBoolean);
+    Slug.Operand.Imm.BoolValue := True;
     Slug.ParamOrigin := poExplicit;
     Slug.ImplicitType := vtBoolean;
     EXIT(qeNone);
   end;
   if CompareText(Ident, 'MinInt') = 0 then
   begin
-    Slug.SetImmediate(GetMinValue(vtInteger), vtInteger);
+    Slug.SetImmediate(vtInteger);
+    SetMinValue(Slug.Operand.Imm);
     Slug.ParamOrigin := poExplicit;
     Slug.ImplicitType := vtInteger;
     EXIT(qeNone);
   end;
   if CompareText(Ident, 'MaxInt') = 0 then
   begin
-    Slug.SetImmediate(GetMaxValue(vtInteger), vtInteger);
+    Slug.SetImmediate(vtInteger);
+    SetMaxValue(Slug.Operand.Imm);
     Slug.ParamOrigin := poExplicit;
     Slug.ImplicitType := vtInteger;
     EXIT(qeNone);
+  end;
+
+  //Test for type names. If it is a typecast it will be followed by open bracket.
+  //If not it's a typename
+  //Typecasts will be processed as functions in the next section
+  VarType := StringToVarType(Ident);
+  if VarType <> vtUnknown then
+  begin
+    if Parser.TestChar <> '(' then
+      //Typecast - Process as a function call (see above) (And this should have been caught above ??)
+(*      raise Exception.Create('TYpecasts aren''t functional at the moment')
+    else
+*)    begin
+      Slug.SetImmediate(vtTypeDef);
+      Slug.Operand.Imm.TypeValue := VarType;
+      Slug.ParamOrigin := poExplicit;
+      Slug.ImplicitType := vtTypeDef;
+      EXIT(qeNone);
+    end;
   end;
 
 
@@ -420,36 +449,14 @@ begin
     end;
   end
   else
-  begin
-    //Test for type names. If it is a typecast it will be followed by open bracket.
-    //If not it's a typename
-    VarType := StringToVarType(Ident);
-    if VarType <> vtUnknown then
-    begin
-      if Parser.TestChar = '(' then
-        //Typecast - Process as a function call (see above) (And this should have been caught above ??)
-        raise Exception.Create('TYpecasts aren''t functional at the moment')
-      else
-      begin
-        Slug.SetImmediate(Integer(VarType), vtTypeDef);
-        Slug.ParamOrigin := poExplicit;
-        Slug.ImplicitType := vtTypeDef;
-        EXIT(qeNone);
-      end;
-    end;
-
-    //TODO: Search builtin function library
-    EXIT(ErrMsg(qeTODO, 'Library function lookup not yet implemented'));
-
-    //If we get here then it's 'Identifier not found/not declared'
-  end;
+    EXIT(ErrSub(qeUndefinedIdentifier, Ident));
 end;
 
 function DoUnaryOp(UnaryOp: TUnaryOperator;var Slug: TExprSlug): TQuicheError;
 var EvalResult: Integer;
   Dummy: TVarType;
   VType: TVarType;
-  EvalType: TVarType;
+//  EvalType: TVarType;
   ResultType: TVarType;
 begin
   case UnaryOp of
@@ -465,12 +472,11 @@ begin
 
   if (Slug.ILItem = nil) and (Slug.Operand.Kind = pkImmediate) then
   begin
-    Result := EvalUnary(Slug.Op, @Slug.Operand, EvalResult, EvalType);
+    Result := EvalUnary(Slug.Op, @Slug.Operand, Slug.Operand.Imm);
     if Result <> qeNone then
       EXIT;
-    Slug.SetImmediate(EvalResult, EvalType);
     Slug.Op := OpUnknown;
-    Slug.ImplicitType := EvalType;
+    Slug.ImplicitType := Slug.Operand.Imm.VarType;
   end
   else  //Parameter is not immediate
   begin
@@ -674,8 +680,8 @@ begin
     if Slug.Operand.Kind = pkImmediate then
     begin
       if IsIntegerType(ExprType) then
-        Valid := (Slug.Operand.ImmValueInt >= GetMinValue(ExprType)) and
-          (Slug.Operand.ImmValueInt <= GetMaxValue(ExprType))
+        Valid := (Slug.Operand.Imm.IntValue >= GetMinValue(ExprType)) and
+          (Slug.Operand.Imm.IntValue <= GetMaxValue(ExprType))
       else
         Valid := ValidateAssignmentType(ExprType, Slug.ResultType);
       if not Valid then
@@ -715,9 +721,9 @@ begin
 
   //Update types for constants
   if (Left.ILItem = nil) and (Left.Operand.Kind = pkImmediate) then
-    Left.Operand.ImmType := LType;
+    Left.Operand.Imm.VarType := LType;
   if (Right.ILItem = nil) and (Right.Operand.Kind = pkImmediate) then
-    Right.Operand.ImmType := RType;
+    Right.Operand.Imm.VarType := RType;
 
   Left.ResultType := ResultType;
   Left.ImplicitType := ResultType;
@@ -737,7 +743,7 @@ end;
 function ParseSubExpression(var Left: TExprSlug;out ILItem: PILItem): TQuicheError;
 var Right: TExprSlug;
   EvalResult: Integer;
-  EvalType: TVarType;
+  Evalled: Boolean;
 begin
   while True do
   begin
@@ -773,28 +779,28 @@ begin
     end;
 
     //Evaluate constant expressions
-    EvalType := vtUnknown;
+    Evalled := False;
     if (Left.Operand.Kind = pkImmediate) and (Right.Operand.Kind = pkImmediate) then
     begin
       //If possible, evaluate and replace Slug.Operand
-      Result := EvalBi(Left.Op, @Left.Operand, @Right.Operand, EvalResult, EvalType);
+      Result := EvalBi(Left.Op, @Left.Operand, @Right.Operand, Left.Operand.Imm);
       if Result <> qeNone then
         EXIT;
-      if EvalType <> vtUnknown then
+(*      if EvalType <> vtUnknown then
       begin
         Left.SetImmediate(EvalResult, EvalType);
-        Left.ImplicitType := EvalType;
+*)        Left.ImplicitType := Left.Operand.Imm.VarType;
         Left.Op := Right.Op;
         if Right.Op = OpUnknown then
         begin
           ILItem := nil;
           EXIT(qeNone);
         end;
-      end;
-    end;
+(*      end;
+ *)   end;
 
     //If we didn't evaluate as a constant expression
-    if EvalType = vtUnknown then
+    if not Evalled then
     begin
       //Modifies operand types and result type based on available primitives
       if not AssignSlugTypesNG(Left, Right) then
@@ -846,29 +852,11 @@ begin
     //Can't do this for expressions (at least, not yet! - TODO)
     if Slug.ILItem = nil then
     begin
-      Slug.Operand.SetImmediate(Integer(Slug.Operand.GetVarType), vtTypeDef);
+      Slug.Operand.Imm.TypeValue := Slug.Operand.GetVarType;
+      Slug.Operand.SetImmediate(vtTypeDef);
       Slug.ResultType := vtTypeDef;
     end;
-(* ???
-  if Slug.OpType = rtUnknown then
-    if Slug.Operand.Kind = pkImmediate then
-      if ExprType <> vtUnknown then
-      begin
-        Result := ValidateExprType(ExprType, Slug);
-        if Result <> qeNone then
-          EXIT;
-        Slug.OpType := VarTypeToOpType(ExprType);
-      end
-      else
-      case GetTypeSize(Slug.ResultType) of
-        1: Slug.OpType := rtX8;
-        2: Slug.OpType := rtX16;
-      else
-        raise Exception.Create('Unknown Assignment type size');
-      end
-    else
-      Slug.OpType := VarTypeToOpType(Slug.ResultType);
-*)
+
   if ExprType <> vtUnknown then
   begin
     Result := ValidateExprType(ExprType, Slug);
