@@ -49,7 +49,15 @@
 ;,length,const,Variable,Array/String,,,,,,,Word,"Returns the element count of an array, character count of a string"
 ,upcase,val,Character,Char,,,,,,,Char,Converts the character to upper case
 ,,,,,,,,,,,,
-,,,,,,,,,,,,
+;Typecasts,,,,,,,,,,,,
+,int8,val,Source,Any,,,,,,,Int8,Treats the source value as an Int8. Does no validation of Source.
+,integer,val,Source,Any,,,,,,,integer,Treats the source value as an Integer. Does not validation or sign extending of Source.
+,byte,val,Source,Any,,,,,,,byte,Treats the source value as a Byte. Does no validation of Source.
+,word,val,Source,Any,,,,,,,word,Treats the source value as a Word. Does no validation or sign extending of Source.
+,pointer,val,Source,Any,,,,,,,pointer,Treats the source value as a Pointer. Does no validation or sign extending of source.
+;,real,val,Source,Any,,,,,,,real,Treats the source value as a Real. Does no validation or data conversion on Source.
+,boolean,val,Source,Any,,,,,,,boolean,Treats the source value as a Boolean. WARNING: Does NOT convert the value into a valid Boolean value!
+,char,val,Source,Any,,,,,,,char,Treats the source value as a Char. Does no validation on Source.
 ,,,,,,,,,,,,
 ,,,,,,,,,,,,
 END,,,,,,,,,,,,

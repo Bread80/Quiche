@@ -620,7 +620,7 @@ var
   V: PVariable;
 
   Prefix: String;
-  StoreStr: String;
+  LoadStr: String;
   Suffix: String;
 begin
   Prefix := 'load_';
@@ -639,8 +639,8 @@ begin
     begin
       V := Param.ToVariable;
       case V.Storage of
-        vsStatic: StoreStr := '_abs';
-        vsStack: StoreStr := '_rel';
+        vsStatic: LoadStr := '_abs';
+        vsStack: LoadStr := '_rel';
       end;
       //Suffix only used for 8 bit loads
       if V.Storage = vsStack then
@@ -654,11 +654,11 @@ begin
         rA..rL:
           begin
             if pfnLoadRPHigh in Prim.Flags then
-              GenLibraryParamProc(Prefix + 'r8' + StoreStr + 'high' + Suffix, Param, 'p')
+              GenLibraryParamProc(Prefix + 'r8' + LoadStr + 'high' + Suffix, Param, 'p')
             else if pfnLoadRPLow in Prim.Flags then
-              GenLibraryParamProc(Prefix + 'r8' + StoreStr + 'low' + Suffix, Param, 'p')
+              GenLibraryParamProc(Prefix + 'r8' + LoadStr + 'low' + Suffix, Param, 'p')
             else
-              GenLibraryParamProc(Prefix + 'r8' + StoreStr + Suffix, Param, 'p');
+              GenLibraryParamProc(Prefix + 'r8' + LoadStr + Suffix, Param, 'p');
           end;
         rHL..rBC:
           begin
@@ -666,13 +666,22 @@ begin
             case GetTypeSize(Variable.VarType) of
               1:
               begin
-                GenLibraryParamProc(Prefix + 'r16low' + StoreStr + 'low' + Suffix, Param, 'p');
-                if Variable.VarType = vtInt8 then
+                GenLibraryParamProc(Prefix + 'r16low' + LoadStr + 'low' + Suffix, Param, 'p');
+                if (Variable.VarType = vtInt8) and not (pfnLoadRPLow in Prim.Flags) then
                   GenSignExtend(CPURegLowToChar[Param.Reg], CPURegHighToChar[Param.Reg])
                 else
                   GenLibraryParamProc(Prefix + 'r16high_zero', Param, 'p');
               end;
-              2: GenLibraryParamProc(Prefix + 'r16'+StoreStr, Param, 'p');
+              2:
+              begin
+                if pfnLoadRPLow in Prim.Flags then
+                begin
+                  GenLibraryParamProc(Prefix + 'r16' + LoadStr + 'low' + Suffix, Param, 'p');
+                  GenLibraryParamProc('load_r16high_zero', Param, 'p');
+                end
+                else
+                  GenLibraryParamProc(Prefix + 'r16'+LoadStr, Param, 'p');
+              end;
             else
               raise Exception.Create('Invalid type size for parameter');
             end;

@@ -400,6 +400,14 @@ begin
     Slug.ImplicitType := vtInteger;
     EXIT(qeNone);
   end;
+  if CompareText(Ident, 'nil') = 0 then
+  begin
+    Slug.SetImmediate(vtPointer);
+    Slug.Operand.Imm.IntValue := 0;
+    Slug.ParamOrigin := poExplicit;
+    Slug.ImplicitType := vtPointer;
+    EXIT(qeNone);
+  end;
 
   //Test for type names. If it is a typecast it will be followed by open bracket.
   //If not it's a typename

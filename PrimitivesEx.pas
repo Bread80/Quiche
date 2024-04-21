@@ -9,14 +9,17 @@ type
   TValidationProc = procedure(RH, RL: Char);
 
   TPrimFlagNG = (
-    pfnLoadRPLow,  //Load only the high byte of the (16-bit) parameter
-    pfnLoadRPHigh, //Load only high byte of the (16-bit) parameter
-{    pfP1StaticVar,  //Load Param1 from static var
-    pfP1RelVar,     //Load Param2 from relative var
-}    pfnDestStaticVar,  //Store to a static variable
+    pfnLoadRPLow,   //Load only the low byte of the (16-bit) parameter
+                    //If the value being loaded is 8-bit it will be zero extended
+                    //(NOT sign extended)
+    pfnLoadRPHigh,  //Load only high byte of the (16-bit) parameter
+
+    pfnDestStaticVar,  //Store to a static variable
     pfnDestRelVar      //Store to an IX relative variable
     );
+
   TPrimFlagSetNG = set of TPrimFlagNG;
+
   PPrimitiveNG = ^TPrimitiveNG;
   TPrimitiveNG = record
     //Fields to use for primitive selection

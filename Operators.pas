@@ -51,33 +51,68 @@ type
     );
   TOpFuncFlagSet = set of TOpFuncFlag;
 
+  //The listing below includes comments on parameter usage within the ILItem record
+  //(see ILData unit)
   TOperator = (
+    //Special/system operators
+    //------------------------
+    //Param Kinds for these are varied.
     opUnknown,    //Unassigned (error if it gets to codegen)
     opMove,       //Move data from one location to another (ie load+store)
+                  //One parameter (Param1) and a Dest
     opStoreImm,   //Store an immediate value into a location
+                  //One parameter (Param1) which must be an pkImmediate and a Dest
     opBranch,     //Unconditional branch
-    opCondBranch, //NOTUSED? Conditional branch
+                  //Param1 is a pkBranch (TODO: Move this to Dest for consistency)
+    opCondBranch, //NOTUSED? Conditional branch - use for a Branch with no operation
+                  //(ie. a boolean variable)
     opConstBranch,//NOTUSED? Conditional branch with constant expression (immediate value)
+                  //(Parser removes dead branches at parse time so this in not required)
     opPhi,        //Phi function
+                  //Currently Param1 and Param2 are pkPhiVarSource and Dest is pkPhiVarDest.
+                  //Needs expanding to allow more sources for code where more than two paths
+                  //can converge.
     opDataLoad,   //Load data into registers (for a function call)
+                  //One to three source params (Param1, Param2, Param3)
+                  //NOTE: Code gen can currently only handle two params.
     opFuncCall,   //Call function
+                  //As a binary operator: zero to two sources and zero or one Dest.
+                  //Exact param usage depends on calling convention:
+                  //ccStack: Params pushed on the stack, no source params. Dest used for result
+                  //          Can be followed by opDataStores to save additional results
+                  //          (not currently used by function dispatcher)
+                  //ccRegister: source params are used to load registers. Dest is used for result.
+                  //            May be supplemented by opDataLoad (before) and opDataStore (after)
+                  //            to load and/or save additional registers
     opFuncReturn, //NOTUSED? Return from function
+                  //TODO: This needs converting to a opDataStore
 
+    //Binary operators
+    //These take two input parameters (Param1, Param2) and an output (Dest)
     //Maths
     opAdd, opSubtract, opMultiply, opRealDiv, opIntDivide, opMod,
-    opNegate, //Unary minus
-    //Note: Unary addition is skipped by parser
     //Logic
     opOR, opAND, opXOR,
-    opComplement,    //Unary NOT
     //Comparisons
     opEqual, opNotEqual, opLess, opGreater, opLessEqual, opGreaterEqual,
     //Misc
     opIn, opSHR, opSHL,
+
+    //Unary operators
+    //These have one input/source parameter (Param1) and an output/dest/result value (Dest/Param3)
+    opNegate, //Unary minus
+    //Note: Unary addition is skipped by parser
+    opComplement,    //Unary NOT
     opAddr,  //@ (address of)
+
     //Typecasts
-    opInteger, opInt8, opWord, opByte, opPointer, opBoolean, opChar,
+    //These have one input/source parameter (Param1) and an output/dest/result value (Dest/Param3)
+    opInt8, opInteger, opByte, opWord, opPointer, {opReal,}
+    opBoolean, opChar,
+
     //Intrinsics
+    //These take one or two input parameters (Param1, Param2) and usually (but not always)
+    //an output value (Dest)
     //Maths
     opAbs, opDec, opInc, opOdd,
     //System
@@ -88,10 +123,19 @@ type
     opChr, opDowncase, opLength, opUpcase
     );
 
+const
+  SystemOps = [opUnknown..opFuncReturn];
+  BinaryOps = [opAdd..opSHL];
+  UnaryOps = [opNegate..opAddr];
+  TypecastOps = [opInt8..opChar];
+  IntrinsicOps = [opAbs..opUpcase];
+
+type
   POpData = ^TOpData;
   TOpData = record
     Name: String;         //Internal name of the operation
-    Precedence: Integer;  //In expressions. Higher equal higher
+    Precedence: Integer;  //In expressions. Higher equal higher.
+                          //Only meaningful for binary operators
     SignCombine: Boolean; //Affects how the primitives table is searched when
                           //either parameter is a numerical constant.
                           //(Only affects numerical operations)
@@ -130,21 +174,31 @@ implementation
 uses Generics.Collections, Classes, SysUtils;
 
 const OpStrings : array[low(TOperator)..high(TOperator)] of String = (
-    'UNKNOWN','Move','StoreImm',
-    'Branch','CondBranch','ConstBranch','Phi','DataLoad',
-    'FuncCall','FuncReturn',
-    'Add', 'Subtract', 'Multiply', 'RealDiv', 'Div', 'Mod','Negate',
-    'OR', 'AND', 'XOR','Complement',
-    'Equal', 'NotEqual', 'Less', 'Greater', 'LessEqual', 'GreaterEqual',
-    'In', 'SHR', 'SHL',
-    'Addr',
-    'Integer', 'Int8', 'Word', 'Byte', 'Pointer', 'Boolean', 'Char',
-    'Abs', 'Dec', 'Inc', 'Odd',
-    'Hi', 'High', 'Inp', 'Lo', 'Low', 'Ord', 'Out', 'Peek', 'Poke', 'Pred',
-    'Ptr', 'Sizeof', 'Succ', 'Swap', 'Read', 'Readln', 'Write', 'Writeln',
-    'WriteNewLine', 'WriteChar', 'WriteInteger', 'WriteBoolean',
-    'Chr', 'Downcase', 'Length', 'Upcase'
-    );
+  //System operators
+  'UNKNOWN','Move','StoreImm',
+  'Branch','CondBranch','ConstBranch','Phi','DataLoad',
+  'FuncCall','FuncReturn',
+
+  //Binary operators
+  'Add', 'Subtract', 'Multiply', 'RealDiv', 'Div', 'Mod',
+  'OR', 'AND', 'XOR',
+  'Equal', 'NotEqual', 'Less', 'Greater', 'LessEqual', 'GreaterEqual',
+  'In', 'SHR', 'SHL',
+
+  //Unary operators
+  'Negate', 'Complement', 'Addr',
+
+  //Typecasts
+  'Int8', 'Integer', 'Byte', 'Word', 'Pointer', {Real,}
+  'Boolean', 'Char',
+
+  //Intrinsics
+  'Abs', 'Dec', 'Inc', 'Odd',
+  'Hi', 'High', 'Inp', 'Lo', 'Low', 'Ord', 'Out', 'Peek', 'Poke', 'Pred',
+  'Ptr', 'Sizeof', 'Succ', 'Swap', 'Read', 'Readln', 'Write', 'Writeln',
+  'WriteNewLine', 'WriteChar', 'WriteInteger', 'WriteBoolean',
+  'Chr', 'Downcase', 'Length', 'Upcase'
+  );
 
 const
   //Mapping between ASCII and symbolic operators

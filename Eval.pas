@@ -287,6 +287,8 @@ function EvalIntrinsicUnary(Op: TOperator;const Param: TILParam;
 var OpData: POpData;
   P: TImmValue;
   Error: Boolean;
+//const TypeCastToType: array[low(TypecastOps)..high(TypecastOps)] of TVarType =
+//  (vtInt8, vtInteger, vtByte, vtWord, vtPointer, vtBoolean, vtChar);
 begin
   Error := False;
   OpData := @Operations[Op];
@@ -294,178 +296,191 @@ begin
   P := Param.Imm;
   Value.VarType := vtUnknown;
 
-(*  if OpData.OpGroup = ogTypecast then
-  begin
-    ResultType := TypeEnumToVarType[OpData.ResultType];
-    case GetTypeSize(ResultType) of
-      1:
-      begin
-        Value := Param.ImmValueInt and $ff;
-        if IsSignedType(ResultType) then
-          if (Value and $80) <> 0 then
-            Value := Param.ImmValueInt or (-1 xor $ff);
-      end;
-      2:
-      begin
-        Value := Param.ImmValueInt and $ffff;
-        if GetTypeSize(Param.ImmType) = 1 then
-          Value := Value and $ff;
-      end;
-      else
-        raise Exception.Create('Unknown type in EvalInstrinsicUnary');
-      end;
-    Result := qeNone;
-  end
-  else  //Functions
-  begin
-*)
-    //-----Maths functions
-    case Op of
-      opAbs:
-        if IsIntegerType(P.VarType) then
-          Value.IntValue := abs(P.IntValue)
-        else
-          Error := True;
-      opOdd:
-      begin
-        if IsIntegerType(P.VarType) then
-          Value.BoolValue := odd(P.IntValue)
-        else
-          Error := True;
-        Value.VarType := vtBoolean;
-      end;
+  case Op of
+    //Typecasts
+    opInt8:
+    begin
+      Value.IntValue := LogicValueToType(Param.Imm.ToInteger and $ff, vtInt8);
+      Value.VarType := vtInt8;
+    end;
+    opInteger:
+    begin
+      Value.IntValue := Param.Imm.ToInteger;
+      Value.VarType := vtInteger;
+    end;
+    opByte:
+    begin
+      Value.IntValue := Param.Imm.ToInteger and $ff;
+      Value.VarType := vtByte;
+    end;
+    opWord:
+    begin
+      Value.IntValue := Param.Imm.ToInteger and iCPUWordMask;
+      Value.VarType := vtWord;
+    end;
+    opPointer:
+    begin
+      Value.IntValue := Param.Imm.ToInteger and iCPUWordMask;
+      Value.VarType := vtPointer;
+    end;
+//    opReal: Value.VarType := vtReal;
+    opBoolean:
+    begin
+      Value.BoolValue := Param.Imm.ToInteger <> 0;
+      Value.VarType := vtBoolean;
+    end;
+    opChar:
+    begin
+      Value.CharValue := chr(Param.Imm.ToInteger and $ff);
+      Value.VarType := vtChar;
+    end;
 
-      //-----System functions
-      opHi:
+    //-----Maths functions
+    opAbs:
+      if IsIntegerType(P.VarType) then
+        Value.IntValue := abs(P.IntValue)
+      else
+        Error := True;
+    opOdd:
+    begin
+      if IsIntegerType(P.VarType) then
+        Value.BoolValue := odd(P.IntValue)
+      else
+        Error := True;
+      Value.VarType := vtBoolean;
+    end;
+
+    //-----System functions
+    opHi:
+    begin
+      if (GetTypeSize(P.VarType) = 2) and IsIntegerType(P.VarType) then
+        Value.IntValue := hi(P.IntValue)
+      else
+        Error := True;
+      Value.VarType := vtByte;
+    end;
+    opHigh:
+    begin
+      if P.VarType = vtTypeDef then
+        Value.VarType := P.TypeValue
+      else
+        Value.VarType := P.VarType;
+      if IsEnumerable(P.VarType) then
+        SetMaxValue(Value)
+      else
+        Error := True;
+    end;
+    opLo:
+    begin
+      if (GetTypeSize(P.VarType) = 2) and IsIntegerType(P.VarType) then
+        Value.IntValue := lo(P.IntValue)
+      else
+        Error := True;
+      Value.VarType := vtByte;
+    end;
+    opLow:
+    begin
+      if P.VarType = vtTypeDef then
+        Value.VarType := P.TypeValue
+      else
+        Value.VarType := P.VarType;
+      if IsEnumerable(P.VarType) then
+        SetMinValue(Value)
+      else
+        Error := True;
+    end;
+    opOrd:
+    begin
+      if IsIntegerType(P.VarType) then
+        Value := P
+      else
       begin
-        if (GetTypeSize(P.VarType) = 2) and IsIntegerType(P.VarType) then
-          Value.IntValue := hi(P.IntValue)
-        else
-          Error := True;
-        Value.VarType := vtByte;
-      end;
-      opHigh:
-      begin
-        if P.VarType = vtTypeDef then
-          Value.VarType := P.TypeValue
-        else
-          Value.VarType := P.VarType;
-        if IsEnumerable(P.VarType) then
-          SetMaxValue(Value)
-        else
-          Error := True;
-      end;
-      opLo:
-      begin
-        if (GetTypeSize(P.VarType) = 2) and IsIntegerType(P.VarType) then
-          Value.IntValue := lo(P.IntValue)
-        else
-          Error := True;
-        Value.VarType := vtByte;
-      end;
-      opLow:
-      begin
-        if P.VarType = vtTypeDef then
-          Value.VarType := P.TypeValue
-        else
-          Value.VarType := P.VarType;
-        if IsEnumerable(P.VarType) then
-          SetMinValue(Value)
-        else
-          Error := True;
-      end;
-      opOrd:
-      begin
-        if IsIntegerType(P.VarType) then
-          Value := P
-        else
-        begin
-          case P.VarType of
-            vtBoolean:
-              if P.BoolValue = True then
-                Value.IntValue := 1
-              else
-                Value.IntValue := 0;
-            vtChar:
-              Value.IntValue := ord(P.CharValue);
-            vtTypeDef:
-              Value.IntValue := ord(P.TypeValue);
-          else
-            Error := True;
-          end;
-          if Value.IntValue <= 255 then
-            Value.VarType := vtbyte
-          else
-            Value.VarType := vtWord;
-        end;
-      end;
-      opPred:
-        if IsIntegerType(P.VarType) then
-          Value.IntValue := pred(P.IntValue)
-        else
         case P.VarType of
-          vtBoolean: Value.BoolValue := pred(P.BoolValue);
-          vtChar: Value.CharValue := pred(P.CharValue);
+          vtBoolean:
+            if P.BoolValue = True then
+              Value.IntValue := 1
+            else
+              Value.IntValue := 0;
+          vtChar:
+            Value.IntValue := ord(P.CharValue);
+          vtTypeDef:
+            Value.IntValue := ord(P.TypeValue);
         else
           Error := True;
         end;
-      opSizeof:
-      begin
-        if P.VarType = vtTypeDef then
-          Value.IntValue := GetTypeSize(P.TypeValue)
-        else
-          Value.IntValue := GetTypeSize(P.VarType);
-        if Value.IntValue < 256 then
-          Value.VarType := vtByte
+        if Value.IntValue <= 255 then
+          Value.VarType := vtbyte
         else
           Value.VarType := vtWord;
       end;
-      opSucc:
-        if IsIntegerType(P.VarType) then
-          Value.IntValue := succ(P.IntValue)
-        else
-        case P.VarType of
-          vtBoolean: Value.BoolValue := succ(P.BoolValue);
-          vtChar: Value.CharValue := succ(P.CharValue);
-        else
-          Error := True;
-        end;
-      opSwap:
-        if (GetTypeSize(P.VarType) = 2) and IsIntegerType(P.VarType) then
-        begin
-          Value.IntValue := swap(P.IntValue);
-          Value.VarType := P.VarType;
-        end
-        else
-          Error := True;
-
-      //----- Char/String functions
-      opChr:
-      begin
-        if IsIntegerType(P.VarType) then
-          if not (P.IntValue in [0..255]) then
-            EXIT(Err(qeConstantExpressionOverflow))
-          else
-            Value.CharValue := chr(P.IntValue)
-        else
-          Error := True;
-        Value.VarType := vtChar
-      end;
-      opDowncase:
-        if P.VarType = vtChar then
-          Value.CharValue := P.CharValue.ToLower
-        else
-          Error := True;
-      opUpcase:
-        if P.VarType = vtChar then
-          Value.CharValue := P.CharValue.ToUpper
-        else
-          Error := True;
-
-      //----End
-    else
-      EXIT(qeIntrinsicCantBeEvaluatedAtCompileTime);
     end;
+    opPred:
+      if IsIntegerType(P.VarType) then
+        Value.IntValue := pred(P.IntValue)
+      else
+      case P.VarType of
+        vtBoolean: Value.BoolValue := pred(P.BoolValue);
+        vtChar: Value.CharValue := pred(P.CharValue);
+      else
+        Error := True;
+      end;
+    opSizeof:
+    begin
+      if P.VarType = vtTypeDef then
+        Value.IntValue := GetTypeSize(P.TypeValue)
+      else
+        Value.IntValue := GetTypeSize(P.VarType);
+      if Value.IntValue < 256 then
+        Value.VarType := vtByte
+      else
+        Value.VarType := vtWord;
+    end;
+    opSucc:
+      if IsIntegerType(P.VarType) then
+        Value.IntValue := succ(P.IntValue)
+      else
+      case P.VarType of
+        vtBoolean: Value.BoolValue := succ(P.BoolValue);
+        vtChar: Value.CharValue := succ(P.CharValue);
+      else
+        Error := True;
+      end;
+    opSwap:
+      if (GetTypeSize(P.VarType) = 2) and IsIntegerType(P.VarType) then
+      begin
+        Value.IntValue := swap(P.IntValue);
+        Value.VarType := P.VarType;
+      end
+      else
+        Error := True;
+
+    //----- Char/String functions
+    opChr:
+    begin
+      if IsIntegerType(P.VarType) then
+        if not (P.IntValue in [0..255]) then
+          EXIT(Err(qeConstantExpressionOverflow))
+        else
+          Value.CharValue := chr(P.IntValue)
+      else
+        Error := True;
+      Value.VarType := vtChar
+    end;
+    opDowncase:
+      if P.VarType = vtChar then
+        Value.CharValue := P.CharValue.ToLower
+      else
+        Error := True;
+    opUpcase:
+      if P.VarType = vtChar then
+        Value.CharValue := P.CharValue.ToUpper
+      else
+        Error := True;
+
+    //----End
+  else
+    EXIT(qeIntrinsicCantBeEvaluatedAtCompileTime);
+  end;
 
   if Value.VarType = vtUnknown then
     if IsIntegerType(P.VarType) then
