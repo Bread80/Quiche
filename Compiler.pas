@@ -444,6 +444,6 @@ initialization
   Config.AllowAutoCreation := False;
   Config.OverflowChecks := True;
   Config.DefaultVarStorage := vsStack;//vsAbsolute;
-  Config.DefaultCallingConvention := ccStackLocal;
+  Config.DefaultCallingConvention := ccStack;
 end.
 

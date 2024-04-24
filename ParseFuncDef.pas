@@ -21,7 +21,7 @@ uses ParserBase, ParseErrors, Z80.CPU;
 
 // <function-def> := FUNCTION [ <param-def-list> ] <type-def> ; [<directive>] [,<directive>]
 //                |  PROCEDURE [ <param-def-list> ] ; [ <directive> ] [, <directive> ]
-// <directive> := <extern-def> | FORWARD
+// <directive> := <calling-convention> | <extern-def> | FORWARD
 //Parse a function delaration and add it to the list of functions.
 //If the function has previously been 'forward' defined validates the definition
 //correctly matches it.
@@ -285,9 +285,11 @@ begin
 end;
 
 //Parse an extern directive and add it to the function definition
-// <extern-def> := EXTERN <constant-expression>
-//Assumes the 'extern' keyword has already been consumed
-//Note: The functions calling convention value is set (and validated) by the caller
+// <extern-def> :- CALL <integer-constant-expression>
+// <extern-def> :- RST <integer-constant-expression>
+//Assumes the CALL or RST keyword has already been consumed
+//Parses and validates the constant expression.
+//Note: The function's calling convention value is set (and validated) by the caller
 //We only parse, validate, and set the address and other data
 function ParseExternDef(Func: PFunction): TQuicheError;
 var IsReg: Boolean;
@@ -312,17 +314,31 @@ begin
     EXIT;
   if (Slug.ILItem <> nil) or (Slug.Operand.Kind <> pkImmediate) then
     EXIT(Err(qeConstantExpressionExpected));
+  if not IsIntegerType(Slug.Operand.Imm.VarType) then
+    EXIT(errSyntaxMsg(synFunctionDeclaration, 'Value for Code and RST directives must be an integer type'));
+  case Func.CallingConvention of
+    ccCall:
+      if (Slug.Operand.Imm.IntValue < 0) or (Slug.Operand.Imm.IntValue > $ffff) then
+        EXIT(errSyntaxMsg(synFunctionDeclaration, 'Invalid value for Code directive'));
+    ccRST:
+      if not Slug.Operand.Imm.IntValue in [0..8,$10,$18,$20,$28,$30,$38] then
+        EXIT(errSyntaxMsg(synFunctionDeclaration, 'Invalid value for RST directive'));
+  else
+    Assert(False);
+  end;
+
   Func.CodeAddress := Slug.Operand.Imm.IntValue;
   Result := qeNone;
 end;
 
 // <directive-list> = <directive> [; <directive-list>]
 // <directive>      = | FORWARD
-//                    | EXTERN <code-address>
+//                    | CALL <code-address>
+//                    | RST <restart-index>
 //Parses the directives section of a function declaration.
 //This function loops through any valid directives, processing them as needed until
 //the first keyword which is not a directive.
-//Returns NoCode True for directives such as EXTERN and FORWARD where the body is
+//Returns NoCode True for directives such as CALL, RST and FORWARD where the body is
 //declared elsewhere
 function ParseDirectives(Func: PFunction;out NoCode: Boolean): TQuicheError;
 var IsForward: Boolean; //This declaration is a Forward
@@ -346,7 +362,7 @@ begin
     end;
 
     //Do we have a any directives? E.g. calling convention
-    NextDirective := dirUNKNOWN;;
+    NextDirective := dirUNKNOWN;
     if TestIdentFirst then
     begin
       Parser.Mark;
@@ -365,30 +381,35 @@ begin
       begin
         if IsForward or Func.IsExtern then
           //Extern and forward are incompatible
-          EXIT(ErrMsg(qeFunctionDeclaration, 'Extern functions can''t be forward declared'));
+          EXIT(ErrMsg(qeFunctionDeclaration, 'Call and RST functions can''t be forward declared'));
         NoCode := True;
         IsForward := True;
         if ffForward in Func.Flags then
           EXIT(ErrMsg(qeFunctionDeclaration, 'Function has already been declared as FORWARD'));
       end;
-      dirEXTERN:
+      dirCALL, dirRST:
       begin
         if IsForward then //Extern and forward are incompatible
-          EXIT(ErrMsg(qeFunctionDeclaration, 'Extern functions can''t be forward declared'));
+          EXIT(ErrMsg(qeFunctionDeclaration, 'Call and RST functions can''t be forward declared'));
         if Func.IsExtern then //Extern and forward are incompatible
-          EXIT(ErrMsg(qeFunctionDeclaration, 'Multiple extern directives not allowed'));
-//        Convention := ccExtern;
+          EXIT(ErrMsg(qeFunctionDeclaration, 'Multiple Call or RST directives not allowed'));
         NoCode := True;
         Func.IsExtern := True;
+        case NextDirective of
+          dirCALL: Func.CallingConvention := ccCall;
+          dirRST: Func.CallingConvention := ccRST;
+        else
+          Assert(False);
+        end;
         Result := ParseExternDef(Func);
         if Result <> qeNone then
           EXIT;
       end;
-      dirSTACKLOCAL:
+      dirSTACK:
         if Func.CallingConvention <> ccUnknown then
           EXIT(ErrMsg(qeFunctionDeclaration, 'Multiple calling convention directives given'))
         else
-          Convention := ccStackLocal;
+          Convention := ccStack;
       dirREGISTER:
         if Func.CallingConvention <> ccUnknown then
           EXIT(ErrMsg(qeFunctionDeclaration, 'Multiple calling convention directives given'))
@@ -409,9 +430,7 @@ begin
         else
           Func.Flags := Func.Flags - [ffForward];
 
-        if Func.IsExtern then
-          Func.CallingConvention := DefaultExternCallingConvention
-        else if Func.CallingConvention = ccUnknown then
+        if Func.CallingConvention = ccUnknown then
           Func.CallingConvention := Config.DefaultCallingConvention;
 
         EXIT(qeNone);

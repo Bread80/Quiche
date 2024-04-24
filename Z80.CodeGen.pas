@@ -1111,7 +1111,7 @@ begin
   begin
     Assert(BlockType = btDefault, 'Can''t override block type for functions');
     case Scope.Func.CallingConvention of
-      ccStackLocal:
+      ccStack:
 //        if VarGetLocalByteSize > 0 then
           GenLibraryProc('stacklocal_enter', nil)
 //        else
@@ -1135,7 +1135,7 @@ begin
   else //Scope.Func <> nil
   begin
     case Scope.Func.CallingConvention of
-      ccStackLocal: GenLibraryProc('stacklocal_exit', nil);
+      ccStack: GenLibraryProc('stacklocal_exit', nil);
       //TODO: More calling conventions
     else
       Assert(False, 'Unknown Calling Convention');

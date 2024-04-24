@@ -1,2 +1,8 @@
-for var a:=32 to 255 do
-  write(a, '=',chr(a), ' ')
+procedure TXT_OUT_CHAR(Ch: A as Char);call $bb5a;
+
+procedure Reset;rst $00;
+
+begin
+  TXT_OUT_CHAR('X');
+  Reset;
+end.

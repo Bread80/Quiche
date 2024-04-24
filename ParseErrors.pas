@@ -217,7 +217,7 @@ const SyntaxHelp: array[TSyntaxError] of String = (
   '<var-name> := <expr>',
 
   'FUNCTION <func-name> param-def-list : <result-type> ; [<directives> ;] <function-body>'#13#10 +
-  'PROCEDURE <func-name> param-def-list ; [<directives> ;] <functin-body>',
+  'PROCEDURE <func-name> param-def-list ; [<directives> ;] <function-body>',
 
   '<param-def-list> := ( <Param-def> [ ; <Param-def> ] )'#13#10 +
     '<param-def> := <param-name> [ , <param-name>]: <Param-type>'#13#10,

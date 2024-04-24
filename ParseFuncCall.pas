@@ -53,8 +53,8 @@ begin
 
   //Do we need to push this argument on the stack?
   case CallingConvention of
-    ccRegister, ccIntrinsic: ; //Registers will be loaded later
-    ccStackLocal: //Put parameters on the stack
+    ccRegister, ccCall, ccRST, ccIntrinsic: ; //Registers will be loaded later
+    ccStack: //Put parameters on the stack
     begin
       ILItem := Slug.ToILItemNoDest;
       if ILItem.Op = OpUnknown then
@@ -89,7 +89,7 @@ begin
 
   Ch := Parser.TestChar;
   //Test for empty list
-  if ((not Brace) and (Ch <> #0)) or  //No Brace and #0 (EOLN) -> no arguments
+  if ((not Brace) and not CharInSet(Ch, [#0,';'])) or  //No Brace and #0 (EOLN) -> no arguments
     (Brace and (Ch <> ')')) then      //Bace and ')' -> no arguments
   repeat
     if ArgIndex >= Func.ParamCount then
@@ -550,10 +550,10 @@ begin
 
   //Generate IL code for the parameters & call
   case Func.CallingConvention of
-    ccRegister: DispatchRegister(Func, Slugs);
+    ccRegister, ccCall, ccRST: DispatchRegister(Func, Slugs);
     ccIntrinsic:
         Result := DispatchIntrinsic(Func, Slugs, DummySlug);
-    ccStackLocal: DispatchStack(Func, Slugs);
+    ccStack: DispatchStack(Func, Slugs);
   else
     raise Exception.Create('Unknown calling convention in function despatch :(');
   end;
@@ -577,9 +577,9 @@ begin
 
   //Generate IL code for the parameters & call
   case Func.CallingConvention of
-    ccRegister: Slug.ILItem := DispatchRegister(Func, Slugs);
+    ccRegister, ccCall, ccRST: Slug.ILItem := DispatchRegister(Func, Slugs);
     ccIntrinsic: Result := DispatchIntrinsic(Func, Slugs, Slug);
-    ccStackLocal: Slug.ILItem := DispatchStack(Func, Slugs);
+    ccStack: Slug.ILItem := DispatchStack(Func, Slugs);
   else
     raise Exception.Create('Unknown calling convention in function despatch :(');
   end;
