@@ -998,9 +998,15 @@ begin
           Operations[Prim.Op].FirstPrimIndex := PrimListNG.Count-1;
 
         Prim.ProcName := Fields[fNGProcName];
-        Prim.LType := StringToVarType(Fields[fNGLType]);
-        if Prim.LType = vtUnknown then
-          raise Exception.Create('Unknown LType: ' + Fields[fNGLType]);
+        if CompareText(Fields[fNGLType], 'none') = 0 then
+          Prim.RType := vtUnknown
+        else
+        begin
+          Prim.LType := StringToVarType(Fields[fNGLType]);
+          if Prim.LType = vtUnknown then
+            raise Exception.Create('Unknown LType: ' + Fields[fNGLType]);
+        end;
+
         if CompareText(Fields[fNGRType], 'none') = 0 then
           Prim.RType := vtUnknown
         else

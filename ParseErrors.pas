@@ -237,8 +237,7 @@ const
   ermCommaOrCloseParensExpected = ''','' or '')'' expected in parameter list';
   ermParameterListExpected = 'Parameter list expected';
   ermIncorrectParameterCount = 'Incorrect parameter count';
-  ermCantAssignProcedure = 'Procedure has no return value. Invalid in assignments';
-
+  ermCantAssignProcedure = 'Procedure has no return value and therefore can''t be used in expressions';
 
 var
   LastError: TQuicheError;

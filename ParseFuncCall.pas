@@ -158,6 +158,61 @@ begin
   Result := qeNone;
 end;
 
+//Generate the IL code for an intrinsic.
+//Func is the function template for teh intrinsic
+//ParamCount is the number of paramaters supplied to IntrinsicGenerateIL (Left, Right).
+//Valid values are 0, 1, and 2.
+//This may be different to the value in Func if the intrinsic is doing funky things
+//(ie. write(ln), read(ln) etc).
+//Left, Right are the parameters (see ParamCount).
+//Slug is the slug to be returned.
+procedure IntrinsicGenerateIL(Func: PFunction;ParamCount: Integer;const Left, Right: TExprSlug;out Slug: TExprSlug);
+var V: PVariable;
+begin
+  //Can we convert an existing ILItem to the intrinsic operation? (and save an IL step)
+  if (ParamCount = 1) and (Left.ILItem <> nil) and (Left.ILItem.Op = opUnknown) then
+  begin //We can just 'patch' the Op into the ILItem
+    Slug := Left;
+    Slug.ILItem.Op := Func.Op;
+  end
+  else
+  begin //Create the ILItem for the operation
+    Slug.ILItem := ILAppend(Func.Op);
+
+    if ParamCount >= 1 then
+    begin //First parameter
+      if Left.ILItem <> nil then
+      begin //We have an ILItem. Assign it to a temp var and use that
+        Left.AssignToHiddenVar;
+        Slug.ILItem.Param1.SetVarSource(Left.ILItem.Dest.Variable);
+      end
+      else  //Otherwise it's either a constant or variable we can assign directly
+        Slug.ILItem.Param1 := Left.Operand;
+    end;
+
+    if Func.ParamCount >= 2 then
+    begin //Same for second parameter
+      if Right.ILItem <> nil then
+      begin
+        Right.AssignToHiddenVar;
+        Slug.ILItem.Param2.SetVarSource(Right.ILItem.Dest.Variable);
+      end
+      else
+        Slug.ILItem.Param2 := Right.Operand;
+    end;
+  end;
+
+  if Func.Params[0].Access = vaVar then
+  begin //Var parameter - result is written back to Param1
+    V := Slug.ILItem.Param1.Variable;
+    V.IncWriteCount;
+    Slug.ILItem.Dest.SetVarDestAndVersion(V, V.WriteCount);
+    Slug.ILItem.ResultType := V.VarType;
+  end
+  else
+    Slug.ILItem.ResultType := Slug.ResultType;
+end;
+
 function DispatchIntrinsic(Func: PFunction;var Slugs: TSlugArray;out Slug: TExprSlug): TQuicheError;
 var
   I: Integer;
@@ -167,7 +222,6 @@ var
   LType: TVarType;
   RType: TVarType;
   Msg: String;
-  V: PVariable;
 begin
   Slug.Initialise;
 
@@ -198,12 +252,16 @@ begin
   end;
   ResultTypeDebug := ResultType;
 
+  //Find a suitable Primitive - to validate these parameter types are suitable, and
+  //establish the result type
   if Func.ParamCount = 1 then
     Found := PrimFindParseUnary(Func.Op, Slugs[0], LType, ResultType)
   else //2 params
     Found := PrimFindParse(Func.Op, Slugs[0], Slugs[1], LType, RType, ResultType);
   Slug.ResultType := ResultType;
+  Slug.ImplicitType := Slug.ResultType;
 
+  //No primitive found :(
   if not Found then
   begin
     Msg := VarTypeToName(Slugs[0].ResultType);
@@ -215,10 +273,8 @@ begin
 
     EXIT(errFuncCall('Couldn''t find a primitive with matching argument types: ''' + Func.Name + Msg + '''', Func));
   end;
-  Slug.ResultType := ResultType;
-  Slug.ImplicitType := Slug.ResultType;
 
-  //Check for, and evaluate, contant expressions
+  //Evaluate at compile time (if possible)
   if not Assigned(Slugs[0].ILItem) and (Slugs[0].Operand.Kind = pkImmediate) then
     if Func.ParamCount = 1 then
     begin
@@ -261,50 +317,71 @@ begin
         end;
       end;
 
-
-  if (Func.ParamCount = 1) and (Slugs[0].ILItem <> nil) and (Slugs[0].ILItem.Op = opUnknown) then
-  begin //We can just 'patch' the Op into the ILItem
-    Slug := Slugs[0];
-    Slug.ILItem.Op := Func.Op;
-  end
-  else
-  begin //Create the ILItem for the operation
-    Slug.ILItem := ILAppend(Func.Op);
-
-    if Func.ParamCount >= 1 then
-    begin //First parameter
-      if Slugs[0].ILItem <> nil then
-      begin //We have an ILItem. Assign it to a temp var and use that
-        Slugs[0].AssignToHiddenVar;
-        Slug.ILItem.Param1.SetVarSource(Slugs[0].ILItem.Dest.Variable);
-      end
-      else  //Otherwise it's either a constant or variable we can assign directly
-        Slug.ILItem.Param1 := Slugs[0].Operand;
-    end;
-
-    if Func.ParamCount >= 2 then
-    begin //Same for second parameter
-      if Slugs[1].ILItem <> nil then
-      begin
-        Slugs[1].AssignToHiddenVar;
-        Slug.ILItem.Param2.SetVarSource(Slugs[1].ILItem.Dest.Variable);
-      end
-      else
-        Slug.ILItem.Param2 := Slugs[1].Operand;
-    end;
-  end;
-
-  if Func.Params[0].Access = vaVar then
-  begin //Var parameter - result is written back to Param1
-    V := Slug.ILItem.Param1.Variable;
-    V.IncWriteCount;
-    Slug.ILItem.Dest.SetVarDestAndVersion(V, V.WriteCount);
-    Slug.ILItem.ResultType := V.VarType;
-  end
-  else
-    Slug.ILItem.ResultType := Slug.ResultType;
+  //Generate the IL code :)
+  IntrinsicGenerateIL(Func, Func.ParamCount, Slugs[0], Slugs[1], Slug);
 end;
 
+
+//Write and Writeln are special cases!
+function DispatchWrite(Func: PFunction;NewLine: Boolean): TQuicheError;
+var Ch: Char;
+  Brace: Boolean; //Is parameter list wrapped in braces?
+  Slug: TExprSlug;
+  ILItem: PILItem;
+  VType: TVarType;
+  DummySlug: TExprSlug;
+begin
+  //!!Don't skip whitespace: Brace indicating parameter list must come immediately after function
+  Ch := Parser.TestChar;
+  //Parameters?
+  if not Parser.EOS then
+  begin
+    Brace := Ch = '(';
+    if Brace then
+      Parser.SkipChar;
+
+    //Empty parameter list?
+    Ch := Parser.TestChar;
+    if (not Brace) or (Brace and (Ch <> ')')) then
+    repeat
+      //Read the argument
+      Result := ParseArgument(Func.Params[0], Slug);
+      if Result <> qeNone then
+        EXIT;
+
+      //Validate the argument
+      Result := ProcessArgument(Func, Func.CallingConvention, Func.Params[0], Slug);
+      if Result <> qeNone then
+        EXIT;
+
+      //Verify the argument is a type we can handle
+      if Slug.ResultType in [vtInt8, vtInteger, vtByte, vtWord, vtPointer,
+        vtBoolean, vtChar] then
+        ILItem.Op := OpWrite
+      else
+        EXIT(ErrMsg(qeTodo, 'Unhandled parameter type for Write/ln: ' + VarTypeToName(VType)));
+
+      //Generate the code.
+      //NOTE: We need to pass in two slugs. Second will be ignored because of ParamCount value of 1
+      IntrinsicGenerateIL(Func, 1, Slug, Slug, DummySlug);
+
+      Parser.SkipWhiteSpace;
+      Ch := Parser.TestChar;
+      if Ch = ',' then
+        Parser.SkipChar;
+    until Ch <> ',';
+
+    if Brace then
+      if Ch = ')' then
+        Parser.SkipChar
+      else
+        EXIT(ErrMsg(qeSyntax, ermCommaOrCloseParensExpected));
+  end;
+
+  if NewLine then
+    ILItem := ILAppend(OpWriteln);
+  Result := qeNone;
+end;
 
 //IL code for Register calling convention
 function DispatchRegister(Func: PFunction;var Slugs: TSlugArray): PILItem;
@@ -459,6 +536,13 @@ function DoParseProcedureCall(Func: PFunction): TQuicheError;
 var Slugs: TSlugArray;  //Data and IL code for each argument
   DummySlug: TExprSlug;  //Dummy
 begin
+  //Special handling required for these puppies...
+  if Func.CallingConvention = ccintrinsic then
+    case Func.Op of
+      opWrite: EXIT(DispatchWrite(Func, False));
+      opWriteln: EXIT(DispatchWrite(Func, True));
+    end;
+
   //Parse and validate arguments
   Result := ParseArgList(Func, Slugs);
   if Result <> qeNone then
@@ -467,7 +551,8 @@ begin
   //Generate IL code for the parameters & call
   case Func.CallingConvention of
     ccRegister: DispatchRegister(Func, Slugs);
-    ccIntrinsic: Result := DispatchIntrinsic(Func, Slugs, DummySlug);
+    ccIntrinsic:
+        Result := DispatchIntrinsic(Func, Slugs, DummySlug);
     ccStackLocal: DispatchStack(Func, Slugs);
   else
     raise Exception.Create('Unknown calling convention in function despatch :(');
@@ -482,6 +567,9 @@ function DoParseFunctionCall(Func: PFunction;var Slug: TExprSlug): TQuicheError;
 var Slugs: TSlugArray;
   Param: PParameter;
 begin
+  if Func.ResultCount = 0 then
+    EXIT(ErrFuncCall(ermCantAssignProcedure, Func));
+
   //Parse and validate arguments
   Result := ParseArgList(Func, Slugs);
   if Result <> qeNone then

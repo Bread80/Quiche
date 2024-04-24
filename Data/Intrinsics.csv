@@ -37,8 +37,8 @@
 ,sizeof,const,Variable,Any,,,,,,,Word,"Returns the (memory) byte size of the Variable. A constant expression can also be passed, but may be ambiguous for numeric types"
 ,succ,const,Value,Ordinal,,val,Count,Integer,1,,Param1,Returns the Count'th successive value to the parameter. If used with Count=1 and Overflow checks off generates DEC opcodes.
 ,swap,const,Value,AnyInteger,,,,,,,Param1,"Swaps the high and low bytes of the parameter. Must be a 16-bit integer type (Word, Pointer or Integer)"
-;,write,out,Value,Any(?),Special!,,,,,,None,Writes one or more values to output
-;,writeln,out,Value,Any(?),Special!,,,,,,None,Writes zero of more values to output followed by a new line
+,write,val,Value,Any,,,,,,,None,Writes one or more values to output
+,writeln,val,Value,Any,,,,,,,None,Writes zero of more values to output followed by a new line
 ,,,,,,,,,,,,
 ;,,Param1,,,,Param2,,,,,Result,
 ;,Name,Access,,VarType,Flags,Access,,VarType,,Flags,VarType,Notes

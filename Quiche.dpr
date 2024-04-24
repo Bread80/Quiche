@@ -25,7 +25,6 @@ uses
   Globals in 'Globals.pas',
   ParseErrors in 'ParseErrors.pas',
   SourceReader in 'SourceReader.pas',
-  ParseIntrinsics in 'ParseIntrinsics.pas',
   ParseFuncDef in 'ParseFuncDef.pas',
   ParseFuncCall in 'ParseFuncCall.pas',
   MConfig in 'MConfig.pas',

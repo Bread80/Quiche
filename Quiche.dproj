@@ -402,7 +402,6 @@
         <DCCReference Include="Globals.pas"/>
         <DCCReference Include="ParseErrors.pas"/>
         <DCCReference Include="SourceReader.pas"/>
-        <DCCReference Include="ParseIntrinsics.pas"/>
         <DCCReference Include="ParseFuncDef.pas"/>
         <DCCReference Include="ParseFuncCall.pas"/>
         <DCCReference Include="MConfig.pas"/>

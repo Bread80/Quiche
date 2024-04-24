@@ -827,7 +827,7 @@ write_integer:
 ;	pop af
 	jr write_word
 
-;HL=value
+;L=value
 ;Output:
 ;  AF,HL corrupt
 write_byte:
@@ -835,7 +835,7 @@ write_byte:
 	ld a,2			;2 digits
 	jr do_write_word
 
-;L=value
+;HL=value
 ;Output:
 ;  AF,HL corrupt
 write_word:

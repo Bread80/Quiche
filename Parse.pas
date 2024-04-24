@@ -50,7 +50,7 @@ function ParseDeclarations(IsRoot: Boolean;AllowFuncs: Boolean;Storage: TVarStor
 implementation
 uses SysUtils, Classes,
   SourceReader, Globals, ILData, QTypes, Functions, Scopes, Operators,
-  ParserBase, ParserFixups, ParseIntrinsics, ParseFuncDef, ParseFuncCall;
+  ParserBase, ParserFixups, ParseFuncDef, ParseFuncCall;
 //===============================================
 //Utilities
 
@@ -696,26 +696,18 @@ begin
     end;
   end
   else
-  begin //Search for intrinsics
-{    Op := IdentToIntrinsicProc(Ident);
-    if Op <> opUnknown then
-      Result := ParseIntrinsic(Op, False, Slug)
-    else
-}    begin
-      //TODO: Search builtin function library
-
-      //If followed by := raise variable not found
-      Parser.Mark;
-      Parser.SkipWhiteSpace;
-      if TestAssignment then
-      begin
-        Parser.Undo;
-        EXIT(ErrSub(qeVariableNotFound, Ident));
-      end;
-
-      //Raise identifier not found
-      EXIT(ErrSub(qeUndefinedIdentifier, Ident));
+  begin //Identifier not found
+    //If followed by := raise variable not found
+    Parser.Mark;
+    Parser.SkipWhiteSpace;
+    if TestAssignment then
+    begin
+      Parser.Undo;
+      EXIT(ErrSub(qeVariableNotFound, Ident));
     end;
+
+    //Raise identifier not found
+    EXIT(ErrSub(qeUndefinedIdentifier, Ident));
   end;
 end;
 

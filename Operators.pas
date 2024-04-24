@@ -118,7 +118,6 @@ type
     //System
     opHi, opHigh, opInp, opLo, opLow, opOrd, opOut, opPeek, opPoke, opPred,
     opPtr, opSizeof, opSucc, opSwap, opRead, opReadln, opWrite, opWriteln,
-    opWriteNewLine, opWriteChar, opWriteInteger, opWriteBoolean,
     //Strings and Chars
     opChr, opDowncase, opLength, opUpcase
     );
@@ -196,7 +195,6 @@ const OpStrings : array[low(TOperator)..high(TOperator)] of String = (
   'Abs', 'Dec', 'Inc', 'Odd',
   'Hi', 'High', 'Inp', 'Lo', 'Low', 'Ord', 'Out', 'Peek', 'Poke', 'Pred',
   'Ptr', 'Sizeof', 'Succ', 'Swap', 'Read', 'Readln', 'Write', 'Writeln',
-  'WriteNewLine', 'WriteChar', 'WriteInteger', 'WriteBoolean',
   'Chr', 'Downcase', 'Length', 'Upcase'
   );
 

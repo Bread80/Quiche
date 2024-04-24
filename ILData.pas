@@ -527,7 +527,7 @@ begin
     if Op <> opUnknown then
     begin
       Result := Result + Operations[Op].Name;
-      if Dest.Kind <> pkPhiVarDest then
+      if not (Dest.Kind in [pkNone, pkPhiVarDest]) then
         Result := Result + ':' + VarTypeToName(ResultType) + ' ';
     end;
     Result := Result + Param1.ToString + ', ';

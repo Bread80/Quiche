@@ -5,7 +5,10 @@ uses ParseErrors, ILData, QTypes, Operators;
 
 //Unary prefix operators
 type
-  TUnaryOperator = (uoNone, uoNegate, uoComplement);
+  //Subset of operators. Only opNegate and opComplement are permitted.
+  //(opAddr is processes differently)
+  TUnaryOperator = TOperator;
+
   //Is the operand size explicitly specified within the expression, or
   //implied. Explicitly sized operands should retain that size, implicit ones
   //may be extended or shortened to optimise the code generation
@@ -73,7 +76,7 @@ function ParseExprToILItem(out ILItem: PILItem;out VType: TVarType): TQuicheErro
 //no matter the context.
 *)
 implementation
-uses SysUtils, Variables, ParserBase, Eval, Globals, Scopes, ParseIntrinsics,
+uses SysUtils, Variables, ParserBase, Eval, Globals, Scopes,
   Functions, PrimitivesEx, ParseFuncCall;
 
 //===================================== Slugs
@@ -467,13 +470,15 @@ var EvalResult: Integer;
 //  EvalType: TVarType;
   ResultType: TVarType;
 begin
-  case UnaryOp of
+  Assert(UnaryOp in UnaryOps);
+  Slug.Op := UnaryOp;
+{  case UnaryOp of
     uoNegate: Slug.Op := OpNegate;
     uoComplement: Slug.Op := OpComplement;
   else
     raise Exception.Create('Unknown unary operator');
   end;
-
+}
   ResultType := vtUnknown;
   if not PrimFindParseUnary(Slug.Op, Slug, VType, ResultType) then
     EXIT(ErrOpUsage('Incorrect parameter type: ' + VarTypeToName(Slug.ImplicitType), Slug.Op));
@@ -552,14 +557,14 @@ begin
     if CompareText(Ident, 'not') = 0 then
     begin
       case UnaryOp of
-        uoNone: Result := ParseOperand(Slug, uoComplement);
-        uoNegate: Result := ParseOperand(Slug, uoComplement);
-        uoComplement: Result := ParseOperand(Slug, uoNone);
+        opUnknown: Result := ParseOperand(Slug, opComplement);
+        opNegate: Result := ParseOperand(Slug, opComplement);
+        opComplement: Result := ParseOperand(Slug, opUnknown);
       else
         EXIT(ErrMsg(qeBUG, 'Unknown/invalid unary operator'));
       end;
-      if UnaryOp = uoComplement then
-        UnaryOp := uoNone;
+      if UnaryOp = opComplement then
+        UnaryOp := opUnknown;
     end
     else
       Result := ParseOperandIdentifier(Slug, Ident);
@@ -569,10 +574,10 @@ begin
   end;
 //  csDecimalFirst
   '0'..'9': //Numeric constants
-    if UnaryOp = uoNegate then
+    if UnaryOp = opNegate then
     begin
       Result := ParseNegativeInteger(Slug);
-      UnaryOp := uoNone;
+      UnaryOp := opUnknown;
     end
     else
       Result := ParseInteger(Slug);
@@ -597,16 +602,16 @@ begin
   begin
     Parser.SkipChar;
     case UnaryOp of
-      uoNone: Result := ParseOperand(Slug, uoNegate);
-      uoNegate: Result := ParseOperand(Slug, uoNone);
-      uoComplement: Result := ParseOperand(Slug, uoNegate);
+      opUnknown: Result := ParseOperand(Slug, opNegate);
+      opNegate: Result := ParseOperand(Slug, opUnknown);
+      opComplement: Result := ParseOperand(Slug, opNegate);
     else
       EXIT(errMsg(qeBUG, 'Unknown/invalid unary operator'));
     end;
     if Result <> qeNone then
       EXIT;
-    if UnaryOp = uoNegate then
-      UnaryOp := uoNone;
+    if UnaryOp = opNegate then
+      UnaryOp := opUnknown;
   end;
   else
     EXIT(Err(qeOperandExpected));
@@ -616,7 +621,7 @@ begin
   //NOTE: Recurse for '-' clears Negate, Recurse for 'NOT' clears Invert
   //Also, if constant is negated, or negate is otherwise processed, Negate must be cleared
   //Ditto for Invert/NOT
-  if UnaryOp <> uoNone then
+  if UnaryOp <> opUnknown then
     Result := DoUnaryOp(UnaryOp, Slug);
 end;
 
@@ -665,7 +670,7 @@ end;
 function ParseExprSlug(out Slug: TExprSlug): TQuicheError;
 begin
   Slug.Initialise;
-  Result := ParseOperand(Slug, uoNone);
+  Result := ParseOperand(Slug, opUnknown);
   if Result <> qeNone then
     EXIT;
 
