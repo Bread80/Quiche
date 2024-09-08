@@ -1,7 +1,7 @@
 unit Functions;
 
 interface
-uses QTypes, Classes, Generics.Collections, Variables, Operators;
+uses QTypes, Classes, Generics.Collections, Variables, Operators, Z80.CPU;
 
 //Maximum number of parameters which can be specified for a routine, including results
 const MaxFunctionParams = 10;
@@ -11,13 +11,6 @@ type
   //Ideally wants to be 8 or less items so it fits into a byte
   TUsedReg = (urA, urFlags, urB, urC, urD, urE, urH, urL, urIX, urIY);
   TUsedRegSet = set of TUsedReg;
-
-  //To specify registers etc used to pass parameters
-  //CF = carry flag, ZF = zero flag
-  TParamReg = (prNone, prA, prB, prC, prD, prE, prH, prL, prBC, prDE, prHL, prCF, prZF);
-const ParamRegToVarType: array[low(TParamReg)..high(TParamReg)] of TVarType =
-    (vtUnknown, vtByte, vtByte, vtByte, vtByte, vtByte, vtByte, vtByte,
-    vtWord, vtWord, vtWord, vtBoolean, vtBoolean);
 
 type
   TFuncFlag = (
@@ -49,7 +42,7 @@ type
     Access: TVarAccess; //Ignored for Intrinsics
     Name: String;
 
-    Reg: TParamReg;       //If the parameter is passed via a register, otherwise prNone
+    Reg: TCPUReg;       //If the parameter is passed via a register, otherwise rNone
                           //Ignored for Intrinsics
     VarType: TVarType;    //Parameter type
     SuperType: TSuperType;  //Only for intrinsics. Only valid where VarType is vtUnknown.
@@ -113,8 +106,6 @@ procedure ClearFunclist(FuncList: TFuncList);
 
 procedure SetCurrentFuncList(AFuncList: TFuncList);
 
-function IdentToParamReg(Ident: String): TParamReg;
-
 //Find the given function
 function FuncFindAllScopes(Name: String): PFunction;
 
@@ -142,19 +133,6 @@ function FunctionsToStrings(S: TStrings): String;
 
 implementation
 uses SysUtils, Scopes;
-
-const ParamRegStrings: array[low(TParamReg)..high(TParamReg)] of String = (
-  '',  //Placeholder for Unknown value
-  'A', 'B', 'C', 'D', 'E', 'H', 'L', 'BC', 'DE', 'HL', 'CF', 'ZF');
-
-function IdentToParamReg(Ident: String): TParamReg;
-begin
-  for Result := low(TParamReg) to high(TParamReg) do
-    if CompareText(ParamRegStrings[Result], Ident) = 0 then
-      EXIT;
-
-  Result := prNone;
-end;
 
 var FuncList: TFuncList;
 
@@ -220,10 +198,10 @@ begin
   for I := 0 to MaxFunctionParams do
   begin
     Result.Params[I].Name := '';
-    Result.Params[I].Reg := prNone;
+    Result.Params[I].Reg := rNone;
     Result.Params[I].VarType := vtUnknown;
 //    Result.Params[I].VarTypes := [];
-    Result.Params[I].Access := vaVal;
+    Result.Params[I].Access := vaNone;
     Result.Params[I].HasDefaultValue := False;
 //    Result.Params[I].DefaultValue := 0;
   end;
@@ -245,6 +223,7 @@ end;
 
 function IdentToAccessSpecifier(const Ident: String;out Access: TVarAccess): Boolean;
 const AccessStrings: array[low(TVarAccess)..high(TVarAccess)] of String = (
+  '',
   '',   //Local variables don't have a keyword
   '',   //Val doesn't have a keyword
   'var', 'const', {'in',} 'out',
@@ -281,9 +260,9 @@ begin
 
   Result := Result + ': ';
 
-  if Reg <> prNone then
+  if Reg <> rNone then
   begin
-    Result := Result + ParamRegStrings[Reg];
+    Result := Result + CPURegStrings[Reg];
     Result := Result + ' as ';
   end;
 
@@ -349,7 +328,10 @@ end;
 function TFunction.GetParamStorage: TVarStorage;
 begin
   case CallingConvention of
-//    ccRegister: Result := vsStatic; //!!!Params in registers!!!
+    ccRegister:
+      //Params are passed in registers. Storage will be alocated in global (static)
+      //memory space but may (hopefully will) be optimised away into registers
+      Result := vsStatic;
     ccStack: Result := vsStack;
   else
     Assert(False);

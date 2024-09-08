@@ -20,6 +20,9 @@ type TILParamKind = (
     pkCondBranch     //Conditional branch. Only valid as Param3
     );
 
+type TILParamFlags = (cgRangeCheck);
+  TILParamFlagSet = set of TILParamFlags;
+
 type
   PILParam = ^TILParam;
   TILParam = record
@@ -29,6 +32,7 @@ type
     //data will found after the operation. The code generator will store the value
     //back into the variable (or other location) specified by the other values
     Reg: TCPUReg;
+    Flags: TILParamFlagSet;
 
     procedure Initialise;
 
@@ -83,8 +87,8 @@ type
       );
     end; {TILParam}
 
-type TCodeGenFlags = (cgOverFlowCheck);
-  TCodeGenFlagSet = set of TCodeGenFlags;
+type TILDataFlags = (cgOverFlowCheck);
+  TILDataFlagSet = set of TILDataFlags;
 
 //Record for an atomic IL item
 //The operation combines paramer1 and parameter2 and writes the result (if it has one) to
@@ -102,7 +106,7 @@ type
                             //May also be used by typecasts to change/reduce value size
     Func: PFunction;        //If OpIndex is OpFuncCall this contains details of the function
                             //to call
-    CodeGenFlags: TCodeGenFlagSet;
+    Flags: TILDataFlagSet;
 
     //We can have up to three parameters. Each parameter can be Source or Destination
     //far depending on it's Kind. Dest is a pseudonym for Param3 for times when
@@ -157,6 +161,32 @@ function ILInsert(Index: Integer;AnOp: TOperator): PILItem;
 
 //Append an ILItem for an unconditional branch
 function ILAppendBranch(BranchID: Integer): PILItem;
+
+//Used to add Data Loads and Data Stores (commonly used when calling functions to
+//load variables or constants into registers and write results from registers to
+//variables).
+//ILItem parameter can be nil, or the value returned by a previous call to
+//either function. ILItem will return a value which may or may not be the same as
+//that passed in.
+//Returns the ILParam into which data is to be stored.
+//Loads and Stores can be combined, but all Loads must occur before all Stores
+//Update: Function calls now use FuncData. Data moves still use DataMove
+function ILAppendRegLoad(var ILItem: PILItem): PILParam;
+function ILAppendRegStore(var ILItem: PILItem): PILParam;
+function ILAppendFuncData(var ILItem: PILItem): PILParam;
+
+//Related to ILAppendDataMove, ILAppendFunctionCall sets
+//the data for the function call within the IL. This avoids the caller having to
+//understand the internal rules for such calls.
+//As above, ILItem can be set to nil of a previously returned value. The return
+//value may or may not be the same as that passed in
+procedure ILAppendFuncCall(var ILItem: PILItem;Func: PFunction);
+//As ILAppendDataMove, but for function result. Function result is assigned by the
+//expression parser /after/ the ILCode for the function call itself has been generated.
+//For that reason the Result parameter must be in Dest (Param3).
+//The code here ensures that Dest (Param3) is empty, allocating a new ILItem if
+//ILItem passed in is nil. or Dest (Param3) is already assigned.
+function ILAppendFuncResult(var ILItem: PILItem): PILParam;
 
 //Returns the current number of items in the IL list
 function ILGetCount: Integer;
@@ -271,10 +301,10 @@ begin
   else
     Result.SourceLineNo := -1;
   Result.Op := opUnknown;
+
+  Result.Flags := [];
   if optOverflowChecks then
-    Result.CodeGenFlags := [cgOverflowCheck]
-  else
-    Result.CodeGenFlags := [];
+    Result.Flags := Result.Flags + [cgOverflowCheck];
 
   Result.ResultType := vtUnknown;
   Result.Func := nil;
@@ -302,6 +332,81 @@ function ILAppendBranch(BranchID: Integer): PILItem;
 begin
   Result := ILAppend(opBranch);
   Result.SetBranchBlockID(BranchID);
+end;
+
+function ILAppendExtendable(var ILItem: PILItem;Basic, Ext: TOperator): PILParam;
+begin
+  if ILItem <> nil then
+  begin
+    Assert(ILItem.Op = Basic);
+    if ILItem.Param3.Kind <> pkNone then
+    begin //Item passed in is full
+      ILItem.Op := Ext;
+      ILItem := nil;
+    end;
+  end;
+
+  if ILItem = nil then
+  begin
+    ILItem := ILAppend(Basic);
+    Result := @ILItem.Param1;
+  end
+  else
+  begin
+    Assert(ILItem.Param1.Kind <> pkNone);
+    if ILItem.Param2.Kind = pkNone then
+      Result := @ILItem.Param2
+    else if ILItem.Param3.Kind = pkNone then
+      Result := @ILItem.Param3;
+  end;
+end;
+
+function ILAppendRegLoad(var ILItem: PILItem): PILParam;
+begin
+  Result := ILAppendExtendable(ILItem, opRegLoad, opRegLoadExtended);
+end;
+
+function ILAppendRegStore(var ILItem: PILItem): PILParam;
+begin
+  Result := ILAppendExtendable(ILItem, opRegStore, opRegStoreExtended);
+end;
+
+function ILAppendFuncData(var ILItem: PILItem): PILParam;
+begin
+  Result := ILAppendExtendable(ILItem, opFuncCall, opFuncCallExtended);
+end;
+
+procedure ILAppendFuncCall(var ILItem: PILItem;Func: PFunction);
+begin
+  if ILItem = nil then
+    ILItem := ILAppend(opFuncCall)
+  else
+  begin
+    Assert(ILItem.Op in [opFuncCall, opFuncCallExtended]);
+    Assert(ILItem.Func = nil);
+  end;
+
+  ILItem.Func := Func;
+end;
+
+function ILAppendFuncResult(var ILItem: PILItem): PILParam;
+begin
+  if ILItem <> nil then
+  begin
+    Assert(ILItem.Op = opFuncCall);
+    if ILItem.Param3.Kind <> pkNone then
+    begin //Item passed in is full
+      ILItem.Op := opFuncCallExtended;
+      ILItem := nil;
+    end;
+  end;
+
+  if ILItem = nil then
+    ILItem := ILAppend(opFuncCall)
+  else
+    Assert(ILItem.Dest.Kind = pkNone);
+
+  Result := @ILItem.Dest;
 end;
 
 function ILGetCount: Integer;
@@ -408,6 +513,10 @@ procedure TILParam.Initialise;
 begin
   Reg := rNone;
   Kind := pkNone;
+
+  Flags := [];
+  if optRangeChecks then
+    Flags := Flags + [cgRangeCheck];
 end;
 
 function TILParam.ToString: String;
@@ -497,24 +606,67 @@ begin
   Param2 := Temp;
 end;
 
+function DataMoveToString(const Param: TILParam): String;
+begin
+  case Param.Kind of
+    pkNone: ;
+    pkImmediate:
+      Result := Result + #13';Imm    ' + CPURegStrings[Param.Reg] + ' := ' + Param.ToString;
+    pkVarSource:
+      Result := Result + #13';VarSource    ' + CPURegStrings[Param.Reg] + ' := ' + Param.ToString;
+    pkVarDest:
+      Result := Result + #13';VarDest    ' + Param.ToString + ' := ' + CPURegStrings[Param.Reg];
+    pkCondBranch:
+    begin
+      Result := 'CondBranch ';
+      if Param.FalseBlockID = -1 then
+        Result := Result + '{' + IntToStr(Param.TrueBlockID) + '} '
+      else
+        Result := Result + '{' + IntToStr(Param.TrueBlockID) + ',' + IntToStr(Param.FalseBlockID) + '} ';
+      Result := Result + '/' + CPURegStrings[Param.Reg];
+    end;
+  else
+    Assert(False);
+  end;
+end;
+
 function TILItem.ToString: String;
+var FuncToDo: PFunction;
 begin
   Result := '';
 
   case Op of
     //Special case operation types
-    opDataLoad:
+    opRegLoad, opRegLoadExtended,
+    opRegStore, opRegStoreExtended,
+    opFuncCall, opFuncCallExtended:
     begin
-      Assert(Param1.Kind in [pkImmediate, pkVarSource]);
-      Assert(Param2.Kind in [pkNone, pkImmediate, pkVarSource]);
-      Assert(Param3.Kind in [pkNone, pkImmediate, pkVarSource]);
-      Result := Result + 'DATALOAD: ';
-      if Param1.Kind <> pkNone then
-        Result := Result + CPURegStrings[Param1.Reg] + ':=' + Param1.ToString;
-      if Param2.Kind <> pkNone then
-        Result := Result + CPURegStrings[Param2.Reg] + ':=' + Param2.ToString;
-      if Param3.Kind <> pkNone then
-        Result := Result + CPURegStrings[Param3.Reg] + ':=' + Param3.ToString;
+      Assert(Param1.Kind in [pkNone, pkImmediate, pkVarSource, pkVarDest]);
+      Assert(Param2.Kind in [pkNone, pkImmediate, pkVarSource, pkVarDest]);
+      Assert(Param3.Kind in [pkNone, pkImmediate, pkVarSource, pkVarDest, pkCondBranch]);
+      Result := Result + OpStrings[Op];
+
+      FuncToDo := Func;
+      if Assigned(FuncToDo) and (Param1.Kind in [pkVarDest]) then
+      begin
+        Result := Result + #13';    CALL: ' + Func.ToString;
+        FuncToDo := nil;
+      end;
+      Result := Result + DataMoveToString(Param1);
+      if Assigned(FuncToDo) and (Param2.Kind in [pkVarDest]) then
+      begin
+        Result := Result + #13';    CALL: ' + Func.ToString;
+        FuncToDo := nil;
+      end;
+      Result := Result + DataMoveToString(Param2);
+      if Assigned(FuncToDo) and (Param3.Kind in [pkVarDest]) then
+      begin
+        Result := Result + #13';    CALL: ' + Func.ToString;
+        FuncToDo := nil;
+      end;
+      Result := Result + DataMoveToString(Param3);
+      if Assigned(FuncToDo) then
+        Result := Result + #13';    CALL: ' + Func.ToString;
     end;
   else //General operation types
     Assert(Param1.Kind in [pkNone, pkImmediate, pkVarSource, pkPhiVarSource]);
@@ -528,13 +680,11 @@ begin
     begin
       Result := Result + Operations[Op].Name;
       if not (Dest.Kind in [pkNone, pkPhiVarDest]) then
-        Result := Result + ':' + VarTypeToName(ResultType) + ' ';
+        Result := Result + ':' + VarTypeToName(ResultType);
+      Result := Result + ' ';
     end;
     Result := Result + Param1.ToString + ', ';
     Result := Result + Param2.ToString;
-
-    if Func <> nil then
-      Result := Result + #13'    ' + Func.ToString;
   end;
 end;
 

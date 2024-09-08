@@ -8,19 +8,20 @@ object Form1: TForm1
   FormFactor.Height = 480
   FormFactor.Devices = [Desktop]
   OnCreate = FormCreate
-  OnClose = FormClose
+  OnCloseQuery = FormCloseQuery
   OnDestroy = FormDestroy
   DesignerMasterStyle = 0
   object Panel1: TPanel
     Align = MostLeft
-    Position.Y = 113.000000000000000000
+    Position.Y = 137.000000000000000000
     Size.Width = 313.000000000000000000
-    Size.Height = 367.000000000000000000
+    Size.Height = 343.000000000000000000
     Size.PlatformDefault = False
     TabOrder = 0
   end
   object Panel3: TPanel
     Align = MostTop
+    Position.Y = 24.000000000000000000
     Size.Width = 776.000000000000000000
     Size.Height = 113.000000000000000000
     Size.PlatformDefault = False
@@ -99,7 +100,7 @@ object Form1: TForm1
         OnChange = cbDeployChange
       end
       object btnRun: TButton
-        Action = Run
+        Action = acRun
         Enabled = True
         ImageIndex = -1
         Position.X = 432.000000000000000000
@@ -172,15 +173,23 @@ object Form1: TForm1
         Text = 'Code'
       end
     end
+    object cbRangeChecks: TCheckBox
+      IsChecked = True
+      Position.X = 192.000000000000000000
+      Position.Y = 24.000000000000000000
+      TabOrder = 19
+      Text = 'Range Checks'
+      OnChange = cbRangeChecksChange
+    end
   end
   object Splitter1: TSplitter
     Align = Left
     Cursor = crHSplit
     MinSize = 20.000000000000000000
     Position.X = 313.000000000000000000
-    Position.Y = 113.000000000000000000
+    Position.Y = 137.000000000000000000
     Size.Width = 8.000000000000000000
-    Size.Height = 367.000000000000000000
+    Size.Height = 343.000000000000000000
     Size.PlatformDefault = False
   end
   object StyleBook1: TStyleBook
@@ -3093,30 +3102,30 @@ object Form1: TForm1
   object Panel7: TPanel
     Align = Client
     Size.Width = 455.000000000000000000
-    Size.Height = 367.000000000000000000
+    Size.Height = 343.000000000000000000
     Size.PlatformDefault = False
     TabOrder = 9
     object TabControl1: TTabControl
       Align = Client
       Size.Width = 455.000000000000000000
-      Size.Height = 326.000000000000000000
+      Size.Height = 302.000000000000000000
       Size.PlatformDefault = False
       TabIndex = 0
       TabOrder = 0
       TabPosition = PlatformDefault
       Sizes = (
         455s
-        300s
+        276s
         455s
-        300s
+        276s
         455s
-        300s
+        276s
         455s
-        300s
+        276s
         455s
-        300s
+        276s
         455s
-        300s)
+        276s)
       object tbILCode: TTabItem
         CustomIcon = <
           item
@@ -3133,7 +3142,7 @@ object Form1: TForm1
         object Panel2: TPanel
           Align = Client
           Size.Width = 455.000000000000000000
-          Size.Height = 300.000000000000000000
+          Size.Height = 276.000000000000000000
           Size.PlatformDefault = False
           TabOrder = 0
           object mmIL: TMemo
@@ -3145,11 +3154,11 @@ object Form1: TForm1
             Position.X = 8.000000000000000000
             Position.Y = 8.000000000000000000
             Size.Width = 440.000000000000000000
-            Size.Height = 286.000000000000000000
+            Size.Height = 262.000000000000000000
             Size.PlatformDefault = False
             TabOrder = 0
             Viewport.Width = 436.000000000000000000
-            Viewport.Height = 282.000000000000000000
+            Viewport.Height = 258.000000000000000000
           end
         end
       end
@@ -3169,7 +3178,7 @@ object Form1: TForm1
         object pnlVariables: TPanel
           Align = Client
           Size.Width = 455.000000000000000000
-          Size.Height = 300.000000000000000000
+          Size.Height = 276.000000000000000000
           Size.PlatformDefault = False
           TabOrder = 0
           object mmVariables: TMemo
@@ -3179,11 +3188,11 @@ object Form1: TForm1
             Position.X = 8.000000000000000000
             Position.Y = 8.000000000000000000
             Size.Width = 438.000000000000000000
-            Size.Height = 288.000000000000000000
+            Size.Height = 264.000000000000000000
             Size.PlatformDefault = False
             TabOrder = 0
-            Viewport.Width = 438.000000000000000000
-            Viewport.Height = 288.000000000000000000
+            Viewport.Width = 434.000000000000000000
+            Viewport.Height = 260.000000000000000000
           end
         end
       end
@@ -3203,7 +3212,7 @@ object Form1: TForm1
         object Panel5: TPanel
           Align = Client
           Size.Width = 455.000000000000000000
-          Size.Height = 300.000000000000000000
+          Size.Height = 276.000000000000000000
           Size.PlatformDefault = False
           TabOrder = 0
           object mmFunctions: TMemo
@@ -3213,11 +3222,11 @@ object Form1: TForm1
             Position.X = 8.000000000000000000
             Position.Y = 8.000000000000000000
             Size.Width = 438.000000000000000000
-            Size.Height = 288.000000000000000000
+            Size.Height = 264.000000000000000000
             Size.PlatformDefault = False
             TabOrder = 0
-            Viewport.Width = 438.000000000000000000
-            Viewport.Height = 288.000000000000000000
+            Viewport.Width = 434.000000000000000000
+            Viewport.Height = 260.000000000000000000
           end
         end
       end
@@ -3237,7 +3246,7 @@ object Form1: TForm1
         object Panel4: TPanel
           Align = Client
           Size.Width = 455.000000000000000000
-          Size.Height = 300.000000000000000000
+          Size.Height = 276.000000000000000000
           Size.PlatformDefault = False
           TabOrder = 0
           object mmAssembly: TMemo
@@ -3249,11 +3258,11 @@ object Form1: TForm1
             Position.X = 8.000000000000000000
             Position.Y = 8.000000000000000000
             Size.Width = 438.000000000000000000
-            Size.Height = 286.000000000000000000
+            Size.Height = 262.000000000000000000
             Size.PlatformDefault = False
             TabOrder = 1
-            Viewport.Width = 438.000000000000000000
-            Viewport.Height = 286.000000000000000000
+            Viewport.Width = 434.000000000000000000
+            Viewport.Height = 258.000000000000000000
           end
         end
       end
@@ -3275,11 +3284,11 @@ object Form1: TForm1
           DataDetectorTypes = []
           Align = Client
           Size.Width = 455.000000000000000000
-          Size.Height = 300.000000000000000000
+          Size.Height = 276.000000000000000000
           Size.PlatformDefault = False
           TabOrder = 0
-          Viewport.Width = 455.000000000000000000
-          Viewport.Height = 300.000000000000000000
+          Viewport.Width = 451.000000000000000000
+          Viewport.Height = 272.000000000000000000
         end
       end
       object tbTests: TTabItem
@@ -3298,7 +3307,7 @@ object Form1: TForm1
         object Panel6: TPanel
           Align = Client
           Size.Width = 455.000000000000000000
-          Size.Height = 300.000000000000000000
+          Size.Height = 276.000000000000000000
           Size.PlatformDefault = False
           TabOrder = 0
           object mmTests: TMemo
@@ -3308,11 +3317,11 @@ object Form1: TForm1
             Position.X = 8.000000000000000000
             Position.Y = 8.000000000000000000
             Size.Width = 438.000000000000000000
-            Size.Height = 288.000000000000000000
+            Size.Height = 264.000000000000000000
             Size.PlatformDefault = False
             TabOrder = 0
-            Viewport.Width = 438.000000000000000000
-            Viewport.Height = 288.000000000000000000
+            Viewport.Width = 434.000000000000000000
+            Viewport.Height = 260.000000000000000000
           end
         end
       end
@@ -3344,13 +3353,108 @@ object Form1: TForm1
       end
     end
   end
+  object MenuBar1: TMenuBar
+    Align = MostTop
+    Size.Width = 776.000000000000000000
+    Size.Height = 24.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 12
+    object MenuItem2: TMenuItem
+      Text = '&File'
+      object MenuItem7: TMenuItem
+        Action = acNew
+        Enabled = True
+        Locked = True
+        ImageIndex = -1
+      end
+      object MenuItem1: TMenuItem
+        Action = acOpenProject
+        Enabled = True
+        Locked = True
+        ImageIndex = -1
+      end
+      object MenuItem5: TMenuItem
+        Action = acOpenScratch
+        Enabled = True
+        Locked = True
+        ImageIndex = -1
+      end
+      object MenuItem6: TMenuItem
+        Action = acSave
+        Enabled = True
+        Locked = True
+        ImageIndex = -1
+      end
+      object MenuItem8: TMenuItem
+        Action = acSaveAs
+        Enabled = True
+        Locked = True
+        ImageIndex = -1
+      end
+    end
+    object MenuItem4: TMenuItem
+      Text = '&Tools'
+      object MenuItem3: TMenuItem
+        Action = acOptions
+        Enabled = True
+        Locked = True
+        ImageIndex = -1
+      end
+    end
+  end
+  object FileOpenDialog: TOpenDialog
+    DefaultExt = '.quiche'
+    Filter = 'Quiche|*.quiche|Pascal|*.pas|Text|*.txt|All files|*.*'
+    Options = [ofHideReadOnly, ofPathMustExist, ofFileMustExist, ofEnableSizing]
+    Left = 568
+    Top = 80
+  end
   object ActionList1: TActionList
     Left = 696
     Top = 120
-    object Run: TAction
+    object acRun: TAction
+      Category = 'Run'
       Text = 'Run'
       ShortCut = 120
-      OnExecute = RunExecute
+      OnExecute = acRunExecute
     end
+    object acOptions: TAction
+      Category = 'Settings'
+      Text = '&Options...'
+      OnExecute = acOptionsExecute
+    end
+    object acOpenScratch: TAction
+      Category = 'Files'
+      Text = 'Open Scratch File'
+      OnExecute = acOpenScratchExecute
+    end
+    object acOpenProject: TAction
+      Category = 'Files'
+      Text = '&Open Project...'
+      ShortCut = 16463
+      OnExecute = acOpenProjectExecute
+    end
+    object acSave: TAction
+      Category = 'Files'
+      Text = '&Save'
+      ShortCut = 16467
+      OnExecute = acSaveExecute
+    end
+    object acSaveAs: TAction
+      Category = 'Files'
+      Text = 'Save as...'
+      OnExecute = acSaveAsExecute
+    end
+    object acNew: TAction
+      Category = 'Files'
+      Text = '&New'
+      OnExecute = acNewExecute
+    end
+  end
+  object FileSaveDialog: TSaveDialog
+    DefaultExt = '.quiche'
+    Filter = 'Quiche|*.quiche|Pascal|*.pas|Text|*.txt|All files|*.*'
+    Left = 632
+    Top = 80
   end
 end

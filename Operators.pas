@@ -72,10 +72,22 @@ type
                   //Currently Param1 and Param2 are pkPhiVarSource and Dest is pkPhiVarDest.
                   //Needs expanding to allow more sources for code where more than two paths
                   //can converge.
-    opDataLoad,   //Load data into registers (for a function call)
+    opRegLoad,   //Load data from variables or constants into registers and/or
+                  //from registers into variables.
+                  //Used for function calls.
                   //One to three source params (Param1, Param2, Param3)
+                  //All Params can be either a load or a store depending on the
+                  //parameter Kind. Load MUST always come before Stores.
+                  //If more than three moves are required then a DataMoveExtended
+                  //items can be added.
                   //NOTE: Code gen can currently only handle two params.
+    opRegLoadExtended,
+                  //As opDataMove but indicates the data continues into the following
+                  //ILItem. The following item must be either a opDataMove or opDataMoveExtended
+    opRegStore,
+    opRegStoreExtended,
     opFuncCall,   //Call function
+    opFuncCallExtended, //As opDataMoveExtended for opFuncCall. Must come before opFuncCall
                   //As a binary operator: zero to two sources and zero or one Dest.
                   //Exact param usage depends on calling convention:
                   //ccStack: Params pushed on the stack, no source params. Dest used for result
@@ -169,14 +181,15 @@ function OpToUsage(Op: TOperator): String;
 
 function StringToBoolean(S: String): Boolean;
 
-implementation
-uses Generics.Collections, Classes, SysUtils;
 
 const OpStrings : array[low(TOperator)..high(TOperator)] of String = (
   //System operators
   'UNKNOWN','Move','StoreImm',
-  'Branch','CondBranch','ConstBranch','Phi','DataLoad',
-  'FuncCall','FuncReturn',
+  'Branch','CondBranch','ConstBranch','Phi',
+  'RegLoad','RegLoadEx',
+  'RegStore','RegStoreEx',
+  'FuncCall','FuncCallEx',
+  'FuncReturn',
 
   //Binary operators
   'Add', 'Subtract', 'Multiply', 'RealDiv', 'Div', 'Mod',
@@ -197,6 +210,10 @@ const OpStrings : array[low(TOperator)..high(TOperator)] of String = (
   'Ptr', 'Sizeof', 'Succ', 'Swap', 'Read', 'Readln', 'Write', 'Writeln',
   'Chr', 'Downcase', 'Length', 'Upcase'
   );
+
+
+implementation
+uses Generics.Collections, Classes, SysUtils;
 
 const
   //Mapping between ASCII and symbolic operators

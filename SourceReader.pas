@@ -276,6 +276,9 @@ end;
 procedure TQuicheSourceReader.SkipBraceComment;
 var Ch: Char;
 begin
+  //Note: We may need to parse past the initial '*' of the (*
+  if TestChar = '$' then
+    ; //Compiler directives here <<--- TODO
   while True do
   begin
     if not ReadChar(Ch) then
@@ -295,8 +298,8 @@ var Ch: Char;
 begin
   if not ReadChar(Ch) then
     EXIT;
-//  if Ch = '$' then
-    //Compiler directives here <<--- TODO
+  if TestChar = '$' then
+    ;    //Compiler directives here <<--- TODO
 
   while Ch <> '}' do
     if not ReadChar(Ch) then

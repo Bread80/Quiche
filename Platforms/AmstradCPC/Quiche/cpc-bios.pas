@@ -1,6 +1,8 @@
 //Import file for the Quiche compiler
 //These are the BIOS routines for the Amstrad CPC computers
-//These calls are to RSX commands an not currently callable via Quiche
+//DO NOT USE: These calls are to RSX commands an not currently callable via Quiche
+
+//For documentation see https://www.cpcwiki.eu/index.php/BIOS_Functions
 
 //CTRL/A (#01)
 //A=#00 to enable, A=#FF to disable

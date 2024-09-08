@@ -3,6 +3,7 @@
 err_none		equ $00
 err_overflow 	equ $01
 err_divbyzero 	equ $02
+err_range		equ $03	;Bounds or value out of range
 
 
 
@@ -18,6 +19,10 @@ raise_overflow:
 ;Exit: Never does
 raise_divbyzero:
 		ld a,err_divbyzero
+		jr raise_error
+
+raise_range:
+		ld a,err_range
 		jr raise_error
 		
 ;Raise and error

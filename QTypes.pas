@@ -106,9 +106,19 @@ function TryIntegerToVarType(Value: Integer;out VarType: TVarType): Boolean;
 //Record to store a typed constant value. Used within ILParams and as default
 //parameters within function definitions
 type TImmValue = record
+  constructor CreateInteger(AValue: Integer);
+
   //For (mostly) code generation
   //Only applicable to enumerated types
   function ToInteger: Integer;
+
+  //Returns a string suitable for passing to the assembler.
+  //Value returned must be a single byte. Value will be masked (with $ff) if necessary
+  //This routine can return chars as string literals and makae code easier to read
+  //than using numeric literals
+  function ToStringByte: String;
+  //Returns a 16-bit value masked with $ffff
+  function ToStringWord: String;
 
   //For debugging. Sometimes for code generation
   function ToString: String;
@@ -136,7 +146,7 @@ function ValidateAssignmentType(AssignType, ExprType: TVarType): Boolean;
 
 
 implementation
-uses SysUtils, Globals;
+uses SysUtils, Globals, CodeGen;
 
 const SuperTypeNames: array[low(TSuperType)..high(TSuperType)] of String = (
   'Parameterized', 'Any', 'Numeric', 'AnyInteger', 'Ordinal');
@@ -326,6 +336,12 @@ begin
   Result := True;
 end;
 
+constructor TImmValue.CreateInteger(AValue: Integer);
+begin
+  VarType := vtInteger;
+  IntValue := AValue;
+end;
+
 function TImmValue.ToInteger: Integer;
 begin
   case VarType of
@@ -364,4 +380,24 @@ begin
     Assert(False);
   end;
 end;
+
+function TImmValue.ToStringByte: String;
+begin
+  case VarType of
+    vtBoolean: Result := ByteToStr(ToInteger);
+    vtChar:
+      if CharValue in [#32..#127] then
+        Result := '''' + CharValue + ''''
+      else
+        Result := ByteToStr(ToInteger);
+  else
+    Result := ByteToStr(ToInteger);
+  end;
+end;
+
+function TImmValue.ToStringWord: String;
+begin
+  Result := WordToStr(ToInteger);
+end;
+
 end.

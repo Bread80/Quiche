@@ -80,30 +80,16 @@ end;
 //===============================================
 //Language syntax
 
-//Parses an expression (After the <varname> := has been parsed) and creates IL
-//to assign it to the Variable which has been passed in. VarIndex is the index of
-//the Variable
-//If Variable is nil and VarIndex is -1, creates a new variable, assigning it a
-//type based on the result of the expression. The caller will then need to fill
-//in the variables Name, and any other necessary details.
-//WARNING: When creating and initialising a variable the variable MUST be created
-//*after* the expression has been evaluated. If the variable is created before
-//then it will be possible to reference the variable within the expression which
-//would, of course, be an bug.
-function ParseAssignmentExpr(var Variable: PVariable;VType: TVarType): TQuicheError;
-var
+//Creates IL to assign the slug to a variable.
+//If Variable is nil it will be created.
+//If VType is nil:
+//  If the variable is being created it will be assigned the implicit type of the expression
+//  Otherwise the variable will be checked for compatibility with the expressions result type
+procedure AssignSlugToVariable(const Slug: TExprSlug;var Variable: PVariable;
+  VType: TVarType);
+var VarVersion: Integer;
   ILItem: PILItem;
-  VarVersion: Integer;
-  ExprType: TVarType;
-  Slug: TExprSlug;
 begin
-  Slug.Initialise;
-
-  ExprType := VType;
-  Result := ParseExpressionToSlug(Slug, ExprType);
-  if Result <> qeNone then
-    EXIT;
-
   if Variable = nil then
   begin
     if VType = vtUnknown then
@@ -138,7 +124,32 @@ begin
 
   //Overflows for an immediate assignment must be validated by the parser
   if ILItem.Op = OpStoreImm then
-    ILItem.CodeGenFlags := ILItem.CodeGenFlags - [cgOverflowCheck];
+    ILItem.Flags := ILItem.Flags - [cgOverflowCheck];
+end;
+
+//Parses an expression (After the <varname> := has been parsed) and creates IL
+//to assign it to the Variable which has been passed in. VarIndex is the index of
+//the Variable
+//If Variable is nil and VarIndex is -1, creates a new variable, assigning it a
+//type based on the result of the expression. The caller will then need to fill
+//in the variables Name, and any other necessary details.
+//WARNING: When creating and initialising a variable the variable MUST be created
+//*after* the expression has been evaluated. If the variable is created before
+//then it will be possible to reference the variable within the expression which
+//would, of course, be an bug.
+function ParseAssignmentExpr(var Variable: PVariable;VType: TVarType): TQuicheError;
+var
+  ILItem: PILItem;
+  VarVersion: Integer;
+  ExprType: TVarType;
+  Slug: TExprSlug;
+begin
+  ExprType := VType;
+  Result := ParseExpressionToSlug(Slug, ExprType);
+  if Result <> qeNone then
+    EXIT;
+
+  AssignSlugToVariable(Slug, Variable, VType);
 end;
 
 // < boolean-expression> := <expression>
@@ -475,9 +486,15 @@ begin
   NewBlockComment := 'Loop Latch: ' + LoopVarName;
   //Next loopvar
   if ToInc then
-    ILItem := ILAppend(OpAdd)
+    if IsEnumerable(LoopVar.VarType) then
+      ILItem := ILAppend(opSucc)
+    else //Real??
+      ILItem := ILAppend(OpAdd)
   else
-  ILItem := ILAppend(OpSubtract);
+    if IsEnumerable(LoopVar.VarType) then
+      ILItem := ILAppend(opPred)
+    else //Real??
+      ILItem := ILAppend(OpSubtract);
   ILItem.ResultType := LoopVar.VarType;
   ILItem.Param1.SetVarSource(LoopVar);
   //(Uncomment to add Step value)
@@ -510,7 +527,7 @@ begin
   NewBlock := True;
 
   ScopeDecDepth;  //If loop counter was declared take it out of scope
-end;
+end; //----------------------------------------------------------- /FOR
 
 // <if-statement> := IF <boolean-expression> THEN
 //                     <block>
@@ -621,7 +638,7 @@ begin
     else
       PhiWalk(ThenLastIndex, -1, BranchIndex, ThenLastID, BranchID);
   end;
-end;
+end;  //---------------------------------------------------------- IF
 
 //===============================================================
 

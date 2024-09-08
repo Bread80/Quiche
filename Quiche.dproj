@@ -377,6 +377,9 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
+        <DCCReference Include="..\vcl\DUnitX\Source\DUNitX.Loggers.GUIX.pas">
+            <Form>GUIXTestRunner</Form>
+        </DCCReference>
         <DCCReference Include="Main.pas">
             <Form>Form1</Form>
             <FormType>fmx</FormType>
@@ -396,7 +399,7 @@
         <DCCReference Include="Scopes.pas"/>
         <DCCReference Include="ParserFixups.pas"/>
         <DCCReference Include="PrimitivesEx.pas"/>
-        <DCCReference Include="Z80.CodeGen.pas"/>
+        <DCCReference Include="CodeGen.pas"/>
         <DCCReference Include="Eval.pas"/>
         <DCCReference Include="QTypes.pas"/>
         <DCCReference Include="Globals.pas"/>
@@ -412,6 +415,18 @@
         <DCCReference Include="Z80.Optimise.pas"/>
         <DCCReference Include="Z80.CPUState.pas"/>
         <DCCReference Include="Z80.CPU.pas"/>
+        <DCCReference Include="OptionsForm.pas">
+            <Form>Options</Form>
+            <FormType>fmx</FormType>
+        </DCCReference>
+        <DCCReference Include="Z80.CodeGen.pas"/>
+        <DCCReference Include="Z80.LoadStoreMove.pas"/>
+        <DCCReference Include="..\TextEditor\ViewableText.pas"/>
+        <DCCReference Include="Test.Z80.LoadStoreMove.pas"/>
+        <DCCReference Include="Z80.Load.pas"/>
+        <DCCReference Include="Z80.Store.pas"/>
+        <DCCReference Include="Z80.Validation.pas"/>
+        <DCCReference Include="Test.Data.pas"/>
         <None Include="Tests.txt"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>

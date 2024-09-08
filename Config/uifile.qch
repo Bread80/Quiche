@@ -1,8 +1,11 @@
-procedure TXT_OUT_CHAR(Ch: A as Char);call $bb5a;
-
-procedure Reset;rst $00;
+function a(x: integer;y:h as byte;out z: byte): Word;register
+begin
+  Result := x+y
+  z := 100;
+end
 
 begin
-  TXT_OUT_CHAR('X');
-  Reset;
+  var d:Byte=10
+  var dest: Byte
+  var r := a(d,d, dest)
 end.

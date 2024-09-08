@@ -48,7 +48,7 @@ uses
   FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs,
   FMX.Controls.Presentation, FMX.StdCtrls, FMX.ScrollBox, FMX.Memo, FMX.Edit,
   System.Actions, FMX.ActnList, FMX.ListBox, Compiler, FMX.TabControl,
-  TextBrowser, Globals;
+  TextBrowser, Globals, FMX.Menus;
 
 type
   TForm1 = class(TForm)
@@ -63,7 +63,7 @@ type
     Panel4: TPanel;
     StyleBook1: TStyleBook;
     ActionList1: TActionList;
-    Run: TAction;
+    acRun: TAction;
     btnRun: TButton;
     btnTest: TButton;
     cbTests: TComboBox;
@@ -98,27 +98,56 @@ type
     GroupBox2: TGroupBox;
     rbDeclarations: TRadioButton;
     rbCode: TRadioButton;
+    acOptions: TAction;
+    MenuBar1: TMenuBar;
+    MenuItem2: TMenuItem;
+    MenuItem4: TMenuItem;
+    MenuItem3: TMenuItem;
+    cbRangeChecks: TCheckBox;
+    acOpenScratch: TAction;
+    acOpenProject: TAction;
+    acSave: TAction;
+    MenuItem1: TMenuItem;
+    MenuItem5: TMenuItem;
+    MenuItem6: TMenuItem;
+    FileOpenDialog: TOpenDialog;
+    acSaveAs: TAction;
+    acNew: TAction;
+    MenuItem7: TMenuItem;
+    MenuItem8: TMenuItem;
+    FileSaveDialog: TSaveDialog;
     procedure btnInterpretClick(Sender: TObject);
     procedure btnEmulateClick(Sender: TObject);
-    procedure RunExecute(Sender: TObject);
+    procedure acRunExecute(Sender: TObject);
     procedure btnTestClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure cbScopeChange(Sender: TObject);
-    procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure cbPlatformsChange(Sender: TObject);
     procedure cbOverflowChecksChange(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure cbDeployChange(Sender: TObject);
+    procedure acOptionsExecute(Sender: TObject);
+    procedure cbRangeChecksChange(Sender: TObject);
+    procedure acOpenScratchExecute(Sender: TObject);
+    procedure acSaveExecute(Sender: TObject);
+    procedure acOpenProjectExecute(Sender: TObject);
+    procedure acNewExecute(Sender: TObject);
+    procedure acSaveAsExecute(Sender: TObject);
+    procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
   private
     tdSource: TTextBrowser;
+    //True if this window is still being created. Prevents options being autosaved etc.
     Created: Boolean;
     CompilerConfigFilename: String;
-    FEditorFileName: String;
     procedure LoadDeployList;
     procedure LoadTestList;
     function GetBlockType: TBlockType;
     function GetParseType: TParseType;
-    procedure SaveState;
+    procedure UpdateCaption;
+    procedure OpenProject(const Filename: String);
+    procedure SaveConfigFile;
+    //Returns False if the project couldn't be saved for any reason
+    function SaveProject: Boolean;
     procedure DelayedSetFocus(Control: TControl);
   public
     { Public declarations }
@@ -128,13 +157,53 @@ var
   Form1: TForm1;
 
 implementation
-uses IOUtils, Testing;
+uses
+  FMX.DialogService,
+  IOUtils, Testing, OptionsForm,
+  DUnitX.TestFramework,
+  DUnitx.test;
+//  DUnitX.Loggers.GUIX,
+//  DUnitX.Loggers.guix;
 
 {$R *.fmx}
 
 const DeployExt = '.deploy';
 
-procedure TForm1.RunExecute(Sender: TObject);
+  scCaption = 'Quiche Z80 Cross Compiler by @Bread80';
+
+  scScratchFile = 'Config\uifile.qch';
+
+procedure TForm1.acNewExecute(Sender: TObject);
+begin
+  OpenProject('');
+end;
+
+procedure TForm1.acOpenProjectExecute(Sender: TObject);
+begin
+  if FileOpenDialog.Execute then
+  begin
+    OpenProject(FileOpenDialog.FileName);//ullPath + FileOpenDialog.Filename);
+  end;
+end;
+
+procedure TForm1.acOpenScratchExecute(Sender: TObject);
+var Folder: String;
+begin
+  Folder := TPath.GetFullPath(TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), '..\..\'));
+  OpenProject(TPath.Combine(Folder, scScratchFile));
+end;
+
+procedure TForm1.acOptionsExecute(Sender: TObject);
+var Opt: TOptions;
+begin
+  Opt := TOptions.Create(Self);
+  Opt.ShowModal;
+  Opt.Free;
+
+  SaveConfigFile;
+end;
+
+procedure TForm1.acRunExecute(Sender: TObject);
 var Good: Boolean;
 begin
   SaveState;
@@ -182,9 +251,57 @@ begin
   DelayedSetFocus(tdSource);
 end;
 
-procedure TForm1.SaveState;
+procedure TForm1.acSaveAsExecute(Sender: TObject);
 begin
-  tdSource.Text.SaveToFile;
+  if FileSaveDialog.Execute then
+  begin
+    Compiler.Config.IDESettings.ProjectFile := FileSaveDialog.Filename;
+    tdSource.Text.Filename := FileSaveDialog.Filename;
+    SaveProject;
+    SaveState;
+
+    UpdateCaption;
+  end;
+end;
+
+procedure TForm1.acSaveExecute(Sender: TObject);
+begin
+  if Compiler.Config.IDESettings.ProjectFile = '' then
+    acSaveAsExecute(nil)
+  else
+    SaveState;
+end;
+
+procedure TForm1.SaveConfigFile;
+begin
+  Compiler.Config.SaveToFile(CompilerConfigFileName);
+end;
+
+function TForm1.SaveProject: Boolean;
+begin
+  try
+    Result := False;
+    if Compiler.Config.IDESettings.ProjectFile = '' then
+    begin
+      acSaveAsExecute(nil);
+      if Compiler.Config.IDESettings.ProjectFile = '' then
+        EXIT(False);
+    end
+    else
+      tdSource.Text.SaveToFile;
+    Result := True;
+  except
+    on e:Exception do
+      ShowMessage('Error saving project: ' + e.Message);
+  end;
+end;
+
+procedure TForm1.UpdateCaption;
+begin
+  if Compiler.Config.IDESettings.ProjectFile <> '' then
+    Caption := TPath.GetFilename(Compiler.Config.IDESettings.ProjectFile) + ' - ' + scCaption
+  else
+    Caption := '<Untitled> - ' + scCaption;
 end;
 
 procedure TForm1.btnEmulateClick(Sender: TObject);
@@ -240,7 +357,7 @@ procedure TForm1.cbOverflowChecksChange(Sender: TObject);
 begin
   Compiler.Config.OverflowChecks := cbOverflowChecks.IsChecked;
   if Created then
-    Compiler.Config.SaveToFile(CompilerConfigFileName);
+    SaveConfigFile;
 end;
 
 procedure TForm1.cbPlatformsChange(Sender: TObject);
@@ -249,10 +366,17 @@ begin
   begin
     Compiler.Config.PlatformName := cbPlatforms.Items[cbPlatforms.ItemIndex];
     if Created then
-      Compiler.Config.SaveToFile(CompilerConfigFileName);
+      SaveConfigFile;
     LoadDeployList;
     //Set default deployment? From config file?
   end;
+end;
+
+procedure TForm1.cbRangeChecksChange(Sender: TObject);
+begin
+  Compiler.Config.RangeChecks := cbRangeChecks.IsChecked;
+  if Created then
+    SaveConfigFile;
 end;
 
 procedure TForm1.cbScopeChange(Sender: TObject);
@@ -285,9 +409,26 @@ begin
   ).Start;
 end;
 
-procedure TForm1.FormClose(Sender: TObject; var Action: TCloseAction);
+procedure TForm1.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+var LCanClose: Boolean;
 begin
   SaveState;
+
+  if not SaveProject then
+  begin
+    with TDialogService do
+    begin
+      PreferredMode := TPreferredMode.Platform;
+      MessageDialog('Exit without saving?', TMsgDlgType.mtConfirmation,
+      [TMsgDlgBtn.mbYes, TMsgDlgBtn.mbNo], TMsgDlgBtn.mbNo, 0,
+        procedure(const AResult: TModalResult)
+        begin
+          LCanClose := AResult = mrYes
+        end);
+    end;
+
+    CanClose := LCanClose;
+  end;
 end;
 
 procedure TForm1.FormCreate(Sender: TObject);
@@ -314,6 +455,7 @@ begin
   else
     cbPlatforms.ItemIndex := PlatformIndex;
   cbOverflowChecks.IsChecked := Config.OverflowChecks;
+  cbRangeChecks.IsChecked := Config.RangeChecks;
 
   LoadTestList;
 
@@ -321,9 +463,9 @@ begin
   tdSource.Parent := Panel1;
   tdSource.Theme := DarkTheme;
   tdSource.Align := TAlignLayout.Client;
-  FEditorFileName := TPath.Combine(Folder, 'Config\uifile.qch');
-  if TFile.Exists(FEditorFileName) then
-    tdSource.Text.LoadFromFile(FEditorFilename);
+  if FileExists(Compiler.Config.IDESettings.ProjectFile) then
+    OpenProject(Compiler.Config.IDESettings.ProjectFile);
+  UpdateCaption;
 
   DelayedSetFocus(tdSource);
   Created := True;
@@ -391,6 +533,38 @@ begin
     cbTests.Items.Add(TPath.GetFilenameWithoutExtension(Filename));
 
   cbTests.ItemIndex := 0;
+end;
+
+procedure TForm1.OpenProject(const Filename: String);
+begin
+  if Created then
+  begin
+    SaveProject;
+    SaveConfigFile;
+  end;
+
+  if Filename = '' then
+  begin
+    tdSource.Text.acSelectAll;
+    tdSource.Text.acDeleteSelected;
+    tdSource.Text.Filename := Filename;
+  end
+  else if TFile.Exists(FileName) then
+    tdSource.Text.LoadFromFile(Filename)
+  else
+  begin
+    ShowMessage('Failed to open project: ' + Filename);
+    EXIT;
+  end;
+
+  if Created then
+  begin
+    Compiler.Config.IDESettings.ProjectFile := Filename;
+    SaveConfigFile;
+    SaveProject;
+  end;
+
+  UpdateCaption;
 end;
 
 end.

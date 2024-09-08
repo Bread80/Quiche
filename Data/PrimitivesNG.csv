@@ -13,9 +13,9 @@
 ,,,"Where there is an option for Immediate, Indirect, Offset, there *MUST* also be an identical variant which uses Registers. The compiler will fail if this is not the case!",,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,
 ,,,,,,,,,(Empty columns for formatting),,,,,,,,,,,
-;,,----Primitive Selection----,,,,,,----Primitive Data----,,,,,,,,Special validations on type conversion,,,,
-;,Operation,Ltype,Rtype,Commutative,ResultType,Validation,Flags,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,Validate,Int8,Byte,Integer,Word,Notes
-,funccall,Byte,Byte,n,Byte,x,,proccall,,,a;b;c;d;e;h;l;bc;de;hl,a;b;c;d;e;h;l;bc;de;hl,Param1,,,,,,,Placeholder. Data is ignored! (except Proc)
+;,,----Primitive Selection----,,,,,,----Primitive Data----,,,,,,,,Optimised range checks for type conversions,,,,
+;,Operation,Ltype,Rtype,Commutative,ResultType,IfOverflowChecking,Flags,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,OverflowCheck,Int8,Byte,Integer,Word,Notes
+;,funccall,Byte,Byte,n,Byte,x,,proccall,,,a;b;c;d;e;h;l;bc;de;hl,a;b;c;d;e;h;l;bc;de;hl,Param1,,,,,,,Placeholder. Data is ignored! (except Proc)
 ,move,Byte,Byte,n,Byte,x,,empty,,,a;b;c;d;e;h;l;bc;de;hl,a;b;c;d;e;h;l;bc;de;hl,Param1,,,,,,,Placeholder. Data is ignored! (except Proc)
 ,,,,,,,,,,,,,,,,,,,,
 ;,,"StoreImms use a different primitive lookup routine. Only Ltype, Flags and Proc are used.",,,,,,,,,,,,,,,,,,
@@ -38,13 +38,13 @@
 ;,Binary operators,,,,,,,,(Empty columns for formatting),,,,,,,,,,,
 ;,,----Primitive Selection----,,,,,,----Primitive Data----,,,,,,,,Special validations on type conversion,,,,
 ;,Operation,Ltype,Rtype,Commutative,ResultType,Validation,,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,Validate,Int8,Byte,Integer,Word,Notes
-,add,Byte,Byte,y,Byte,x,,add8_reg_imm,,,a,imm,a,a;f,c_overflow,m_overflow,,,,
-,add,Byte,Byte,y,Byte,x,,add8_reg_reg,,,a,a;b;c;d;e;h;l,a,a;f,c_overflow,m_overflow,,,,
-,add,Int8,Int8,y,Int8,x,,add8_reg_imm,,,a,imm,a,a;f,pe_overflow,,m_overflow,,m_overflow,
-,add,Int8,Int8,y,Int8,x,,add8_reg_reg,,,a,a;b;c;d;e;h;l,a,a;f,pe_overflow,,m_overflow,,m_overflow,
-,add,Word,Word,y,Word,y,,add16_overflow,,,hl,hl;de;bc,hl,h;l;f,c_overflow,,,m_overflow,,"Uses ADC HL,ss which does set sign flag"
+,add,Byte,Byte,y,Byte,x,,add8_reg_imm,,,a,imm,a,a;f,c_overflow,m_range,,,,
+,add,Byte,Byte,y,Byte,x,,add8_reg_reg,,,a,a;b;c;d;e;h;l,a,a;f,c_overflow,m_range,,,,
+,add,Int8,Int8,y,Int8,x,,add8_reg_imm,,,a,imm,a,a;f,pe_overflow,,m_range,,m_range,
+,add,Int8,Int8,y,Int8,x,,add8_reg_reg,,,a,a;b;c;d;e;h;l,a,a;f,pe_overflow,,m_range,,m_range,
+,add,Word,Word,y,Word,y,,add16_overflow,,,hl,hl;de;bc,hl,h;l;f,c_overflow,,,m_range,,"Uses ADC HL,ss which does set sign flag"
 ,add,Word,Word,y,Word,x,,add16_nooverflow,,,hl,hl;de;bc,hl,h;l;f,c_overflow,,,,,"Uses ADD HL,ss which doesn't set flags needed for conversions, but is faster"
-,add,Integer,Integer,y,Integer,y,,add16_overflow,,,hl,hl;de;bc,hl,h;l;f,pe_overflow,,,,m_overflow,"Uses ADC HL,ss which sets all flags"
+,add,Integer,Integer,y,Integer,y,,add16_overflow,,,hl,hl;de;bc,hl,h;l;f,pe_overflow,,,,m_range,"Uses ADC HL,ss which sets all flags"
 ,add,Integer,Integer,y,Integer,n,,add16_nooverflow,,,hl,hl;de;bc,hl,h;l;f,,,,,,"Uses ADD HL,ss"
 ,add,Integer,Word,y,Integer,n,,add16_nooverflow,,,hl,hl;de;bc,hl,h;l;f,,,,,,"Uses ADD HL,ss"
 ,add,Integer,Word,y,Word,n,,add16_nooverflow,,,hl,hl;de;bc,hl,h;l;f,,,,,,"Uses ADD HL,ss"
@@ -55,12 +55,12 @@
 ;,add,String,Char,n,String,x,,:concat_string_char,,,hl,a,hl,?,empty,,,,,s+c
 ;,add,String,String,n,String,x,,:concat_string,,,hl,de,hl,?,empty,,,,,s+s
 ,,,,,,,,,,,,,,,,,,,,
-,subtract,Byte,Byte,n,Byte,x,,sub8_reg_imm,,,a,imm,a,a;f,c_overflow,m_overflow,,,,
-,subtract,Byte,Byte,n,Byte,x,,sub8_reg_reg,,,a,a;b;c;d;e;h;l,a,a;f,c_overflow,m_overflow,,,,
-,subtract,Int8,Int8,n,Int8,x,,sub8_reg_imm,,,a,imm,a,a;f,pe_overflow,,m_overflow,,m_overflow,
-,subtract,Int8,Int8,n,Int8,x,,sub8_reg_reg,,,a,a;b;c;d;e;h;l,a,a;f,pe_overflow,,m_overflow,,m_overflow,
-,subtract,Word,Word,n,Word,x,,sub16,,,hl,hl;de;bc,hl,h;l;f,c_overflow,,,m_overflow,,
-,subtract,Integer,Integer,n,Integer,x,,sub16,,,hl,hl;de;bc,hl,h;l;f,pe_overflow,,,,m_overflow,
+,subtract,Byte,Byte,n,Byte,x,,sub8_reg_imm,,,a,imm,a,a;f,c_overflow,m_rangecheck,,,,
+,subtract,Byte,Byte,n,Byte,x,,sub8_reg_reg,,,a,a;b;c;d;e;h;l,a,a;f,c_overflow,m_rangecheck,,,,
+,subtract,Int8,Int8,n,Int8,x,,sub8_reg_imm,,,a,imm,a,a;f,pe_overflow,,m_range,,m_range,
+,subtract,Int8,Int8,n,Int8,x,,sub8_reg_reg,,,a,a;b;c;d;e;h;l,a,a;f,pe_overflow,,m_range,,m_range,
+,subtract,Word,Word,n,Word,x,,sub16,,,hl,hl;de;bc,hl,h;l;f,c_overflow,,,m_range,,
+,subtract,Integer,Integer,n,Integer,x,,sub16,,,hl,hl;de;bc,hl,h;l;f,pe_overflow,,,,m_range,
 ,subtract,Integer,Word,n,Integer,n,,sub16,,,hl,hl;de;bc,hl,h;l;f,,,,,,
 ,subtract,Integer,Word,n,Word,n,,sub16,,,hl,hl;de;bc,hl,h;l;f,,,,,,
 ,subtract,Word,Integer,n,Integer,n,,sub16,,,hl,hl;de;bc,hl,h;l;f,,,,,,
@@ -317,7 +317,7 @@
 ;,,----Primitive Selection----,,,,----Primitive Data----,,,,,,,,,Special validations on type conversion,,,,,
 ;,Operation,Ltype,Rtype,Commutative,ResultType,Validation,,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,Validate,Int8,Byte,Integer,Word,Notes
 ,negate,Int8,none,n,Int8,x,,negate_s8,,,a,,a,a;f,pe_overflow,,,,,
-,negate,Word,none,n,Integer,y,,:negate_u16_with_overflow,,,hl,,hl,h;l;d;e;f,nc_overflow,,nz_overflow,p_overflow,nz_overflow,
+,negate,Word,none,n,Integer,y,,:negate_u16_with_overflow,,,hl,,hl,h;l;d;e;f,nc_overflow,,nz_range,p_range,nz_range,
 ,negate,Word,none,n,Integer,n,,:negate_s16,,,hl,,hl,h;l;a;f,,,,,,
 ,negate,Integer,none,n,Integer,y,,:negate_HL_with_overflow,,,hl,,hl,h;l;a;f,nc_overflow,,,,,
 ,negate,Integer,none,n,Integer,n,,:negate_s16,,,hl,,hl,h;l;a;f,,,,,,
@@ -331,7 +331,7 @@
 ,,,,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,
 ;,Typecasts,,,,,,,,,,,,,,,,,,,
-;,,,,,,,,(Empty columns for formatting),,,,,,,,,,,,
+;,,,,,,,,(Empty columns for formatting),,,,,,,!! 'Empty' here explicitly specifies no checking !!,,,,,
 ;,,----Primitive Selection----,,,,----Primitive Data----,,,,,,,,,Special validations on type conversion,,,,,
 ;,Operation,Ltype,Rtype,Commutative,ResultType,Validation,,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,Validate,Int8,Byte,Integer,Word,Notes
 ,Int8,Int8,none,n,Int8,x,,empty,,,a;b;c;d;e;h;l,,param1,,empty,empty,empty,empty,empty,
@@ -499,36 +499,36 @@
 ,pred,Byte,Byte,n,Byte,n,,proc_dec8_reg,,,a;b;c;d;e;h;l,imm,param1,f,empty,,,,,No overflow checking
 ,pred,Byte,Byte,n,Byte,y,,sub8_reg_imm,,,a,imm,a,a;f,c_overflow,m_overflow,,,,
 ,pred,Int8,Int8,n,Int8,n,,proc_dec8_reg,,,a;b;c;d;e;h;l,imm,param1,f,empty,,,,,No overflow checking
-,pred,Int8,Int8,n,Int8,y,,sub8_reg_imm,,,a,imm,a,a;f,pe_overflow,,m_overflow,,m_overflow,
+,pred,Int8,Int8,n,Int8,y,,sub8_reg_imm,,,a,imm,a,a;f,pe_overflow,,m_range,,m_range,
 ,pred,Word,Integer,n,Word,n,,proc_dec16_reg,,,hl;de;bc,imm,param1,,empty,,,,,No overflow checking
-,pred,Word,Word,n,Word,y,,sub16,,,hl,hl;de;bc,hl,h;l;f,c_overflow,,,m_overflow,,
+,pred,Word,Word,n,Word,y,,sub16,,,hl,hl;de;bc,hl,h;l;f,c_overflow,,,m_range,,
 ,pred,Pointer,Integer,n,Pointer,n,,proc_dec16_reg,,,hl;de;bc,imm,param1,,empty,,,,,No overflow checking
-,pred,Pointer,Word,n,Pointer,y,,sub16,,,hl,hl;de;bc,hl,h;l;f,c_overflow,,,m_overflow,,
+,pred,Pointer,Word,n,Pointer,y,,sub16,,,hl,hl;de;bc,hl,h;l;f,c_overflow,,,m_range,,
 ,pred,Integer,Integer,n,Integer,n,,proc_dec16_reg,,,hl;de;bc,imm,param1,,empty,,,,,No overflow checking
-,pred,Integer,Integer,n,Integer,y,,sub16,,,hl,hl;de;bc,hl,h;l;f,pe_overflow,,,,m_overflow,
+,pred,Integer,Integer,n,Integer,y,,sub16,,,hl,hl;de;bc,hl,h;l;f,pe_overflow,,,,m_range,
 ,pred,Boolean,Integer,n,Boolean,n,,proc_inc8_reg,,,a;b;c;d;e;h;l,imm,param1,f,empty,,,,,No overflow checking
-,pred,Boolean,Byte,n,Boolean,y,,cpla,,,a,imm,a,a;f,c_overflow,m_overflow,,,,TODO: BoolDEC should be INC!! Error if result not $00
+,pred,Boolean,Byte,n,Boolean,y,,cpla,,,a,imm,a,a;f,c_overflow,m_range,,,,TODO: BoolDEC should be INC!! Error if result not $00
 ,pred,Char,Integer,n,Char,n,,proc_dec8_reg,,,a;b;c;d;e;h;l,imm,param1,f,empty,,,,,No overflow checking
-,pred,Char,Byte,n,Char,y,,sub8_reg_imm,,,a,imm,a,a;f,c_overflow,m_overflow,,,,
+,pred,Char,Byte,n,Char,y,,sub8_reg_imm,,,a,imm,a,a;f,c_overflow,m_range,,,,
 ,,,,,,,,,,,,,,,,,,,,
 ;,,----Primitive Selection----,,,,----Primitive Data----,,,,,,,,,Special validations on type conversion,,,,,
 ;,Operation,Ltype,Rtype,Commutative,ResultType,Validation,Flags,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,Validate,Int8,Byte,Integer,Word,Notes
 ,sizeof,Typedef,none,n,Word,x,,,,,hl,,hl,,empty,,,,,Compile time only (until we have variant arrays <g>)
 ,,,,,,,,,,,,,,,,,,,,
 ,succ,Byte,Byte,n,Byte,n,,proc_inc8_reg,,,a;b;c;d;e;h;l,imm,param1,f,empty,,,,,No overflow checking
-,succ,Byte,Byte,n,Byte,y,,add8_reg_imm,,,a,imm,a,a;f,c_overflow,m_overflow,,,,
+,succ,Byte,Byte,n,Byte,y,,add8_reg_imm,,,a,imm,a,a;f,c_overflow,m_range,,,,
 ,succ,Int8,Int8,n,Int8,n,,proc_inc8_reg,,,a;b;c;d;e;h;l,imm,param1,f,empty,,,,,No overflow checking
-,succ,Int8,Int8,n,Int8,y,,add8_reg_imm,,,a,imm,a,a;f,pe_overflow,,m_overflow,,m_overflow,
+,succ,Int8,Int8,n,Int8,y,,add8_reg_imm,,,a,imm,a,a;f,pe_overflow,,m_range,,m_range,
 ,succ,Word,Integer,n,Word,n,,proc_inc16_reg,,,hl;de;bc,imm,param1,,empty,,,,,No overflow checking
-,succ,Word,Word,n,Word,y,,add16_overflow,,,hl,hl;de;bc,hl,h;l;f,c_overflow,,,m_overflow,,
+,succ,Word,Word,n,Word,y,,add16_overflow,,,hl,hl;de;bc,hl,h;l;f,c_overflow,,,m_range,,
 ,succ,Pointer,Integer,n,Pointer,n,,proc_inc16_reg,,,hl;de;bc,imm,param1,,empty,,,,,No overflow checking
-,succ,Pointer,Word,n,Pointer,y,,add16_overflow,,,hl,hl;de;bc,hl,h;l;f,c_overflow,,,m_overflow,,
+,succ,Pointer,Word,n,Pointer,y,,add16_overflow,,,hl,hl;de;bc,hl,h;l;f,c_overflow,,,m_range,,
 ,succ,Integer,Integer,n,Integer,n,,proc_inc16_reg,,,hl;de;bc,imm,param1,,empty,,,,,No overflow checking
-,succ,Integer,Integer,n,Integer,y,,add16_overflow,,,hl,hl;de;bc,hl,h;l;f,pe_overflow,,,,m_overflow,
+,succ,Integer,Integer,n,Integer,y,,add16_overflow,,,hl,hl;de;bc,hl,h;l;f,pe_overflow,,,,m_range,
 ,succ,Boolean,Integer,n,Boolean,n,,proc_dec8_reg,,,a;b;c;d;e;h;l,imm,param1,f,empty,,,,,No overflow checking
-,succ,Boolean,Byte,n,Boolean,y,,cpla,,,a,imm,a,a;f,c_overflow,m_overflow,,,,TODO: BoolINC should be DEC!! Error if result not $ff
+,succ,Boolean,Byte,n,Boolean,y,,cpla,,,a,imm,a,a;f,c_overflow,m_range,,,,TODO: BoolINC should be DEC!! Error if result not $ff
 ,succ,Char,Integer,n,Char,n,,proc_inc8_reg,,,a;b;c;d;e;h;l,imm,param1,f,empty,,,,,No overflow checking
-,succ,Char,Byte,n,Char,y,,add8_reg_imm,,,a,imm,a,a;f,c_overflow,m_overflow,,,,
+,succ,Char,Byte,n,Char,y,,add8_reg_imm,,,a,imm,a,a;f,c_overflow,m_range,,,,
 ,,,,,,,,,,,,,,,,,,,,
 ,swap,Word,none,n,Word,x,,swap_reg_reg,,,hl;de;bc,,Param1,a,empty,,,,,Lreg and ResultReg must be different
 ,swap,Integer,none,n,Integer,x,,swap_reg_reg,,,hl;de;bc,,Param1,a,empty,,,,,Lreg and ResultReg must be different

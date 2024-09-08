@@ -22,7 +22,7 @@
 
 //Platform specific code
 
-//The extern directive imports an assembly subroutine. When the routine is used the
+//The call directive imports an assembly subroutine. When the routine is used the
 //compiler will set up the registers as given in the function template.
 //These are firmware routines for the Amstrad CPC. The capitalisation and underscores
 //are standard Amstrad style for the routine names but Quiche style camel case could also
@@ -30,7 +30,7 @@
 
 //Set the screen mode. We'll use this to initialise the display at startup.
 [Corrupts AF, BC, DE, HL]
-procedure SCR_SET_MODE(Mode: A); extern $bc0e;
+procedure SCR_SET_MODE(Mode: A); call $bc0e;
 
 //Output a character. Note how we've given a type to the parameter. If no type is specified
 //the compiler will assume a Byte or Word depending on a register(s). The compiler will
@@ -39,15 +39,15 @@ procedure SCR_SET_MODE(Mode: A); extern $bc0e;
 //be able to specify complex user-defined types as needed, whether that be arrays, records,
 //enumerations or whatever else.
 [PreservesAll]
-procedure TXT_OUTPUT(Character: A as Char); extern $bb5a;
+procedure TXT_OUTPUT(Character: A as Char); call $bb5a;
 
 //Set the text cursor position. Values are 1-based.
 [Corrupts AF, HL]
-procedure TXT_SET_CURSOR(LogicalColumn: H;LogicalRow: L); extern $bb75;
+procedure TXT_SET_CURSOR(LogicalColumn: H;LogicalRow: L); call $bb75;
 
 //Turn off the text cursor
 [PreservesAll]
-procedure TXT_CUR_OFF; extern $bb84;
+procedure TXT_CUR_OFF; call $bb84;
 
 //The program itself
 

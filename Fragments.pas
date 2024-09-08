@@ -22,7 +22,7 @@ function FragmentParamSub(AName: String;Param: TILParam;const Prefix: String): S
 
 
 implementation
-uses Classes, Generics.Collections, SysUtils, Variables, QTypes, Z80.CPU;
+uses Classes, Generics.Collections, SysUtils, Variables, QTypes, Z80.CPU, CodeGen;
 
 var  FragList: TList<PFragment>;
 
@@ -87,28 +87,9 @@ begin
   end;
 end;
 
-function ByteToStr(Value: Integer): String;
-begin
-  Result := '$' + IntToHex(lo(Value), 2).ToLower
-end;
-
-function WordLoToStr(Value: Integer): String;
-begin
-  Result := '$' + IntToHex(lo(Value), 4).ToLower
-end;
-
 function ImmByte(const Param: TILParam): String;
 begin
-  case Param.Imm.VarType of
-    vtBoolean: Result := ByteToStr(Param.Imm.ToInteger);
-    vtChar:
-      if Param.Imm.CharValue in [#32..#127] then
-        Result := '''' + Param.Imm.CharValue + ''''
-      else
-        Result := ByteToStr(Param.Imm.ToInteger);
-  else
-    Result := Param.Imm.ToString;//ByteToStr(lo(Param.ImmValueInt));
-  end;
+  Result := Param.Imm.ToStringByte;
 end;
 
 function ImmHighByte(const Param: TILParam): String;
@@ -119,15 +100,7 @@ end;
 
 function ImmWord(const Param: TILParam): String;
 begin
-  Result := Param.Imm.ToString;//'$' + IntToHex(Param.ImmValueInt and iCPUWordMask, 4).ToLower;
-end;
-
-function OffsetToStr(Offset: Integer): String;
-begin
-  if Offset < 0 then
-    Result := '-' + ByteToStr(-Offset)
-  else
-    Result := '+' + ByteToStr(Offset);
+  Result := WordToStr(Param.Imm.ToInteger);
 end;
 
 function CodeOffset(const Param: TILParam;out Comment: String): String;

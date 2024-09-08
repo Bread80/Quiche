@@ -11,9 +11,10 @@ const
   BooleanToBinary: array[False..True] of Integer = (valueFalse, valueTrue);
 
   //Runtime errors
-  rerrNone = 0;
-  rerrOverflow = 1;
-  rerrDivByZero = 2;
+  rerrNone      = 0;
+  rerrOverflow  = 1;  //Result of an operation doesn't fit the target
+  rerrDivByZero = 2;  //Divide by zero
+  rerrRange     = 3;  //Array index out of bounds, or assignment out of range
 
   //CompilerOptions
 var
@@ -23,9 +24,19 @@ var
   //allowed the first time the variable is assigned.
   optAllowAutoCreation: Boolean;
 
-  //If enable certain maths operations will be checked for overflow
+  //If enabled the compiler will generate extra code after certain maths operations
+  //the verify the result is within the range for the result type.
+  //Using this options makes the output code larger and slower and should only be
+  //used during debugging
   //Use the {$Q} compiler directive
   optOverflowChecks: Boolean;
+
+  //If enabled the compiler will generate extra code to validate string and array bounds.
+  //Code will also be generated to validate values passed as parameters and operands
+  //for maths etc operators, where the type of the value being passed differs from
+  //that of the parameter or operand in a way which could cause data loss.
+  //Use th {$R} compiler directive
+  optRangeChecks: Boolean;
 
   optDefaultVarStorage: TVarStorage;
 

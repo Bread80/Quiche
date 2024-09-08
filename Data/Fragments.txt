@@ -66,39 +66,6 @@
 =pe_overflow
   jp pe,raise_overflow
 
-;Raise overflow unless all 9 of the high bits are equal.
-;I.e all set or all clear. Used to validate conversion from an 
-;signed 16 bit to signed 8 bit where we can only accept values -$80 to +$7f
-;Used when downsizing signed values
-;Corrupts: a,f
-=high9_neq_overflow
-  ld a,<d.r16low>
-  rla				;Bit 7 of low byte into carry flag
-  ld a,<d.r16high>
-  adc a,0			;$ff + carry set gives $00, $00 + carry clear gives $00
-  jp nz,raise_overflow	;All others overflow
-  
-;Raise an overflow error unless all of the highest nine bits of the
-;destination register pair are zero
-;Invalid if negative or > $7f (1)
-;of > $7f (2)
-;I.e top nine bits must be clear
-;Corrupts: a,f
-=high9_nz_overflow
-  ld a,<d.r16low>
-  and $80			;Mask all but top bit of low byte
-  or <d.r16high>	
-  jp nz,raise_overflow
-  
-;Test if the high byte of the dest is non-zero. If so raise an overflow error
-;Corrupts: a,f 
-=high_nz_overflow
-  ld a,<d.r16high>
-  and a
-  jp nz,raise_overflow
-  
-;Raise overflow if the H register is non-zero
-;Corrupts a,f
 =hreg_nz_overflow
   ld a,h
   and a

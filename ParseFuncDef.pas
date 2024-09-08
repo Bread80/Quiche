@@ -83,7 +83,7 @@ end;
 //  Reg params must be Value, Out or Result
 //  Registers must be unique within a declaration, unless one usage is an input
 //  (value) parameter, and the other is an output (out, result) parameter.
-function ValidateRegParam(Func: PFunction;ParamIndex: Integer;Reg: TParamReg): Boolean;
+function ValidateRegParam(Func: PFunction;ParamIndex: Integer;Reg: TCPUReg): Boolean;
 var Access: TVarAccess;
   IsOutput: Boolean;
   P: Integer;
@@ -130,7 +130,7 @@ end;
 //value (default), out, and result
 function ParseParamType(Func: PFunction;FirstParam, ParamIndex: Integer): TQuicheError;
 var Ident: String;
-  Reg: TParamReg;
+  Reg: TCPUReg;
   VarType: TVarType;
   P: Integer;
 begin
@@ -142,8 +142,8 @@ begin
 
   Parser.SkipWhiteSpaceAll;
   //Is a Z80 register (or flag!) specified?
-  Reg := IdentToParamReg(Ident);
-  if Reg <> prNone then
+  Reg := IdentToCPUReg(Ident);
+  if Reg <> rNone then
   begin
     //Registers have to be unique. So list parameters are an error
     if FirstParam <> ParamIndex then
@@ -160,7 +160,7 @@ begin
         EXIT(ErrSub(qeUnknownType, Ident));
     end
     else //Default types: Reg to Byte, Pair to Word, Flag to Boolean
-      VarType := ParamRegToVarType[Reg]
+      VarType := CPURegToVarType[Reg]
   end
   else
   begin //Not a Reg definition
@@ -302,9 +302,9 @@ begin
   //Validate an extern definition: if one param is register then they all must be
   if Func.ParamCount + Func.ResultCount > 1 then
   begin
-    IsReg := Func.Params[0].Reg <> prNone;
+    IsReg := Func.Params[0].Reg <> rNone;
     for P := 1 to Func.ParamCount + Func.ResultCount-1 do
-      if IsReg <> (Func.Params[P].Reg <> prNone) then
+      if IsReg <> (Func.Params[P].Reg <> rNone) then
         EXIT(ErrMsg(qeFunctionDeclaration, 'Either all parameters must be register parameters, or none'));
   end;
 
@@ -466,6 +466,7 @@ var Keyword: TKeyword;
   LocalStorage: TVarStorage;
   ParamName: String;
   ILItem: PILItem;
+  Param: PILParam;
   Variable: PVariable;
 begin
   //Setup scope for function
@@ -474,6 +475,7 @@ begin
   ParamStorage := Func.GetParamStorage;
   LocalStorage := Func.GetLocalStorage;
 
+  ILItem := nil;
   //Add Parameters to variables list for the function
   for I := Func.ParamCount + Func.ResultCount - 1 downto 0 do
   begin
@@ -483,10 +485,27 @@ begin
       ParamName := Func.Name
     else
       ParamName := Func.Params[I].Name;
-    VarCreateParameter(ParamName, Func.Params[I].VarType, ParamStorage,
+    Variable := VarCreateParameter(ParamName, Func.Params[I].VarType, ParamStorage,
       Func.Params[I].Access);
-    //TODO: For ccRegister calling convention:
-    //  Gen ILCode to save registers to variable storage
+    Variable.FuncParamIndex := I;
+
+(*
+  ***Removed - this needs to be done in the code generator, not in the IL Code generator (us).
+    //For Register calling convention,
+    //generate ILCode to store each register into a temporary variable in memory.
+    //This will (hopefully) be eliminated if the variable can be held in a register.
+    if Func.CallingConvention = ccRegister then
+      if Func.Params[I].Access in [vaVar, vaVal, vaConst] then
+      begin
+        Assert(Func.Params[I].Reg <> rNone, 'No register assigned (for Register calling convention)');
+
+        Param := ILAppendRegStore(ILItem);
+        Param.Kind := pkVarDest;
+        Param.Variable := Variable;
+        Param.VarVersion := Variable.WriteCount;
+        Param.Reg := Func.Params[I].Reg;
+      end;
+*)
   end;
 
   //The function code
@@ -494,22 +513,31 @@ begin
   if Result <> qeNone then
     EXIT;
 
+  //TODO: Move this block to the code generator. Loading of the Result
+  //value becomes an implicit part of the function postamble
   //Process Result/values to be returned
   //If we're a function, load Result into A if 8-bit or DE if 16-bit
-  if Func.ResultCount > 0 then
-  begin
-    ILItem := ILAppend(OpDataLoad);
-    ILItem.Param1.Kind := pkVarSource;
-    Variable := VarFindResult;
-    Assert(Variable <> nil);
-    ILItem.Param1.Variable := Variable;
-    ILItem.Param1.VarVersion := Variable.WriteCount;
-    case GetTypeSize(Variable.VarType) of
-      1: ILItem.Param1.Reg := rA;
-      2: ILItem.Param1.Reg := rDE;
-    else
-      Assert(False, 'Unable to process result type');
-    end;
+  case Func.CallingConvention of
+    ccStack:
+      if Func.ResultCount > 0 then
+      begin
+        ILItem := nil;
+        Param := ILAppendRegLoad(ILItem);
+        Param.Kind := pkVarSource;
+        Variable := VarFindResult;
+        Assert(Variable <> nil);
+        Param.Variable := Variable;
+        Param.VarVersion := Variable.WriteCount;
+        case GetTypeSize(Variable.VarType) of
+          1: Param.Reg := rA;
+          2: Param.Reg := rDE;
+        else
+          Assert(False, 'Unable to process result type');
+        end;
+      end;
+    ccRegister: ; //End of function loads are handled by the code generator
+  else
+    Assert(False);
   end;
 
   //This call generates the output code for the function

@@ -10,17 +10,31 @@ type
 
 type  //Controls accessibility of variables and function parameters
   TVarAccess = (
+    vaNone,   //Parameter not assigned or other error
     vaLocal,  //Local variable
 //    vaGlobal, //Globally stored variable (but only accessible within Scope)
 
     //Function parameters:
     vaVal,    //Passed as a value
+    //TODO: Replace vaVar and vaConst
+    //vaVarByVal, //Only for register calling conventions[1] - value is passed in register and
+                  //new value returned in register
+                  //[1] - We can't use for stack convention because stack is destroyed on exit
+    //vaVarByRef, //Address of value passed
     vaVar,    //Passed as a reference (pointer)
-    vaConst,  //Value cannot be edited (allows larger data structures to be passed by reference)
-//    vaIn,     //Input only
+    //vaConstByVal, //A constant passed as a value (where size <= 2 bytes)
+    //vaConstByRef, //A constant passed by reference (a pointer to the value)
+    vaConst,  //Value cannot be modified (allows larger data structures to be passed by reference)
     vaOut,    //Output only
     vaResult);  //Is a result
 
+const
+  //Access types which represent values parsed into a function
+  VarAccessInputParams = [vaVal, vaVar, vaConst];
+  //Access types which represent values returned from a function
+  VarAccessOutputParams = [vaVar, vaOut, vaResult];
+
+type
   PVariable = ^TVariable;
   TVariable = record
     Name: String;
@@ -36,6 +50,7 @@ type  //Controls accessibility of variables and function parameters
     Offset: Integer;  //If the Storage is:
                       //vsOffset, this is the offset from the stack base address
                       //vsFixed: the offset from the start of the Data segment
+    FuncParamIndex: Integer;  //>= 0 if this is a function parameter, otherwise -1
 
     //Parse and execution time data
     WriteCount: Integer;
@@ -112,6 +127,9 @@ function VarGetParamsByteSize: Integer;
 //--------------Finding/accessing
 //Find a variable by name across all current scopes.
 function VarFindByNameAllScopes(AName: String): PVariable;
+
+//Find in current scope only
+function VarFindByFuncParamIndex(Index: Integer): PVariable;
 
 //Finds the Result variable in the currrent Scope.
 //If there is no result variable, returns nil
@@ -251,6 +269,16 @@ begin
   Result := nil;
 end;
 
+function VarFindByFuncParamIndex(Index: Integer): PVariable;
+var I: Integer;
+begin
+  for I := 0 to Vars.Count-1 do
+    if Vars[I].FuncParamIndex = Index then
+      EXIT(Vars[I]);
+
+  Result := nil;
+end;
+
 function VarFindByNameInScope(AName: String): PVariable;
 var I: Integer;
 begin
@@ -288,6 +316,7 @@ begin
   Result.Depth := GetCurrentScope.Depth;
   Result.InScope := True;
   Result.Storage := Storage;
+  Result.FuncParamIndex := -1;
   Result.WriteCount := 0;
   Result.Touched := False;
   Result.Offset := -1;
@@ -413,7 +442,7 @@ begin
     LName := '_temp' + Vars.IndexOf(@Self).ToString
   else
     LName := Name;
-  Result := 'v_' + Scope.Name + '_' + LName;
+  Result := '_v_' + Scope.Name + '_' + LName;
 end;
 
 function TVariable.IncWriteCount: Integer;

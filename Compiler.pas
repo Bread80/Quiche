@@ -107,7 +107,7 @@ procedure SaveObjectCode(Filename: String);
 
 implementation
 uses SysUtils, IOUtils,
-  Operators, PrimitivesEx, Intrinsics, ILData, Variables, Parse, Z80.CodeGen,
+  Operators, PrimitivesEx, Intrinsics, ILData, Variables, Parse, CodeGen,
   Fragments, ILExec, Shell, Emulator, ParserBase, Functions, Scopes;
 
 //====Errors and return values
@@ -189,7 +189,7 @@ function CodeGenCallback: Boolean;
 var Scope: PScope;
 begin
   Scope := GetCurrentScope;
-  Result := CodeGen(Scope, btDefault);
+  Result := CodeGenBlock(Scope, btDefault);
 end;
 
 procedure LoadFragmentsLibrary(Filename: String);
@@ -201,6 +201,7 @@ procedure DoInitDirectives;
 begin
   optAllowAutoCreation := Config.AllowAutoCreation;
   optOverflowChecks := Config.OverflowChecks;
+  optRangeChecks := Config.RangeChecks;
   optDefaultVarStorage := Config.DefaultVarStorage;
 end;
 
@@ -292,7 +293,7 @@ function DoCodeGen(BlockType: TBlockType): Boolean;
 var Scope: PScope;
 begin
   Scope := GetCurrentScope;
-  Result := CodeGen(Scope, BlockType);
+  Result := CodeGenBlock(Scope, BlockType);
 //  LastErrorNo := Integer(LastError);
 end;
 

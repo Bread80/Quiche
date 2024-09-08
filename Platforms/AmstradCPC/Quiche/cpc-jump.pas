@@ -1,5 +1,7 @@
 //Import file for the Quiche compiler
-//Import for Jump routine fro the Amstrad CPC firmware
+//Import for Jump Restore routine for the Amstrad CPC firmware
+
+//For documentation see https://www.cpcwiki.eu/index.php/BIOS_Functions
 
 [Corrupts AF, BC, DE, HL]
-procedure JUMP_RESTORE; extern $bd37;
+procedure JUMP_RESTORE; call $bd37;

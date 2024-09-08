@@ -1,409 +1,415 @@
-[Corrupts AF, BC, DE, HL]
-procedure KM_INITIALISE; extern $bb00;
+//Import file for the Amstrad CPC firmware
+//This file imports standard routines. See other files to import on a 
+//pack-by-pack basis
+
+//For documentation see https://www.cpcwiki.eu/index.php/BIOS_Functions
 
 [Corrupts AF, BC, DE, HL]
-procedure KM_RESET; extern $bb03;
+procedure KM_INITIALISE; call $bb00;
+
+[Corrupts AF, BC, DE, HL]
+procedure KM_RESET; call $bb03;
 
 [Corrupts F]
-function KM_WAIT_CHAR: A as Char; extern $bb06;
+function KM_WAIT_CHAR: A as Char; call $bb06;
 
 [Corrupts F]
-function KM_READ_CHAR(out Character: A as Char): CF; extern $bb09;
+function KM_READ_CHAR(out Character: A as Char): CF; call $bb09;
 
 [Preserves all]
-procedure KM_CHAR_RETURN(Character: A as Char); extern $bb0c;
+procedure KM_CHAR_RETURN(Character: A as Char); call $bb0c;
 
 [Corrupts A, BC, DE, HL, F]
-function KM_SET_EXPAND(ExpansionToken: B;Length: C;String: HL as Pointer): CF; extern $bb0f;
+function KM_SET_EXPAND(ExpansionToken: B;Length: C;String: HL as Pointer): CF; call $bb0f;
 
 [Corrupts DE, F]
-function KM_GET_EXPAND(ExpansionToken: A;CharacterNumber: L;out Character: A as Char): CF; extern $bb12;
+function KM_GET_EXPAND(ExpansionToken: A;CharacterNumber: L;out Character: A as Char): CF; call $bb12;
 
 [Corrupts A, BC, DE, HL, F]
-function KM_EXP_BUFFER(Buffer: DE as Pointer;Length: HL): CF; extern $bb15;
+function KM_EXP_BUFFER(Buffer: DE as Pointer;Length: HL): CF; call $bb15;
 
 [Corrupts F]
-function KM_WAIT_KEY: A; extern $bb18;
+function KM_WAIT_KEY: A; call $bb18;
 
 [Corrupts F]
-function KM_READ_KEY(out CharacterOrExpansionToken: A): CF; extern $bb1b;
+function KM_READ_KEY(out CharacterOrExpansionToken: A): CF; call $bb1b;
 
 [Corrupts A, HL, F]
-function KM_TEST_KEY(KeyNumber: A;out ShiftAndControl: C): ZF; extern $bb1e;
+function KM_TEST_KEY(KeyNumber: A;out ShiftAndControl: C): ZF; call $bb1e;
 
 [Corrupts AF]
-procedure KM_GET_STATE(out ShiftLock: L;out CapsLock: H); extern $bb21;
+procedure KM_GET_STATE(out ShiftLock: L;out CapsLock: H); call $bb21;
 
 [Corrupts F]
-procedure KM_GET_JOYSTICK(out Joystick0: H;out Joystick1: L;out Joystick0: A); extern $bb24;
+procedure KM_GET_JOYSTICK(out Joystick0: H;out Joystick1: L;out Joystick0: A); call $bb24;
 
 [Corrupts AF, HL]
-procedure KM_SET_TRANSLATE(KeyNumber: A;Translation: B); extern $bb27;
+procedure KM_SET_TRANSLATE(KeyNumber: A;Translation: B); call $bb27;
 
 [Corrupts HL, F]
-function KM_GET_TRANSLATE(KeyNumber: A): A; extern $bb2a;
+function KM_GET_TRANSLATE(KeyNumber: A): A; call $bb2a;
 
 [Corrupts AF, HL]
-procedure KM_SET_SHIFT(KeyNumber: A;Translation: B); extern $bb2d;
+procedure KM_SET_SHIFT(KeyNumber: A;Translation: B); call $bb2d;
 
 [Corrupts HL, F]
-function KM_GET_SHIFT(KeyNumber: A): A; extern $bb30;
+function KM_GET_SHIFT(KeyNumber: A): A; call $bb30;
 
 [Corrupts AF, HL]
-procedure KM_SET_CONTROL(KeyNumber: A;Translation: B); extern $bb33;
+procedure KM_SET_CONTROL(KeyNumber: A;Translation: B); call $bb33;
 
 [Corrupts HL, F]
-function KM_GET_CONTROL(KeyNumber: A): A; extern $bb36;
+function KM_GET_CONTROL(KeyNumber: A): A; call $bb36;
 
 [Corrupts AF, BC, HL]
-procedure KM_SET_REPEAT(Repeat: B;KeyNumber: A); extern $bb39;
+procedure KM_SET_REPEAT(Repeat: B;KeyNumber: A); call $bb39;
 
 [Corrupts A, HL, F]
-function KM_GET_REPEAT(KeyNumber: A): ZF; extern $bb3c;
+function KM_GET_REPEAT(KeyNumber: A): ZF; call $bb3c;
 
 [Corrupts AF]
-procedure KM_SET_DELAY(StartUpDelay: H;RepeatSpeed: L); extern $bb3f;
+procedure KM_SET_DELAY(StartUpDelay: H;RepeatSpeed: L); call $bb3f;
 
 [Corrupts AF]
-procedure KM_GET_DELAY(out StartUpDelay: H;out RepeatSpeed: L); extern $bb42;
+procedure KM_GET_DELAY(out StartUpDelay: H;out RepeatSpeed: L); call $bb42;
 
 [Corrupts AF, BC, DE, HL]
-procedure KM_ARM_BREAKS(BreakEventRoutine: DE as Pointer;ROMSelectAddress: C); extern $bb45;
+procedure KM_ARM_BREAKS(BreakEventRoutine: DE as Pointer;ROMSelectAddress: C); call $bb45;
 
 [Corrupts AF, HL]
-procedure KM_DISARM_BREAK; extern $bb48;
+procedure KM_DISARM_BREAK; call $bb48;
 
 [Corrupts AF, HL]
-procedure KM_BREAK_EVENT; extern $bb4b;
+procedure KM_BREAK_EVENT; call $bb4b;
 
 [Corrupts AF, BC, DE, HL]
-procedure TXT_INITIALISE; extern $bb4e;
+procedure TXT_INITIALISE; call $bb4e;
 
 [Corrupts AF, BC, DE, HL]
-procedure TXT_RESET; extern $bb51;
+procedure TXT_RESET; call $bb51;
 
 [Corrupts AF]
-procedure TXT_VDU_ENABLE; extern $bb54;
+procedure TXT_VDU_ENABLE; call $bb54;
 
 [Corrupts AF]
-procedure TXT_VDU_DISABLE; extern $bb57;
+procedure TXT_VDU_DISABLE; call $bb57;
 
 [Preserves all]
-procedure TXT_OUTPUT(Character: A as Char); extern $bb5a;
+procedure TXT_OUTPUT(Character: A as Char); call $bb5a;
 
 [Corrupts AF, BC, DE, HL]
-procedure TXT_WR_CHAR(Character: A as Char); extern $bb5d;
+procedure TXT_WR_CHAR(Character: A as Char); call $bb5d;
 
 [Corrupts F]
-function TXT_RD_CHAR(out CharacterRead: A): CF; extern $bb60;
+function TXT_RD_CHAR(out CharacterRead: A): CF; call $bb60;
 
 [Corrupts AF]
-procedure TXT_SET_GRAPHIC(On: A); extern $bb63;
+procedure TXT_SET_GRAPHIC(On: A); call $bb63;
 
 [Corrupts AF, BC, DE, HL]
-procedure TXT_WIN_ENABLE(PhysicalColumn: H;PhysicalColumn: D;PhysicalRow: L;PhysicalRow: E); extern $bb66;
+procedure TXT_WIN_ENABLE(PhysicalColumn: H;PhysicalColumn: D;PhysicalRow: L;PhysicalRow: E); call $bb66;
 
 [Corrupts A]
-function TXT_GET_WINDOW(out LeftmostColumn: H;out RightmostColumn: D;out TopmostRow: L;out BottommostRow: E): CF; extern $bb69;
+function TXT_GET_WINDOW(out LeftmostColumn: H;out RightmostColumn: D;out TopmostRow: L;out BottommostRow: E): CF; call $bb69;
 
 [Corrupts AF, BC, DE, HL]
-procedure TXT_CLEAR_WINDOW; extern $bb6c;
+procedure TXT_CLEAR_WINDOW; call $bb6c;
 
 [Corrupts AF, HL]
-procedure TXT_SET_COLUMN(LogicalColumn: A); extern $bb6f;
+procedure TXT_SET_COLUMN(LogicalColumn: A); call $bb6f;
 
 [Corrupts AF, HL]
-procedure TXT_SET_ROW(LogicalRow: A); extern $bb72;
+procedure TXT_SET_ROW(LogicalRow: A); call $bb72;
 
 [Corrupts AF, HL]
-procedure TXT_SET_CURSOR(LogicalColumn: H;LogicalRow: L); extern $bb75;
+procedure TXT_SET_CURSOR(LogicalColumn: H;LogicalRow: L); call $bb75;
 
 [Corrupts F]
-procedure TXT_GET_CURSOR(out LogicalCursorColumn: H;out LogicalCursorRow: L;out RollCount: A); extern $bb78;
+procedure TXT_GET_CURSOR(out LogicalCursorColumn: H;out LogicalCursorRow: L;out RollCount: A); call $bb78;
 
 [Corrupts AF]
-procedure TXT_CUR_ENABLE; extern $bb7b;
+procedure TXT_CUR_ENABLE; call $bb7b;
 
 [Corrupts AF]
-procedure TXT_CUR_DISABLE; extern $bb7e;
+procedure TXT_CUR_DISABLE; call $bb7e;
 
 [Preserves all]
-procedure TXT_CUR_ON; extern $bb81;
+procedure TXT_CUR_ON; call $bb81;
 
 [Preserves all]
-procedure TXT_CUR_OFF; extern $bb84;
+procedure TXT_CUR_OFF; call $bb84;
 
 [Corrupts A, F]
-function TXT_VALIDATE(LogicalColumn: H;LogicalRow: L;out Roll: B;out LogicalColumn: H;out LogicalRow: L): CF; extern $bb87;
+function TXT_VALIDATE(LogicalColumn: H;LogicalRow: L;out Roll: B;out LogicalColumn: H;out LogicalRow: L): CF; call $bb87;
 
 [Corrupts AF]
-procedure TXT_PLACE_CURSOR; extern $bb8a;
+procedure TXT_PLACE_CURSOR; call $bb8a;
 
 [Corrupts AF]
-procedure TXT_REMOVE_CURSOR; extern $bb8d;
+procedure TXT_REMOVE_CURSOR; call $bb8d;
 
 [Corrupts AF, HL]
-procedure TXT_SET_PEN(Ink: A); extern $bb90;
+procedure TXT_SET_PEN(Ink: A); call $bb90;
 
 [Corrupts F]
-function TXT_GET_PEN: A; extern $bb93;
+function TXT_GET_PEN: A; call $bb93;
 
 [Corrupts AF, HL]
-procedure TXT_SET_PAPER(Ink: A); extern $bb96;
+procedure TXT_SET_PAPER(Ink: A); call $bb96;
 
 [Corrupts F]
-function TXT_GET_PAPER: A; extern $bb99;
+function TXT_GET_PAPER: A; call $bb99;
 
 [Corrupts AF, HL]
-procedure TXT_INVERSE; extern $bb9c;
+procedure TXT_INVERSE; call $bb9c;
 
 [Corrupts AF, HL]
-procedure TXT_SET_BACK(Mode: A); extern $bb9f;
+procedure TXT_SET_BACK(Mode: A); call $bb9f;
 
 [Corrupts DE, HL, F]
-function TXT_GET_BACK: A; extern $bba2;
+function TXT_GET_BACK: A; call $bba2;
 
 [Corrupts A, F]
-function TXT_GET_MATRIX(Character: A as Char;out Matrix: HL as Pointer): CF; extern $bba5;
+function TXT_GET_MATRIX(Character: A as Char;out Matrix: HL as Pointer): CF; call $bba5;
 
 [Corrupts A, BC, DE, HL, F]
-function TXT_SET_MATRIX(Character: A as Char;MatrixToSet: HL as Pointer): CF; extern $bba8;
+function TXT_SET_MATRIX(Character: A as Char;MatrixToSet: HL as Pointer): CF; call $bba8;
 
 [Corrupts BC, DE, F]
-function TXT_SET_M_TABLE(FirstCharacter: DE;StartOfTheNewTable: HL as Pointer;out FirstCharacter: A;out OldTable: HL as Pointer): CF; extern $bbab;
+function TXT_SET_M_TABLE(FirstCharacter: DE;StartOfTheNewTable: HL as Pointer;out FirstCharacter: A;out OldTable: HL as Pointer): CF; call $bbab;
 
 [Corrupts F corrupt]
-function TXT_GET_M_TABLE(out FirstCharacter: A;out StartOfTheTable: HL as Pointer): CF; extern $bbae;
+function TXT_GET_M_TABLE(out FirstCharacter: A;out StartOfTheTable: HL as Pointer): CF; call $bbae;
 
 [Preserves all]
-function TXT_GET_CONTROLS: HL as Pointer; extern $bbb1;
+function TXT_GET_CONTROLS: HL as Pointer; call $bbb1;
 
 [Corrupts HL, F]
-function TXT_STR_SELECT(Stream: A): A; extern $bbb4;
+function TXT_STR_SELECT(Stream: A): A; call $bbb4;
 
 [Corrupts AF, BC, DE, HL]
-procedure TXT_SWAP_STREAMS(StreamNumber: B;AnotherStreamNumber: C); extern $bbb7;
+procedure TXT_SWAP_STREAMS(StreamNumber: B;AnotherStreamNumber: C); call $bbb7;
 
 [Corrupts AF, BC, DE, HL]
-procedure GRA_INITIALISE; extern $bbba;
+procedure GRA_INITIALISE; call $bbba;
 
 [Corrupts AF, BC, DE, HL]
-procedure GRA_RESET; extern $bbbd;
+procedure GRA_RESET; call $bbbd;
 
 [Corrupts AF, BC, DE, HL]
-procedure GRA_MOVE_ABSOLUTE(UserXCoordinate: DE;UserYCoordinate: HL); extern $bbc0;
+procedure GRA_MOVE_ABSOLUTE(UserXCoordinate: DE;UserYCoordinate: HL); call $bbc0;
 
 [Corrupts AF, BC, DE andHL]
-procedure GRA_MOVE_RELATIVE(SignedXOffset: DE;SignedYOffset: HL); extern $bbc3;
+procedure GRA_MOVE_RELATIVE(SignedXOffset: DE;SignedYOffset: HL); call $bbc3;
 
 [Corrupts AF]
-procedure GRA_ASK_CURSOR(out UserXCoordinate: DE;out UserYCoordinate: HL); extern $bbc6;
+procedure GRA_ASK_CURSOR(out UserXCoordinate: DE;out UserYCoordinate: HL); call $bbc6;
 
 [Corrupts AF, BC, DE, HL]
-procedure GRA_SET_ORIGIN(StandardXCoordinate: DE;StandardYCoordinate: HL); extern $bbc9;
+procedure GRA_SET_ORIGIN(StandardXCoordinate: DE;StandardYCoordinate: HL); call $bbc9;
 
 [Preserves all]
-procedure GRA_GET_ORIGIN(out StandardXCoordinate: DE;out StandardYCoordinate: HL); extern $bbcc;
+procedure GRA_GET_ORIGIN(out StandardXCoordinate: DE;out StandardYCoordinate: HL); call $bbcc;
 
 [Corrupts AF, BC, DE, HL]
-procedure GRA_WIN_WIDTH(StandardXCoordinate: DE;StandardXCoordinate: HL); extern $bbcf;
+procedure GRA_WIN_WIDTH(StandardXCoordinate: DE;StandardXCoordinate: HL); call $bbcf;
 
 [Corrupts AF, BC, DE, HL]
-procedure GRA_WIN_HEIGHT(StandardYCoordinate: DE;StandardYCoordinate: HL); extern $bbd2;
+procedure GRA_WIN_HEIGHT(StandardYCoordinate: DE;StandardYCoordinate: HL); call $bbd2;
 
 [Corrupts AF]
-procedure GRA_GET_W_WIDTH(out StandardXCoordinate: DE;out StandardXCoordinate: HL); extern $bbd5;
+procedure GRA_GET_W_WIDTH(out StandardXCoordinate: DE;out StandardXCoordinate: HL); call $bbd5;
 
 [Corrupts AF]
-procedure GRA_GET_W_HEIGHT(out StandardYCoordinate: DE;out StandardYCoordinate: HL); extern $bbd8;
+procedure GRA_GET_W_HEIGHT(out StandardYCoordinate: DE;out StandardYCoordinate: HL); call $bbd8;
 
 [Corrupts AF, BC, DE, HL]
-procedure GRA_CLEAR_WINDOW; extern $bbdb;
+procedure GRA_CLEAR_WINDOW; call $bbdb;
 
 [Corrupts AF]
-procedure GRA_SET_PEN(Ink: A); extern $bbde;
+procedure GRA_SET_PEN(Ink: A); call $bbde;
 
 [Corrupts F]
-function GRA_GET_PEN: A; extern $bbe1;
+function GRA_GET_PEN: A; call $bbe1;
 
 [Corrupts AF]
-procedure GRA_SET_PAPER(Ink: A); extern $bbe4;
+procedure GRA_SET_PAPER(Ink: A); call $bbe4;
 
 [Corrupts F]
-function GRA_GET_PAPER: A; extern $bbe7;
+function GRA_GET_PAPER: A; call $bbe7;
 
 [Corrupts AF, BC, DE, HL]
-procedure GRA_PLOT_ABSOLUTE(UserXCoordinate: DE;UserYCoordinate: HL); extern $bbea;
+procedure GRA_PLOT_ABSOLUTE(UserXCoordinate: DE;UserYCoordinate: HL); call $bbea;
 
 [Corrupts AF, BC, DE, HL]
-procedure GRA_PLOT_RELATIVE(SignedXOffset: DE;SignedYOffset: HL); extern $bbed;
+procedure GRA_PLOT_RELATIVE(SignedXOffset: DE;SignedYOffset: HL); call $bbed;
 
 [Corrupts BC, DE, HL, F]
-function GRA_TEST_ABSOLUTE(UserXCoordinate: DE;UserYCoordinate: HL): A; extern $bbf0;
+function GRA_TEST_ABSOLUTE(UserXCoordinate: DE;UserYCoordinate: HL): A; call $bbf0;
 
 [Corrupts BC, DE, HL, F]
-function GRA_TEST_RELATIVE(SignedXOffset: DE;SignedYOffset: HL): A; extern $bbf3;
+function GRA_TEST_RELATIVE(SignedXOffset: DE;SignedYOffset: HL): A; call $bbf3;
 
 [Corrupts AF, BC, DE, HL]
-procedure GRA_LINE_ABSOLUTE(UserXCoordinate: DE;UserYCoordinate: HL); extern $bbf6;
+procedure GRA_LINE_ABSOLUTE(UserXCoordinate: DE;UserYCoordinate: HL); call $bbf6;
 
 [Corrupts AF, BC, DE, HL]
-procedure GRA_LINE_RELATIVE(SignedXOffset: DE;SignedYOffset: HL); extern $bbf9;
+procedure GRA_LINE_RELATIVE(SignedXOffset: DE;SignedYOffset: HL); call $bbf9;
 
 [Corrupts AF, BC, DE, HL]
-procedure GRA_WR_CHAR(Character: A as Char); extern $bbfc;
+procedure GRA_WR_CHAR(Character: A as Char); call $bbfc;
 
 [Corrupts AF, BC, DE, HL]
-procedure SCR_INITIALISE; extern $bbff;
+procedure SCR_INITIALISE; call $bbff;
 
 [Corrupts AF, BC, DE, HL]
-procedure SCR_RESET; extern $bc02;
+procedure SCR_RESET; call $bc02;
 
 [Corrupts AF, HL]
-procedure SCR_SET_OFFSET(Offset: HL); extern $bc05;
+procedure SCR_SET_OFFSET(Offset: HL); call $bc05;
 
 [Corrupts AF, HL]
-procedure SCR_SET_BASE(MoreSignificantByte: A); extern $bc08;
+procedure SCR_SET_BASE(MoreSignificantByte: A); call $bc08;
 
 [Corrupts F]
-procedure SCR_GET_LOCATION(out MoreSignificantByte: A;out Offset: HL); extern $bc0b;
+procedure SCR_GET_LOCATION(out MoreSignificantByte: A;out Offset: HL); call $bc0b;
 
 [Corrupts AF, BC, DE, HL]
-procedure SCR_SET_MODE(Mode: A); extern $bc0e;
+procedure SCR_SET_MODE(Mode: A); call $bc0e;
 
 [Corrupts F]
-function SCR_GET_MODE(out ZeroFalse: ZF;out 0: A): CF; extern $bc11;
+function SCR_GET_MODE(out ZeroFalse: ZF;out 0: A): CF; call $bc11;
 
 [Corrupts AF, BC, DE, HL]
-procedure SCR_CLEAR; extern $bc14;
+procedure SCR_CLEAR; call $bc14;
 
 [Corrupts AF]
-procedure SCR_CHAR_LIMITS(out PhysicalLastColumn: B;out PhysicalLastRow: C); extern $bc17;
+procedure SCR_CHAR_LIMITS(out PhysicalLastColumn: B;out PhysicalLastRow: C); call $bc17;
 
 [Corrupts AF]
-procedure SCR_CHAR_POSITION(PhysicalCharacterColumn: H;PhysicalCharacterRow: L;out TopLeftCornerOfTheCharacter: HL as Pointer;out Width: B); extern $bc1a;
+procedure SCR_CHAR_POSITION(PhysicalCharacterColumn: H;PhysicalCharacterRow: L;out TopLeftCornerOfTheCharacter: HL as Pointer;out Width: B); call $bc1a;
 
 [Corrupts AF, DE]
-procedure SCR_DOT_POSITION(BaseXCoordinate: DE;BaseYCoordinate: HL;out Pixel: HL as Pointer;out Mask: C;out OneLessThanTheNumber: B); extern $bc1d;
+procedure SCR_DOT_POSITION(BaseXCoordinate: DE;BaseYCoordinate: HL;out Pixel: HL as Pointer;out Mask: C;out OneLessThanTheNumber: B); call $bc1d;
 
 [Corrupts AF]
-function SCR_NEXT_BYTE(ScreenAddress: HL as Pointer): HL as Pointer; extern $bc20;
+function SCR_NEXT_BYTE(ScreenAddress: HL as Pointer): HL as Pointer; call $bc20;
 
 [Corrupts AF]
-function SCR_PREV_BYTE(ScreenAddress: HL as Pointer): HL as Pointer; extern $bc23;
+function SCR_PREV_BYTE(ScreenAddress: HL as Pointer): HL as Pointer; call $bc23;
 
 [Corrupts AF]
-function SCR_NEXT_LINE(ScreenAddress: HL as Pointer): HL as Pointer; extern $bc26;
+function SCR_NEXT_LINE(ScreenAddress: HL as Pointer): HL as Pointer; call $bc26;
 
 [Corrupts AF]
-function SCR_PREV_LINE(ScreenAddress: HL as Pointer): HL as Pointer; extern $bc29;
+function SCR_PREV_LINE(ScreenAddress: HL as Pointer): HL as Pointer; call $bc29;
 
 [Corrupts F]
-function SCR_INK_ENCODE(InkNumber: A): A; extern $bc2c;
+function SCR_INK_ENCODE(InkNumber: A): A; call $bc2c;
 
 [Corrupts F]
-function SCR_INK_DECODE(EncodedInk: A): A; extern $bc2f;
+function SCR_INK_DECODE(EncodedInk: A): A; call $bc2f;
 
 [Corrupts AF, BC, DE, HL]
-procedure SCR_SET_INK(InkNumber: A;FirstColour: B;SecondColour: C); extern $bc32;
+procedure SCR_SET_INK(InkNumber: A;FirstColour: B;SecondColour: C); call $bc32;
 
 [Corrupts AF, DE, HL]
-procedure SCR_GET_INK(InkNumber: A;out FirstColour: B;out SecondColour: C); extern $bc35;
+procedure SCR_GET_INK(InkNumber: A;out FirstColour: B;out SecondColour: C); call $bc35;
 
 [Corrupts AF, BC, DE, HL]
-procedure SCR_SET_BORDER(FirstColour: B;SecondColour: C); extern $bc38;
+procedure SCR_SET_BORDER(FirstColour: B;SecondColour: C); call $bc38;
 
 [Corrupts AF, DE, HL]
-procedure SCR_GET_BORDER(out FirstColour: B;out SecondColour: C); extern $bc3b;
+procedure SCR_GET_BORDER(out FirstColour: B;out SecondColour: C); call $bc3b;
 
 [Corrupts AF, HL]
-procedure SCR_SET_FLASHING(Period: H;Period: L); extern $bc3e;
+procedure SCR_SET_FLASHING(Period: H;Period: L); call $bc3e;
 
 [Corrupts AF]
-procedure SCR_GET_FLASHING(out Period: H;out Period: L); extern $bc41;
+procedure SCR_GET_FLASHING(out Period: H;out Period: L); call $bc41;
 
 [Corrupts AF, BC, DE, HL]
-procedure SCR_FILL_BOX(EncodedInk: A;PhysicalLeftColumn: H;PhysicalRightColumn: D;PhysicalTopRow: L;PhysicalBottomRow: E); extern $bc44;
+procedure SCR_FILL_BOX(EncodedInk: A;PhysicalLeftColumn: H;PhysicalRightColumn: D;PhysicalTopRow: L;PhysicalBottomRow: E); call $bc44;
 
 [Corrupts AF, BC, DE, HL]
-procedure SCR_FLOOD_BOX(EncodedInk: C;TopLeftCornerOfTheAreaToFill: HL as Pointer;UnsignedWidth: D;UnsignedHeight: E); extern $bc47;
+procedure SCR_FLOOD_BOX(EncodedInk: C;TopLeftCornerOfTheAreaToFill: HL as Pointer;UnsignedWidth: D;UnsignedHeight: E); call $bc47;
 
 [Corrupts AF, BC, DE, HL]
-procedure SCR_CHAR_INVERT(EncodedInk: B;AnotherEncodedInk: C;PhysicalCharacterColumn: H;PhysicalCharacterRow: L); extern $bc4a;
+procedure SCR_CHAR_INVERT(EncodedInk: B;AnotherEncodedInk: C;PhysicalCharacterColumn: H;PhysicalCharacterRow: L); call $bc4a;
 
 [Corrupts AF, BC, DE, HL]
-procedure SCR_HW_ROLL(Down: B;EncodedInk: A); extern $bc4d;
+procedure SCR_HW_ROLL(Down: B;EncodedInk: A); call $bc4d;
 
 [Corrupts AF, BC, DE, HL]
-procedure SCR_SW_ROLL(Down: B;EncodedInk: A;PhysicalLeftColumn: H;PhysicalRightColumn: D;PhysicalTopRow: L;PhysicalBottomRow: E); extern $bc50;
+procedure SCR_SW_ROLL(Down: B;EncodedInk: A;PhysicalLeftColumn: H;PhysicalRightColumn: D;PhysicalTopRow: L;PhysicalBottomRow: E); call $bc50;
 
 [Corrupts AF, BC, DE, HL]
-procedure SCR_UNPACK(Matrix: HL as Pointer;AreaToUnpackInto: DE as Pointer); extern $bc53;
+procedure SCR_UNPACK(Matrix: HL as Pointer;AreaToUnpackInto: DE as Pointer); call $bc53;
 
 [Corrupts AF, BC, DE, HL]
-procedure SCR_REPACK(EncodedInk: A;PhysicalCharacterColumn: H;PhysicalCharacterRow: L;AreaToConstructTheMatrixIn: DE as Pointer); extern $bc56;
+procedure SCR_REPACK(EncodedInk: A;PhysicalCharacterColumn: H;PhysicalCharacterRow: L;AreaToConstructTheMatrixIn: DE as Pointer); call $bc56;
 
 [Corrupts AF, BC, DE, HL]
-procedure SCR_ACCESS(WriteMode: A); extern $bc59;
+procedure SCR_ACCESS(WriteMode: A); call $bc59;
 
 [Corrupts AF]
-procedure SCR_PIXELS(EncodedInk: B;Mask: C;PixelS: HL as Pointer); extern $bc5c;
+procedure SCR_PIXELS(EncodedInk: B;Mask: C;PixelS: HL as Pointer); call $bc5c;
 
 [Corrupts AF, BC, DE, HL]
-procedure SCR_HORIZONTAL(EncodedInk: A;BaseXCoordinate: DE;BaseXCoordinate: BC;BaseYCoordinate: HL); extern $bc5f;
+procedure SCR_HORIZONTAL(EncodedInk: A;BaseXCoordinate: DE;BaseXCoordinate: BC;BaseYCoordinate: HL); call $bc5f;
 
 [Corrupts AF, BC, DE, HL]
-procedure SCR_VERTICAL(EncodedInk: A;BaseXCoordinate: DE;BaseYCoordinate: HL;BaseYCoordinate: BC); extern $bc62;
+procedure SCR_VERTICAL(EncodedInk: A;BaseXCoordinate: DE;BaseYCoordinate: HL;BaseYCoordinate: BC); call $bc62;
 
 [Corrupts AF, BC, DE, HL]
-procedure CAS_INITIALISE; extern $bc65;
+procedure CAS_INITIALISE; call $bc65;
 
 [Corrupts AF, HL]
-procedure CAS_SET_SPEED(Length: HL;Precompensation: A); extern $bc68;
+procedure CAS_SET_SPEED(Length: HL;Precompensation: A); call $bc68;
 
 [Corrupts AF]
-procedure CAS_NOISY(Enabled: A); extern $bc6b;
+procedure CAS_NOISY(Enabled: A); call $bc6b;
 
 [Corrupts F]
-function CAS_START_MOTOR(out PreviousMotor: A): CF; extern $bc6e;
+function CAS_START_MOTOR(out PreviousMotor: A): CF; call $bc6e;
 
 [Corrupts F]
-function CAS_STOP_MOTOR(out PreviousMotor: A): CF; extern $bc71;
+function CAS_STOP_MOTOR(out PreviousMotor: A): CF; call $bc71;
 
 [Corrupts A, F]
-function CAS_RESTORE_MOTOR(PreviousMotor: A): CF; extern $bc74;
+function CAS_RESTORE_MOTOR(PreviousMotor: A): CF; call $bc74;
 
 ERROR in line: In V1.1: A contains an error number (#0E)
 ERROR in line: In V1.1: A contains an error number(#00)
 [Corrupts IX, F All other registers preserved]
-function CAS_IN_OPEN(Length: B;Filename: HL as Pointer;2KBufferToUse: DE as Pointer;out ZeroFalse: ZF;out BufferContainingTheFileHeader: HL as Pointer;out DataLocationFromTheHeader: DE;out LogicalFileLengthFromTheHeader: BC;out FileTypeFromTheHeader: A): CF; extern $bc77;
+function CAS_IN_OPEN(Length: B;Filename: HL as Pointer;2KBufferToUse: DE as Pointer;out ZeroFalse: ZF;out BufferContainingTheFileHeader: HL as Pointer;out DataLocationFromTheHeader: DE;out LogicalFileLengthFromTheHeader: BC;out FileTypeFromTheHeader: A): CF; call $bc77;
 
 ERROR in line: In V1.1: A containsaerrornumber(#0E)
 [Corrupts BC, DE, HL, F]
-function CAS_IN_CLOSE: CF; extern $bc7a;
+function CAS_IN_CLOSE: CF; call $bc7a;
 
 [Corrupts AF, BC, DE, HL]
-procedure CAS_IN_ABANDON; extern $bc7d;
+procedure CAS_IN_ABANDON; call $bc7d;
 
 ERROR in line: In V1.1: A contains an error number(#0E or #0F)
 ERROR in line: In V1.1: A contains an error number(#00)
 ERROR in line: In V1.0: Acorrupt
 [Corrupts IX, F]
-function CAS_IN_CHAR(out ZeroFalse: ZF;out CharacterReadFromTheFile: A): CF; extern $bc8o;
+function CAS_IN_CHAR(out ZeroFalse: ZF;out CharacterReadFromTheFile: A): CF; call $bc8o;
 
 ERROR in line: In V1.1: A contains an errornumber(#OE)
 ERROR in line: In V1.0: Acorrupt
 ERROR in line: In V1.1: A contains an error number(#00)
 [Corrupts BC, DE, IX, F]
-function CAS_IN_DIRECT(Address: HL as Pointer;out ZeroFalse: ZF;out EntryAddressFromTheHeader: HL as Pointer): CF; extern $bc83;
+function CAS_IN_DIRECT(Address: HL as Pointer;out ZeroFalse: ZF;out EntryAddressFromTheHeader: HL as Pointer): CF; call $bc83;
 
 [Preserves all]
-procedure CAS_RETURN; extern $bc86;
+procedure CAS_RETURN; call $bc86;
 
 ERROR in line: In V1.1: A contains an error number(#0E or #0F)
 ERROR in line: In V1.1: A contains a error number(#00)
 [Corrupts IX, F]
-function CAS_TEST_EOF(out ZeroFalse: ZF): CF; extern $bc89;
+function CAS_TEST_EOF(out ZeroFalse: ZF): CF; call $bc89;
 
 ERROR in line: In V1.1: A contains an error number(#00)
 ERROR in line: In V1.0: Acorrupt
@@ -411,390 +417,390 @@ ERROR in line: In V1.i: A contains an error number(#OE),
 ERROR in line: InVi.0: Acorrupt
 ERROR in line: written to each file block
 [Corrupts BC, DE, IX, F]
-function CAS_OUT_OPEN(Length: B;Filename: HL as Pointer;2KBufferToUse: DE as Pointer;out ZeroTrue: ZF;out BufferContainingTheHeaderThatWillBe: HL as Pointer): CF; extern $bc8c;
+function CAS_OUT_OPEN(Length: B;Filename: HL as Pointer;2KBufferToUse: DE as Pointer;out ZeroTrue: ZF;out BufferContainingTheHeaderThatWillBe: HL as Pointer): CF; call $bc8c;
 
 ERROR in line: In V1.1: A contains an error number(#OE)
 ERROR in line: In Vl.0: Acorrupt. If the user hit escape:
 ERROR in line: In V1.1: A contains an errornumber(#00)
 ERROR in line: In V1.0: Acorrupt
 [Corrupts BC, DE, HL, IX, F]
-function CAS_OUT_CLOSE(out ZeroFalse: ZF): CF; extern $bc8f;
+function CAS_OUT_CLOSE(out ZeroFalse: ZF): CF; call $bc8f;
 
 [Corrupts AF, BC, DE, HL]
-procedure CAS_OUT_ABANDON; extern $bc92;
+procedure CAS_OUT_ABANDON; call $bc92;
 
 ERROR in line: In V1.1: A contains an error number(#OE)
 ERROR in line: In V1.0: Acorrupt. If the user hit escape:
 ERROR in line: In V1.1: A contains an error number(#00)
 ERROR in line: In V1.0: Acorrupt
 [Corrupts A, IX, F]
-function CAS_OUT_CHAR(Character: A as Char;out ZeroFalse: ZF): CF; extern $bc95;
+function CAS_OUT_CHAR(Character: A as Char;out ZeroFalse: ZF): CF; call $bc95;
 
 ERROR in line: In V1.1: A contains in error number(#OE)
 ERROR in line: In V1.0: Acorrupt. If the user hit escape:
 ERROR in line: In V1.1: A contains a error number(#00)
 ERROR in line: In V1.0: Acorrupt
 [Corrupts BC, DE, HL, IX, F]
-function CAS_OUT_DIRECT(DataToWrite: HL as Pointer;Length: DE;EntryAddressToGoIntoTheHeader: BC as Pointer;FileTypeToGoIntoTheHeader: A;out ZeroFalse: ZF): CF; extern $bc98;
+function CAS_OUT_DIRECT(DataToWrite: HL as Pointer;Length: DE;EntryAddressToGoIntoTheHeader: BC as Pointer;FileTypeToGoIntoTheHeader: A;out ZeroFalse: ZF): CF; call $bc98;
 
 ERROR in line: In V1.1: A contains an error number (#0E)
 [Corrupts BC ,DE, HL, IX, F]
-function CAS_CATALOG(2KBufferToUse: DE as Pointer;out ZeroFalse: ZF): CF; extern $bc9b;
+function CAS_CATALOG(2KBufferToUse: DE as Pointer;out ZeroFalse: ZF): CF; call $bc9b;
 
 [Corrupts BC, DE, HL, IX]
-function CAS_WRITE(DataToWrite: HL as Pointer;Length: DE;SyncCharacter: A;out ErrorCode: A): CF; extern $bc9e;
+function CAS_WRITE(DataToWrite: HL as Pointer;Length: DE;SyncCharacter: A;out ErrorCode: A): CF; call $bc9e;
 
 [Corrupts BC, DE, HL, IX, F]
-function CAS_READ(Address: HL as Pointer;Length: DE;SyncCharacterExpected: A;out ErrorCode: A): CF; extern $bca1;
+function CAS_READ(Address: HL as Pointer;Length: DE;SyncCharacterExpected: A;out ErrorCode: A): CF; call $bca1;
 
 [Corrupts BC, DE, HL, IX, F]
-function CAS_CHECK(DataToCheck: HL as Pointer;Length: DE;SyncCharacterExpected: A;out ErrorCode: A): CF; extern $bca4;
+function CAS_CHECK(DataToCheck: HL as Pointer;Length: DE;SyncCharacterExpected: A;out ErrorCode: A): CF; call $bca4;
 
 [Corrupts AF, BC, DE, HL]
-procedure SOUND_RESET; extern $bca7;
+procedure SOUND_RESET; call $bca7;
 
 [Corrupts A, BC, DE, IX, F]
-function SOUND_QUEUE(SoundProgramWhichMustLieInTheCentral32KOfRAM: HL as Pointer): CF; extern $bcaa;
+function SOUND_QUEUE(SoundProgramWhichMustLieInTheCentral32KOfRAM: HL as Pointer): CF; call $bcaa;
 
 [Corrupts BC, DE, HL, F]
-function SOUND_CHECK(Bit: A): A; extern $bcad;
+function SOUND_CHECK(Bit: A): A; call $bcad;
 
 [Corrupts AF, BC, DE, HL]
-procedure SOUND_ARM_EVENT(Bit: A;EventBlock: HL as Pointer); extern $bcb0;
+procedure SOUND_ARM_EVENT(Bit: A;EventBlock: HL as Pointer); call $bcb0;
 
 [Corrupts AF, BC, DE, HL, IX]
-procedure SOUND_RELEASE(Bits: A); extern $bcb3;
+procedure SOUND_RELEASE(Bits: A); call $bcb3;
 
 [Corrupts A, BC, HL, F]
-function SOUND_HOLD: CF; extern $bcb6;
+function SOUND_HOLD: CF; call $bcb6;
 
 [Corrupts AF, BC, DE, IX]
-procedure SOUND_CONTINUE; extern $bcb9;
+procedure SOUND_CONTINUE; call $bcb9;
 
 [Corrupts DE, F]
-function SOUND_AMPL_ENVELOPE(EnvelopeNumber: A;AmplitudeDataBlock: HL as Pointer;out DataBlock16: HL as Pointer): CF; extern $bcbc;
+function SOUND_AMPL_ENVELOPE(EnvelopeNumber: A;AmplitudeDataBlock: HL as Pointer;out DataBlock16: HL as Pointer): CF; call $bcbc;
 
 [Corrupts DE, F]
-function SOUND_TONE_ENVELOPE(EnvelopeNumber: A;ToneDataBlock: HL as Pointer;out DataBlock16: HL as Pointer): CF; extern $bcbf;
+function SOUND_TONE_ENVELOPE(EnvelopeNumber: A;ToneDataBlock: HL as Pointer;out DataBlock16: HL as Pointer): CF; call $bcbf;
 
 [Corrupts A, F]
-function SOUND_A_ADDRESS(EnvelopeNumber: A;out AmplitudeEnvelope: HL as Pointer;out Length: BC): CF; extern $bcc2;
+function SOUND_A_ADDRESS(EnvelopeNumber: A;out AmplitudeEnvelope: HL as Pointer;out Length: BC): CF; call $bcc2;
 
 [Corrupts A, F]
-function SOUND_T_ADDRESS(EnvelopeNumber: A;out ToneEnvelope: HL as Pointer;out Length: BC): CF; extern $bcc5;
+function SOUND_T_ADDRESS(EnvelopeNumber: A;out ToneEnvelope: HL as Pointer;out Length: BC): CF; call $bcc5;
 
 [Corrupts AF, HL]
-procedure KL_CHOKE_OFF(out ForegroundROMIfAny: B;out Address: DE as Pointer;out ROMSelectAddress: C); extern $bcc8;
+procedure KL_CHOKE_OFF(out ForegroundROMIfAny: B;out Address: DE as Pointer;out ROMSelectAddress: C); call $bcc8;
 
 [Corrupts AF, BC]
-procedure KL_ROM_WALK(FirstUsableByteOfMemoryLowestAddress: DE as Pointer;LastUsableByteOfMemoryHighestAddress: HL as Pointer;out FirstUsableByteOfMemory: DE as Pointer;out LastUsableByteOfMemory: HL as Pointer); extern $bccb;
+procedure KL_ROM_WALK(FirstUsableByteOfMemoryLowestAddress: DE as Pointer;LastUsableByteOfMemoryHighestAddress: HL as Pointer;out FirstUsableByteOfMemory: DE as Pointer;out LastUsableByteOfMemory: HL as Pointer); call $bccb;
 
 [Corrupts AF, B]
-procedure KL_INIT_BACK(ROMToInitialize: C;FirstUsableByteOfMemoryLowestAddress: DE as Pointer;LastUsableByteOfMemoryHighestAddress: HL as Pointer;out FirstUsableByteOfMemory: DE as Pointer;out LastUsableByteOfMemory: HL as Pointer); extern $bcce;
+procedure KL_INIT_BACK(ROMToInitialize: C;FirstUsableByteOfMemoryLowestAddress: DE as Pointer;LastUsableByteOfMemoryHighestAddress: HL as Pointer;out FirstUsableByteOfMemory: DE as Pointer;out LastUsableByteOfMemory: HL as Pointer); call $bcce;
 
 [Corrupts DE]
-procedure KL_LOG_EXT(RSXSCommandTable: BC as Pointer;4ByteAreaOfRAMForTheKernelSUse: HL as Pointer); extern $bcd1;
+procedure KL_LOG_EXT(RSXSCommandTable: BC as Pointer;4ByteAreaOfRAMForTheKernelSUse: HL as Pointer); call $bcd1;
 
 [Corrupts A, B, DE]
-function KL_FIND_COMMAND(CommandNameToSearchFor: HL as Pointer;out ROMSelectAddress: C;out Routine: HL as Pointer): CF; extern $bcd4;
+function KL_FIND_COMMAND(CommandNameToSearchFor: HL as Pointer;out ROMSelectAddress: C;out Routine: HL as Pointer): CF; call $bcd4;
 
 [Corrupts AF, DE, HL]
-procedure KL_NEW_FRAME_FLY(FrameFlybackBlock: HL as Pointer;EventClass: B;EventRoutine: C;EventRoutine: DE as Pointer); extern $bcd7;
+procedure KL_NEW_FRAME_FLY(FrameFlybackBlock: HL as Pointer;EventClass: B;EventRoutine: C;EventRoutine: DE as Pointer); call $bcd7;
 
 [Corrupts AF, DE, HL]
-procedure KL_ADD_FRAME_FLY(FrameFlybackBlock: HL as Pointer); extern $bcda;
+procedure KL_ADD_FRAME_FLY(FrameFlybackBlock: HL as Pointer); call $bcda;
 
 [Corrupts AF, DE, HL]
-procedure KL_DEL_FRAME_FLY(FrameFlybackBlock: HL as Pointer); extern $bcdd;
+procedure KL_DEL_FRAME_FLY(FrameFlybackBlock: HL as Pointer); call $bcdd;
 
 [Corrupts AF, DE, HL]
-procedure KL_NEW_FAST_TICKER(FastTickerBlock: HL as Pointer;EventClass: B;EventRoutine: C;EventRoutine: DE as Pointer); extern $bceo;
+procedure KL_NEW_FAST_TICKER(FastTickerBlock: HL as Pointer;EventClass: B;EventRoutine: C;EventRoutine: DE as Pointer); call $bceo;
 
 [Corrupts AF, DE, HL]
-procedure KL_ADD_FAST_TICKER(FastTickerBlock: HL as Pointer); extern $bce3;
+procedure KL_ADD_FAST_TICKER(FastTickerBlock: HL as Pointer); call $bce3;
 
 [Corrupts AF, DE, ilL]
-procedure KL_DEL_FAST_TICKER(FastTickerBlock: HL as Pointer); extern $bce6;
+procedure KL_DEL_FAST_TICKER(FastTickerBlock: HL as Pointer); call $bce6;
 
 [Corrupts AF, BC, DE, HL]
-procedure KL_ADD_TICKER(TickBlock: HL as Pointer;InitialValue: DE;Value: BC); extern $bce9;
+procedure KL_ADD_TICKER(TickBlock: HL as Pointer;InitialValue: DE;Value: BC); call $bce9;
 
 [Corrupts A, HL, F]
-function KL_DEL_TICKER(TickBlock: HL as Pointer;out CountRemainingBeforeTheNextEvent: DE): CF; extern $bcec;
+function KL_DEL_TICKER(TickBlock: HL as Pointer;out CountRemainingBeforeTheNextEvent: DE): CF; call $bcec;
 
 [Preserves all]
-function KL_INIT_EVENT(EventBlock: HL as Pointer;EventClass: B;EventRoutine: C;EventRoutine: DE as Pointer): HL as Pointer; extern $bcef;
+function KL_INIT_EVENT(EventBlock: HL as Pointer;EventClass: B;EventRoutine: C;EventRoutine: DE as Pointer): HL as Pointer; call $bcef;
 
 [Corrupts AF, BC, DE, HL]
-procedure KL_EVENT(EventBlock: HL as Pointer); extern $bcf2;
+procedure KL_EVENT(EventBlock: HL as Pointer); call $bcf2;
 
 [Corrupts AF, HL]
-procedure KL_SYNC_RESET; extern $bcf5;
+procedure KL_SYNC_RESET; call $bcf5;
 
 [Corrupts AF, BC, DE, HL]
-procedure KL_DEL_SYNCHRONOUS(EventBlock: HL as Pointer); extern $bcf8;
+procedure KL_DEL_SYNCHRONOUS(EventBlock: HL as Pointer); call $bcf8;
 
 [Corrupts DE]
-function KL_NEXT_SYNC(out EventBlock: HL as Pointer;out PreviousEventPriorityIfAny: A): CF; extern $bcfb;
+function KL_NEXT_SYNC(out EventBlock: HL as Pointer;out PreviousEventPriorityIfAny: A): CF; call $bcfb;
 
 [Corrupts AF, BC, DE, HL]
-procedure KL_DO_SYNC(EventBlock: HL as Pointer); extern $bcfe;
+procedure KL_DO_SYNC(EventBlock: HL as Pointer); call $bcfe;
 
 [Corrupts AF, BC, DE, HL corrupt]
-procedure KL_DONE_SYNC(PreviousEventPriority: A;EventBlock: HL as Pointer); extern $bd01;
+procedure KL_DONE_SYNC(PreviousEventPriority: A;EventBlock: HL as Pointer); call $bd01;
 
 [Corrupts HL]
-procedure KL_EVENT_DISABLE; extern $bd04;
+procedure KL_EVENT_DISABLE; call $bd04;
 
 [Corrupts HL]
-procedure KL_EVENT_ENABLE; extern $bd07;
+procedure KL_EVENT_ENABLE; call $bd07;
 
 [Corrupts AF]
-procedure KL_DISARM_EVENT(EventBlock: HL as Pointer); extern $bd0a;
+procedure KL_DISARM_EVENT(EventBlock: HL as Pointer); call $bd0a;
 
 ERROR in line: DEHL contains the four byte count (D contains the most significant byte and L
 ERROR in line: the least significant byte)
 [Preserves all]
-procedure KL_TIME_PLEASE; extern $bd0d;
+procedure KL_TIME_PLEASE; call $bd0d;
 
 ERROR in line: DEHL contains the four byte count to set (D contains the most significant byte
 ERROR in line: and L the least significant byte)
 [Corrupts AF]
-procedure KL_TIME_SET; extern $bd10;
+procedure KL_TIME_SET; call $bd10;
 
 ERROR in line: Does not exit!
 [Preserves all]
-procedure MC_BOOT_PROGRAM(RoutineToCallToLoadTheProgram: HL as Pointer); extern $bd13;
+procedure MC_BOOT_PROGRAM(RoutineToCallToLoadTheProgram: HL as Pointer); call $bd13;
 
 ERROR in line: Never exits!
 [Preserves all]
-procedure MC_START_PROGRAM(EntryPointAddress: HL as Pointer;ROMSelection: C); extern $bd16;
+procedure MC_START_PROGRAM(EntryPointAddress: HL as Pointer;ROMSelection: C); call $bd16;
 
 [Preserves all]
-procedure MC_WAIT_FLYBACK; extern $bd19;
+procedure MC_WAIT_FLYBACK; call $bd19;
 
 [Corrupts AF]
-procedure MC_SET_MODE(Mode: A); extern $bd1c;
+procedure MC_SET_MODE(Mode: A); call $bd1c;
 
 [Corrupts AF]
-procedure MC_SCREEN_OFFSET(ScreenBase: A;ScreenOffset: HL); extern $bd1f;
+procedure MC_SCREEN_OFFSET(ScreenBase: A;ScreenOffset: HL); call $bd1f;
 
 [Corrupts AF]
-procedure MC_CLEAR_INKS(InkVector: DE as Pointer); extern $bd22;
+procedure MC_CLEAR_INKS(InkVector: DE as Pointer); call $bd22;
 
 [Corrupts AF]
-procedure MC_SET_INKS(InkVector: DE as Pointer); extern $bd25;
+procedure MC_SET_INKS(InkVector: DE as Pointer); call $bd25;
 
 [Corrupts AF, BC, DE, HL]
-procedure MC_RESET_PRINTER; extern $bd28;
+procedure MC_RESET_PRINTER; call $bd28;
 
 [Corrupts A, F]
-function MC_PRINT_CHAR(Character: A as Char): CF; extern $bd2b;
+function MC_PRINT_CHAR(Character: A as Char): CF; call $bd2b;
 
 [Corrupts F]
-function MC_BUSY_PRINTER: CF; extern $bd2e;
+function MC_BUSY_PRINTER: CF; call $bd2e;
 
 [Corrupts A, F]
-procedure MC_SEND_PRINTER(Character: A as Char); extern $bd31;
+procedure MC_SEND_PRINTER(Character: A as Char); call $bd31;
 
 [Corrupts AF, BC]
-procedure MC_SOUND_REGISTER(SoundChipRegisterNumber: A;Data: C); extern $bd34;
+procedure MC_SOUND_REGISTER(SoundChipRegisterNumber: A;Data: C); call $bd34;
 
 [Corrupts AF, BC. DE, HL]
-procedure JUMP_RESTORE; extern $bd37;
+procedure JUMP_RESTORE; call $bd37;
 
 [Corrupts AF]
-procedure KM_SET_LOCKS(CapsLock: H;ShiftLock: L); extern $bd3a;
+procedure KM_SET_LOCKS(CapsLock: H;ShiftLock: L); call $bd3a;
 
 [Corrupts AF]
-procedure KM_FLUSH; extern $bd3d;
+procedure KM_FLUSH; call $bd3d;
 
 [Corrupts F]
-function TXT_ASK_STATE: A; extern $bd40;
+function TXT_ASK_STATE: A; call $bd40;
 
 [Corrupts AF, BC, DE, ilL]
-procedure GRA_DEFAULT; extern $bd43;
+procedure GRA_DEFAULT; call $bd43;
 
 [Preserves all]
-procedure GRA_SET_BACK(Mode: A); extern $bd46;
+procedure GRA_SET_BACK(Mode: A); call $bd46;
 
 [Preserves all]
-procedure GRA_SET_FIRST(Zero: A); extern $bd49;
+procedure GRA_SET_FIRST(Zero: A); call $bd49;
 
 [Preserves all]
-procedure GRA_SET_LINE_MASK(LineMask: A); extern $bd4c;
+procedure GRA_SET_LINE_MASK(LineMask: A); call $bd4c;
 
 [Corrupts AF]
-procedure GRA_FROM_USER(UserXCoordinate: DE;UserYCoordinate: HL;out BaseXCoordinate: DE;out BaseYCoordinate: HL); extern $bd4f;
+procedure GRA_FROM_USER(UserXCoordinate: DE;UserYCoordinate: HL;out BaseXCoordinate: DE;out BaseYCoordinate: HL); call $bd4f;
 
 [Corrupts A, BC, DE, HL, F]
-function GRA_FILL(UnencodedInk: A;Buffer: HL as Pointer;Length: DE): CF; extern $bd52;
+function GRA_FILL(UnencodedInk: A;Buffer: HL as Pointer;Length: DE): CF; call $bd52;
 
 [Corrupts F]
-procedure SCR_SET_POSITION(ScreenBase: A;ScreenOffset: HL;out ScreenBaseMaskedAsRequired: A;out ScreenOffsetMaskedAsRequired: HL); extern $bd55;
+procedure SCR_SET_POSITION(ScreenBase: A;ScreenOffset: HL;out ScreenBaseMaskedAsRequired: A;out ScreenOffsetMaskedAsRequired: HL); call $bd55;
 
 [Corrupts A, BC, DE, HL, F]
-function MC_PRINT_TRANSLATION(Table: HL as Pointer): CF; extern $bd58;
+function MC_PRINT_TRANSLATION(Table: HL as Pointer): CF; call $bd58;
 
 [Corrupts F]
-function KL_BANK_SWITCH(Organization: A): A; extern $bd5b;
+function KL_BANK_SWITCH(Organization: A): A; call $bd5b;
 
 [Corrupts AF]
-procedure IND_TXT_DRAW_CURSOR; extern $bdcd;
+procedure IND_TXT_DRAW_CURSOR; call $bdcd;
 
 [Corrupts AF]
-procedure IND_TXT_UNDRAW_CURSOR; extern $bdd0;
+procedure IND_TXT_UNDRAW_CURSOR; call $bdd0;
 
 [Corrupts AF, BC, DE, HL]
-procedure IND_TXT_WRITE_CHAR(Character: A as Char;PhysicalColumn: H;PhysicalRow: L); extern $bdd3;
+procedure IND_TXT_WRITE_CHAR(Character: A as Char;PhysicalColumn: H;PhysicalRow: L); call $bdd3;
 
 [Corrupts BC, DE, HL, F]
-function IND_TXT_UNWRITE(PhysicalColumn: H;PhysicalRow: L;out CharacterRead: A): CF; extern $bdd6;
+function IND_TXT_UNWRITE(PhysicalColumn: H;PhysicalRow: L;out CharacterRead: A): CF; call $bdd6;
 
 [Corrupts AF, BC, DE, HL]
-procedure IND_TXT_OUT_ACTION(CharacterOrCode: A); extern $bdd9;
+procedure IND_TXT_OUT_ACTION(CharacterOrCode: A); call $bdd9;
 
 [Corrupts AF, BC, DE, HL]
-procedure IND_GRA_PLOT(UserXCoordinate: DE;UserYCoordinate: HL); extern $bddc;
+procedure IND_GRA_PLOT(UserXCoordinate: DE;UserYCoordinate: HL); call $bddc;
 
 [Corrupts BC, DE, HL, F]
-function IND_GRA_TEST(UserXCoordinate: DE;UserYCoordinate: HL): A; extern $bddf;
+function IND_GRA_TEST(UserXCoordinate: DE;UserYCoordinate: HL): A; call $bddf;
 
 [Corrupts AF, BC. DE, HL]
-procedure IND_GRA_LINE(UserXCoordinate: DE;UserYCoordinate: HL); extern $bde2;
+procedure IND_GRA_LINE(UserXCoordinate: DE;UserYCoordinate: HL); call $bde2;
 
 [Corrupts F]
-function IND_SCR_READ(Pixel: HL as Pointer;Mask: C): A; extern $bde5;
+function IND_SCR_READ(Pixel: HL as Pointer;Mask: C): A; call $bde5;
 
 [Corrupts AF]
-procedure IND_SCR_WRITE(PixelS: HL as Pointer;Mask: C;EncodedInk: B); extern $bde8;
+procedure IND_SCR_WRITE(PixelS: HL as Pointer;Mask: C;EncodedInk: B); call $bde8;
 
 [Corrupts AF, BC, DE, HL]
-procedure IND_SCR_MODE_CLEAR; extern $bdeb;
+procedure IND_SCR_MODE_CLEAR; call $bdeb;
 
 ERROR in line: Interrupts disabled
 [Corrupts AF, HL]
-procedure IND_KM_TEST_BREAK(ShiftAndControlKeyStates: C); extern $bdee;
+procedure IND_KM_TEST_BREAK(ShiftAndControlKeyStates: C); call $bdee;
 
 [Corrupts A, BC]
-function IND_MC_WAIT_PRINTER(Character: A as Char): CF; extern $bdf1;
+function IND_MC_WAIT_PRINTER(Character: A as Char): CF; call $bdf1;
 
 [Corrupts F]
-function HI_KL_U_ROM_ENABLE: A; extern $b900;
+function HI_KL_U_ROM_ENABLE: A; call $b900;
 
 [Corrupts F]
-function HI_KL_U_ROM_DISABLE: A; extern $b903;
+function HI_KL_U_ROM_DISABLE: A; call $b903;
 
 [Corrupts F]
-function HI_KL_L_ROM_ENABLE: A; extern $b906;
+function HI_KL_L_ROM_ENABLE: A; call $b906;
 
 [Corrupts F]
-function HI_KL_L_ROM_DISABLE: A; extern $b909;
+function HI_KL_L_ROM_DISABLE: A; call $b909;
 
 [Corrupts AF]
-procedure HI_KL_ROM_RESTORE(PreviousROM: A); extern $b9oc;
+procedure HI_KL_ROM_RESTORE(PreviousROM: A); call $b9oc;
 
 [Corrupts AF]
-procedure HI_KL_ROM_SELECT(ROM: C;out PreviouslySelectedROM: C;out PreviousROM: B); extern $b90f;
+procedure HI_KL_ROM_SELECT(ROM: C;out PreviouslySelectedROM: C;out PreviousROM: B); call $b90f;
 
 [Preserves all]
-function HI_KL_CURR_SELECTION: A; extern $b912;
+function HI_KL_CURR_SELECTION: A; call $b912;
 
 [Corrupts B, F]
-procedure HI_KL_PROBE_ROM(ROMToProbe: C;out ROMSClass: A;out ROMSMarkNumber: L;out ROMSVersionNumber: H); extern $b915;
+procedure HI_KL_PROBE_ROM(ROMToProbe: C;out ROMSClass: A;out ROMSMarkNumber: L;out ROMSVersionNumber: H); call $b915;
 
 [Corrupts B]
-function HI_KL_ROM_DESELECT(PreviouslySelectedROM: C;PreviousROM: B): C; extern $b918;
+function HI_KL_ROM_DESELECT(PreviouslySelectedROM: C;PreviousROM: B): C; call $b918;
 
 ERROR in line: BC, DE, HL as required by the LDIR instruction
 ERROR in line: F, BC, DE, HL as set by the LDIR instruction
 [Preserves all]
-procedure HI_KL_LDIR; extern $b91b;
+procedure HI_KL_LDIR; call $b91b;
 
 ERROR in line: BC, DE, HL as required by LDDR instruction
 ERROR in line: F, BC, DE, HL as set by LDDR instruction
 [Preserves all]
-procedure HI_KL_LDDR; extern $b91e;
+procedure HI_KL_LDDR; call $b91e;
 
 [Corrupts A, F]
-function HI_KL_POLL_SYNCHRONOUS: CF; extern $b921;
+function HI_KL_POLL_SYNCHRONOUS: CF; call $b921;
 
 [Corrupts AF, HL]
-procedure HI_KL_SCAN_NEEDED; extern $b92a;
+procedure HI_KL_SCAN_NEEDED; call $b92a;
 
 ERROR in line: Does not return!
 [Preserves all]
-procedure LOW_RESET_ENTRY; extern $0000;
+procedure LOW_RESET_ENTRY; call $0000;
 
 ERROR in line: All registers and flags are passed to the target routine untouched
 ERROR in line: All registers and flags are as set by the target routine
 [Preserves all]
-procedure LOW_LOW_JUMP; extern $0008;
+procedure LOW_LOW_JUMP; call $0008;
 
 ERROR in line: All registers and flags are passed to the target routine untouched
 ERROR in line: All registers and flags are as set by the target routine
 [Preserves all]
-procedure LOW_KL_LOW_PCHL(LowAddress: HL as Pointer); extern $000b;
+procedure LOW_KL_LOW_PCHL(LowAddress: HL as Pointer); call $000b;
 
 ERROR in line: All registers and flags are passed to the target routine untouched
 ERROR in line: All registers and flags are as set by the target routine
 [Preserves all]
-procedure LOW_PCBC_INSTRUCTION(Address: BC as Pointer); extern $000e;
+procedure LOW_PCBC_INSTRUCTION(Address: BC as Pointer); call $000e;
 
 ERROR in line: All registers and flags are passed to the target routine untouched except for
 ERROR in line: All other registers and flags are as set by the target routine
 [Corrupts IY]
-procedure LOW_SIDE_CALL(WhichIsSet: IY); extern $0010;
+procedure LOW_SIDE_CALL(WhichIsSet: IY); call $0010;
 
 ERROR in line: All registers and flags are passed to the target routine untouched except for
 ERROR in line: All other registers and flags are as set by the target routine
 [Corrupts IY corrupt:]
-procedure LOW_KL_SIDE_PCHL(SideAddress: HL as Pointer;WhichIsSet: IY); extern $0013;
+procedure LOW_KL_SIDE_PCHL(SideAddress: HL as Pointer;WhichIsSet: IY); call $0013;
 
 ERROR in line: All registers and flags are passed to the target routine untouched
 ERROR in line: All registers and flags are as set by the target routine
 [Preserves all]
-procedure LOW_PCDE_INSTRUCTION(Address: DE as Pointer); extern $0016;
+procedure LOW_PCDE_INSTRUCTION(Address: DE as Pointer); call $0016;
 
 ERROR in line: All registers and flags are passed to the target routine untouched except for IY
 ERROR in line: (which is set to point at a background ROMâ€™s upper data area)
 ERROR in line: All other registers and flags are as set by the target routine
 [Preserves all]
-procedure LOW_FAR_CALL; extern $0018;
+procedure LOW_FAR_CALL; call $0018;
 
 ERROR in line: All registers and flags are passed to the target routine untouched except for IY (which is set to point at a background ROMâ€™s upper data area)
 ERROR in line: All other registers and flags are as set by the target routine
 [Preserves all]
-procedure LOW_KL_FAR_PCHL(RoutineToCall: HL as Pointer;ROMSelectByte: C); extern $001b;
+procedure LOW_KL_FAR_PCHL(RoutineToCall: HL as Pointer;ROMSelectByte: C); call $001b;
 
 ERROR in line: All registers and flags are passed to the target routine untouched
 ERROR in line: All registers and flags are as set by the target routine
 [Preserves all]
-procedure LOW_PCHL_INSTRUCTION(Address: HL as Pointer); extern $001e;
+procedure LOW_PCHL_INSTRUCTION(Address: HL as Pointer); call $001e;
 
 [Preserves all]
-function LOW_RAM_LAM(LocationToRead: HL as Pointer): A; extern $0020;
+function LOW_RAM_LAM(LocationToRead: HL as Pointer): A; call $0020;
 
 ERROR in line: All registers and flags are passed to the target routine untouched except for
 ERROR in line: All other registers and flags are as set by the target routine
 [Preserves all]
-procedure LOW_KL_FAR_ICALL(FArAddressToCall: HL as Pointer;WhichIsSet: IY); extern $0023;
+procedure LOW_KL_FAR_ICALL(FArAddressToCall: HL as Pointer;WhichIsSet: IY); call $0023;
 
 ERROR in line: All registers and flags are passed to the target routine untouched
 ERROR in line: All registers and flags are as set by the target routine
 [Preserves all]
-procedure LOW_FIRM_JUMP; extern $0028;
+procedure LOW_FIRM_JUMP; call $0028;
 
 ERROR in line: Unknown
 ERROR in line: Unknown
 [Preserves all]
-procedure LOW_USER_RESTART; extern $0030;
+procedure LOW_USER_RESTART; call $0030;
 
 [Preserves all]
-procedure LOW_INTERRUPT_ENTRY; extern $0038;
+procedure LOW_INTERRUPT_ENTRY; call $0038;
 
 [Corrupts AF, BC, DE, HL]
-procedure LOW_EXT_INTERRUPT; extern $003b;
+procedure LOW_EXT_INTERRUPT; call $003b;
 
 [Corrupts HL, F]
 function BIOS_SET_MESSAGE(00: A): A;

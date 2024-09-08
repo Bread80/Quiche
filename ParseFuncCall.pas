@@ -14,9 +14,9 @@ implementation
 uses SysUtils, ILData, Operators, PrimitivesEx, ParserBase, Variables, Eval,
   Z80.CPU;
 
-const ParamRegToAllocLoc: array[low(TParamReg)..high(TParamReg)] of TCPUReg =
+{const ParamRegToAllocLoc: array[low(TParamReg)..high(TParamReg)] of TCPUReg =
   (rNone, rA, rB, rC, rD, rE, rH, rL, rBC, rDE, rHL, rCF, rZF);
-
+}
 
 type TSlugArray= array[0..MaxFunctionParams] of TExprSlug;
 
@@ -41,15 +41,27 @@ begin
   //Validate argument:
   case Arg.Access of
     vaVal, vaConst, vaResult: ;  //Any
-    vaVar, vaOut:
+    vaVar:
     begin //Argument needs to be a variable reference.
       if (Slug.ILItem <> nil) or (Slug.Operand.Kind <> pkVarSource) then
         EXIT(ErrFuncCall('Argument ''' + Arg.Name +
           ''' must be a variable', Func));
-      end;
-    else
-      Assert(False, 'Unknown access specifier');
     end;
+    vaOut:
+    begin //Argument needs to be a variable reference.
+      if (Slug.ILItem <> nil) or (Slug.Operand.Kind <> pkVarSource) then
+        EXIT(ErrFuncCall('Argument ''' + Arg.Name +
+          ''' must be a variable', Func));
+      if (Slug.Operand.Variable.VarType <> Arg.VarType) then
+        EXIT(ErrFuncCall('Argument type mismatch on ''' + Arg.Name + ''' (' +
+          VarTypeToName(Slug.Operand.Variable.VarType) + ', ' + VarTypeToName(Arg.VarType) +
+        '. Returned argument type must exactly match variable type.', Func));
+      //Output parameter so we need to write it to the variable
+      Slug.Operand.Kind := pkVarDest;
+    end;
+    else
+    Assert(False, 'Unknown access specifier');
+  end;
 
   //Do we need to push this argument on the stack?
   case CallingConvention of
@@ -89,7 +101,7 @@ begin
 
   Ch := Parser.TestChar;
   //Test for empty list
-  if ((not Brace) and not CharInSet(Ch, [#0,';'])) or  //No Brace and #0 (EOLN) -> no arguments
+  if ((not Brace) and not CharInSet(Ch, [#0,';',',',')'])) or  //No Brace and #0 (EOLN) -> no arguments
     (Brace and (Ch <> ')')) then      //Bace and ')' -> no arguments
   repeat
     if ArgIndex >= Func.ParamCount then
@@ -159,25 +171,34 @@ begin
 end;
 
 //Generate the IL code for an intrinsic.
-//Func is the function template for teh intrinsic
+//Func is the function template for the intrinsic
+//If OpOverride is opUnknown the Operator from Func will be used, otherwise
+//  the Op from OpOverride will be used. (Used by writeln and readln to do funky stuff)
 //ParamCount is the number of paramaters supplied to IntrinsicGenerateIL (Left, Right).
 //Valid values are 0, 1, and 2.
 //This may be different to the value in Func if the intrinsic is doing funky things
 //(ie. write(ln), read(ln) etc).
 //Left, Right are the parameters (see ParamCount).
 //Slug is the slug to be returned.
-procedure IntrinsicGenerateIL(Func: PFunction;ParamCount: Integer;const Left, Right: TExprSlug;out Slug: TExprSlug);
+procedure IntrinsicGenerateIL(Func: PFunction;OpOverride: TOperator;ParamCount: Integer;
+  const Left, Right: TExprSlug;out Slug: TExprSlug);
 var V: PVariable;
 begin
   //Can we convert an existing ILItem to the intrinsic operation? (and save an IL step)
   if (ParamCount = 1) and (Left.ILItem <> nil) and (Left.ILItem.Op = opUnknown) then
   begin //We can just 'patch' the Op into the ILItem
     Slug := Left;
-    Slug.ILItem.Op := Func.Op;
+    if OpOverride <> opUnknown then
+      Slug.ILItem.Op := OpOverride
+    else
+      Slug.ILItem.Op := Func.Op;
   end
   else
   begin //Create the ILItem for the operation
-    Slug.ILItem := ILAppend(Func.Op);
+    if OpOverride <> opUnknown then
+      Slug.ILItem := ILAppend(OpOverride)
+    else
+      Slug.ILItem := ILAppend(Func.Op);
 
     if ParamCount >= 1 then
     begin //First parameter
@@ -318,7 +339,7 @@ begin
       end;
 
   //Generate the IL code :)
-  IntrinsicGenerateIL(Func, Func.ParamCount, Slugs[0], Slugs[1], Slug);
+  IntrinsicGenerateIL(Func, opUnknown, Func.ParamCount, Slugs[0], Slugs[1], Slug);
 end;
 
 
@@ -355,15 +376,13 @@ begin
         EXIT;
 
       //Verify the argument is a type we can handle
-      if Slug.ResultType in [vtInt8, vtInteger, vtByte, vtWord, vtPointer,
-        vtBoolean, vtChar] then
-        ILItem.Op := OpWrite
-      else
+      if not (Slug.ResultType in [vtInt8, vtInteger, vtByte, vtWord, vtPointer,
+        vtBoolean, vtChar]) then
         EXIT(ErrMsg(qeTodo, 'Unhandled parameter type for Write/ln: ' + VarTypeToName(VType)));
 
       //Generate the code.
       //NOTE: We need to pass in two slugs. Second will be ignored because of ParamCount value of 1
-      IntrinsicGenerateIL(Func, 1, Slug, Slug, DummySlug);
+      IntrinsicGenerateIL(Func, opWrite, 1, Slug, Slug, DummySlug);
 
       Parser.SkipWhiteSpace;
       Ch := Parser.TestChar;
@@ -389,12 +408,9 @@ var
   InParamCount: Integer;  //Number of parameters being passed *into* the function
                           //I.e. excluding Out and Result paramaters being returned
   ArgIndex: Integer;
-  Arg: TParameter;
-  ILParamIndex: Integer;  //Each ILItem can store 3 parameters (0: Param1, 1: Param2, 2: Dest)
-                          //This is an index as to which of those we are storing the
-                          //current argument into
+  Arg: PParameter;
   ILItem: PILItem;
-  InParamsDone: Integer;  //Number of params processed thus far
+  Param: PILParam;
 begin
   //NOTE: The following assumes values being passed are appropriate for the functions arguments
 
@@ -418,107 +434,91 @@ begin
 //       * Variables (and other temp vars)
 //       * Addresses of vars (TODO)
 //       * Immediate data
-  if Func.ParamCount = 0 then
-  begin
-    ILItem := ILAppend(OpFuncCall);
-    ILItem.Func := Func;
-  end
-  else
-  begin
-    ILParamIndex := 0;
-    ArgIndex := 0;
-    InParamsDone := 0;
-    while ArgIndex < Func.ParamCount do
+
+  //We haven't created any IL data yet
+  ILItem := nil;
+
+  //Load any input parameters
+  for ArgIndex := 0 to Func.ParamCount-1 do
+    if not (Func.Params[ArgIndex].Access in [vaOut, vaResult]) then
     begin
-      while (ArgIndex < Func.ParamCount) and (Func.Params[ArgIndex].Access in [vaOut, vaResult]) do
-        inc (ArgIndex);
+      Param := ILAppendFuncData(ILItem);
 
-      if ArgIndex < Func.ParamCount then
-      begin
-        //Each ILItem stores up to three parameters.
-        //Create one for the first of every three arguments
-        if ILParamIndex = 0 then
+      case Func.Params[ArgIndex].Access of
+        vaVal:
         begin
-          if (InParamCount - InParamsDone) < 3 then
-          begin
-            ILItem := ILAppend(OpFuncCall);
-            Result := ILItem; //Pass CALL back in case we're in a function call
-            ILItem.Func := Func;
-          end
-          else
-//            raise Exception.Create('Register function with more than three params.');
-            ILItem := ILAppend(OpDataLoad);
+          Param^ := Slugs[ArgIndex].Operand;
+          Param.Reg := Func.Params[ArgIndex].Reg;
         end;
-
-        //Set parameter data into ILItem
-        //TODO: If Func.Params[ArgCount] is Result then ...
-        //  Result always goes into Dest
-        //else
-        case Func.Params[ArgIndex].Access of
-          vaVal:
-            case ILParamIndex of
-              0:
-              begin
-                ILItem.Param1 := Slugs[ArgIndex].Operand;
-                ILItem.Param1.Reg := ParamRegToAllocLoc[Func.Params[ArgIndex].Reg];
-              end;
-              1:
-              begin
-                ILItem.Param2 := Slugs[ArgIndex].Operand;
-                ILItem.Param2.Reg := ParamRegToAllocLoc[Func.Params[ArgIndex].Reg];
-              end;
-              2:
-              begin
-                ILItem.Param3 := Slugs[ArgIndex].Operand;
-                ILItem.Param3.Reg := ParamRegToAllocLoc[Func.Params[ArgIndex].Reg];
-              end;
-            end;
-{
-          paVar: ;
-          paConst: ;
-//          paIn: ;
-          paOut: ;
-          paResult: ;
-}       else
-          raise Exception.Create('Unknown access specfier');
-        end;
-
-        Inc(ILParamIndex);
-        if ILParamIndex > 2 then
-          ILParamIndex := 0;
+        vaVar: Assert(False, 'TODO');
+        vaConst: Assert(False, 'TODO');
+        vaOut: Assert(False, 'TODO');
+        vaResult: Assert(False, 'TODO');
+      else
+        raise Exception.Create('Unknown access specifier (in)');
       end;
-
-      inc(ArgIndex);
     end;
-  end;
 
-//3. Generate IL code to dispatch the call
-//     (Poss combine with step 2?)
-//4. Generate code to store return values (var, out, Result)
-//     into vars/temp vars (temp var only for Result)
+  //Add the function call
+  ILAppendFuncCall(ILItem, Func);
+
+  //Store any output parameters
+  for ArgIndex := 0 to Func.ParamCount-1 do
+    if Func.Params[ArgIndex].Access = vaOut then
+    begin
+      Param := ILAppendFuncData(ILItem);
+
+      case Func.Params[ArgIndex].Access of
+        //TODO: vaVarByVal (for Register) needs to load return value.
+        //We'll need to duplicate the Param so we can set the Kind to pkVarDest
+        vaOut:
+        begin
+          //We need to write the returned value to a varaible, so Param must be
+          //pkVarDest + variable + VarVersion
+          Param^ := Slugs[ArgIndex].Operand; //???
+          Assert(Param.Kind = pkVarDest);
+          Param.Reg := Func.Params[ArgIndex].Reg;
+        end;
+      else
+        raise Exception.Create('Unknown access specifier (out)');
+      end;
+    end;
+
+  //Return value has to be the very last one we do - it will be assigned by caller
+  if Func.ResultCount > 0 then
+  begin
+    Param := ILAppendFuncResult(ILItem);
+    Arg := Func.FindResult;
+    ILItem.ResultType := Arg.VarType;
+    //TODO: Assign a variable here???
+    Param.Reg := Arg.Reg;
+  end;
+  Result := ILItem;
 end;
 
 function DispatchStack(Func: PFunction;var Slugs: TSlugArray): PILItem;
-var Param: PParameter;
+var Arg: PParameter;
 begin
-  Result := ILAppend(OpFuncCall);
-  Result.Func := Func;
+  Result := nil;
+  ILAppendFuncCall(Result, Func);
 
   //Process return value(s)
   if Func.ResultCount > 0 then
   begin
+    ILAppendFuncResult(Result);
+    Arg := Func.FindResult;
+    Result.ResultType := Arg.VarType;
+
     //NOTE: Setting Dest data is now the task of the Register allocator
     //THIS (COMMENTED) CODE TO BE REMOVED
 {    Result.SetDestType(dtData);
-    case GetTypeSize(Param.VarType) of
+}    case GetTypeSize(Arg.VarType) of
       1: Result.Dest.Reg := rA;   //Byte params returned in A
       2: Result.Dest.Reg := rHL;  //2 byte params returned in HL
     else
       Assert(False, 'Uncoded result type');
     end;
-}
-    Param := Func.FindResult;
-    Result.ResultType := Param.VarType;
+
   end;
 end;
 

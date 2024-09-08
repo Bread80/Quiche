@@ -7,6 +7,7 @@ Test file:
 blocktype static|stack      - Select Stack to generate a stack frame and use local vars
 parsetype declarations|code
 $overflow on|off            - enable or disable overflow checking
+$range on|off               - enable or disable range checking
 logprimitives on|off
 code [<testname>]
 ...
@@ -18,7 +19,7 @@ compile noerror|error [<errorname>] - compile error
 usesprimitive <primitive-name>
 ;Execution
 varvalue <varname> <value>  - variable value
-runtime overflow|dividebyzero|none
+runtime noerror|overflow|dividebyzero|range
                             - runtime error
 }
 
@@ -33,7 +34,8 @@ procedure RunAllTests(Folder: String;StopOnError: Boolean);
 procedure TestLogToStrings(SL: TStrings);
 
 implementation
-uses SysUtils, IOUtils, Compiler, Variables, QTypes, Globals, Z80.CodeGen;
+uses SysUtils, IOUtils, Compiler, Variables, QTypes, Globals, CodeGen,
+  Test.Data;
 
 var
   TestName: String;
@@ -306,7 +308,7 @@ begin
 
   CompileNeeded(True);
 
-  Result := Z80.CodeGen.UsesPrimitive(PrimName);
+  Result := CodeGen.UsesPrimitive(PrimName);
   if not Result then
     DoTest(Result, 'Compiler failed to use primitive: ' + PrimName)
 end;
@@ -317,12 +319,14 @@ begin
   if Length(Fields) <> 2 then
     EXIT(False);
 
-  if CompareText(Fields[1], 'overflow') = 0 then
+  if CompareText(Fields[1], 'noerror') = 0 then
+    Err := 0
+  else if CompareText(Fields[1], 'overflow') = 0 then
     Err := rerrOverflow
   else if CompareText(Fields[1], 'dividebyzero') = 0 then
     Err := rerrDivByZero
-  else if CompareText(Fields[1], 'noerror') = 0 then
-    Err := 0
+  else if CompareText(Fields[1], 'range') = 0 then
+    Err := rerrRange
   else
     EXIT(False);
 
@@ -366,15 +370,30 @@ begin
   Result := True;
 end;
 
+function OptionRange(Fields: TArray<String>): Boolean;
+begin
+  if Length(Fields) <> 2 then
+    EXIT(False);
+
+  if CompareText(Fields[1], 'on') = 0 then
+    optRangeChecks := True
+  else if CompareText(Fields[1], 'off') = 0 then
+    optRangeChecks := False
+  else
+    EXIT(False);
+
+  Result := True;
+end;
+
 function SetLogPrimitives(Fields: TArray<String>): Boolean;
 begin
   if Length(Fields) <> 2 then
     EXIT(False);
 
   if CompareText(Fields[1], 'on') = 0 then
-    Z80.CodeGen.LogPrimitives := True
+    CodeGen.LogPrimitives := True
   else if CompareText(Fields[1], 'off') = 0 then
-    Z80.CodeGen.LogPrimitives := False
+    CodeGen.LogPrimitives := False
   else
     EXIT(False);
 
@@ -388,6 +407,8 @@ var SL: TStringList;
   InCode: Boolean;
   Okay: Boolean;
 begin
+  LoadTestFile(FileName);
+
   if not Assigned(Log) then
     Log := TStringList.Create;
 
@@ -436,6 +457,8 @@ begin
           Okay := SetBlockType(Fields)
         else if CompareText(Fields[0], '$overflow') = 0 then
           Okay := OptionOverflow(Fields)
+        else if CompareText(Fields[0], '$range') = 0 then
+          Okay := OptionRange(Fields)
         else if CompareText(Fields[0], 'logprimitives') = 0 then
           Okay := SetLogPrimitives(Fields)
 
