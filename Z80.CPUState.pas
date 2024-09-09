@@ -1,7 +1,9 @@
 unit Z80.CPUState;
 
 interface
-uses SysUtils, Variables, ILData, Z80.CPU;
+uses SysUtils,
+  Def.IL, Def.Variables,
+  Z80.CPU;
 
 type TRegStateKind =
   (rskUnknown,
@@ -535,6 +537,7 @@ var Ch: Char;
   Value: Integer;
 begin
   Assert(State <> '');
+  Result := False;
 
   Ch := State.Chars[0];
   if CharInSet(Ch, ['!','_']) then

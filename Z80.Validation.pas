@@ -3,7 +3,7 @@
 unit Z80.Validation;
 
 interface
-uses QTypes, PrimitivesEX,
+uses Def.Primitives, Def.QTypes,
   Z80.CPU;
 
 //Generate range checking code
@@ -204,6 +204,7 @@ type TRangeCheckProc = procedure(Reg: TCPUReg;Options: TMoveOptionSet);
 
 function RangeCheckStrToProc(const Name: String): TRangeCheckProc;
 begin
+  Result := nil;
   if Name = 'empty' then
     Result := nil
 

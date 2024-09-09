@@ -1,7 +1,8 @@
-unit ParseExpr;
+unit Parse.Expr;
 
 interface
-uses ParseErrors, ILData, QTypes, Operators;
+uses Def.IL, Def.Operators, Def.QTypes,
+  Parse.Errors;
 
 //Unary prefix operators
 type
@@ -76,8 +77,9 @@ function ParseExprToILItem(out ILItem: PILItem;out VType: TVarType): TQuicheErro
 //no matter the context.
 *)
 implementation
-uses SysUtils, Variables, ParserBase, Eval, Globals, Scopes,
-  Functions, PrimitivesEx, ParseFuncCall;
+uses SysUtils,
+  Def.Globals, Def.Functions, Def.Primitives, Def.Scopes, Def.Variables,
+  Parse.Base, Parse.Eval, Parse.FuncCall;
 
 //===================================== Slugs
 
@@ -245,7 +247,7 @@ begin
   while True do
   begin
     Ch := Parser.TestChar;
-    if Ch in ['0','1'] then
+    if CharInSet(Ch, ['0','1']) then
     begin
       inc(Digits);
       if Value < 32768 then
@@ -367,7 +369,6 @@ var IdentType: TIdentType;
   Scope: PScope;
   Item: Pointer;
   V: PVariable;
-  Op: TOperator;
   VarType: TVarType;
 begin
   //System constants - TODO - this needs to be somewhere else!
@@ -464,21 +465,13 @@ begin
 end;
 
 function DoUnaryOp(UnaryOp: TUnaryOperator;var Slug: TExprSlug): TQuicheError;
-var EvalResult: Integer;
-  Dummy: TVarType;
-  VType: TVarType;
-//  EvalType: TVarType;
+var VType: TVarType;
   ResultType: TVarType;
 begin
   Assert(UnaryOp in UnaryOps);
+  Result := qeNone;
   Slug.Op := UnaryOp;
-{  case UnaryOp of
-    uoNegate: Slug.Op := OpNegate;
-    uoComplement: Slug.Op := OpComplement;
-  else
-    raise Exception.Create('Unknown unary operator');
-  end;
-}
+
   ResultType := vtUnknown;
   if not PrimFindParseUnary(Slug.Op, Slug, VType, ResultType) then
     EXIT(ErrOpUsage('Incorrect parameter type: ' + VarTypeToName(Slug.ImplicitType), Slug.Op));
@@ -505,9 +498,6 @@ begin
     Slug.ILItem.Param1 := Slug.Operand;
     Slug.ILItem.Param2.Kind := pkNone;
     Slug.ILItem.ResultType := Slug.ResultType;
-
-//  Slug.ResultType := ILParamToVarType(@Slug.Operand);
-//  Slug.OpType := VarTypeToOpType(Slug.ResultType);
   end;
 end;
 
@@ -628,9 +618,7 @@ end;
 //Parse and returns a *binary* operator (i.e. not unary ones) and it's precedence
 //If at the end of an expression returns opNone.
 function ParseOperator(var Slug: TExprSlug): TQuicheError;
-var
-  Ch: Char;
-  Ident: String;
+var Ident: String;
 begin
   Parser.SkipWhiteSpace;
   Parser.Mark;
@@ -638,7 +626,7 @@ begin
   Slug.Op := opUnknown;
 
   //End of (sub)-expression
-  if Parser.TestChar in [')',';',',',#0] then
+  if CharInSet(Parser.TestChar, [')',';',',',#0]) then
     EXIT(qeNone);
 
   if TestSymbolFirst then
@@ -659,7 +647,7 @@ begin
   if Slug.Op = opUnknown then
   begin
     Parser.Undo;
-    EXIT(qeNone);//Err(qeUnknownOperator));
+    EXIT(qeNone);
   end;
 
   Result := qeNone;
@@ -685,8 +673,7 @@ end;
 //Tests whether the expression returned by Slug is compatible with the type
 //given in ExprType. If it is returns errNone, otherwise returns a suitable error code
 function ValidateExprType(ExprType: TVarType;const Slug: TExprSlug): TQuicheError;
-var Negative: Boolean;
-  Valid: Boolean;
+var Valid: Boolean;
 begin
   if Slug.Op = OpUnknown then
   begin //Single value, no expression
@@ -755,7 +742,6 @@ end;
 //to update the Dest info as needed
 function ParseSubExpression(var Left: TExprSlug;out ILItem: PILItem): TQuicheError;
 var Right: TExprSlug;
-  EvalResult: Integer;
   Evalled: Boolean;
 begin
   while True do

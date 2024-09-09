@@ -4,7 +4,7 @@ Low level CPU data and code generators
 unit Z80.CPU;
 
 interface
-uses QTypes, Variables;
+uses Def.QTypes, Def.Variables;
 
 type
   //This list details the CPU-level places where primitives can find input data
@@ -168,7 +168,7 @@ procedure GenSignExtend(RIn, ROut: TCPUReg;Options: TMoveOptionSet);
 //and 'modifying' the existing value, eg. by INCrementing it.
 //The available optimisations depend on both register, the current CPPU state and
 //whether CPU flags need to be preserved.
-function GenLoadRegLiteral(Reg: TCPUReg;Value: TImmValue;Options: TMoveOptionSet): Boolean;
+procedure GenLoadRegLiteral(Reg: TCPUReg;Value: TImmValue;Options: TMoveOptionSet);
 
 //Generate code to move FromReg to ToReg
 //Currently only allows 'main' registers (ABCDEHL)
@@ -417,7 +417,9 @@ begin //We only want optimisations which are faster/smaller than loading a liter
 
       //If both A and Carry are literals we can look for rotations
       if RegStateIsLiteral(rCF) then
-        LitCF := RegStateGetLiteral(rCF);
+        LitCF := RegStateGetLiteral(rCF)
+      else
+        LitCF := -1;
 
       if RegStateIsLiteral(rCF) then
       begin
@@ -584,16 +586,18 @@ begin
 
   //Is the low byte value already in place?
   if RegStateEqualsLiteral(CPURegPairToLow[Reg], Value and $ff) then
-    //If so optimised load the high byte
-    EXIT(GenLoadRegLiteral(CPURegPairToHigh[Reg], TImmValue.CreateInteger((Value shr 8) and $ff), Options))
+  begin //If so optimised load the high byte
+    GenLoadRegLiteral(CPURegPairToHigh[Reg], TImmValue.CreateInteger((Value shr 8) and $ff), Options);
+    EXIT(True);
+  end
     //Is the high byte value already in place?
   else if RegStateEqualsLiteral(CPURegPairToHigh[Reg], (Value shr 8) and $ff) then
-    //If so optimised load the low byte
-    EXIT(GenLoadRegLiteral(CPURegPairToLow[Reg], TImmValue.CreateInteger(Value and $ff), Options))
-  else  //Can both be optimised??#
+  begin //If so optimised load the low byte
+    GenLoadRegLiteral(CPURegPairToLow[Reg], TImmValue.CreateInteger(Value and $ff), Options);
+    EXIT(True);
+  end
+  else  //Can both be optimised??
   begin
-
-
     LowIncDec := False; //Can we INC or DEC either byte?
     HighIncDec := False;
     if not (moPreserveOtherFlags in Options) then
@@ -631,10 +635,10 @@ begin
         if RHigh <> rNone then
         begin
           OpLD(CPURegPairToHigh[Reg], RHigh);
-          Result := True;
+          Result := Result and True;
         end
         else
-          Result := TryLoadReg8Optimised(CPURegPairToHigh[Reg], (Value shr 8) and $ff, Options);
+          Result := Result and TryLoadReg8Optimised(CPURegPairToHigh[Reg], (Value shr 8) and $ff, Options);
       end
       else  //Swapped order
       begin
@@ -649,10 +653,10 @@ begin
         if RLow <> rNone then
         begin
           OpLD(CPURegPairToLow[Reg],RLow);
-          Result := True;
+          Result := Result and True;
         end
         else
-          Result := TryLoadReg8Optimised(CPURegPairToLow[Reg], Value and $ff, Options);
+          Result := Result and TryLoadReg8Optimised(CPURegPairToLow[Reg], Value and $ff, Options);
       end;
     end;
   end;
@@ -660,16 +664,15 @@ end;
 
 //Loads a literal value into any register, register pair or the Carry Flag
 //Includes IX and IY
-//Returns True if the load was successful.
 //If not true the operation failed (ie. one or more of the conditions specified
 //in Options was not met. Ie. the load couldn't be completed without trashing
 //something which needed to be kept)
-function GenLoadRegLiteral(Reg: TCPUReg;Value: TImmValue;Options: TMoveOptionSet): Boolean;
+procedure GenLoadRegLiteral(Reg: TCPUReg;Value: TImmValue;Options: TMoveOptionSet);
 var R: TCPUReg;
 begin
   //If Reg aleady holds target value then EXIT
   if RegStateEqualsLiteral(Reg, Value.ToInteger) then
-    EXIT(True);
+    EXIT;
 
   case Reg of
     rA,rB,rC,rD,rE,rH,rL:
@@ -677,40 +680,25 @@ begin
       //If the literal value is already in a register...
       R := RegStateFindLiteral8(Value.ToInteger and $ff);
       if R <> rNone then
-      begin
         //...then copy it
-        OpLD(Reg,R); //1/1/4 (Bytes/M Cycles/T States)
-        Result := True;
-      end
+        OpLD(Reg,R) //1/1/4 (Bytes/M Cycles/T States)
       else
       begin
         //Look for an optimised way to load the value
-        Result := TryLoadReg8Optimised(Reg, Value.ToInteger, Options);
-        //Otherwise load the literal
-        if not Result then
-        begin
-          OpLD(Reg, Value); //2B/2M/7T
-          Result := True;
-        end;
+        if not TryLoadReg8Optimised(Reg, Value.ToInteger, Options) then
+          //Otherwise load the literal
+          OpLD(Reg, Value) //2B/2M/7T
       end;
     end;
     rHL, rDE, rBC:
     begin
       //Can we do an optimised load?
-      Result := TryLoadRegPairOptimised(Reg, Value.Tointeger, Options);
-
-      //We've gotten here without loading either half, so load the pair together
-      if not Result then
-      begin
-        OpLD(Reg, Value);
-        Result := True;
-      end;
+      if not TryLoadRegPairOptimised(Reg, Value.Tointeger, Options) then
+        //We've gotten here without loading either half, so load the pair together
+        OpLD(Reg, Value)
     end;
     rIX,rIY:
-    begin
       OpLD(Reg, Value);
-      Result := True;
-    end;
     rCF:
     begin
       if Value.ToInteger <> 0 then
@@ -731,15 +719,12 @@ begin
           Opcode('and','a');  //1/1/4
           RegStateSetUnknown(rFlags);
         end;
-
-      Result := True;
     end
   else
     System.Assert(False, 'Unable to handle given register');
   end;
 
-  if Result then
-    RegStateSetLiteral(Reg, Value.ToInteger);
+  RegStateSetLiteral(Reg, Value.ToInteger);
 end;
 
 //===========================REGISTER MOVING

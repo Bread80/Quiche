@@ -1,4 +1,4 @@
-unit Emulator;
+unit IDE.Emulator;
 
 interface
 
@@ -17,7 +17,7 @@ implementation
 uses mHardware,
   //Inlcude hardware so it is registered
   mMemory,
-  Variables, QTypes;
+  Def.QTypes, Def.Variables;
 
 var CurrConfigFile: String;
 
@@ -111,8 +111,6 @@ procedure GetVarData(IXOffsetHack: Integer);
 var I: Integer;
   V: PVariable;
   Addr: Word;
-  B: Byte;
-  W: Word;
   IX: Word;
 begin
   IX := (Hardware.Z80.Z80.IX - IXOffsetHack) and $ffff;

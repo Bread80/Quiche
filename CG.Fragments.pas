@@ -1,7 +1,7 @@
-unit Fragments;
+unit CG.Fragments;
 
 interface
-uses ILData, Scopes;
+uses Def.IL, Def.Scopes;
 
 type
   PFragment = ^TFragment;
@@ -22,7 +22,10 @@ function FragmentParamSub(AName: String;Param: TILParam;const Prefix: String): S
 
 
 implementation
-uses Classes, Generics.Collections, SysUtils, Variables, QTypes, Z80.CPU, CodeGen;
+uses Classes, Generics.Collections, SysUtils,
+  Def.QTypes, Def.Variables,
+  CodeGen,
+  Z80.CPU;
 
 var  FragList: TList<PFragment>;
 
@@ -108,7 +111,7 @@ var Variable: PVariable;
 begin
   Variable := Param.ToVariable;
   Assert(Variable.Storage = vsStack);
-  Result := OffsetToStr(Variable.Offset);
+  Result := OffsetToStr(rIX, Variable);
   Comment := Variable.Name;
 end;
 
@@ -117,7 +120,7 @@ var Variable: PVariable;
 begin
   Variable := Param.ToVariable;
   Assert(Variable.Storage = vsStack);
-  Result := OffsetToStr(Variable.Offset+1);
+  Result := OffsetToStr(rIX, Variable, 1);
   Comment := Variable.Name;
 end;
 

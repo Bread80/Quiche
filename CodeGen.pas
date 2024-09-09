@@ -4,7 +4,8 @@ This file should only code which is generic to any CPU
 unit CodeGen;
 
 interface
-uses Classes, Scopes, Globals;
+uses Classes,
+  Def.Globals, Def.Scopes;
 
 //------------- UTILITIES
 
@@ -57,12 +58,12 @@ var LogPrimitives: Boolean;
   function UsesPrimitive(const Name: String): Boolean;
 
 implementation
-uses Fragments, ILData, SysUtils, Variables, ParserBase, QTypes, Operators,
-  PrimitivesEx, Functions,
-  IDE.Compiler, //<-- Allowed here ONLY so we can access assembler output meta data settings
-  Z80.CPU, Z80.Optimise, Z80.CPUState, Z80.CodeGen,
-  Z80.LoadStoreMove, Z80.Load, Z80.Store;
-
+uses SysUtils,
+  Def.Functions, Def.IL, Def.Operators, Def.Primitives, Def.QTypes, Def.Variables,
+  Parse.Base,
+  CG.Fragments,
+  Z80.CPU, Z80.Optimise, Z80.CPUState, Z80.CodeGen, Z80.LoadStoreMove, Z80.Load, Z80.Store,
+  IDE.Compiler; //<-- Allowed here ONLY so we can access assembler output meta data settings
 
 function ByteToStr(Value: Integer): String;
 begin
@@ -292,7 +293,6 @@ begin
     end;
 
   else    //Operations which do use the parameter load-store mechanism
-    PrimNG := nil;
     //Find the Prim based on the operation and parameter data type(s)
     PrimNG := ILItemToPrimitiveNG(ILItem^, SwapParams);
     if not assigned(PrimNG) then

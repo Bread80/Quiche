@@ -1,10 +1,11 @@
 //Globals data and current settings for the compiler.
 
 //For IDE settings see the MConfig unit
-unit Globals;
+unit Def.Globals;
 
 interface
-uses Generics.Collections, Classes, QTypes, Variables, Functions;
+uses Generics.Collections, Classes,
+  Def.Functions, Def.QTypes, Def.Variables;
 
 const
   //Lanuage constants

@@ -19,10 +19,11 @@ The parser also stores ILData and Assembly output for each scope for debigging e
 purposes.
 *)
 
-unit Scopes;
+unit Def.Scopes;
 
 interface
-uses Classes, Functions, Variables, ILData;
+uses Classes,
+  Def.Functions, Def.IL, Def.Variables;
 
 type
   TIdentType = (itVar, itFunction, itConst, itType);
@@ -103,7 +104,8 @@ function ScopeSelectByName(Name: String): Boolean;
 
 
 implementation
-uses Generics.Collections, SysUtils, Globals;
+uses Generics.Collections, SysUtils,
+  Def.Globals;
 
 var
   MainScope: PScope;    //Scope for the program itself/highest level
@@ -252,7 +254,7 @@ begin
   Assert(CurrentScope.Depth > 0);
   CurrentScope.Depth := CurrentScope.Depth - 1;
   //TODO Tell variables about the new depth
-  Variables.ScopeDepthDecced(CurrentScope.Depth);
+  Def.Variables.ScopeDepthDecced(CurrentScope.Depth);
 end;
 
 //Get the depth of the current Scope

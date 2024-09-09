@@ -1,4 +1,4 @@
-unit SourceReader;
+unit Parse.Source;
 
 interface
 uses Classes;
@@ -270,7 +270,7 @@ end;
 // Comment
 function TQuicheSourceReader.EOS: Boolean;
 begin
-  Result := TestChar in [#0,';'];
+  Result := CharInSet(TestChar, [#0,';']);
 end;
 
 procedure TQuicheSourceReader.SkipBraceComment;
@@ -312,7 +312,7 @@ begin
   repeat
     if not ReadChar(Ch) then
       EXIT;
-  until Ch in [#13,#10];
+  until CharInSet(Ch, [#13,#10]);
 end;
 
 function TQuicheSourceReader.SkipWhiteSpace: Boolean;

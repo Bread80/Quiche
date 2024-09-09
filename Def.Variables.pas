@@ -1,7 +1,8 @@
-unit Variables;
+unit Def.Variables;
 
 interface
-uses Classes, QTypes, Generics.Collections;
+uses Classes, Generics.Collections,
+  Def.QTypes;
 
 type
   TVarStorage = (
@@ -183,7 +184,9 @@ procedure VarTouch(Variable: PVariable);
 
 
 implementation
-uses SysUtils, ILExec, IOUtils, Scopes, ParserBase, Globals;
+uses SysUtils, IOUtils,
+  Def.Globals, Def.Scopes,
+  Parse.Base;
 
 const
   //Offset from IX to the first parameter
@@ -416,7 +419,6 @@ begin
   OldScope := GetCurrentScope;
 
   Result := nil;
-  Done := False;
   repeat
     if VarInList(V) then
     begin

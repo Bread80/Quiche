@@ -1,7 +1,8 @@
-unit ParseFuncCall;
+unit Parse.FuncCall;
 
 interface
-uses QTypes, ParseErrors, Functions, ParseExpr;
+uses Def.Functions, Def.QTypes,
+  Parse.Errors, Parse.Expr;
 
 //Parse a procedure call, or a function call with the result being ignored.
 function DoParseProcedureCall(Func: PFunction): TQuicheError;
@@ -11,7 +12,9 @@ function DoParseFunctionCall(Func: PFunction;var Slug: TExprSlug): TQuicheError;
 
 
 implementation
-uses SysUtils, ILData, Operators, PrimitivesEx, ParserBase, Variables, Eval,
+uses SysUtils,
+  Def.IL, Def.Operators, Def.Primitives, Def.Variables,
+  Parse.Base, Parse.Eval,
   Z80.CPU;
 
 {const ParamRegToAllocLoc: array[low(TParamReg)..high(TParamReg)] of TCPUReg =
@@ -23,7 +26,6 @@ type TSlugArray= array[0..MaxFunctionParams] of TExprSlug;
 //Read an argument from the source code, and return it in a Slug
 function ParseArgument(Arg: TParameter;var Slug: TExprSlug): TQuicheError;
 var VType: TVarType;
-  ILItem: PILItem;
 begin
   Slug.Initialise;
 
@@ -244,6 +246,7 @@ var
   RType: TVarType;
   Msg: String;
 begin
+  Result := qeNone;
   Slug.Initialise;
 
   ResultType := vtUnknown;
@@ -348,8 +351,6 @@ function DispatchWrite(Func: PFunction;NewLine: Boolean): TQuicheError;
 var Ch: Char;
   Brace: Boolean; //Is parameter list wrapped in braces?
   Slug: TExprSlug;
-  ILItem: PILItem;
-  VType: TVarType;
   DummySlug: TExprSlug;
 begin
   //!!Don't skip whitespace: Brace indicating parameter list must come immediately after function
@@ -378,7 +379,7 @@ begin
       //Verify the argument is a type we can handle
       if not (Slug.ResultType in [vtInt8, vtInteger, vtByte, vtWord, vtPointer,
         vtBoolean, vtChar]) then
-        EXIT(ErrMsg(qeTodo, 'Unhandled parameter type for Write/ln: ' + VarTypeToName(VType)));
+        EXIT(ErrMsg(qeTodo, 'Unhandled parameter type for Write/ln: ' + VarTypeToName(Slug.ResultType)));
 
       //Generate the code.
       //NOTE: We need to pass in two slugs. Second will be ignored because of ParamCount value of 1
@@ -398,15 +399,15 @@ begin
   end;
 
   if NewLine then
-    ILItem := ILAppend(OpWriteln);
+    ILAppend(OpWriteln);
   Result := qeNone;
 end;
 
 //IL code for Register calling convention
 function DispatchRegister(Func: PFunction;var Slugs: TSlugArray): PILItem;
 var
-  InParamCount: Integer;  //Number of parameters being passed *into* the function
-                          //I.e. excluding Out and Result paramaters being returned
+(*  InParamCount: Integer;  //Number of parameters being passed *into* the function
+*)                          //I.e. excluding Out and Result paramaters being returned
   ArgIndex: Integer;
   Arg: PParameter;
   ILItem: PILItem;
@@ -414,18 +415,18 @@ var
 begin
   //NOTE: The following assumes values being passed are appropriate for the functions arguments
 
-  InParamCount := 0;
-  for ArgIndex := 0 to Func.ParamCount-1 do
+(*  InParamCount := 0;
+*)  for ArgIndex := 0 to Func.ParamCount-1 do
   begin
     //For parameters which are being passed an expression:
     //assign the result of the expression to a hidden variable.
     if Slugs[ArgIndex].ILItem <> nil then
       Slugs[ArgIndex].AssignToHiddenVar;
 
-    //Count number of Input parameters
+(*    //Count number of Input parameters
     if not (Func.Params[ArgIndex].Access in [vaOut, vaResult]) then
       inc(InParamCount);
-  end;
+*)  end;
 
 //2. Generate IL code to load parameters into registers
 //   (For Each SlugList/Func.Param)

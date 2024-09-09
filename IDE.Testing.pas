@@ -24,7 +24,8 @@ runtime noerror|overflow|dividebyzero|range
 }
 
 interface
-uses Classes, ILData;
+uses Classes,
+  Def.IL;
 
 procedure Initialise;
 
@@ -35,8 +36,10 @@ procedure TestLogToStrings(SL: TStrings);
 
 implementation
 uses SysUtils, IOUtils,
-  IDE.Compiler, IDE.SelfTest,
-  Variables, QTypes, Globals, CodeGen;
+  Def.Globals, Def.QTypes, Def.Variables,
+  CodeGen,
+  IDE.Compiler, IDE.SelfTest;
+
 
 var
   TestName: String;

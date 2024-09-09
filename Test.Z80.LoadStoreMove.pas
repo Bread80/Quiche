@@ -4,14 +4,14 @@ interface
 
 implementation
 uses TestFrameWork,
-  QTypes, PrimitivesEx, Variables, ILData, Scopes,
+  Def.IL, Def.Primitives, Def.QTypes, Def.Scopes, Def.Variables,
   CodeGen,
   Z80.CPU, Z80.CPUState, Z80.LoadStoreMove, Z80.Load, Z80.Store;
 
 
 type TTestZ80LoadStoreMove = class(TTestCase)
 	protected
-		procedure Setup;override;
+		procedure SetUp;override;
 		procedure TearDown;override;
   end;
 

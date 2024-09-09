@@ -1,4 +1,4 @@
-unit ParserFixups;
+unit Parse.Fixups;
 
 interface
 
@@ -46,7 +46,8 @@ function PhiWalkInt(Path1Index, StopIndex, Path2Index, OriginIndex: Integer;
 
 
 implementation
-uses SysUtils, ILData, Variables, Operators;
+uses SysUtils,
+  Def.IL, Def.Operators, Def.Variables;
 
 //Scan all the IL items between Index and StopIndex inclusive
 //For the first assignment to each variable, record (Version-1) to

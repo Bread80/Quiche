@@ -10,7 +10,7 @@
 unit Z80.LoadStoreMove;
 
 interface
-uses ILData, PrimitivesEx, QTypes, Functions,
+uses Def.Functions, Def.IL, Def.Primitives, Def.QTypes,
   Z80.CPU;
 
 
@@ -50,7 +50,8 @@ procedure GenFuncReturnLoad(Func: PFunction);
 
 implementation
 uses SysUtils,
-  Variables, CodeGen, Operators,
+  Def.Operators, Def.Variables,
+  CodeGen,
   Z80.CodeGen, Z80.CPUState, Z80.Load, Z80.Store;
 
 //=======================================DATA TYPES
@@ -335,8 +336,8 @@ begin
   InitMoveState;
 
   ParamIndex := 1;
-  Result := ILIndex;
   Func := nil;
+  Param := nil;
   ILItem := nil;
   while True do
   begin
@@ -553,8 +554,8 @@ end;
 
 //Store selected registers into variables if either MoveType or ProcessType applies
 //to that parameter
-function GenDataLoadParams(Regs: TCPURegSet;MoveTypes: TMoveTypeSet;
-  ProcessTypes: TProcessTypeSet;PrimFlags: TPrimFlagSetNG;Options: TMoveOptionSet): Boolean;
+procedure GenDataLoadParams(Regs: TCPURegSet;MoveTypes: TMoveTypeSet;
+  ProcessTypes: TProcessTypeSet;PrimFlags: TPrimFlagSetNG;Options: TMoveOptionSet);
 var Reg: TCPUReg;
   ToType: TVarType;
 begin
@@ -578,7 +579,6 @@ end;
 
 function GenRegLoad(ILIndex: Integer): Integer;
 var PrimFlags: TPrimFlagSetNG;
-  Options: TMoveOptions;
 begin
   InitMoveAnalysis;
 
@@ -749,9 +749,9 @@ end;
 
 //Store selected registers into variables if either MoveType or ProcessType applies
 //to that parameter
-function GenDataStoreParams(Regs: TCPURegSet;MoveTypes: TMoveTypeSet;
+procedure GenDataStoreParams(Regs: TCPURegSet;MoveTypes: TMoveTypeSet;
   ProcessTypes: TProcessTypeSet;PrimFlags: TPrimFlagSetNG;
-  Options: TMoveOptionSet): Boolean;
+  Options: TMoveOptionSet);
 var Reg: TCPUReg;
   FromType: TVarType;
 begin
@@ -773,58 +773,6 @@ begin
           MoveState[Reg].Done := True;
         end;
 end;
-
-procedure GenDataStoreOtherParams(ILIndex: Integer);
-  //Loop through ILItems for anything not already covered
-  //(Ie. CondBranches!!)
-var
-  ParamIndex: Integer;
-  Param: PILParam;
-  ILItem: PILItem;
-begin
-(*  ParamIndex := 1;
-  ILItem := nil;
-  while True do
-  begin
-    if ParamIndex = 1 then
-    begin
-      ILItem := ILIndexToData(ILIndex);
-      Assert(ILItem.Op in [opFuncCall, opFuncCallExtended]);
-    end;
-
-    case ParamIndex of
-      1: Param := @ILItem.Param1;
-      2: Param := @ILItem.Param2;
-      3: Param := @ILItem.Param3;
-    else
-      System.Assert(False);
-    end;
-
-    case Param.Kind of
-      pkNone: ;
-      pkPhiVarSource,pkPhiVarDest: ;
-      pkVarDest,pkPop,pkPopByte: ;
-      pkBranch: ;
-      pkCondBranch:
-        GenCondBranch(Param);
-      pkImmediate, pkVarSource,pkPush,pkPushByte: ;
-
-    else
-      System.Assert(False);
-    end;
-
-    //Update result now we've found a usable parameter
-    inc(ParamIndex);
-    if ParamIndex > 3 then
-      if ILItem.Op = opFuncCallExtended then
-      begin
-        inc(ILIndex);
-        ParamIndex := 1;
-      end
-      else
-        EXIT;
-  end;
-*)end;
 
 function GenRegStore(ILIndex: Integer): Integer;
 var PrimFlags: TPrimFlagSetNG;
@@ -909,7 +857,6 @@ begin
 end;
 
 procedure GenFuncReturnLoad(Func: PFunction);
-var Options: TMoveOptions;
 begin
   InitMoveAnalysis;
 

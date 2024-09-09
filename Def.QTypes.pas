@@ -1,6 +1,6 @@
 //Types used by the Quiche compiler. Not to be confused with types used by the
 //Delphi/Pascal compiler itself!
-unit QTypes;
+unit Def.QTypes;
 
 interface
 
@@ -146,7 +146,9 @@ function ValidateAssignmentType(AssignType, ExprType: TVarType): Boolean;
 
 
 implementation
-uses SysUtils, Globals, CodeGen;
+uses SysUtils,
+  Def.Globals,
+  CodeGen;
 
 const SuperTypeNames: array[low(TSuperType)..high(TSuperType)] of String = (
   'Parameterized', 'Any', 'Numeric', 'AnyInteger', 'Ordinal');
@@ -370,7 +372,7 @@ begin
       else
         Result := 'False';
     vtChar:
-      if CharValue in [#32..#126] then
+      if CharInSet(CharValue, [#32..#126]) then
         Result := ''''+CharValue+''''
       else
         Result := '#' + ord(CharValue).ToString;
@@ -386,7 +388,7 @@ begin
   case VarType of
     vtBoolean: Result := ByteToStr(ToInteger);
     vtChar:
-      if CharValue in [#32..#127] then
+      if CharInSet(CharValue, [#32..#127]) then
         Result := '''' + CharValue + ''''
       else
         Result := ByteToStr(ToInteger);

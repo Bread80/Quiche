@@ -1,7 +1,9 @@
-unit Eval;
+unit Parse.Eval;
 
 interface
-uses SysUtils, ILData, ParseErrors, QTypes, Operators;
+uses SysUtils,
+  Def.IL, Def.Operators, Def.QTypes,
+  Parse.Errors;
 
 //Evaulate an operator with two parameters
 function EvalBi(Op: TOperator;Param1, Param2: PILParam;
@@ -20,7 +22,8 @@ function EvalIntrinsicBi(Op: TOperator;const Param1, Param2: TILParam;
   out Value: TImmValue): TQuicheError;
 
 implementation
-uses Globals, System.Character;
+uses System.Character,
+  Def.Globals;
 
 function ValueToVarType(Value: Integer;out VarType: TVarType): TQuicheError;
 begin
@@ -284,14 +287,12 @@ begin
 //Evaluate and intrinsic with a single parameter
 function EvalIntrinsicUnary(Op: TOperator;const Param: TILParam;
   out Value: TImmValue): TQuicheError;
-var OpData: POpData;
-  P: TImmValue;
+var P: TImmValue;
   Error: Boolean;
 //const TypeCastToType: array[low(TypecastOps)..high(TypecastOps)] of TVarType =
 //  (vtInt8, vtInteger, vtByte, vtWord, vtPointer, vtBoolean, vtChar);
 begin
   Error := False;
-  OpData := @Operations[Op];
   Assert(Param.Kind = pkImmediate);
   P := Param.Imm;
   Value.VarType := vtUnknown;

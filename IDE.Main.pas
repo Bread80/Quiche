@@ -48,7 +48,8 @@ uses
   FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs,
   FMX.Controls.Presentation, FMX.StdCtrls, FMX.ScrollBox, FMX.Memo, FMX.Edit,
   System.Actions, FMX.ActnList, FMX.ListBox, IDE.Compiler, FMX.TabControl,
-  TextBrowser, Globals, FMX.Menus;
+  TextBrowser, FMX.Menus,
+  Def.Globals;
 
 type
   TForm1 = class(TForm)
@@ -159,11 +160,7 @@ var
 implementation
 uses
   FMX.DialogService, IOUtils,
-  IDE.Testing, IDE.OptionsForm,
-  DUnitX.TestFramework,
-  DUnitx.test;
-//  DUnitX.Loggers.GUIX,
-//  DUnitX.Loggers.guix;
+  IDE.Testing, IDE.OptionsForm;
 
 {$R *.fmx}
 
@@ -282,8 +279,8 @@ end;
 
 function TForm1.SaveProject: Boolean;
 begin
+  Result := False;
   try
-    Result := False;
     if IDE.Compiler.Config.IDESettings.ProjectFile = '' then
     begin
       acSaveAsExecute(nil);

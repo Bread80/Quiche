@@ -1,7 +1,7 @@
-unit ParseErrors;
+unit Parse.Errors;
 
 interface
-uses Functions, Operators;
+uses Def.Functions, Def.Operators;
 
 //This enum list general error classes. This is intended to be used either for
 //basic, generic, errors or for the bootstrap compiler.

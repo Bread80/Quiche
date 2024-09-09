@@ -20,7 +20,8 @@ word(1000) + $42 results in an unsigned expression
 }
 
 interface
-uses ParseErrors, ParseExpr, Variables;
+uses Def.Variables,
+  Parse.Errors, Parse.Expr;
 
 type TAssembleCallback = function: Boolean;
 var OnScopeDone: TAssembleCallback;
@@ -49,8 +50,9 @@ function ParseDeclarations(IsRoot: Boolean;AllowFuncs: Boolean;Storage: TVarStor
 
 implementation
 uses SysUtils, Classes,
-  SourceReader, Globals, ILData, QTypes, Functions, Scopes, Operators,
-  ParserBase, ParserFixups, ParseFuncDef, ParseFuncCall;
+  Def.Functions, Def.Globals, Def.IL, Def.Operators, Def.QTypes, Def.Scopes,
+  Parse.Base, Parse.Fixups, Parse.FuncCall, Parse.FuncDef, Parse.Source;
+
 //===============================================
 //Utilities
 
@@ -139,8 +141,6 @@ end;
 //would, of course, be an bug.
 function ParseAssignmentExpr(var Variable: PVariable;VType: TVarType): TQuicheError;
 var
-  ILItem: PILItem;
-  VarVersion: Integer;
   ExprType: TVarType;
   Slug: TExprSlug;
 begin
@@ -548,6 +548,14 @@ var
   ThenLastIndex: Integer; //Last item in the THEN path
   ElseLastIndex: Integer; //Last item in the ELSE path. -1 if no ELSE path
 begin
+  ElseLastIndex := -1;
+  ThenLastIndex := -1;
+  BranchIndex := -1;
+  ThenLastID := -1;
+  ThenBranch := nil;
+  ElseLastID := -1;
+  BranchID := -1;
+
   //Note: If Branch returns nil then we have a constant expression.
   //We'll use that fact to not generating code which will never be executed
   //We do, however, still need to parse that code!
@@ -658,7 +666,6 @@ var
   Scope: PScope;
   IdentType: TIdentType;
   Item: Pointer;
-  Op: TOperator;
   Slug: TExprSlug;  //Dummy, value assigned will be ignored
 begin
   Slug.Initialise;
@@ -666,7 +673,7 @@ begin
   if Ident = '' then
   begin
     Ch := Parser.TestChar;
-    if Ch in csIdentFirst then
+    if CharInSet(Ch, csIdentFirst) then
     begin
       Result := ParseIdentifier(#0, Ident);
       if Result <> qeNone then
@@ -744,7 +751,7 @@ begin
   begin
     Parser.SkipWhitespaceAll;
     Ch := Parser.TestChar;
-    if Ch in csIdentFirst then
+    if CharInSet(Ch, csIdentFirst) then
     begin
       Result := ParseIdentifier(#0, Ident);
       if Result <> qeNone then
@@ -775,7 +782,7 @@ begin
           Ch := Parser.TestChar;
           if Ch = ';' then
             Parser.SkipChar;
-        until Parser.EOF or not (Ch in [#0,';']);
+        until Parser.EOF or not CharInSet(Ch, [#0,';']);
 
         if BlockState = bsSingle then
           EXIT(qeNone);
@@ -801,6 +808,7 @@ var
   Ch: Char;
   Keyword: TKeyword;
 begin
+  Result := qeNone;
   while true do
   begin
     Parser.SkipWhiteSpaceAll;
@@ -818,7 +826,7 @@ begin
         EXIT;
       Keyword := keyUnknown;
     end
-    else if Ch in csIdentFirst then
+    else if CharInSet(Ch, csIdentFirst) then
     begin //Identifier
       Result := ParseKeyword(Keyword);
       if Result <> qeNone then
@@ -854,7 +862,6 @@ begin
             Parser.SkipWhiteSpaceAll;
             if not Parser.EOF then
               EXIT(Err(qeCodeAfterEndDot));
-            Result := qeNone;
           end;
 
         EXIT(qeNone);

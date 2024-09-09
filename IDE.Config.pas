@@ -9,7 +9,7 @@ unit IDE.Config;
 
 interface
 uses Classes,
-  Variables, Functions;
+  Def.Functions, Def.Variables;
 
 type
   //Settings relating to the behaviour and/or state of the IDE/editor itself

@@ -7,7 +7,7 @@ generated.
 unit Z80.Store;
 
 interface
-uses ILData, PrimitivesEx, QTypes,
+uses Def.IL, Def.Primitives, Def.QTypes,
   Z80.CPU;
 
 //Generates code to store an immediate/literal value into a variable in memory.
@@ -42,8 +42,9 @@ procedure GenCondBranch(const Param: TILParam);
 
 implementation
 uses Classes, SysUtils,
-  Variables,
-  CodeGen, Z80.CodeGen, Z80.CPUState, Z80.Validation;
+  Def.Variables,
+  CodeGen,
+  Z80.CodeGen, Z80.CPUState, Z80.Validation;
 
 //==================================================Store Registers to Variables
 
@@ -214,7 +215,6 @@ end;
 
 procedure GenStoreImm(ILItem: PILItem;Options: TMoveOptionSet);
 var V: PVariable;
-  Reg: TCPUReg;
 begin
   Assert(ILItem.Param1.Kind = pkImmediate);
   Assert(ILItem.Dest.Kind = pkVarDest);
@@ -229,42 +229,39 @@ end;
 //================================ VALIDATE AND STORE RESULTS
 
 //Stores a value in an 8-bit register to an 8-bit variable
-function GenStoreReg8BitToVar8Bit(Reg: TCPUReg;Variable: PVariable;VarVersion: Integer;
-  FromType: TVarType;Options: TMoveOptionSet): Boolean;
-var ViaA: Boolean;
+procedure GenStoreReg8BitToVar8Bit(Reg: TCPUReg;Variable: PVariable;VarVersion: Integer;
+  FromType: TVarType;Options: TMoveOptionSet);
 begin
   Assert(Reg in CPUReg8Bit);
   Assert(GetTypeSize(Variable.VarType) = 1);
 
-  ViaA := GenVarStore8(Reg, Variable, VarVersion, Options);
+  GenVarStore8(Reg, Variable, VarVersion, Options);
 end;
 
 //Stores the low byte of a register pair to an 8-bit variable
-function GenStoreReg16BitToVar8Bit(Reg: TCPUReg;Variable: PVariable;VarVersion: Integer;
-  FromType: TVarType;Options: TMoveOptionSet): Boolean;
-var ViaA: Boolean;
+procedure GenStoreReg16BitToVar8Bit(Reg: TCPUReg;Variable: PVariable;VarVersion: Integer;
+  FromType: TVarType;Options: TMoveOptionSet);
 begin
   Assert(Reg in CPURegPairs);
   Assert(GetTypeSize(Variable.VarType) = 1);
 
-  ViaA := GenVarStore8(CPURegPairToLow[Reg], Variable, VarVersion, Options);
+  GenVarStore8(CPURegPairToLow[Reg], Variable, VarVersion, Options);
 end;
 
 //Stores a 16-bit value in registers to a 16-bit variable
-function GenStoreReg16BitToVar16Bit(Reg: TCPUReg;Variable: PVariable;VarVersion: Integer;
-  FromType: TVarType;Options: TMoveOptionSet): Boolean;
-var ViaA: Boolean;
+procedure GenStoreReg16BitToVar16Bit(Reg: TCPUReg;Variable: PVariable;VarVersion: Integer;
+  FromType: TVarType;Options: TMoveOptionSet);
 begin
   Assert(Reg in CPURegPairs);
   Assert(GetTypeSize(Variable.VarType) = 2);
 
-  ViaA := GenVarStore16(Reg, Variable, VarVersion, Options);
+  GenVarStore16(Reg, Variable, VarVersion, Options);
 end;
 
 //Stores an 8-bit value to a 16-bit variable, either sign extending or zero extending
 //as necessary
-function GenStoreReg8BitToVar16Bit(Reg: TCPUReg;Variable: PVariable;VarVersion: Integer;
-  FromType: TVarType;RangeChecked: Boolean;Options: TMoveOptionSet): Boolean;
+procedure GenStoreReg8BitToVar16Bit(Reg: TCPUReg;Variable: PVariable;VarVersion: Integer;
+  FromType: TVarType;RangeChecked: Boolean;Options: TMoveOptionSet);
 var ViaA: Boolean;
 begin
   Assert(Reg in CPUReg8Bit);
@@ -291,8 +288,8 @@ begin
 end;
 
 //Stores a 16 bit value in an index register to a 16-bit variable
-function GenStoreXYRegToVar16Bit(Reg: TCPUReg;Variable: PVariable;VarVersion: Integer;
-  FromType: TVarType;Options: TMoveOptionSet): Boolean;
+procedure GenStoreXYRegToVar16Bit(Reg: TCPUReg;Variable: PVariable;VarVersion: Integer;
+  FromType: TVarType;Options: TMoveOptionSet);
 begin
   Assert(Reg in [rIX, rIY]);
   Assert(GetTypeSize(Variable.VarType) = 2);
@@ -303,8 +300,8 @@ end;
 
 
 //Store the variable value from the register into the variable
-function StoreRegVarValue(Reg: TCPUReg;Variable: PVariable;VarVersion: Integer;
-  FromType: TVarType;RangeCheck: Boolean;Options: TMoveOptionSet): Boolean;
+procedure StoreRegVarValue(Reg: TCPUReg;Variable: PVariable;VarVersion: Integer;
+  FromType: TVarType;RangeCheck: Boolean;Options: TMoveOptionSet);
 begin
   //Range check as we store
   if RangeCheck then
@@ -313,25 +310,24 @@ begin
   case Reg of
     rA..rL:
       case GetTypeSize(Variable.VarType) of
-        1: Result := GenStoreReg8BitToVar8Bit(Reg, Variable, VarVersion, FromType, Options);
-        2: Result := GenStoreReg8BitToVar16Bit(Reg, Variable, VarVersion, FromType, RangeCheck, Options);
+        1: GenStoreReg8BitToVar8Bit(Reg, Variable, VarVersion, FromType, Options);
+        2: GenStoreReg8BitToVar16Bit(Reg, Variable, VarVersion, FromType, RangeCheck, Options);
       else
         Assert(False);
       end;
     rHL..rBC:
       case GetTypeSize(Variable.VarType) of
-        1: Result := GenStoreReg16BitToVar8Bit(Reg, Variable, VarVersion, FromType, Options);
-        2: Result := GenStoreReg16BitToVar16Bit(Reg, Variable, VarVersion, FromType, Options);
+        1: GenStoreReg16BitToVar8Bit(Reg, Variable, VarVersion, FromType, Options);
+        2: GenStoreReg16BitToVar16Bit(Reg, Variable, VarVersion, FromType, Options);
       else
         Assert(False);
       end;
-    rIX, rIY: Result := GenStoreXYRegToVar16Bit(Reg, Variable, VarVersion, FromType, Options);
+    rIX, rIY: GenStoreXYRegToVar16Bit(Reg, Variable, VarVersion, FromType, Options);
     //Note: Flags should have been processed before we get here, to convert them to
     //a register
   else
     Assert(False);
   end;
-  Result := True;
 end;
 
 //=====================================================================BRANCHING
@@ -456,9 +452,6 @@ end;
 //the destination type
 // * generates code to handle the type conversion (if necessary)
 procedure StoreAfterPrimNG(ILItem: PILItem;Prim: PPrimitiveNG);
-var
-  DestType: TVarType;
-  ValProcName: String;
 begin
   if ILItem.Dest.Kind = pkVarDest then
     //NOTE: Do explicit Range checking here because we need to use the Result data in Prim...

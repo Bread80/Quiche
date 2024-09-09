@@ -8,7 +8,10 @@
 unit IDE.Compiler;
 
 interface
-uses Classes, ParseErrors, IDE.Config, Globals;
+uses Classes,
+  Def.Globals,
+  Parse.Errors,
+  IDE.Config;
 
 //====Errors and return values
 
@@ -107,8 +110,10 @@ procedure SaveObjectCode(Filename: String);
 
 implementation
 uses SysUtils, IOUtils,
-  Operators, PrimitivesEx, Intrinsics, ILData, Variables, Parse, CodeGen,
-  Fragments, ILExec, IDE.Shell, Emulator, ParserBase, Functions, Scopes;
+  Def.Functions, Def.IL, Def.Intrinsics, Def.Operators, Def.Primitives, Def.Scopes, Def.Variables,
+  Parse, Parse.Base,
+  CodeGen, CG.Fragments,
+  IDE.Emulator, IDE.ILExec, IDE.Shell;
 
 //====Errors and return values
 
@@ -194,7 +199,7 @@ end;
 
 procedure LoadFragmentsLibrary(Filename: String);
 begin
-  Fragments.LoadFragmentsFile(Filename);
+  CG.Fragments.LoadFragmentsFile(Filename);
 end;
 
 procedure DoInitDirectives;
@@ -383,11 +388,11 @@ const
 begin
   if Deploy.ConfigFile <> '' then
   begin //Use inbuilt emulator
-    Emulator.Initialise(Deploy.ConfigFile);
-    Emulator.RunToHalt;
-    Emulator.TryReadByte('LAST_ERROR_CODE', RunTimeError);
-    Emulator.TryReadWord('LAST_ERROR_ADDR', RunTimeErrorAddress);
-    Emulator.GetVarData(VarGetParamsByteSize + StackFrameSize);
+    IDE.Emulator.Initialise(Deploy.ConfigFile);
+    IDE.Emulator.RunToHalt;
+    IDE.Emulator.TryReadByte('LAST_ERROR_CODE', RunTimeError);
+    IDE.Emulator.TryReadWord('LAST_ERROR_ADDR', RunTimeErrorAddress);
+    IDE.Emulator.GetVarData(VarGetParamsByteSize + StackFrameSize);
   end
   else
   begin

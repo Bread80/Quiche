@@ -1,7 +1,9 @@
-unit PrimitivesEx;
+unit Def.Primitives;
 
 interface
-uses QTypes, ILData, Operators, ParseExpr, Z80.CPU, Variables;
+uses Def.IL, Def.Operators, Def.QTypes, Def.Variables,
+  Parse.Expr,
+  Z80.CPU;
 
 type
   TPrimValidation = (pvYes, pvNo, pvEither);
@@ -115,7 +117,8 @@ procedure LoadPrimitivesNGFile(const Filename: String);
 procedure ValidatePrimitives;
 
 implementation
-uses Math, Generics.Collections, Classes, SysUtils, Fragments;
+uses Math, Generics.Collections, Classes, SysUtils,
+  CG.Fragments;
 
 type TCodeGenProcMap = record
     Name: String;
@@ -226,7 +229,6 @@ end;
 
 function ParamRegMatch(Prim: PPrimitiveNG;AvailableRegs: TCPURegSet;
   Kind: TILParamKind;Storage: TVarStorage): Boolean;
-var V: PVariable;
 begin
   if Kind = pkNone then
     EXIT(True);
@@ -741,8 +743,6 @@ end;
 // * Match Locations (Not sure this should be here?)
 function ILItemToPrimitiveNG(const ILItem: TILItem;out SwapParams: Boolean): PPrimitiveNG;
 var
-  Found: Boolean;
-  Prim: PPrimitiveNG;
   SearchRec: TPrimSearchRec;
   V: PVariable;
 begin
@@ -794,7 +794,6 @@ end;
 
 function PrimFindStoreImm(Variable: PVariable): PPrimitiveNG;
 var Index: Integer;
-  VarType: TVarType;
 begin
   Index := Operations[opStoreImm].FirstPrimIndex;
   while PrimListNG[Index].Op = opStoreImm do
@@ -864,7 +863,7 @@ begin
   if (C = 'f') and not ForCorrupts then
     raise Exception.Create('Invalid register: ' + C);
 
-  if C in ['a'..'z'] then
+  if CharInSet(C, ['a'..'z']) then
     Result := lutCharToCPUReg[C]
   else
     raise Exception.Create('Invalid register: ' + C);
@@ -1091,7 +1090,7 @@ begin
   if S.Chars[0] = ':' then
     EXIT;
 
-  if not Assigned(Fragments.FindFragmentByName(S)) then
+  if not Assigned(CG.Fragments.FindFragmentByName(S)) then
     raise Exception.Create('Load primitives: Fragment not found: ''' + S + '''');
 end;
 

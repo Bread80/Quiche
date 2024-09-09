@@ -1,7 +1,10 @@
-unit ParserBase;
+unit Parse.Base;
 
 interface
-uses Classes, SourceReader, ParseErrors, QTypes, Functions, ILData, Variables;
+uses Classes,
+  Def.Functions, Def.IL, Def.QTypes, Def.Variables,
+  Parse.Errors, Parse.Source,
+  Z80.CPU;
 
 //NameSpace of the code we are currently parsing. I.e. the file name
 var NameSpace: String;
@@ -70,7 +73,7 @@ function ParseKeyword(out Keyword: TKeyword): TQuicheError;
 function ParseVarType(out VT: TVarType): TQuicheError;
 
 //Attribute data
-var AttrCorrupts: TUsedRegSet;
+var AttrCorrupts: TCPURegSet;
 
 //To be called /after/ the leading '[' has been consumed
 //Valid attributes:
@@ -163,12 +166,12 @@ begin
   S := '';
   Parser.Mark;
 
-  if Parser.TestChar in csIdentFirst then
+  if CharInSet(Parser.TestChar, csIdentFirst) then
   begin
     repeat
       Parser.ReadChar(Ch);
       S := S + Ch;
-    until not (Parser.TestChar in csIdentOther);
+    until not CharInSet(Parser.TestChar, csIdentOther);
 
     Result := CompareText(Ident, S) = 0;
   end
@@ -200,7 +203,7 @@ end;
 function TestSymbolFirst: Boolean;
 begin
   Parser.SkipWhiteSpaceAll;
-  Result := Parser.TestChar in csSymbolFirst;
+  Result := CharInSet(Parser.TestChar, csSymbolFirst);
 end;
 
 function ParseSymbol(out Ident: String): TQuicheError;
@@ -213,7 +216,7 @@ begin
 
   if not Parser.ReadChar(Ch) then
     EXIT(Err(qeOperatorExpected));
-  if Ch in csSymbolFirst then
+  if CharInSet(Ch, csSymbolFirst) then
     Ident := Ch
   else
     EXIT(Err(qeIdentifierExpected));
@@ -221,7 +224,7 @@ begin
   while True do
   begin
     Ch := Parser.TestChar;
-    if Ch in csSymbolOther then
+    if CharInSet(Ch, csSymbolOther) then
       Ident := Ident + Ch
     else
       EXIT(qeNone);
@@ -232,7 +235,7 @@ end;
 function TestIdentFirst: Boolean;
 begin
   Parser.SkipWhiteSpaceAll;
-  Result := Parser.TestChar in csIdentFirst;
+  Result := CharInSet(Parser.TestChar, csIdentFirst);
 end;
 
 function ParseIdentifier(First: Char;out Ident: String): TQuicheError;
@@ -247,7 +250,7 @@ begin
 
     if not Parser.ReadChar(Ch) then
       EXIT(Err(qeIdentifierExpected));
-    if Ch in csIdentFirst then
+    if CharInSet(Ch, csIdentFirst) then
       Ident := Ch
     else
       EXIT(Err(qeIdentifierExpected));
@@ -256,7 +259,7 @@ begin
   while True do
   begin
     Ch := Parser.TestChar;
-    if Ch in csIdentOther then
+    if CharInSet(Ch, csIdentOther) then
       Ident := Ident + Ch
     else
       EXIT(qeNone);
@@ -329,7 +332,7 @@ var
   Ch: Char;
   IXIYState: TIXIYState;
   WhiteSpace: Boolean;
-  Reg: TUsedReg;
+  Reg: TCPUReg;
 const
   strCorruptsAttrError = 'Invalid corrupts attribute: ''%s''. Valid values are A,B,C,D,E,F,H,L,IX,IY,L,X,Y. Whitespace and comma separators are allowed.';
   strXorYRequired = 'X or Y required after I in Corrupts attribute (IX or IY register)';
@@ -337,6 +340,7 @@ begin
   AttrCorrupts := [];
   Parser.SkipWhiteSpace;
   IXIYState := xsNone;
+  Reg := rNone;
   while True do
   begin
     Parser.Mark;
@@ -350,27 +354,27 @@ begin
             EXIT(ErrMsg(qeAttributeError, StrXOrYRequired))
           else
             EXIT(qeNone);
-        'A': Reg := urA;
-        'B': Reg := urB;
-        'C': Reg := urC;
-        'D': Reg := urD;
-        'E': Reg := urE;
-        'F': Reg := urFlags;
-        'H': Reg := urH;
+        'A': Reg := rA;
+        'B': Reg := rB;
+        'C': Reg := rC;
+        'D': Reg := rD;
+        'E': Reg := rE;
+        'F': Reg := rFlags;
+        'H': Reg := rH;
         'I':
           if IXIYState <> xsNone then
             EXIT(ErrMsg(qeAttributeError, StrXOrYRequired))
           else
             IXIYState := xsIRead;
-        'L': Reg := urL;
+        'L': Reg := rL;
         'X':
           if IXIYState = xsWaitingXY then
-            Reg := urIX
+            Reg := rIX
           else
             EXIT(ErrMsg(qeAttributeError, StrXOrYRequired));
         'Y':
           if IXIYState = xsWaitingXY then
-            Reg := urIY
+            Reg := rIY
           else
             EXIT(ErrMsg(qeAttributeError, StrXOrYRequired));
       else
@@ -379,7 +383,7 @@ begin
 
       if IXIYState = xsWaitingXY then
       begin
-        if Reg in [urIX, urIY] then
+        if Reg in [rIX, rIY] then
           AttrCorrupts := AttrCorrupts + [Reg]
         else
           EXIT(ErrMsg(qeAttributeError, StrXOrYRequired));

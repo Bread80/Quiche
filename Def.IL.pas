@@ -1,7 +1,8 @@
-unit ILData;
+unit Def.IL;
 
 interface
-uses Generics.Collections, Classes, QTypes, Variables, Functions, Operators,
+uses Generics.Collections, Classes,
+  Def.Functions, Def.Operators, Def.QTypes, Def.Variables,
   Z80.CPU;
 
 //Locations where an operation will find and store it's data
@@ -202,7 +203,9 @@ procedure ILToStrings(S: TStrings);
 var NewSourceLine: Boolean;
 
 implementation
-uses SysUtils, SourceReader, ParserBase, Globals;
+uses SysUtils,
+  Def.Globals,
+  Parse.Base, Parse.Source;
 
 const CPURegStrings: array[low(TCPUReg)..high(TCPUReg)] of String = (
     'None','Immediate','Indirect','Offset',
@@ -336,6 +339,7 @@ end;
 
 function ILAppendExtendable(var ILItem: PILItem;Basic, Ext: TOperator): PILParam;
 begin
+  Result := nil;
   if ILItem <> nil then
   begin
     Assert(ILItem.Op = Basic);

@@ -1,4 +1,4 @@
-unit Operators;
+unit Def.Operators;
 (*
 Operators/Operations are operations performed on data by a program. These might
 be:
@@ -27,7 +27,7 @@ Operators table defines available operations:
 }
 
 interface
-uses QTypes;
+uses Def.QTypes;
 
 //Convert Inc to Add and Dec to Sub for cases of Inc(r, n) and Dec(r, n)
 //where n > this value
@@ -269,7 +269,7 @@ end;
 //Returns false if S is empty or first char is no Y or y
 function StringToBoolean(S: String): Boolean;
 begin
-  Result := (Length(S) > 0) and (S.Chars[0] in ['Y','y']);
+  Result := (Length(S) > 0) and (CharInSet(S.Chars[0], ['Y','y']));
 end;
 
 const
@@ -316,7 +316,8 @@ end;
 function OpToUsage(Op: TOperator): String;
 var OpData: POpData;
 begin
-  OpData := @Operations[Op];
+  //TODO
+//  OpData := @Operations[Op];
 //  Result := OpData.Symbol + ' (stuff to do here)';
 end;
 

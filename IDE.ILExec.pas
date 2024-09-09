@@ -1,14 +1,16 @@
-unit ILExec;
+unit IDE.ILExec;
 
 interface
-uses ILData, Variables, Classes;
+uses Classes,
+  Def.IL, Def.Variables;
 
 procedure Execute;
 
 var ExecOutput: TStringList;
 
 implementation
-uses Generics.Collections, SysUtils, QTypes, Operators, Globals;
+uses Generics.Collections, SysUtils,
+  Def.Globals, Def.Operators, Def.QTypes;
 
 const
   ValueToBool: array[valueTrue..valueFalse] of Boolean = (True, False);

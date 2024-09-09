@@ -1,11 +1,11 @@
-unit Intrinsics;
+unit Def.Intrinsics;
 (*
 Intrinsics are Operations which use function syntax in the Quiche program source
 code.
 *)
 
 interface
-uses Functions;
+uses Def.Functions;
 
 procedure InitialiseIntrinsics;
 
@@ -14,7 +14,7 @@ procedure LoadIntrinsicsFile(const Filename: String);
 
 implementation
 uses SysUtils, Classes, Generics.Collections,
-  QTypes, Operators, Variables;
+  Def.Operators, Def.QTypes, Def.Variables;
 
 procedure InitialiseIntrinsics;
 begin
@@ -41,7 +41,6 @@ var Data: TStringList;
   Fields: TArray<String>;
   I: Integer;
   Intrinsic: PFunction;
-  Op: POpData;
   VT: TVarType;
 begin
   Data := TStringlist.Create;
@@ -69,7 +68,7 @@ begin
         Intrinsic.CallingConvention := ccIntrinsic;
 
         Intrinsic.Op := IdentToOperator(Fields[fName]);
-        if Op = nil then
+        if Intrinsic.Op = opUnknown then
           raise Exception.Create('Operator not found: ' + Fields[fName]);
 
         if Fields[fP1Access] = '' then

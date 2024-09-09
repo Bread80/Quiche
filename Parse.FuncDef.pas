@@ -1,4 +1,4 @@
-unit ParseFuncDef;
+unit Parse.FuncDef;
 {Calling Conventions
 ===
 
@@ -17,7 +17,8 @@ Stack:
 }
 
 interface
-uses ParserBase, ParseErrors, Z80.CPU;
+uses Parse.Base, Parse.Errors,
+  Z80.CPU;
 
 // <function-def> := FUNCTION [ <param-def-list> ] <type-def> ; [<directive>] [,<directive>]
 //                |  PROCEDURE [ <param-def-list> ] ; [ <directive> ] [, <directive> ]
@@ -31,8 +32,9 @@ uses ParserBase, ParseErrors, Z80.CPU;
 function ParseFunctionDef(Proc: Boolean): TQuicheError;
 
 implementation
-uses Functions, SysUtils, QTypes, ParseExpr, ILData, Variables, Scopes,
-  Parse, Globals, Operators;
+uses SysUtils,
+  Def.Functions, Def.Globals, Def.IL, Def.Operators, Def.QTypes, Def.Scopes, Def.Variables,
+  Parse, Parse.Expr;
 
 //Parse a parameter name and add it to the function definition
 //Also validates that the parameter name is unique within the definition, and that
@@ -273,7 +275,7 @@ begin
     //closing brace to end
     Ch := Parser.TestChar;
     Parser.SkipChar;
-    if not (Ch in [';',')']) then
+    if not CharInSet(Ch, [';',')']) then
       EXIT(ErrSyntaxMsg(synFunctionParameterDeclaration, ''';'' or '')'' expected'));
     inc (ParamIndex);
   until Ch = ')';
@@ -460,8 +462,7 @@ end;
 //Parse the declarations and body of a function declaration
 //Inputs: Func is the function being declared
 function ParseFunctionBody(Func: PFunction): TQuicheError;
-var Keyword: TKeyword;
-  I: Integer;
+var I: Integer;
   ParamStorage: TVarStorage;
   LocalStorage: TVarStorage;
   ParamName: String;

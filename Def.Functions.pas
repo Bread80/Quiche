@@ -1,16 +1,12 @@
-unit Functions;
+unit Def.Functions;
 
 interface
-uses QTypes, Classes, Generics.Collections, Variables, Operators, Z80.CPU;
+uses Classes, Generics.Collections,
+  Def.Operators, Def.QTypes, Def.Variables,
+  Z80.CPU;
 
 //Maximum number of parameters which can be specified for a routine, including results
 const MaxFunctionParams = 10;
-
-type
-  //To specify corrupted/preserved registers
-  //Ideally wants to be 8 or less items so it fits into a byte
-  TUsedReg = (urA, urFlags, urB, urC, urD, urE, urH, urL, urIX, urIY);
-  TUsedRegSet = set of TUsedReg;
 
 type
   TFuncFlag = (
@@ -63,7 +59,7 @@ type
     Name: String;
     Flags: TFuncFlagSet;    //Meta data about the function
 
-    Corrupts: TUsedRegSet;  //Registers which are corrupted (not including OutRegs)
+    Corrupts: TCPURegSet;  //Registers which are corrupted (not including OutRegs)
 //    InRegs: TUsedRegSet;    //Registers used for inputs (parameters)
 //    OutRegs: TUsedRegSet;   //Registers used for outputs (parameters and return values)
 
@@ -132,7 +128,8 @@ function FunctionsToStrings(S: TStrings): String;
 
 
 implementation
-uses SysUtils, Scopes;
+uses SysUtils,
+  Def.Scopes;
 
 var FuncList: TFuncList;
 
@@ -296,6 +293,7 @@ begin
     if Params[I].Access = vaResult then
       EXIT(@Params[I]);
 
+  Result := nil;
   Assert(False, 'Function result not found');
 end;
 

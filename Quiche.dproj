@@ -384,34 +384,34 @@
             <Form>Form1</Form>
             <FormType>fmx</FormType>
         </DCCReference>
-        <DCCReference Include="ILData.pas"/>
+        <DCCReference Include="Def.IL.pas"/>
         <DCCReference Include="Parse.pas"/>
-        <DCCReference Include="Variables.pas"/>
-        <DCCReference Include="ILExec.pas"/>
-        <DCCReference Include="Fragments.pas"/>
-        <DCCReference Include="Operators.pas"/>
+        <DCCReference Include="Def.Variables.pas"/>
+        <DCCReference Include="IDE.ILExec.pas"/>
+        <DCCReference Include="CG.Fragments.pas"/>
+        <DCCReference Include="Def.Operators.pas"/>
         <DCCReference Include="IDE.Shell.pas"/>
         <DCCReference Include="IDE.Compiler.pas"/>
         <DCCReference Include="IDE.Testing.pas"/>
-        <DCCReference Include="Functions.pas"/>
-        <DCCReference Include="ParseExpr.pas"/>
-        <DCCReference Include="ParserBase.pas"/>
-        <DCCReference Include="Scopes.pas"/>
-        <DCCReference Include="ParserFixups.pas"/>
-        <DCCReference Include="PrimitivesEx.pas"/>
+        <DCCReference Include="Def.Functions.pas"/>
+        <DCCReference Include="Parse.Expr.pas"/>
+        <DCCReference Include="Parse.Base.pas"/>
+        <DCCReference Include="Def.Scopes.pas"/>
+        <DCCReference Include="Parse.Fixups.pas"/>
+        <DCCReference Include="Def.Primitives.pas"/>
         <DCCReference Include="CodeGen.pas"/>
-        <DCCReference Include="Eval.pas"/>
-        <DCCReference Include="QTypes.pas"/>
-        <DCCReference Include="Globals.pas"/>
-        <DCCReference Include="ParseErrors.pas"/>
-        <DCCReference Include="SourceReader.pas"/>
-        <DCCReference Include="ParseFuncDef.pas"/>
-        <DCCReference Include="ParseFuncCall.pas"/>
+        <DCCReference Include="Parse.Eval.pas"/>
+        <DCCReference Include="Def.QTypes.pas"/>
+        <DCCReference Include="Def.Globals.pas"/>
+        <DCCReference Include="Parse.Errors.pas"/>
+        <DCCReference Include="Parse.Source.pas"/>
+        <DCCReference Include="Parse.FuncDef.pas"/>
+        <DCCReference Include="Parse.FuncCall.pas"/>
         <DCCReference Include="IDE.Config.pas"/>
         <DCCReference Include="..\TextEditor\TextBrowser.pas"/>
         <DCCReference Include="..\TextEditor\EditableText.pas"/>
-        <DCCReference Include="Emulator.pas"/>
-        <DCCReference Include="Intrinsics.pas"/>
+        <DCCReference Include="IDE.Emulator.pas"/>
+        <DCCReference Include="Def.Intrinsics.pas"/>
         <DCCReference Include="Z80.Optimise.pas"/>
         <DCCReference Include="Z80.CPUState.pas"/>
         <DCCReference Include="Z80.CPU.pas"/>
@@ -1329,6 +1329,7 @@
                 <Platform value="Win32">True</Platform>
                 <Platform value="Win64">True</Platform>
             </Platforms>
+            <ModelSupport>False</ModelSupport>
         </BorlandProject>
         <ProjectFileVersion>12</ProjectFileVersion>
     </ProjectExtensions>

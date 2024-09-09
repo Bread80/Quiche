@@ -1,7 +1,7 @@
 unit Z80.Optimise;
 
 interface
-uses Variables, ILData;
+uses Def.IL, Def.Variables;
 
 
 type
@@ -26,7 +26,7 @@ function VarMapToString: String;
 
 implementation
 uses Generics.Collections, Classes, SysUtils,
-  Operators;
+  Def.Operators;
 
 var VarMap: TList<PVarData>;
 

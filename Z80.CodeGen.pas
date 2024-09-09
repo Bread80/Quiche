@@ -1,8 +1,8 @@
 unit Z80.CodeGen;
 
 interface
-uses ILData, PrimitivesEx, Scopes, Globals, Functions,
-  Z80.CPU, Variables, Z80.Load;
+uses Def.Functions, Def.Globals, Def.IL, Def.Primitives, Def.Scopes, Def.Variables,
+  Z80.CPU, Z80.Load;
 
 
 
@@ -42,9 +42,10 @@ procedure InitPrimitives;
 
 implementation
 uses Classes, SysUtils,
-  CodeGen, Fragments, QTypes, Operators,
-  IDE.Compiler, //<-- Included here ONLY to access assembler output meta-data options
-  Z80.CPUState, Z80.LoadStoreMove;
+  Def.Operators, Def.QTypes,
+  CodeGen, CG.Fragments,
+  Z80.CPUState, Z80.LoadStoreMove,
+  IDE.Compiler; //<-- Included here ONLY to access assembler output meta-data options
 
 //================================== LIBRARY CODE
 
@@ -85,7 +86,7 @@ begin
     Instr('call ' + ProcName.SubString(1) + ' ;Call')
   else
   begin
-    Code := Fragments.FragmentSub(ProcName, ILItem, GetCodeGenScope);
+    Code := CG.Fragments.FragmentSub(ProcName, ILItem, GetCodeGenScope);
     if Code = '' then
       raise Exception.Create('Validation library code not found: ' + ProcName);
     if IDE.Compiler.Config.CodeGen.FragmentNames then
@@ -102,7 +103,7 @@ begin
     Instr('call ' + ProcName.SubString(1) + ' ;Call')
   else
 }  begin
-    Code := Fragments.FragmentParamSub(ProcName, Param, Prefix);
+    Code := CG.Fragments.FragmentParamSub(ProcName, Param, Prefix);
     if Code = '' then
       raise Exception.Create('Validation library code not found: ' + ProcName);
     if IDE.Compiler.Config.CodeGen.FragmentNames then
