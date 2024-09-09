@@ -318,7 +318,7 @@
         <iPad_Setting58>$(BDS)\bin\Artwork\iOS\iPad\FM_SettingIcon_58x58.png</iPad_Setting58>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win32)'!=''">
-        <DCC_UsePackage>DBXSqliteDriver;IndyIPCommon;RESTComponents;bindcompdbx;DBXInterBaseDriver;vcl;IndyIPServer;vclactnband;VCLTMSFNCChartPkgDXE12;vclFireDAC;IndySystem;tethering;svnui;dsnapcon;FireDACADSDriver;FMXTMSFNCCorePkgDXE12;FireDACMSAccDriver;fmxFireDAC;vclimg;FireDAC;vcltouch;vcldb;bindcompfmx;svn;FireDACSqliteDriver;FireDACPgDriver;inetdb;soaprtl;DbxCommonDriver;fmx;FireDACIBDriver;fmxdae;xmlrtl;soapmidas;fmxobj;vclwinx;rtl;DbxClientDriver;CustomIPTransport;vcldsnap;dbexpress;IndyCore;vclx;bindcomp;appanalytics;dsnap;FireDACCommon;IndyIPClient;bindcompvcl;RESTBackendComponents;VCLRESTComponents;soapserver;dbxcds;VclSmp;adortl;vclie;bindengine;DBXMySQLDriver;CloudService;dsnapxml;FireDACMySQLDriver;dbrtl;IndyProtocols;inetdbxpress;FireDACCommonODBC;FireDACCommonDriver;VCLTMSFNCCorePkgDXE12;FMXTMSFNCChartPkgDXE12;inet;fmxase;$(DCC_UsePackage)</DCC_UsePackage>
+        <DCC_UsePackage>DBXSqliteDriver;IndyIPCommon;RESTComponents;bindcompdbx;DBXInterBaseDriver;vcl;IndyIPServer;vclactnband;VCLTMSFNCChartPkgDXE12;vclFireDAC;IndySystem;tethering;svnui;dsnapcon;FireDACADSDriver;FMXTMSFNCCorePkgDXE12;FireDACMSAccDriver;fmxFireDAC;vclimg;FireDAC;vcltouch;vcldb;bindcompfmx;svn;FireDACSqliteDriver;FireDACPgDriver;inetdb;soaprtl;DbxCommonDriver;fmx;FireDACIBDriver;fmxdae;xmlrtl;soapmidas;fmxobj;vclwinx;rtl;DbxClientDriver;CustomIPTransport;vcldsnap;dbexpress;IndyCore;vclx;bindcomp;appanalytics;dsnap;FireDACCommon;IndyIPClient;bindcompvcl;RESTBackendComponents;VCLRESTComponents;soapserver;dbxcds;VclSmp;adortl;vclie;bindengine;CBXMySQLDriver;CloudService;dsnapxml;FireDACMySQLDriver;dbrtl;IndyProtocols;inetdbxpress;FireDACCommonODBC;FireDACCommonDriver;VCLTMSFNCCorePkgDXE12;FMXTMSFNCChartPkgDXE12;inet;fmxase;$(DCC_UsePackage)</DCC_UsePackage>
         <DCC_Namespace>Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde;$(DCC_Namespace)</DCC_Namespace>
         <BT_BuildType>Debug</BT_BuildType>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
@@ -380,7 +380,7 @@
         <DCCReference Include="..\vcl\DUnitX\Source\DUNitX.Loggers.GUIX.pas">
             <Form>GUIXTestRunner</Form>
         </DCCReference>
-        <DCCReference Include="Main.pas">
+        <DCCReference Include="IDE.Main.pas">
             <Form>Form1</Form>
             <FormType>fmx</FormType>
         </DCCReference>
@@ -390,9 +390,9 @@
         <DCCReference Include="ILExec.pas"/>
         <DCCReference Include="Fragments.pas"/>
         <DCCReference Include="Operators.pas"/>
-        <DCCReference Include="Shell.pas"/>
-        <DCCReference Include="Compiler.pas"/>
-        <DCCReference Include="Testing.pas"/>
+        <DCCReference Include="IDE.Shell.pas"/>
+        <DCCReference Include="IDE.Compiler.pas"/>
+        <DCCReference Include="IDE.Testing.pas"/>
         <DCCReference Include="Functions.pas"/>
         <DCCReference Include="ParseExpr.pas"/>
         <DCCReference Include="ParserBase.pas"/>
@@ -407,7 +407,7 @@
         <DCCReference Include="SourceReader.pas"/>
         <DCCReference Include="ParseFuncDef.pas"/>
         <DCCReference Include="ParseFuncCall.pas"/>
-        <DCCReference Include="MConfig.pas"/>
+        <DCCReference Include="IDE.Config.pas"/>
         <DCCReference Include="..\TextEditor\TextBrowser.pas"/>
         <DCCReference Include="..\TextEditor\EditableText.pas"/>
         <DCCReference Include="Emulator.pas"/>
@@ -415,7 +415,7 @@
         <DCCReference Include="Z80.Optimise.pas"/>
         <DCCReference Include="Z80.CPUState.pas"/>
         <DCCReference Include="Z80.CPU.pas"/>
-        <DCCReference Include="OptionsForm.pas">
+        <DCCReference Include="IDE.OptionsForm.pas">
             <Form>Options</Form>
             <FormType>fmx</FormType>
         </DCCReference>
@@ -426,7 +426,7 @@
         <DCCReference Include="Z80.Load.pas"/>
         <DCCReference Include="Z80.Store.pas"/>
         <DCCReference Include="Z80.Validation.pas"/>
-        <DCCReference Include="Test.Data.pas"/>
+        <DCCReference Include="IDE.SelfTest.pas"/>
         <None Include="Tests.txt"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>

@@ -31,8 +31,8 @@ uses ParserBase, ParseErrors, Z80.CPU;
 function ParseFunctionDef(Proc: Boolean): TQuicheError;
 
 implementation
-uses MConfig, Functions, SysUtils, QTypes, ParseExpr, ILData, Variables, Scopes,
-  Parse, Globals, Operators, Compiler;
+uses Functions, SysUtils, QTypes, ParseExpr, ILData, Variables, Scopes,
+  Parse, Globals, Operators;
 
 //Parse a parameter name and add it to the function definition
 //Also validates that the parameter name is unique within the definition, and that
@@ -431,7 +431,7 @@ begin
           Func.Flags := Func.Flags - [ffForward];
 
         if Func.CallingConvention = ccUnknown then
-          Func.CallingConvention := Config.DefaultCallingConvention;
+          Func.CallingConvention := optDefaultCallingConvention;
 
         EXIT(qeNone);
       end;

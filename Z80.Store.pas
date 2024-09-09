@@ -33,6 +33,13 @@ procedure GenStoreParam(const Param: TILParam;FromType: TVarType;RangeCheck: Boo
 // * generates code to handle the type conversion (if necessary)
 procedure StoreAfterPrimNG(ILItem: PILItem;Prim: PPrimitiveNG);
 
+//Generate code for an ILItem which is an unconditional jump
+procedure GenUncondBranch(ILItem: PILItem);
+
+//Generate a branch after the
+procedure GenCondBranch(const Param: TILParam);
+
+
 implementation
 uses Classes, SysUtils,
   Variables,
@@ -327,6 +334,86 @@ begin
   Result := True;
 end;
 
+//=====================================================================BRANCHING
+
+//Generates a conditional jump, using Zero or Carry flag, to the given block
+//If ZeroFlag is true, the jump uses the Zero flag, otherwise the Carry flag
+//If Reverse is True the condition is inverted (i.e. Zero becomes Not Zero,
+//Carry Set becomse Carry Clear).
+procedure GenCondJump(const Param: TILParam;Reverse: Boolean;BlockID: Integer);
+var F: String;
+begin
+//  Reverse := Reverse xor ILItem.BranchInvert;
+  Assert(Param.Kind = pkCondBranch);
+
+  case Param.Reg of
+    rA:
+    begin
+//      if ILItem.OpType <> rtBoolean then
+        GenLibraryParamProc('atozf', Param, 'd');
+      if Reverse then
+        F := 'z'
+      else
+        F := 'nz';
+    end;
+    rZF, rZFA:
+      if Reverse then
+        F := 'nz'
+      else
+        F := 'z';
+    rNZF, rNZFA:
+      if Reverse then
+        F := 'z'
+      else
+        F := 'nz';
+    rCF:
+      if Reverse then
+        F := 'nc'
+      else
+        F := 'c';
+    rNCF:
+      if Reverse then
+        F := 'c'
+      else
+        F := 'nc';
+    else
+    raise Exception.Create('TODO Flags');
+  end;
+
+  Opcode('jp', F, GetCurrProcName + IntToStr(BlockID));
+end;
+
+//Generates an unconditional jump to the given Block.
+//If the block immediately follows the current code location no code is generated
+//(i.e. fall-through)
+procedure GenUncondJump(BlockID: Integer);
+begin
+  if GetCurrBlockID <> BlockID - 1 then
+    Opcode('jp', GetCurrProcName + IntToStr(BlockID),'');
+end;
+
+//Generate code for an ILItem which is an unconditional jump
+procedure GenUncondBranch(ILItem: PILItem);
+begin
+  Assert(ILItem.GetBranchBlockiD <> -1);
+  GenUncondJump(ILItem.GetBranchBlockID);
+end;
+
+//Generate a branch after the
+procedure GenCondBranch(const Param: TILParam);
+begin
+  //If True block is following block then generate conditional jump for False
+  if Param.TrueBlockID = GetCurrBlockID + 1 then
+    GenCondJump(Param, True, Param.FalseBlockID)
+  else
+  begin //Otherwise generate condition jump for True...
+    GenCondJump(Param, False, Param.TrueBlockID);
+    //...and False doesn't 'fall though' then an unconditional jump for it.
+    if Param.FalseBlockID <> GetCurrBlockID + 1 then
+      GenUncondJump(Param.FalseBlockID);
+  end;
+end;
+
 procedure GenStoreParam(const Param: TILParam;FromType: TVarType;RangeCheck: Boolean;
   Options: TMoveOptionSet);
 begin
@@ -340,7 +427,23 @@ begin
       end
       else
        StoreRegVarValue(Param.Reg, Param.Variable, Param.VarVersion, FromType, RangeCheck, Options);
-    //TODO - process more Dest Kinds (move from StoreAfterPrimNG)
+    pkCondBranch:
+      GenCondBranch(Param);
+    pkPush: //The stack
+      OpPUSH(Param.Reg);
+    pkPushByte:
+    begin
+      //If the value is a boolean, and it's in a flag (or in a register but needs processing)
+      //this call will do than and put the value in A
+      if Param.Reg in [rZF, rZFA, rNZF, rNZFA, rCPLA, rCF, rNCF] then
+      begin
+        GenToBoolean(Param.Reg, Param, []);
+        OpPUSH(rAF);
+      end
+      else
+        OpPUSH(Param.Reg);
+        Instr('inc sp');
+    end;
   else
     System.Assert(False, 'Invalid param kind for param store');
   end;
@@ -357,31 +460,13 @@ var
   DestType: TVarType;
   ValProcName: String;
 begin
-  case ILItem.Dest.Kind of
-    pkNone: ;
-    pkVarDest:
-    begin
-      //NOTE: Do explicit Range checking here because we need to use the Result data in Prim...
-      if cgRangeCheck in ILItem.Dest.Flags then
-        GenRangeCheck(ILItem.Dest.Reg, ILItem.ResultType, ILItem.Dest.Variable.VarType, Prim, []);
+  if ILItem.Dest.Kind = pkVarDest then
+    //NOTE: Do explicit Range checking here because we need to use the Result data in Prim...
+    if cgRangeCheck in ILItem.Dest.Flags then
+      GenRangeCheck(ILItem.Dest.Reg, ILItem.ResultType, ILItem.Dest.Variable.VarType, Prim, []);
 
-      //...so pass False to RangeCheck parameter
-      GenStoreParam(ILItem.Dest, ILItem.ResultType, False, []);
-    end;
-    pkCondBranch:
-      CondBranchAfterPrimNG(ILItem);
-    pkPush:
-      GenLibraryProc('push_word', ILItem);     //The stack
-    pkPushByte:
-    begin
-      //If the value is a boolean, and it's in a flag (or in a register but needs processing)
-      //this call will do than and put the value in A
-      GenToBoolean(ILItem.Dest.Reg, ILItem.Dest, []);
-      GenLibraryProc('push_byte_a', ILItem);  //Single byte on the stack
-    end;
-    else
-      Assert(False, 'Invalid Dest Location');
-  end;
+  //...so pass False to RangeCheck parameter
+  GenStoreParam(ILItem.Dest, ILItem.ResultType, False, []);
 end;
 
 end.

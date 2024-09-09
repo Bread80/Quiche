@@ -4,16 +4,16 @@ uses
   System.StartUpCopy,
   FMX.Forms,
   DUNitX.Loggers.GUIX in '..\vcl\DUnitX\Source\DUNitX.Loggers.GUIX.pas' {GUIXTestRunner},
-  Main in 'Main.pas' {Form1},
+  IDE.Main in 'IDE.Main.pas' {Form1},
   ILData in 'ILData.pas',
   Parse in 'Parse.pas',
   Variables in 'Variables.pas',
   ILExec in 'ILExec.pas',
   Fragments in 'Fragments.pas',
   Operators in 'Operators.pas',
-  Shell in 'Shell.pas',
-  Compiler in 'Compiler.pas',
-  Testing in 'Testing.pas',
+  IDE.Shell in 'IDE.Shell.pas',
+  IDE.Compiler in 'IDE.Compiler.pas',
+  IDE.Testing in 'IDE.Testing.pas',
   Functions in 'Functions.pas',
   ParseExpr in 'ParseExpr.pas',
   ParserBase in 'ParserBase.pas',
@@ -28,7 +28,7 @@ uses
   SourceReader in 'SourceReader.pas',
   ParseFuncDef in 'ParseFuncDef.pas',
   ParseFuncCall in 'ParseFuncCall.pas',
-  MConfig in 'MConfig.pas',
+  IDE.Config in 'IDE.Config.pas',
   TextBrowser in '..\TextEditor\TextBrowser.pas',
   EditableText in '..\TextEditor\EditableText.pas',
   Emulator in 'Emulator.pas',
@@ -36,7 +36,7 @@ uses
   Z80.Optimise in 'Z80.Optimise.pas',
   Z80.CPUState in 'Z80.CPUState.pas',
   Z80.CPU in 'Z80.CPU.pas',
-  OptionsForm in 'OptionsForm.pas' {Options},
+  IDE.OptionsForm in 'IDE.OptionsForm.pas' {Options},
   Z80.CodeGen in 'Z80.CodeGen.pas',
   Z80.LoadStoreMove in 'Z80.LoadStoreMove.pas',
   ViewableText in '..\TextEditor\ViewableText.pas',
@@ -46,7 +46,7 @@ uses
   Z80.Load in 'Z80.Load.pas',
   Z80.Store in 'Z80.Store.pas',
   Z80.Validation in 'Z80.Validation.pas',
-  Test.Data in 'Test.Data.pas';
+  IDE.SelfTest in 'IDE.SelfTest.pas';
 
 {$R *.res}
 

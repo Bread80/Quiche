@@ -5,10 +5,10 @@
 //It provides access to the compiler, data structures, code generator, assembler
 //emulator, running (deployments) etc., as well as making errors and error messages
 //easy to access and understand.
-unit Compiler;
+unit IDE.Compiler;
 
 interface
-uses Classes, ParseErrors, MConfig, Globals;
+uses Classes, ParseErrors, IDE.Config, Globals;
 
 //====Errors and return values
 
@@ -108,7 +108,7 @@ procedure SaveObjectCode(Filename: String);
 implementation
 uses SysUtils, IOUtils,
   Operators, PrimitivesEx, Intrinsics, ILData, Variables, Parse, CodeGen,
-  Fragments, ILExec, Shell, Emulator, ParserBase, Functions, Scopes;
+  Fragments, ILExec, IDE.Shell, Emulator, ParserBase, Functions, Scopes;
 
 //====Errors and return values
 
@@ -203,6 +203,7 @@ begin
   optOverflowChecks := Config.OverflowChecks;
   optRangeChecks := Config.RangeChecks;
   optDefaultVarStorage := Config.DefaultVarStorage;
+  optDefaultCallingConvention := Config.DefaultCallingConvention;
 end;
 
 procedure Initialise(InitDirectives, WarmInit: Boolean);
@@ -319,7 +320,7 @@ end;
 function Assemble(Filename: String): Boolean;
 begin
   BinaryFilename := TPath.ChangeExtension(Filename, '.bin');
-  AssemblerLog := Shell.Assemble(Filename);
+  AssemblerLog := IDE.Shell.Assemble(Filename);
   AssembleError := AssemblerLog.Contains('failed') or AssemblerLog.Contains('Error: [') or AssemblerLog.Contains('Warning: [');
   Result := not AssembleError;
 end;
@@ -328,7 +329,7 @@ end;
 function Compile(BlockType: TBlockType;ParseType: TParseType): Boolean;
 begin
   //CodeGen
-  Result := Compiler.Parse(BlockType, ParseType);
+  Result := IDE.Compiler.Parse(BlockType, ParseType);
   if not Result then
     EXIT;
 
@@ -338,7 +339,7 @@ begin
     EXIT;
 
   //Assemble
-  Result := Compiler.Assemble(AssemblerFileName);
+  Result := IDE.Compiler.Assemble(AssemblerFileName);
 end;
 
 function CompileStrings(SL: TStrings;BlockType: TBlockType;ParseType: TParseType;
@@ -396,7 +397,7 @@ begin
       EXIT(False);
     end;
 
-    Shell.Emulate(Deploy.Run, 'C:\');
+    IDE.Shell.Emulate(Deploy.Run, 'C:\');
 {
     WriteBuffer :=  Variables.LoadVarsFromMemoryDump(TPath.Combine(OutputFolder, scRAMDump),
       StackBase - StackFrameSize, RunTimeError, RunTimeErrorAddress);

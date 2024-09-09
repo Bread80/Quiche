@@ -18,12 +18,6 @@ procedure GenLibraryParamProc(ProcName: String;const Param: TILParam;const Prefi
 
 procedure GenCode(ProcName: String;ILItem: PILItem);
 
-//Generate code for an ILItem which is an unconditional jump
-procedure GenUncondBranch(ILItem: PILItem);
-
-//Generate a branch after the
-procedure CondBranchAfterPrimNG(ILItem: PILItem);
-
 //Generate the code form the start of a function (ie. generate a stack frame, if needed)
 procedure GenFunctionPreamble(Scope: PScope;BlockType: TBlockType);
 
@@ -48,7 +42,8 @@ procedure InitPrimitives;
 
 implementation
 uses Classes, SysUtils,
-  CodeGen, Fragments, Compiler, QTypes, Operators,
+  CodeGen, Fragments, QTypes, Operators,
+  IDE.Compiler, //<-- Included here ONLY to access assembler output meta-data options
   Z80.CPUState, Z80.LoadStoreMove;
 
 //================================== LIBRARY CODE
@@ -93,7 +88,7 @@ begin
     Code := Fragments.FragmentSub(ProcName, ILItem, GetCodeGenScope);
     if Code = '' then
       raise Exception.Create('Validation library code not found: ' + ProcName);
-    if Compiler.Config.CodeGen.FragmentNames then
+    if IDE.Compiler.Config.CodeGen.FragmentNames then
       Line('                     ;Fragment: ' + ProcName);
     Lines(Code);
   end;
@@ -110,7 +105,7 @@ begin
     Code := Fragments.FragmentParamSub(ProcName, Param, Prefix);
     if Code = '' then
       raise Exception.Create('Validation library code not found: ' + ProcName);
-    if Compiler.Config.CodeGen.FragmentNames then
+    if IDE.Compiler.Config.CodeGen.FragmentNames then
       Line('                     ;Fragment: ' + ProcName);
     Lines(Code);
   end;
@@ -133,7 +128,7 @@ begin
     Prim := PrimFindByProcNameNG(ProcName);
     if Assigned(Prim) then
     begin
-    if Compiler.Config.CodeGen.PrimitiveNames then
+    if IDE.Compiler.Config.CodeGen.PrimitiveNames then
         Line('                     ;Prim: ' + ProcName);
       Prim.Proc(ILItem);
     end
@@ -149,86 +144,6 @@ begin
 end;
 
 //======================= PROGRAMMATIC CODE GENERATION
-
-//Branching
-
-//Generates an unconditional jump to the given Block.
-//If the block immediately follows the current code location no code is generated
-//(i.e. fall-through)
-procedure GenUncondJump(BlockID: Integer);
-begin
-  if GetCurrBlockID <> BlockID - 1 then
-    Opcode('jp', GetCurrProcName + IntToStr(BlockID),'');
-end;
-
-//Generate code for an ILItem which is an unconditional jump
-procedure GenUncondBranch(ILItem: PILItem);
-begin
-  Assert(ILItem.GetBranchBlockiD <> -1);
-  GenUncondJump(ILItem.GetBranchBlockID);
-end;
-
-//Generates a conditional jump, using Zero or Carry flag, to the given block
-//If ZeroFlag is true, the jump uses the Zero flag, otherwise the Carry flag
-//If Reverse is True the condition is inverted (i.e. Zero becomes Not Zero,
-//Carry Set becomse Carry Clear).
-procedure GenCondJump(ILItem: PILItem;Reverse: Boolean;BlockID: Integer);
-var F: String;
-begin
-//  Reverse := Reverse xor ILItem.BranchInvert;
-  Assert(ILItem.Dest.Kind = pkCondBranch);
-  case ILItem.Dest.Reg of
-    rA:
-    begin
-//      if ILItem.OpType <> rtBoolean then
-        GenLibraryProc('atozf', ILItem);
-      if Reverse then
-        F := 'z'
-      else
-        F := 'nz';
-    end;
-    rZF, rZFA:
-      if Reverse then
-        F := 'nz'
-      else
-        F := 'z';
-    rNZF, rNZFA:
-      if Reverse then
-        F := 'z'
-      else
-        F := 'nz';
-    rCF:
-      if Reverse then
-        F := 'nc'
-      else
-        F := 'c';
-    rNCF:
-      if Reverse then
-        F := 'c'
-      else
-        F := 'nc';
-    else
-    raise Exception.Create('TODO Flags');
-  end;
-
-  Opcode('jp', F, GetCurrProcName + IntToStr(BlockID));
-end;
-
-
-//Generate a branch after the
-procedure CondBranchAfterPrimNG(ILItem: PILItem);
-begin
-  //If True block is following block then generate conditional jump for False
-  if ILItem.Param3.TrueBlockID = GetCurrBlockID + 1 then
-    GenCondJump(ILItem, True, ILItem.Param3.FalseBlockID)
-  else
-  begin //Otherwise generate condition jump for True...
-    GenCondJump(ILItem, False, ILItem.Param3.TrueBlockID);
-    //...and False doesn't 'fall though' then an unconditional jump for it.
-    if ILItem.Param3.FalseBlockID <> GetCurrBlockID + 1 then
-      GenUncondJump(ILItem.Param3.FalseBlockID);
-  end;
-end;
 
 //Generate the code form the start of a function (ie. generate a stack frame, if needed)
 procedure GenFunctionPreamble(Scope: PScope;BlockType: TBlockType);
@@ -250,7 +165,7 @@ begin
 
         //Copy registers to global storage (unless the global storage has been
         //optimised away)
-        GenFuncParamStore(Scope.Func);
+        GenFuncArgStore(Scope.Func);
       end;
       ccStack:
           //TODO: Add register allocation for Result
@@ -280,7 +195,7 @@ begin
     case Scope.Func.CallingConvention of
       ccRegister: //Load any return parameters into registers
       begin
-        GenFuncParamLoad(Scope.Func);
+        GenFuncReturnLoad(Scope.Func);
         Instr('ret')
       end;
       ccStack:
@@ -292,7 +207,6 @@ begin
     end;
   end;
 end;
-
 
 //====================================
 
@@ -306,42 +220,6 @@ begin
   //Do nothing
 end;
 
-//====================================Assigns
-(*
-procedure ProcAssignAbsS16Imm8(ILItem: PILItem);
-var Variable: PVariable;
-begin
-  Assert(ILItem.Param1.Kind = pkImmediate);
-  Assert(ILItem.Param1.Imm.VarType in [vtInt8, vtByte]);
-  Assert(ILItem.Dest.Kind = pkVarDest);
-
-  Variable := ILItem.Dest.ToVariable;
-  Assert(Variable.Storage = vsStatic);
-
-  if (ILItem.Param1.Imm.VarType = vtInt8) and (ILItem.Param1.Imm.IntValue < 0) then
-    GenLibraryProc('assign_abs16_imm8_neg', ILItem)
-  else
-    GenLibraryProc('assign_abs16_imm8', ILItem);
-end;
-
-//8 bit immediate value, extended to 16 bit
-procedure ProcAssignRelS16Imm8(ILItem: PILItem);
-var Variable: PVariable;
-begin
-  Assert(ILItem.Param1.Kind = pkImmediate);
-  Assert(ILItem.Param1.Imm.VarType = vtInt8);
-  Assert(ILItem.Dest.Kind = pkVarDest);
-
-  Variable := ILItem.Dest.ToVariable;
-  Assert(Variable.Storage = vsStack);
-
-  if ILItem.Param1.Imm.IntValue < 0 then
-    GenLibraryProc('assign_rel16_imm8_neg', ILItem)
-  else
-    GenLibraryProc('assign_rel16_imm8', ILItem);
-end;
-
-*)
 //=====================================Maths
 
 procedure ProcDec8Reg(ILItem: PILItem);

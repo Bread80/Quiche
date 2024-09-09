@@ -104,7 +104,7 @@ const
 const CPURegStrings: array[low(TCPUReg)..high(TCPUReg)] of String = (
   '','','','','',
   'a','b','c','d','e','h','l',
-  '',
+  'af',
   'hl','de','bc','ix','iy',
   'ZF','','','',
   'CF','','','');
@@ -299,13 +299,13 @@ end;
 
 procedure OpPUSH(Reg: TCPUReg);
 begin
-  Assert(Reg in CPUReg16Bit);
+  Assert(Reg in (CPUReg16Bit + [rAF]));
   Opcode('push',CPURegStrings[Reg]);
 end;
 
 procedure OpPOP(Reg: TCPUReg);
 begin
-  Assert(Reg in CPUReg16Bit);
+  Assert(Reg in (CPUReg16Bit + [rAF]));
   Opcode('pop',CPURegStrings[Reg]);
 end;
 

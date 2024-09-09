@@ -3191,8 +3191,8 @@ object Form1: TForm1
             Size.Height = 264.000000000000000000
             Size.PlatformDefault = False
             TabOrder = 0
-            Viewport.Width = 434.000000000000000000
-            Viewport.Height = 260.000000000000000000
+            Viewport.Width = 438.000000000000000000
+            Viewport.Height = 264.000000000000000000
           end
         end
       end
@@ -3225,8 +3225,8 @@ object Form1: TForm1
             Size.Height = 264.000000000000000000
             Size.PlatformDefault = False
             TabOrder = 0
-            Viewport.Width = 434.000000000000000000
-            Viewport.Height = 260.000000000000000000
+            Viewport.Width = 438.000000000000000000
+            Viewport.Height = 264.000000000000000000
           end
         end
       end
@@ -3261,8 +3261,8 @@ object Form1: TForm1
             Size.Height = 262.000000000000000000
             Size.PlatformDefault = False
             TabOrder = 1
-            Viewport.Width = 434.000000000000000000
-            Viewport.Height = 258.000000000000000000
+            Viewport.Width = 438.000000000000000000
+            Viewport.Height = 262.000000000000000000
           end
         end
       end
@@ -3287,8 +3287,8 @@ object Form1: TForm1
           Size.Height = 276.000000000000000000
           Size.PlatformDefault = False
           TabOrder = 0
-          Viewport.Width = 451.000000000000000000
-          Viewport.Height = 272.000000000000000000
+          Viewport.Width = 455.000000000000000000
+          Viewport.Height = 276.000000000000000000
         end
       end
       object tbTests: TTabItem
@@ -3320,8 +3320,8 @@ object Form1: TForm1
             Size.Height = 264.000000000000000000
             Size.PlatformDefault = False
             TabOrder = 0
-            Viewport.Width = 434.000000000000000000
-            Viewport.Height = 260.000000000000000000
+            Viewport.Width = 438.000000000000000000
+            Viewport.Height = 264.000000000000000000
           end
         end
       end
@@ -3409,6 +3409,12 @@ object Form1: TForm1
     Left = 568
     Top = 80
   end
+  object FileSaveDialog: TSaveDialog
+    DefaultExt = '.quiche'
+    Filter = 'Quiche|*.quiche|Pascal|*.pas|Text|*.txt|All files|*.*'
+    Left = 632
+    Top = 80
+  end
   object ActionList1: TActionList
     Left = 696
     Top = 120
@@ -3450,11 +3456,5 @@ object Form1: TForm1
       Text = '&New'
       OnExecute = acNewExecute
     end
-  end
-  object FileSaveDialog: TSaveDialog
-    DefaultExt = '.quiche'
-    Filter = 'Quiche|*.quiche|Pascal|*.pas|Text|*.txt|All files|*.*'
-    Left = 632
-    Top = 80
   end
 end

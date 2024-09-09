@@ -58,7 +58,8 @@ var LogPrimitives: Boolean;
 
 implementation
 uses Fragments, ILData, SysUtils, Variables, ParserBase, QTypes, Operators,
-  PrimitivesEx, Compiler, Functions,
+  PrimitivesEx, Functions,
+  IDE.Compiler, //<-- Allowed here ONLY so we can access assembler output meta data settings
   Z80.CPU, Z80.Optimise, Z80.CPUState, Z80.CodeGen,
   Z80.LoadStoreMove, Z80.Load, Z80.Store;
 
@@ -243,17 +244,17 @@ begin
   if (ILItem.SourceLineNo <> -1) and (ILItem.SourceLineNo <> CurrSourceLineNo) then
   begin //Output source code line
     CurrSourceLineNo := ILItem.SourceLineNo;
-    if Compiler.Config.CodeGen.SourceCode then
+    if IDE.Compiler.Config.CodeGen.SourceCode then
       Line(';' + IntToStr(CurrSourceLineNo) + ': ' + Parser.Source[CurrSourceLineNo].Trim);
   end;  //Output block ID
 
-  if Compiler.Config.CodeGen.ILCode then
+  if IDE.Compiler.Config.CodeGen.ILCode then
     Line(';IL-' + ILIndex.ToString +': ' + ILItem.ToString);
 
   if ILItem.BlockID >= 0 then
   begin
     CurrBlockID := ILItem.BlockID;
-    if Compiler.Config.CodeGen.BlockInfo then
+    if IDE.Compiler.Config.CodeGen.BlockInfo then
       Comments := ' ;' + ILItem.Comments
     else
       Comments := '';
@@ -319,7 +320,7 @@ begin
     StoreAfterPrimNG(ILItem, PrimNG);
   end;
 
-  if Compiler.Config.CodeGen.CPUState then
+  if IDE.Compiler.Config.CodeGen.CPUState then
     Line(';'+CPUStateToString);
 end;
 
@@ -372,7 +373,7 @@ begin
     GenLabel(CurrProcName+IntToStr(CurrBlockID+1));
 
     GenFunctionPostamble(Scope, BlockType);
-    if Compiler.Config.CodeGen.VarMap then
+    if IDE.Compiler.Config.CodeGen.VarMap then
     begin
       Line('');
       Line(VarMapToString);

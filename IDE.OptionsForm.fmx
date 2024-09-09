@@ -66,6 +66,8 @@ object Options: TOptions
       StyleLookup = ''
       TabOrder = 0
       Text = 'Code generator'
+      ExplicitSize.cx = 104.000000000000000000
+      ExplicitSize.cy = 26.000000000000000000
       object GroupBox1: TGroupBox
         Position.X = 16.000000000000000000
         Position.Y = 14.000000000000000000

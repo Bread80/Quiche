@@ -1,8 +1,10 @@
 //Globals data and current settings for the compiler.
+
+//For IDE settings see the MConfig unit
 unit Globals;
 
 interface
-uses Generics.Collections, Classes, QTypes, Variables;
+uses Generics.Collections, Classes, QTypes, Variables, Functions;
 
 const
   //Lanuage constants
@@ -40,9 +42,15 @@ var
 
   optDefaultVarStorage: TVarStorage;
 
+  optDefaultCallingConvention: TCallingConvention;
+
 
 type TBlockType = (btDefault, btStatic, btStack);
 
+//Specifies how root level local variables are stored. Normally this will be
+//btStatic.
+//btStack is useful for testing small code fragments.
+//btDefault is no valid as a RootBlockType
 var RootBlockType: TBlockType;
 
 implementation

@@ -1,4 +1,4 @@
-unit Testing;
+unit IDE.Testing;
 {
 Test file:
 ;Source code
@@ -34,8 +34,9 @@ procedure RunAllTests(Folder: String;StopOnError: Boolean);
 procedure TestLogToStrings(SL: TStrings);
 
 implementation
-uses SysUtils, IOUtils, Compiler, Variables, QTypes, Globals, CodeGen,
-  Test.Data;
+uses SysUtils, IOUtils,
+  IDE.Compiler, IDE.SelfTest,
+  Variables, QTypes, Globals, CodeGen;
 
 var
   TestName: String;
@@ -90,7 +91,7 @@ end;
 
 procedure Initialise;
 begin
-  Compiler.Config.PlatformName := 'TestCase';
+  IDE.Compiler.Config.PlatformName := 'TestCase';
 
   if Assigned(Log) then
     Log.Clear;
@@ -161,12 +162,12 @@ function CompileNeeded(IgnoreErrors: Boolean): Boolean;
 begin
   if not IsCompiled then
   begin
-    CompileOkay := Compiler.CompileStrings(TestCode, BlockType, ParseType, False, True);
+    CompileOkay := IDE.Compiler.CompileStrings(TestCode, BlockType, ParseType, False, True);
     Result := CompileOkay;
     if not CompileOkay and not IgnoreErrors then
     begin
-      if Compiler.LastErrorNo <> 0 then
-        TestLog('FAIL: Compiler error: ' + Compiler.LastErrorString)
+      if IDE.Compiler.LastErrorNo <> 0 then
+        TestLog('FAIL: Compiler error: ' + IDE.Compiler.LastErrorString)
       else
         TestLog('FAIL: Assembler error? ' + AssemblerLog);
 //        TestLog(Compiler.LastErrorLine);
@@ -184,7 +185,7 @@ begin
 
   if not HasRun then
   begin
-    RunOkay := Compiler.Emulate(Compiler.BinaryFileName);
+    RunOkay := IDE.Compiler.Emulate(IDE.Compiler.BinaryFileName);
     if not RunOkay and not IgnoreErrors then
       TestLog('ERROR: Unexpected runtime error ');
     Result := RunOkay;
@@ -227,7 +228,7 @@ var V: PVariable;
 begin
   if not RunNeeded(False) then
     EXIT(False);
-  if Compiler.LastErrorNo <> 0 then
+  if IDE.Compiler.LastErrorNo <> 0 then
     EXIT(False);
 
   if Length(Fields) <> 3 then
@@ -295,7 +296,7 @@ begin
   if CompileOkay then
     DoTest(Result, 'Compiler failed to raise an error')
   else
-    DoTest(Result, 'Compiler raised an error: ' + Compiler.LastErrorString)
+    DoTest(Result, 'Compiler raised an error: ' + IDE.Compiler.LastErrorString)
 end;
 
 function TestUsesPrimitive(Fields: TArray<String>): Boolean;
@@ -335,9 +336,9 @@ begin
   if not CompileOkay then
     EXIT(False);
 
-  DoTest(Compiler.RunTimeError = Err, 'Runtime ' + Err.ToString +
-    ' error expected. Got ' + Compiler.RuntimeError.ToString);
-  Result := Compiler.RunTimeError = Err;
+  DoTest(IDE.Compiler.RunTimeError = Err, 'Runtime ' + Err.ToString +
+    ' error expected. Got ' + IDE.Compiler.RuntimeError.ToString);
+  Result := IDE.Compiler.RunTimeError = Err;
 end;
 
 function SetBlockType(Fields: TArray<String>): Boolean;
@@ -412,7 +413,7 @@ begin
   if not Assigned(Log) then
     Log := TStringList.Create;
 
-  Compiler.Initialise(True, False);    //Initialise directives to known state
+  IDE.Compiler.Initialise(True, False);    //Initialise directives to known state
 
   TestLog('Processing file: ' + Filename);
   TestLog('------------------------------');

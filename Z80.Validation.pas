@@ -297,6 +297,16 @@ end;
 
 procedure GenRangeCheckHighByte(Reg: TCPUReg;FromType, ToType: TVarType;Options: TMoveOptionSet);
 begin
+  //Filter out anything we don't need to range check.
+  //This will need to be updated at some point for array, enumeration, etc.
+  if FromType = ToType then
+    EXIT;
+  if not IsNumericType(FromType) then
+    EXIT;
+  if not IsNumericType(ToType) then
+    EXIT;
+  Assert(ToType <> vtUnknown);
+
   Assert(Reg in CPUReg8Bit);
   Assert(FromType in [vtInteger, vtWord, vtPointer]);
   Assert(ToType in [vtInt8, vtByte]);
@@ -315,6 +325,16 @@ end;
 
 procedure GenRangeCheckLowByte(Reg: TCPUReg;FromType, ToType: TVarType;Options: TMoveOptionSet);
 begin
+  //Filter out anything we don't need to range check.
+  //This will need to be updated at some point for array, enumeration, etc.
+  if FromType = ToType then
+    EXIT;
+  if not IsNumericType(FromType) then
+    EXIT;
+  if not IsNumericType(ToType) then
+    EXIT;
+  Assert(ToType <> vtUnknown);
+
   Assert(Reg in CPUReg8Bit);
   Assert(FromType in [vtInteger, vtWord, vtPointer]);
   Assert(ToType in [vtInt8, vtByte]);

@@ -1,7 +1,7 @@
-unit Test.Data;
+unit IDE.SelfTest;
 
 interface
-uses SysUtils, IOUtils, Compiler, Variables, QTypes, Globals, CodeGen;
+uses SysUtils, IOUtils, IDE.Compiler, Variables, QTypes, Globals, CodeGen;
 
 type
   PTestOptions = ^TTestOptions;

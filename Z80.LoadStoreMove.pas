@@ -40,12 +40,12 @@ procedure GenFuncCall(ILIndex: Integer);
 //For each parameter which has been passed in a register (Func.Reg <> rNone),
 //and for which the Variable storage has not been optimised away,
 //generates code to store the registers value into memory storage.
-procedure GenFuncParamStore(Func: PFunction);
+procedure GenFuncArgStore(Func: PFunction);
 
 //As above but for use at the end of a function which uses the Register calling
 //convention.
 //Any values which are to be returned in registers are loaded into them
-procedure GenFuncParamLoad(Func: PFunction);
+procedure GenFuncReturnLoad(Func: PFunction);
 
 
 implementation
@@ -113,6 +113,10 @@ type
     //Registers that will be corrupted
     RequiresA: Integer;   //Number of moves requiring use of A register (decrement as moves are made)
     RequiresFlags: Integer; //Number of moves requiring use of Flags register (decrement as moves are made)
+
+    //If the move will be followed by a conditional branch (eg after a function call)
+    //it will be stored here. If not, this will be nil.
+    CondBranchParam: PILParam;
   end;
 
 var
@@ -145,6 +149,8 @@ begin
 
   MoveAnalysis.RequiresA := 0;
   MoveAnalysis.RequiresFlags := 0;
+
+  MoveAnalysis.CondBranchParam := nil;
 end;
 
 //================================ANALYSIS
@@ -359,7 +365,13 @@ begin
       pkVarDest,pkPop,pkPopByte:
         if not Loading then
           CopyParamToMoveState(Param);
-      pkBranch,pkCondBranch: ;
+//      pkBranch: ;
+      pkCondBranch:
+        if not Loading then
+        begin
+          Assert(MoveAnalysis.CondBranchParam = nil, 'Multiple pkCondBranch in a move');
+          MoveAnalysis.CondBranchParam := Param;
+        end;
       pkImmediate, pkVarSource,pkPush,pkPushByte:
         if Loading then
           CopyParamToMoveState(Param);
@@ -415,20 +427,20 @@ var I: Integer;
 begin
   InitMoveState;
 
-  for I := 0 to Func.ParamCount-1 do
-    if Func.Params[I].Reg <> rNone then
-      case Func.Params[I].Access of
-        vaVar:  //In and Out
+  for I := Low(Func.Params) to High(Func.Params) do
+    case Func.Params[I].Access of
+      vaNone: ;
+      vaVar:  //In and Out
+        SetParam(I, @Func.Params[I], Loading);
+      vaVal, vaConst:   //Input params
+        if not Loading then
           SetParam(I, @Func.Params[I], Loading);
-        vaVal, vaConst:   //Input params
-          if not Loading then
-            SetParam(I, @Func.Params[I], Loading);
-        vaOut, vaResult:  //Output params
-          if Loading then
-            SetParam(I, @Func.Params[I], Loading);
-      else
-        Assert(False);
-      end;
+      vaOut, vaResult:  //Output params
+        if Loading then
+          SetParam(I, @Func.Params[I], Loading);
+    else
+      Assert(False);
+    end;
 end;
 
 //To be called if the Params records within the MoveState have been allocated
@@ -762,6 +774,58 @@ begin
         end;
 end;
 
+procedure GenDataStoreOtherParams(ILIndex: Integer);
+  //Loop through ILItems for anything not already covered
+  //(Ie. CondBranches!!)
+var
+  ParamIndex: Integer;
+  Param: PILParam;
+  ILItem: PILItem;
+begin
+(*  ParamIndex := 1;
+  ILItem := nil;
+  while True do
+  begin
+    if ParamIndex = 1 then
+    begin
+      ILItem := ILIndexToData(ILIndex);
+      Assert(ILItem.Op in [opFuncCall, opFuncCallExtended]);
+    end;
+
+    case ParamIndex of
+      1: Param := @ILItem.Param1;
+      2: Param := @ILItem.Param2;
+      3: Param := @ILItem.Param3;
+    else
+      System.Assert(False);
+    end;
+
+    case Param.Kind of
+      pkNone: ;
+      pkPhiVarSource,pkPhiVarDest: ;
+      pkVarDest,pkPop,pkPopByte: ;
+      pkBranch: ;
+      pkCondBranch:
+        GenCondBranch(Param);
+      pkImmediate, pkVarSource,pkPush,pkPushByte: ;
+
+    else
+      System.Assert(False);
+    end;
+
+    //Update result now we've found a usable parameter
+    inc(ParamIndex);
+    if ParamIndex > 3 then
+      if ILItem.Op = opFuncCallExtended then
+      begin
+        inc(ILIndex);
+        ParamIndex := 1;
+      end
+      else
+        EXIT;
+  end;
+*)end;
+
 function GenRegStore(ILIndex: Integer): Integer;
 var PrimFlags: TPrimFlagSetNG;
 begin
@@ -778,38 +842,38 @@ begin
   //which might get trashed, and whether those registers will get trashed.
   AnalyseMove(False);
 
-  if DataMoveDone then
-    EXIT;
-
   PrimFlags := [];
 
   //TODO: Store Flag types (values returned in CPU flags)
 
-  //Store the A register first - other stores might trash it
-  GenDataStoreParams([rA], [mtStatic16, mtStatic8, mtStack],
-    [ptSignExtend, ptShrink, ptRangeCheck8, ptRangeCheck16], PrimFlags, [moPreserveHLDE]);
+  if not DataMoveDone then
+    //Store the A register first - other stores might trash it
+    GenDataStoreParams([rA], [mtStatic16, mtStatic8, mtStack],
+      [ptSignExtend, ptShrink, ptRangeCheck8, ptRangeCheck16], PrimFlags, [moPreserveHLDE]);
 
-  if DataMoveDone then
-    EXIT;
+  if not DataMoveDone then
+    //Store values which will trash A or flags for all registers except A and Flags
+    GenDataStoreParams([rB, rC, rD, rE, rH, rL, rBC, rDE, rHL, rIX, rIY],
+      [mtStatic8], [ptSignExtend, ptShrink, ptRangeCheck8, ptRangeCheck16], PrimFlags,
+      [moPreserveHLDE]);  //<-- we'll need more analysis before allowing EX HL,DE
+                          //(it might Undo a move we've already done!)
 
-  //Store values which will trash A or flags for all registers except A and Flags
-  GenDataStoreParams([rB, rC, rD, rE, rH, rL, rBC, rDE, rHL, rIX, rIY],
-    [mtStatic8], [ptSignExtend, ptShrink, ptRangeCheck8, ptRangeCheck16], PrimFlags,
-    [moPreserveHLDE]);  //<-- we'll need more analysis before allowing EX HL,DE
-                        //(it might Undo a move we've already done!)
-
-  if DataMoveDone then
-    EXIT;
-
-  //Store other values
-  GenDataStoreParams([rB, rC, rD, rE, rH, rL, rBC, rDE, rHL, rIX, rIY],
-    [mtStatic16, mtStack], [], PrimFlags,
-    [moPreserveHLDE, moPreserveA, moPreserveCF, moPreserveOtherFlags]); //<--- Mostly just error checking here
+  if not DataMoveDone then
+    //Store other values
+    GenDataStoreParams([rB, rC, rD, rE, rH, rL, rBC, rDE, rHL, rIX, rIY],
+      [mtStatic16, mtStack], [], PrimFlags,
+      [moPreserveHLDE, moPreserveA, moPreserveCF, moPreserveOtherFlags]); //<--- Mostly just error checking here
 
   Assert(DataMoveDone, 'Data Store failed to store everything :(');
+
+  if MoveAnalysis.CondBranchParam <> nil then
+  begin
+//    Assert(  Must be a function call!!)
+    GenCondBranch(MoveAnalysis.CondBranchParam^);
+  end;
 end;
 
-procedure GenFuncParamStore(Func: PFunction);
+procedure GenFuncArgStore(Func: PFunction);
 begin
   InitMoveAnalysis;
 
@@ -844,7 +908,7 @@ begin
   DisposeMoveStateParams;
 end;
 
-procedure GenFuncParamLoad(Func: PFunction);
+procedure GenFuncReturnLoad(Func: PFunction);
 var Options: TMoveOptions;
 begin
   InitMoveAnalysis;

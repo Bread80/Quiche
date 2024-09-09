@@ -39,7 +39,7 @@ Directory structure:
 
 
 
-unit Main;
+unit IDE.Main;
 
 interface
 
@@ -47,7 +47,7 @@ uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
   FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs,
   FMX.Controls.Presentation, FMX.StdCtrls, FMX.ScrollBox, FMX.Memo, FMX.Edit,
-  System.Actions, FMX.ActnList, FMX.ListBox, Compiler, FMX.TabControl,
+  System.Actions, FMX.ActnList, FMX.ListBox, IDE.Compiler, FMX.TabControl,
   TextBrowser, Globals, FMX.Menus;
 
 type
@@ -158,8 +158,8 @@ var
 
 implementation
 uses
-  FMX.DialogService,
-  IOUtils, Testing, OptionsForm,
+  FMX.DialogService, IOUtils,
+  IDE.Testing, IDE.OptionsForm,
   DUnitX.TestFramework,
   DUnitx.test;
 //  DUnitX.Loggers.GUIX,
@@ -207,32 +207,32 @@ procedure TForm1.acRunExecute(Sender: TObject);
 var Good: Boolean;
 begin
   SaveState;
-  Good := Compiler.CompileString(tdSource.Text.AsString, GetBlockType, GetParseType,
+  Good := IDE.Compiler.CompileString(tdSource.Text.AsString, GetBlockType, GetParseType,
     True, False);
 
-  Compiler.GetScopeList(cbScope.Items);
+  IDE.Compiler.GetScopeList(cbScope.Items);
   if cbScope.Items.Count > 0 then
     cbScope.ItemIndex := 0;
 
-  Compiler.GetILText(mmIL.Lines);
-  Compiler.GetVarsText(mmVariables.Lines, True);
-  Compiler.GetFunctionsText(mmFunctions.Lines);
+  IDE.Compiler.GetILText(mmIL.Lines);
+  IDE.Compiler.GetVarsText(mmVariables.Lines, True);
+  IDE.Compiler.GetFunctionsText(mmFunctions.Lines);
 
   if not Good then
   begin
-    if Compiler.LastErrorNo <> 0 then
+    if IDE.Compiler.LastErrorNo <> 0 then
     begin //Compile error
-      tdSource.Text.acSetCursor(Compiler.LastErrorPos, Compiler.LastErrorLine-1);
-      edError.Text := Compiler.LastErrorString;
+      tdSource.Text.acSetCursor(IDE.Compiler.LastErrorPos, IDE.Compiler.LastErrorLine-1);
+      edError.Text := IDE.Compiler.LastErrorString;
       mmIL.Lines.Add(tdSource.Text.Lines[LastErrorLine-1]);
       mmIL.Lines.Add(StringOfChar(' ',LastErrorPos)+'^');
       mmIL.Lines.Add(edError.Text);
       mmIL.Lines.Add(ErrorHelp);
       TabControl1.ActiveTab := tbILCode;
     end
-    else if Compiler.AssembleError then
+    else if IDE.Compiler.AssembleError then
     begin
-      ShowMessage('Assembly error: ' + Compiler.AssemblerLog);
+      ShowMessage('Assembly error: ' + IDE.Compiler.AssemblerLog);
       TabControl1.ActiveTab := tbAssembly;
     end;
   end
@@ -255,7 +255,7 @@ procedure TForm1.acSaveAsExecute(Sender: TObject);
 begin
   if FileSaveDialog.Execute then
   begin
-    Compiler.Config.IDESettings.ProjectFile := FileSaveDialog.Filename;
+    IDE.Compiler.Config.IDESettings.ProjectFile := FileSaveDialog.Filename;
     tdSource.Text.Filename := FileSaveDialog.Filename;
     SaveProject;
     SaveState;
@@ -266,25 +266,28 @@ end;
 
 procedure TForm1.acSaveExecute(Sender: TObject);
 begin
-  if Compiler.Config.IDESettings.ProjectFile = '' then
+  if IDE.Compiler.Config.IDESettings.ProjectFile = '' then
     acSaveAsExecute(nil)
   else
+  begin
+    SaveProject;
     SaveState;
+  end;
 end;
 
 procedure TForm1.SaveConfigFile;
 begin
-  Compiler.Config.SaveToFile(CompilerConfigFileName);
+  IDE.Compiler.Config.SaveToFile(CompilerConfigFileName);
 end;
 
 function TForm1.SaveProject: Boolean;
 begin
   try
     Result := False;
-    if Compiler.Config.IDESettings.ProjectFile = '' then
+    if IDE.Compiler.Config.IDESettings.ProjectFile = '' then
     begin
       acSaveAsExecute(nil);
-      if Compiler.Config.IDESettings.ProjectFile = '' then
+      if IDE.Compiler.Config.IDESettings.ProjectFile = '' then
         EXIT(False);
     end
     else
@@ -298,20 +301,20 @@ end;
 
 procedure TForm1.UpdateCaption;
 begin
-  if Compiler.Config.IDESettings.ProjectFile <> '' then
-    Caption := TPath.GetFilename(Compiler.Config.IDESettings.ProjectFile) + ' - ' + scCaption
+  if IDE.Compiler.Config.IDESettings.ProjectFile <> '' then
+    Caption := TPath.GetFilename(IDE.Compiler.Config.IDESettings.ProjectFile) + ' - ' + scCaption
   else
     Caption := '<Untitled> - ' + scCaption;
 end;
 
 procedure TForm1.btnEmulateClick(Sender: TObject);
 begin
-  if Compiler.Emulate(Compiler.BinaryFileName) then
+  if IDE.Compiler.Emulate(IDE.Compiler.BinaryFileName) then
   begin
     mmIL.Lines.Add('');
-    Compiler.GetVarsText(mmEmulate.Lines, False);
+    IDE.Compiler.GetVarsText(mmEmulate.Lines, False);
     mmEmulate.Lines.Add(#13'Write Buffer:');
-    mmEmulate.Lines.Add(Compiler.WriteBuffer);
+    mmEmulate.Lines.Add(IDE.Compiler.WriteBuffer);
   end
   else
     mmEmulate.Lines.Add('Emulation failed or not available');
@@ -321,41 +324,41 @@ end;
 
 procedure TForm1.btnInterpretClick(Sender: TObject);
 begin
-  Compiler.RunInterpreter;
+  IDE.Compiler.RunInterpreter;
 
-  Compiler.GetInterpreterOutput(mmAssembly.Lines);
+  IDE.Compiler.GetInterpreterOutput(mmAssembly.Lines);
 
-  Compiler.GetVarsText(mmVariables.Lines, False);
+  IDE.Compiler.GetVarsText(mmVariables.Lines, False);
   TabControl1.ActiveTab := tbVariables;
 end;
 
 procedure TForm1.btnTestClick(Sender: TObject);
 begin
-  Testing.Initialise;
+  IDE.Testing.Initialise;
   if cbTests.ItemIndex = 0 then
-    Testing.RunAllTests(Compiler.GetTestsFolder, cbStopOnError.IsChecked)
+    IDE.Testing.RunAllTests(IDE.Compiler.GetTestsFolder, cbStopOnError.IsChecked)
   else
-    Testing.RunTestFile(TPath.Combine(Compiler.GetTestsFolder, cbTests.Items[cbTests.ItemIndex] + '.tst'),
+    IDE.Testing.RunTestFile(TPath.Combine(IDE.Compiler.GetTestsFolder, cbTests.Items[cbTests.ItemIndex] + '.tst'),
       cbStopOnError.IsChecked);
 
   mmTests.Lines.Clear;
-  Testing.TestLogToStrings(mmTests.Lines);
+  IDE.Testing.TestLogToStrings(mmTests.Lines);
   TabControl1.ActiveTab := tbTests;
 end;
 
 procedure TForm1.cbDeployChange(Sender: TObject);
 begin
   if cbDeploy.ItemIndex = -1 then
-    Compiler.Deploy.Clear
+    IDE.Compiler.Deploy.Clear
   else
-    Compiler.Deploy.LoadFromFile(TPath.Combine(
-      TPath.Combine(Compiler.GetPlatformFolder, DeployFolderName),
+    IDE.Compiler.Deploy.LoadFromFile(TPath.Combine(
+      TPath.Combine(IDE.Compiler.GetPlatformFolder, DeployFolderName),
       cbDeploy.Items[cbDeploy.ItemIndex] + DeployExt));
 end;
 
 procedure TForm1.cbOverflowChecksChange(Sender: TObject);
 begin
-  Compiler.Config.OverflowChecks := cbOverflowChecks.IsChecked;
+  IDE.Compiler.Config.OverflowChecks := cbOverflowChecks.IsChecked;
   if Created then
     SaveConfigFile;
 end;
@@ -364,7 +367,7 @@ procedure TForm1.cbPlatformsChange(Sender: TObject);
 begin
   if cbPlatforms.ItemIndex >= 0 then
   begin
-    Compiler.Config.PlatformName := cbPlatforms.Items[cbPlatforms.ItemIndex];
+    IDE.Compiler.Config.PlatformName := cbPlatforms.Items[cbPlatforms.ItemIndex];
     if Created then
       SaveConfigFile;
     LoadDeployList;
@@ -374,7 +377,7 @@ end;
 
 procedure TForm1.cbRangeChecksChange(Sender: TObject);
 begin
-  Compiler.Config.RangeChecks := cbRangeChecks.IsChecked;
+  IDE.Compiler.Config.RangeChecks := cbRangeChecks.IsChecked;
   if Created then
     SaveConfigFile;
 end;
@@ -383,14 +386,14 @@ procedure TForm1.cbScopeChange(Sender: TObject);
 begin
   if cbScope.ItemIndex >= 0 then
   begin
-    if not Compiler.SelectScope(cbScope.Items[cbScope.ItemIndex]) then
+    if not IDE.Compiler.SelectScope(cbScope.Items[cbScope.ItemIndex]) then
       raise Exception.Create('Scope not found :(');
 
-    Compiler.GetILText(mmIL.Lines);
+    IDE.Compiler.GetILText(mmIL.Lines);
 
-    Compiler.GetObjectCode(mmAssembly.Lines);
+    IDE.Compiler.GetObjectCode(mmAssembly.Lines);
 
-    Compiler.GetVarsText(mmVariables.Lines, False);
+    IDE.Compiler.GetVarsText(mmVariables.Lines, False);
   end;
 end;
 
@@ -437,18 +440,18 @@ var Folder: String;
   PlatformIndex: Integer;
 begin
   Folder := TPath.GetFullPath(TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), '..\..\'));
-  Compiler.SetQuicheFolder(Folder);
-  Compiler.OutputFolder := 'C:\RetroTools\Quiche';
-  CompilerConfigFilename := TPath.Combine(Compiler.GetQuicheFolder, 'Config\Compiler.cfg');
+  IDE.Compiler.SetQuicheFolder(Folder);
+  IDE.Compiler.OutputFolder := 'C:\RetroTools\Quiche';
+  CompilerConfigFilename := TPath.Combine(IDE.Compiler.GetQuicheFolder, 'Config\Compiler.cfg');
 
-  Compiler.GetPlatformList(cbPlatforms.Items);
+  IDE.Compiler.GetPlatformList(cbPlatforms.Items);
   TestCase := cbPlatforms.Items.IndexOf('TestCase');
   if TestCase >= 0 then
     cbPlatforms.ItemIndex := TestCase
   else
     cbPlatforms.ItemIndex := 0;
 
-  Compiler.Config.LoadFromFile(CompilerConfigFilename);
+  IDE.Compiler.Config.LoadFromFile(CompilerConfigFilename);
   PlatformIndex := cbPlatforms.Items.IndexOf(Config.PlatformName);
   if PlatformIndex < 0 then
     ShowMessage('Unknown platform: ' + Config.PlatformName)
@@ -463,8 +466,8 @@ begin
   tdSource.Parent := Panel1;
   tdSource.Theme := DarkTheme;
   tdSource.Align := TAlignLayout.Client;
-  if FileExists(Compiler.Config.IDESettings.ProjectFile) then
-    OpenProject(Compiler.Config.IDESettings.ProjectFile);
+  if FileExists(IDE.Compiler.Config.IDESettings.ProjectFile) then
+    OpenProject(IDE.Compiler.Config.IDESettings.ProjectFile);
   UpdateCaption;
 
   DelayedSetFocus(tdSource);
@@ -506,7 +509,7 @@ begin
   if Config.PlatformName = '' then
     EXIT;
 
-  DeployPath := TPath.Combine(Compiler.GetPlatformFolder, DeployFolderName);
+  DeployPath := TPath.Combine(IDE.Compiler.GetPlatformFolder, DeployFolderName);
   if TDirectory.Exists(DeployPath) then
   begin
     Files := TDirectory.GetFiles(DeployPath, '*' + DeployExt);
@@ -523,7 +526,7 @@ var FullFolder: String;
   Files: TArray<String>;
   Filename: STring;
 begin
-  FullFolder := Compiler.GetTestsFolder;
+  FullFolder := IDE.Compiler.GetTestsFolder;
 
   Files := TDirectory.GetFiles(FullFolder, '*.tst');
 
@@ -559,7 +562,7 @@ begin
 
   if Created then
   begin
-    Compiler.Config.IDESettings.ProjectFile := Filename;
+    IDE.Compiler.Config.IDESettings.ProjectFile := Filename;
     SaveConfigFile;
     SaveProject;
   end;

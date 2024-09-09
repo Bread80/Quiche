@@ -269,9 +269,9 @@ begin
   IsTypecast := Kind <> rskVarValue;
   SignedLoss := (ToType <> vtUnknown) and (IsSignedType(Variable.VarType) and not IsSignedType(ToType));
 
-  Scavenge := RegStateFindVariable16(Variable, VarVersion, Kind);
+(*  Scavenge := RegStateFindVariable16(Variable, VarVersion, Kind);
   if Scavenge = rNone then
-    Scavenge := RegStateFindVariable8(Variable, VarVersion, Kind);
+*)    Scavenge := RegStateFindVariable8(Variable, VarVersion, Kind);
 
   //NOTE: Changing types and scavenging
   //Try and help the scavenger here, but being cautious. We could argue that

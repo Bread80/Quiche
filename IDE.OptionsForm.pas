@@ -1,4 +1,4 @@
-unit OptionsForm;
+unit IDE.OptionsForm;
 
 interface
 
@@ -37,13 +37,13 @@ var
   Options: TOptions;
 
 implementation
-uses Compiler;
+uses IDE.Compiler;
 
 {$R *.fmx}
 
 procedure TOptions.btnSaveClick(Sender: TObject);
 begin
-  with Compiler.Config.CodeGen do
+  with IDE.Compiler.Config.CodeGen do
   begin
     BlockInfo := cbBlockInfo.IsChecked;
     SourceCode := cbSourceCode.IsChecked;
@@ -63,7 +63,7 @@ end;
 
 procedure TOptions.FormShow(Sender: TObject);
 begin
-  with Compiler.Config.CodeGen do
+  with IDE.Compiler.Config.CodeGen do
   begin
     cbBlockInfo.IsChecked := BlockInfo;
     cbSourceCode.IsChecked := SourceCode;
