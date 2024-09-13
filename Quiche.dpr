@@ -13,7 +13,6 @@ uses
   Def.Operators in 'Def.Operators.pas',
   IDE.Shell in 'IDE.Shell.pas',
   IDE.Compiler in 'IDE.Compiler.pas',
-  IDE.Testing in 'IDE.Testing.pas',
   Def.Functions in 'Def.Functions.pas',
   Parse.Expr in 'Parse.Expr.pas',
   Parse.Base in 'Parse.Base.pas',
@@ -46,7 +45,8 @@ uses
   Z80.Load in 'Z80.Load.pas',
   Z80.Store in 'Z80.Store.pas',
   Z80.Validation in 'Z80.Validation.pas',
-  IDE.SelfTest in 'IDE.SelfTest.pas';
+  IDE.SelfTest in 'IDE.SelfTest.pas',
+  IDE.SelfTestForm in 'IDE.SelfTestForm.pas' {SelfTestF};
 
 {$R *.res}
 
@@ -56,5 +56,6 @@ begin
 		GUITestRunner.RunRegisteredTests;
 //  Application.CreateForm(TGUIXTestRunner, GUIXTestRunner);
   Application.CreateForm(TForm1, Form1);
+  Application.CreateForm(TSelfTestF, SelfTestF);
   Application.Run;
 end.

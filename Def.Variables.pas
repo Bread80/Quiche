@@ -63,6 +63,7 @@ type
     AdjustVersionTo: Integer;   //...we need to change that read to reference this version.
 
     //Execution time only data
+    //TODO: Change this to an TImmValue
     ValueInt: Integer;
 
     //The Name can *only* be set if it is blank. *Only* to be used where the

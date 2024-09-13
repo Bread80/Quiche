@@ -16,6 +16,7 @@ type TQuicheError = (
   qeENDdotExpected,
   qeCodeAfterENDdot,
   qeInvalidTopLevel,
+  qeUnexpectedEndOfFile,
 
   //Function declarations
   qeFunctionRedeclared,
@@ -23,6 +24,8 @@ type TQuicheError = (
   qeFunctionDeclaration,  //General error in function declaration
   qeFuncDecDoesntMatch,   //Forward declaraed functions
   qeDecTooManyParams,     //Beyond system maximum :(
+  qeNestedFuncsNotAllowed,
+  qeUnsatisfiedForward, //Forward declared function not defined
 
   //Identifiers
   qeIdentifierExpected,
@@ -70,12 +73,15 @@ const Errors : array[TQuicheError] of String = (
   'END. expected',
   'Code after END.',
   'Incorrect code at top-level. Expecting FUNCTION, PROCEDURE, TYPE, CONST, VAR or BEGIN',
+  'Unexpected end of file',
 
   'Function redeclared',
   'Function body expected',
   'Error in function declaration',
   'Function declaration doesn''t match forward declaration',
   'Too many parameters - there is a hard coded maximum. Sorry',
+  'Nested/local function declarations are not allowed',
+  'Unsatisfied forward declared function',
 
   'Identifier expected',
   'Undefined identifier',
@@ -120,12 +126,16 @@ const SubErrors : array[TQuicheError] of String = (
   '',
   '',
   '',
+  '',
 
   'Function redeclared: ''%s''',
   '',
   '',
   '',
   '',
+  '',
+  'Unsatisfied forward declared function: ''%s''',
+
   'Invalid keyword in this context: ''%s''',
   'Undeclared identifier: ''%s''',
   'Reserved word: ''%s''',

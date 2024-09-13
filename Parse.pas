@@ -832,10 +832,15 @@ begin
       if Result <> qeNone then
         EXIT;
       if Keyword = keyUnknown then
-        EXIT(Err(qeInvalidTopLevel));
+        if IsRoot then
+          EXIT(Err(qeInvalidTopLevel))
+        else
+          EXIT(Err(qeNestedFuncsNotAllowed));
     end
+    else if Ch = #0 then
+      EXIT(Err(qeUnexpectedEndOfFile))
     else
-      EXIT(Err(qeInvalidTopLevel));
+      EXIT(Err(qeSyntax));
 
     case Keyword of
       keyUNKNOWN: ; //Nothing to do
@@ -847,6 +852,11 @@ begin
       keyVAR: Result := DoVAR(Storage);
       keyBEGIN: //BEGIN ... END block
       begin
+        Result := AreAnyForwardsUnsatisfied;
+        if Result <> qeNone then
+          EXIT;
+
+        //TODO: Check for unsatisfied forward declared function
         Result := ParseBlock(bsBeginRead, Storage);
         if Result <> qeNone then
           EXIT;

@@ -63,11 +63,7 @@ type
     Splitter1: TSplitter;
     Panel4: TPanel;
     StyleBook1: TStyleBook;
-    ActionList1: TActionList;
-    acRun: TAction;
     btnRun: TButton;
-    btnTest: TButton;
-    cbTests: TComboBox;
     rbStack: TRadioButton;
     rbStatic: TRadioButton;
     TabControl1: TTabControl;
@@ -75,18 +71,14 @@ type
     tbVariables: TTabItem;
     tbFunctions: TTabItem;
     tbAssembly: TTabItem;
-    tbTests: TTabItem;
     pnlVariables: TPanel;
     mmVariables: TMemo;
     Panel5: TPanel;
     mmFunctions: TMemo;
-    Panel6: TPanel;
-    mmTests: TMemo;
     Panel7: TPanel;
     Panel8: TPanel;
     Label1: TLabel;
     cbScope: TComboBox;
-    cbStopOnError: TCheckBox;
     cbOverflowChecks: TCheckBox;
     tbEmulate: TTabItem;
     mmEmulate: TMemo;
@@ -99,28 +91,22 @@ type
     GroupBox2: TGroupBox;
     rbDeclarations: TRadioButton;
     rbCode: TRadioButton;
-    acOptions: TAction;
     MenuBar1: TMenuBar;
     MenuItem2: TMenuItem;
     MenuItem4: TMenuItem;
     MenuItem3: TMenuItem;
     cbRangeChecks: TCheckBox;
-    acOpenScratch: TAction;
-    acOpenProject: TAction;
-    acSave: TAction;
     MenuItem1: TMenuItem;
     MenuItem5: TMenuItem;
     MenuItem6: TMenuItem;
     FileOpenDialog: TOpenDialog;
-    acSaveAs: TAction;
-    acNew: TAction;
     MenuItem7: TMenuItem;
     MenuItem8: TMenuItem;
     FileSaveDialog: TSaveDialog;
+    MenuItem9: TMenuItem;
     procedure btnInterpretClick(Sender: TObject);
     procedure btnEmulateClick(Sender: TObject);
     procedure acRunExecute(Sender: TObject);
-    procedure btnTestClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure cbScopeChange(Sender: TObject);
     procedure cbPlatformsChange(Sender: TObject);
@@ -135,13 +121,13 @@ type
     procedure acNewExecute(Sender: TObject);
     procedure acSaveAsExecute(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+    procedure acSelfTestFormExecute(Sender: TObject);
   private
     tdSource: TTextBrowser;
     //True if this window is still being created. Prevents options being autosaved etc.
     Created: Boolean;
     CompilerConfigFilename: String;
     procedure LoadDeployList;
-    procedure LoadTestList;
     function GetBlockType: TBlockType;
     function GetParseType: TParseType;
     procedure UpdateCaption;
@@ -160,7 +146,7 @@ var
 implementation
 uses
   FMX.DialogService, IOUtils,
-  IDE.Testing, IDE.OptionsForm;
+  IDE.OptionsForm, IDE.SelfTestForm;
 
 {$R *.fmx}
 
@@ -217,14 +203,14 @@ begin
 
   if not Good then
   begin
-    if IDE.Compiler.LastErrorNo <> 0 then
+    if IDE.Compiler.ParseErrorNo <> 0 then
     begin //Compile error
-      tdSource.Text.acSetCursor(IDE.Compiler.LastErrorPos, IDE.Compiler.LastErrorLine-1);
-      edError.Text := IDE.Compiler.LastErrorString;
-      mmIL.Lines.Add(tdSource.Text.Lines[LastErrorLine-1]);
-      mmIL.Lines.Add(StringOfChar(' ',LastErrorPos)+'^');
+      tdSource.Text.acSetCursor(IDE.Compiler.ParseErrorPos, IDE.Compiler.ParseErrorLine-1);
+      edError.Text := IDE.Compiler.ParseErrorString;
+      mmIL.Lines.Add(tdSource.Text.Lines[ParseErrorLine-1]);
+      mmIL.Lines.Add(StringOfChar(' ',ParseErrorPos)+'^');
       mmIL.Lines.Add(edError.Text);
-      mmIL.Lines.Add(ErrorHelp);
+      mmIL.Lines.Add(ParseErrorHelp);
       TabControl1.ActiveTab := tbILCode;
     end
     else if IDE.Compiler.AssembleError then
@@ -270,6 +256,14 @@ begin
     SaveProject;
     SaveState;
   end;
+end;
+
+procedure TForm1.acSelfTestFormExecute(Sender: TObject);
+var ST: TSelfTestF;
+begin
+  ST := TSelfTestF.Create(Application);
+  ST.ShowModal;
+  ST.Free;
 end;
 
 procedure TForm1.SaveConfigFile;
@@ -327,20 +321,6 @@ begin
 
   IDE.Compiler.GetVarsText(mmVariables.Lines, False);
   TabControl1.ActiveTab := tbVariables;
-end;
-
-procedure TForm1.btnTestClick(Sender: TObject);
-begin
-  IDE.Testing.Initialise;
-  if cbTests.ItemIndex = 0 then
-    IDE.Testing.RunAllTests(IDE.Compiler.GetTestsFolder, cbStopOnError.IsChecked)
-  else
-    IDE.Testing.RunTestFile(TPath.Combine(IDE.Compiler.GetTestsFolder, cbTests.Items[cbTests.ItemIndex] + '.tst'),
-      cbStopOnError.IsChecked);
-
-  mmTests.Lines.Clear;
-  IDE.Testing.TestLogToStrings(mmTests.Lines);
-  TabControl1.ActiveTab := tbTests;
 end;
 
 procedure TForm1.cbDeployChange(Sender: TObject);
@@ -457,8 +437,6 @@ begin
   cbOverflowChecks.IsChecked := Config.OverflowChecks;
   cbRangeChecks.IsChecked := Config.RangeChecks;
 
-  LoadTestList;
-
   tdSource := TTextBrowser.Create(Self);
   tdSource.Parent := Panel1;
   tdSource.Theme := DarkTheme;
@@ -516,23 +494,6 @@ begin
     if cbDeploy.Items.Count > 0 then
       cbDeploy.ItemIndex := 0;
   end;
-end;
-
-procedure TForm1.LoadTestList;
-var FullFolder: String;
-  Files: TArray<String>;
-  Filename: STring;
-begin
-  FullFolder := IDE.Compiler.GetTestsFolder;
-
-  Files := TDirectory.GetFiles(FullFolder, '*.tst');
-
-  cbTests.Items.Clear;
-  cbTests.Items.Add('<All Tests>');
-  for FileName in Files do
-    cbTests.Items.Add(TPath.GetFilenameWithoutExtension(Filename));
-
-  cbTests.ItemIndex := 0;
 end;
 
 procedure TForm1.OpenProject(const Filename: String);

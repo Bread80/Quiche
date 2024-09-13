@@ -41,34 +41,13 @@ object Form1: TForm1
       Size.Height = 22.000000000000000000
       Size.PlatformDefault = False
     end
-    object btnTest: TButton
-      Position.X = 688.000000000000000000
-      Position.Y = 8.000000000000000000
-      TabOrder = 7
-      Text = 'Test'
-      OnClick = btnTestClick
-    end
-    object cbTests: TComboBox
-      Position.X = 528.000000000000000000
-      Position.Y = 8.000000000000000000
-      Size.Width = 153.000000000000000000
-      Size.Height = 22.000000000000000000
-      Size.PlatformDefault = False
-      TabOrder = 9
-    end
-    object cbStopOnError: TCheckBox
-      Position.X = 672.000000000000000000
-      Position.Y = 32.000000000000000000
-      TabOrder = 13
-      Text = 'Stop on error'
-    end
     object Panel9: TPanel
       Align = Bottom
       Position.Y = 72.000000000000000000
       Size.Width = 776.000000000000000000
       Size.Height = 41.000000000000000000
       Size.PlatformDefault = False
-      TabOrder = 15
+      TabOrder = 12
       object Label3: TLabel
         Position.X = 8.000000000000000000
         Position.Y = 8.000000000000000000
@@ -100,12 +79,11 @@ object Form1: TForm1
         OnChange = cbDeployChange
       end
       object btnRun: TButton
-        Action = acRun
-        Enabled = True
-        ImageIndex = -1
         Position.X = 432.000000000000000000
         Position.Y = 8.000000000000000000
         TabOrder = 5
+        Text = 'Run'
+        OnClick = acRunExecute
       end
     end
     object GroupBox1: TGroupBox
@@ -114,7 +92,7 @@ object Form1: TForm1
       Size.Height = 73.000000000000000000
       Size.PlatformDefault = False
       Text = 'Variables'
-      TabOrder = 16
+      TabOrder = 13
       object rbStack: TRadioButton
         GroupName = 'VariableType'
         Position.X = 8.000000000000000000
@@ -141,7 +119,7 @@ object Form1: TForm1
       IsChecked = True
       Position.X = 192.000000000000000000
       Position.Y = 8.000000000000000000
-      TabOrder = 17
+      TabOrder = 14
       Text = 'Overflow checks'
       OnChange = cbOverflowChecksChange
     end
@@ -150,7 +128,7 @@ object Form1: TForm1
       Size.Height = 73.000000000000000000
       Size.PlatformDefault = False
       Text = 'Parse as'
-      TabOrder = 18
+      TabOrder = 15
       object rbDeclarations: TRadioButton
         GroupName = 'ParseType'
         Position.X = 8.000000000000000000
@@ -177,7 +155,7 @@ object Form1: TForm1
       IsChecked = True
       Position.X = 192.000000000000000000
       Position.Y = 24.000000000000000000
-      TabOrder = 19
+      TabOrder = 16
       Text = 'Range Checks'
       OnChange = cbRangeChecksChange
     end
@@ -3110,12 +3088,10 @@ object Form1: TForm1
       Size.Width = 455.000000000000000000
       Size.Height = 302.000000000000000000
       Size.PlatformDefault = False
-      TabIndex = 0
+      TabIndex = 5
       TabOrder = 0
       TabPosition = PlatformDefault
       Sizes = (
-        455s
-        276s
         455s
         276s
         455s
@@ -3130,7 +3106,7 @@ object Form1: TForm1
         CustomIcon = <
           item
           end>
-        IsSelected = True
+        IsSelected = False
         Size.Width = 60.000000000000000000
         Size.Height = 26.000000000000000000
         Size.PlatformDefault = False
@@ -3191,8 +3167,8 @@ object Form1: TForm1
             Size.Height = 264.000000000000000000
             Size.PlatformDefault = False
             TabOrder = 0
-            Viewport.Width = 438.000000000000000000
-            Viewport.Height = 264.000000000000000000
+            Viewport.Width = 434.000000000000000000
+            Viewport.Height = 260.000000000000000000
           end
         end
       end
@@ -3225,8 +3201,8 @@ object Form1: TForm1
             Size.Height = 264.000000000000000000
             Size.PlatformDefault = False
             TabOrder = 0
-            Viewport.Width = 438.000000000000000000
-            Viewport.Height = 264.000000000000000000
+            Viewport.Width = 434.000000000000000000
+            Viewport.Height = 260.000000000000000000
           end
         end
       end
@@ -3261,8 +3237,8 @@ object Form1: TForm1
             Size.Height = 262.000000000000000000
             Size.PlatformDefault = False
             TabOrder = 1
-            Viewport.Width = 438.000000000000000000
-            Viewport.Height = 262.000000000000000000
+            Viewport.Width = 434.000000000000000000
+            Viewport.Height = 258.000000000000000000
           end
         end
       end
@@ -3287,42 +3263,8 @@ object Form1: TForm1
           Size.Height = 276.000000000000000000
           Size.PlatformDefault = False
           TabOrder = 0
-          Viewport.Width = 455.000000000000000000
-          Viewport.Height = 276.000000000000000000
-        end
-      end
-      object tbTests: TTabItem
-        CustomIcon = <
-          item
-          end>
-        IsSelected = False
-        Size.Width = 46.000000000000000000
-        Size.Height = 26.000000000000000000
-        Size.PlatformDefault = False
-        StyleLookup = ''
-        TabOrder = 0
-        Text = 'Tests'
-        ExplicitSize.cx = 46.000000000000000000
-        ExplicitSize.cy = 26.000000000000000000
-        object Panel6: TPanel
-          Align = Client
-          Size.Width = 455.000000000000000000
-          Size.Height = 276.000000000000000000
-          Size.PlatformDefault = False
-          TabOrder = 0
-          object mmTests: TMemo
-            Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
-            DataDetectorTypes = []
-            Anchors = [akLeft, akTop, akRight, akBottom]
-            Position.X = 8.000000000000000000
-            Position.Y = 8.000000000000000000
-            Size.Width = 438.000000000000000000
-            Size.Height = 264.000000000000000000
-            Size.PlatformDefault = False
-            TabOrder = 0
-            Viewport.Width = 438.000000000000000000
-            Viewport.Height = 264.000000000000000000
-          end
+          Viewport.Width = 451.000000000000000000
+          Viewport.Height = 272.000000000000000000
         end
       end
     end
@@ -3362,43 +3304,42 @@ object Form1: TForm1
     object MenuItem2: TMenuItem
       Text = '&File'
       object MenuItem7: TMenuItem
-        Action = acNew
-        Enabled = True
         Locked = True
-        ImageIndex = -1
+        Text = '&New'
+        OnClick = acNewExecute
       end
       object MenuItem1: TMenuItem
-        Action = acOpenProject
-        Enabled = True
         Locked = True
-        ImageIndex = -1
+        Text = '&Open Project...'
+        OnClick = acOpenProjectExecute
       end
       object MenuItem5: TMenuItem
-        Action = acOpenScratch
-        Enabled = True
         Locked = True
-        ImageIndex = -1
+        Text = 'Open Scratch File'
+        OnClick = acOpenScratchExecute
       end
       object MenuItem6: TMenuItem
-        Action = acSave
-        Enabled = True
         Locked = True
-        ImageIndex = -1
+        Text = '&Save'
+        OnClick = acSaveExecute
       end
       object MenuItem8: TMenuItem
-        Action = acSaveAs
-        Enabled = True
         Locked = True
-        ImageIndex = -1
+        Text = 'Save as...'
+        OnClick = acSaveAsExecute
       end
     end
     object MenuItem4: TMenuItem
       Text = '&Tools'
       object MenuItem3: TMenuItem
-        Action = acOptions
-        Enabled = True
         Locked = True
-        ImageIndex = -1
+        Text = '&Options...'
+        OnClick = acOptionsExecute
+      end
+      object MenuItem9: TMenuItem
+        Locked = True
+        Text = 'Self Test...'
+        OnClick = acSelfTestFormExecute
       end
     end
   end
@@ -3414,47 +3355,5 @@ object Form1: TForm1
     Filter = 'Quiche|*.quiche|Pascal|*.pas|Text|*.txt|All files|*.*'
     Left = 632
     Top = 80
-  end
-  object ActionList1: TActionList
-    Left = 696
-    Top = 120
-    object acRun: TAction
-      Category = 'Run'
-      Text = 'Run'
-      ShortCut = 120
-      OnExecute = acRunExecute
-    end
-    object acOptions: TAction
-      Category = 'Settings'
-      Text = '&Options...'
-      OnExecute = acOptionsExecute
-    end
-    object acOpenScratch: TAction
-      Category = 'Files'
-      Text = 'Open Scratch File'
-      OnExecute = acOpenScratchExecute
-    end
-    object acOpenProject: TAction
-      Category = 'Files'
-      Text = '&Open Project...'
-      ShortCut = 16463
-      OnExecute = acOpenProjectExecute
-    end
-    object acSave: TAction
-      Category = 'Files'
-      Text = '&Save'
-      ShortCut = 16467
-      OnExecute = acSaveExecute
-    end
-    object acSaveAs: TAction
-      Category = 'Files'
-      Text = 'Save as...'
-      OnExecute = acSaveAsExecute
-    end
-    object acNew: TAction
-      Category = 'Files'
-      Text = '&New'
-      OnExecute = acNewExecute
-    end
   end
 end

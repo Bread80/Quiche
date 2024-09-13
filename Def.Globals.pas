@@ -54,6 +54,9 @@ type TBlockType = (btDefault, btStatic, btStack);
 //btDefault is no valid as a RootBlockType
 var RootBlockType: TBlockType;
 
+const BlockTypeStrings: array[low(TBlockType)..high(TBlockType)] of String = (
+  'Default', 'Static', 'Stack');
+
 implementation
 
 end.

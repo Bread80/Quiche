@@ -31,6 +31,9 @@ uses Parse.Base, Parse.Errors,
 //  Proc is True if we're parsing a Procedure definition, false for a Function
 function ParseFunctionDef(Proc: Boolean): TQuicheError;
 
+//Verifies all forward decalarations are satisfied (ie. which have no implementation)
+function AreAnyForwardsUnsatisfied: TQuicheError;
+
 implementation
 uses SysUtils,
   Def.Functions, Def.Globals, Def.IL, Def.Operators, Def.QTypes, Def.Scopes, Def.Variables,
@@ -59,10 +62,11 @@ begin
     Result := ParseIdentifier(#0, Ident);
     if Result <> qeNone then
       EXIT;
-    Keyword := IdentToKeyword(Ident);
-    if Keyword <> keyUnknown then
-      EXIT(ErrSub(qeReservedWord, Ident));
   end;
+
+  Keyword := IdentToKeyword(Ident);
+  if Keyword <> keyUnknown then
+    EXIT(ErrSub(qeReservedWord, Ident));
 
   //Have we already read a parameter with that name?
   if ParamIndex > 0 then
@@ -637,11 +641,19 @@ begin
     if Result <> qeNone then
       EXIT;
   end;
+end;
 
-{  if (ffForward in Func.Flags) or (Func.CallingConvention = ccExtern) then
-  else
-    Result := ParseFunctionCode(Func, NextKeyword);
-}end;
 
+function AreAnyForwardsUnsatisfied: TQuicheError;
+var Scope: PScope;
+  I: Integer;
+begin
+  Scope := GetCurrentScope;
+  for I := 0 to Scope.FuncList.Count-1 do
+    if ffForward in Scope.FuncList[I].Flags then
+      EXIT(ErrSub(qeUnsatisfiedForward, Scope.FuncList[I].Name));
+
+  Result := qeNone;
+end;
 
 end.

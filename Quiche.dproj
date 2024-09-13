@@ -392,7 +392,6 @@
         <DCCReference Include="Def.Operators.pas"/>
         <DCCReference Include="IDE.Shell.pas"/>
         <DCCReference Include="IDE.Compiler.pas"/>
-        <DCCReference Include="IDE.Testing.pas"/>
         <DCCReference Include="Def.Functions.pas"/>
         <DCCReference Include="Parse.Expr.pas"/>
         <DCCReference Include="Parse.Base.pas"/>
@@ -427,6 +426,10 @@
         <DCCReference Include="Z80.Store.pas"/>
         <DCCReference Include="Z80.Validation.pas"/>
         <DCCReference Include="IDE.SelfTest.pas"/>
+        <DCCReference Include="IDE.SelfTestForm.pas">
+            <Form>SelfTestF</Form>
+            <FormType>fmx</FormType>
+        </DCCReference>
         <None Include="Tests.txt"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>

@@ -16,11 +16,11 @@ uses Classes,
 //====Errors and return values
 
 //Parser
-var LastErrorNo: Integer;
-var LastErrorLine: Integer;
-var LastErrorPos: Integer;
-function LastErrorString: String;
-function ErrorHelp: String;
+var ParseErrorNo: Integer;  //0 = no error
+var ParseErrorLine: Integer;
+var ParseErrorPos: Integer;
+function ParseErrorString: String;
+function ParseErrorHelp: String;
 
 //Output log of the assembler
 var AssemblerLog: String;
@@ -72,6 +72,9 @@ type TParseType = (
   //Parse at the code level. Doesn't allow functions or globals. Doesn't require a block of any kind
   ptCode);
 
+const ParseTypeStrings: array[low(TParseType)..high(TParseType)] of String = (
+  'Declarations', 'Code');
+
 //'One click' compile to binary
 //Returns False if there was an error
 function CompileStrings(SL: TStrings;BlockType: TBlockType;ParseType: TParseType;
@@ -117,18 +120,18 @@ uses SysUtils, IOUtils,
 
 //====Errors and return values
 
-function LastErrorString: String;
+function ParseErrorString: String;
 begin
   if LastError <> qeNone then
-    Result := 'ERROR: ' + LastErrorNo.ToString + ': ' + LastErrorMessage +
-      ' at line ' + LastErrorLine.ToString + ' ' + LastErrorPos.ToString
+    Result := 'ERROR: ' + ParseErrorNo.ToString + ': ' + LastErrorMessage +
+      ' at line ' + ParseErrorLine.ToString + ' ' + ParseErrorPos.ToString
   else if CodeGenErrorString <> '' then
     Result := 'ERROR in CodeGen: ' + CodeGenErrorString
   else
     Result := '';
 end;
 
-function ErrorHelp: String;
+function ParseErrorHelp: String;
 begin
   if LastError <> qeNone then
     Result := LastErrorHelp
@@ -213,7 +216,7 @@ end;
 
 procedure Initialise(InitDirectives, WarmInit: Boolean);
 begin
-  LastErrorNo := 0;
+  ParseErrorNo := 0;
   LastError := qeNone;
   Parse.OnScopeDone := CodeGenCallback;
   if InitDirectives then
@@ -289,9 +292,9 @@ begin
       LastError := ErrMsg(qeBUG, 'BUG (Exception/Assertion):'+#13+E.Message);
   end;
 
-  LastErrorNo := Integer(LastError);
-  LastErrorLine := ErrorLineNo;
-  LastErrorPos := ErrorPos;
+  ParseErrorNo := Integer(LastError);
+  ParseErrorLine := ErrorLineNo;
+  ParseErrorPos := ErrorPos;
   Result := LastError = qeNone;
 end;
 

@@ -1,3 +1,5 @@
+//This unit has been replaced by IDE.SelfTest.
+//If you see this message please delete this file.
 unit IDE.Testing;
 {
 Test file:
@@ -169,8 +171,8 @@ begin
     Result := CompileOkay;
     if not CompileOkay and not IgnoreErrors then
     begin
-      if IDE.Compiler.LastErrorNo <> 0 then
-        TestLog('FAIL: Compiler error: ' + IDE.Compiler.LastErrorString)
+      if IDE.Compiler.ParseErrorNo <> 0 then
+        TestLog('FAIL: Compiler error: ' + IDE.Compiler.ParseErrorString)
       else
         TestLog('FAIL: Assembler error? ' + AssemblerLog);
 //        TestLog(Compiler.LastErrorLine);
@@ -231,7 +233,7 @@ var V: PVariable;
 begin
   if not RunNeeded(False) then
     EXIT(False);
-  if IDE.Compiler.LastErrorNo <> 0 then
+  if IDE.Compiler.ParseErrorNo <> 0 then
     EXIT(False);
 
   if Length(Fields) <> 3 then
@@ -299,7 +301,7 @@ begin
   if CompileOkay then
     DoTest(Result, 'Compiler failed to raise an error')
   else
-    DoTest(Result, 'Compiler raised an error: ' + IDE.Compiler.LastErrorString)
+    DoTest(Result, 'Compiler raised an error: ' + IDE.Compiler.ParseErrorString)
 end;
 
 function TestUsesPrimitive(Fields: TArray<String>): Boolean;
@@ -411,8 +413,6 @@ var SL: TStringList;
   InCode: Boolean;
   Okay: Boolean;
 begin
-  LoadTestFile(FileName);
-
   if not Assigned(Log) then
     Log := TStringList.Create;
 
