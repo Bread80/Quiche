@@ -142,8 +142,8 @@ end;
 
 const
   FragmentsFilename = 'Data/Fragments.txt';
-  OperatorsNGFilename = 'Data/OperatorsNG.csv';
-  PrimitivesNGFilename = 'Data/PrimitivesNG.csv';
+  OperatorsFilename = 'Data/OperatorsNG.csv';
+  PrimitivesFilename = 'Data/PrimitivesNG.csv';
   IntrinsicsFilename = 'Data/Intrinsics.csv';
 
   QuicheCoreFilename = 'Assembler/QuicheCore.asm';
@@ -229,11 +229,11 @@ begin
   if not WarmInit then
   begin
     InitialiseOperators;
-    LoadOperatorsFileNG(TPath.Combine(QuicheFolder, OperatorsNGFilename));
+    LoadOperatorsFile(TPath.Combine(QuicheFolder, OperatorsFilename));
     InitialiseFragments;
     LoadFragmentsLibrary(TPath.Combine(QuicheFolder, FragmentsFilename));
     InitialisePrimitives;
-    LoadPrimitivesNGFile(TPath.Combine(QuicheFolder, PrimitivesNGFilename));
+    LoadPrimitivesFile(TPath.Combine(QuicheFolder, PrimitivesFilename));
   end;
   //Intrinsics are owned by the root Scope which is always cleared, so we must
   //reload for every run

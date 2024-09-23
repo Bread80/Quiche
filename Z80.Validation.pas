@@ -6,6 +6,18 @@ interface
 uses Def.Primitives, Def.QTypes,
   Z80.CPU;
 
+//Procedure to be used for ramge checking the value in a register
+type TRangeCheckProc = procedure(Reg: TCPUReg;Options: TMoveOptionSet);
+
+//If the Primitive specifies an optimised range check procedure for the
+//required conversion this woutine will return the Proc.
+//If not, or if this routine is not relevant (e.g due to the primitives Result type
+//it will return nil.
+//Also, primitive may explicitly specify NO range checks (eg for a typecast) in
+//which case this routine will again return nil
+//TODO: Do we rally want FromType?? Should this be ToType??
+function GetOptimisedRangeCheckProc(Prim: PPrimitive;FromType: TVarType): TRangeCheckProc;
+
 //Generate range checking code
 //Reg is the CPU register containing the value to be checked.
 //FromType is the current type
@@ -17,7 +29,7 @@ uses Def.Primitives, Def.QTypes,
 //Options specifies limitaions as to which registers can be used/must be preserved.
 //  If the operation can't be performed without trashing these registers an assertion
 //  will be raised. (This parmeter si mainly for validation of the code generator/regiser allocater);
-procedure GenRangeCheck(Reg: TCPUReg;FromType, ToType: TVarType;Prim: PPrimitiveNG;Options: TMoveOptionSet);
+procedure GenRangeCheck(Reg: TCPUReg;FromType, ToType: TVarType;Prim: PPrimitive;Options: TMoveOptionSet);
 
 //These two routines operate the same as the above, but operate on individual bytes
 //of a 16-bit value. They can be used to optimise range checking the loading of a
@@ -29,6 +41,14 @@ procedure GenRangeCheck(Reg: TCPUReg;FromType, ToType: TVarType;Prim: PPrimitive
 //* Prim is not needed here - that is only required when checking Stores
 procedure GenRangeCheckHighByte(Reg: TCPUReg;FromType, ToType: TVarType;Options: TMoveOptionSet);
 procedure GenRangeCheckLowByte(Reg: TCPUReg;FromType, ToType: TVarType;Options: TMoveOptionSet);
+
+//These two routines perform a High9NEQRangeCheck in two parts - useful when bytes
+//are being loded separately, eg when loading a 16-bit value into an 8-bit register.
+//WARNING: Carry flag *must* be preserved between Part 1 and Part 2
+//Low byte must be in A register
+procedure GenRangeCheckIntegerToInt8Part1;
+//High byte must be in A register.
+procedure GenRangeCheckIntegerToInt8Part2;
 
 implementation
 uses SysUtils,
@@ -200,8 +220,6 @@ begin
   RegStateSetliteral(rZF, 1);
 end;
 
-type TRangeCheckProc = procedure(Reg: TCPUReg;Options: TMoveOptionSet);
-
 function RangeCheckStrToProc(const Name: String): TRangeCheckProc;
 begin
   Result := nil;
@@ -230,7 +248,39 @@ begin
     Assert(False, 'Unknown Range Check proc name')
 end;
 
-const //Routine names to keep the table source code size reasonable
+//If the Primitive specifies an optimised range check procedure for the
+//required conversion this woutine will return the Proc.
+//If not, or if this routine is not relevant (e.g due to the primitives Result type
+//it will return nil.
+//Also, primitive may explicitly specify NO range checks (eg for a typecast) in
+//which case this routine will again return nil
+//TODO: Do we rally want FromType?? Should this be ToType??
+function GetOptimisedRangeCheckProc(Prim: PPrimitive;FromType: TVarType): TRangeCheckProc;
+var ProcName: String;
+begin
+  if not IsNumericType(FromType) then
+    EXIT(nil);
+
+  Assert(Assigned(Prim));
+
+  ProcName := '';
+  //Do we have a special case validation routine for conversion to said type?
+  case FromType of
+    vtInt8: ProcName := Prim.RangeCheckToS8;
+    vtByte: ProcName := Prim.RangeCheckToU8;
+    vtInteger: ProcName := Prim.RangeCheckToS16;
+    vtWord, vtPointer: ProcName := Prim.RangeCheckToU16;
+  else
+    raise Exception.Create('Unhandled numeric type GenRangeCheck');
+  end;
+  if ProcName <> '' then
+    Result := RangeCheckStrToProc(ProcName)
+  else
+    Result := nil;
+end;
+
+
+(*const //Routine names to keep the table source code size reasonable
   //Error if bit 7 set
   b7s: TRangeCheckProc = GenBit7SetRangeCheck;
   //Error if bit 15 is set
@@ -241,7 +291,7 @@ const //Routine names to keep the table source code size reasonable
   b9nz: TRangeCheckProc = GenHigh9NZRangeCheck;
   //Error if the high byte is non-zero
   hbnz: TRangeCheckProc = GenHighNZRangeCheck;
-
+*)
 //Specifies the routine to use to validate a conversion from the type given in the row
 //to the type given in the column.
 //'' (empty): no validation is necessary for this conversion
@@ -249,16 +299,17 @@ const //Routine names to keep the table source code size reasonable
 //table ('Special validations on type conversion'). If so that routine will be used
 //in preference to this table.
 const ValidationMatrix: array[vtInt8..vtPointer,vtInt8..vtPointer] of TRangeCheckProc =
-//  To:
-//From    Int8                    Integer                Byte                  Word                   Pointer
+//        To:
+//From:   Int8                    Integer                Byte                  Word                   Pointer
 {Int8}    ((nil,                  nil,                   GenBit7SetRangeCheck, GenBit7SetRangeCheck,  GenBit7SetRangeCheck),
-{Integer} (GenHighNEQRangeCheck,  nil,                GenHigh9NZRangeCheck, GenBit15SetRangeCheck, GenBit15SetRangeCheck),
+{Integer} (GenHigh9NEQRangeCheck, nil,                   GenHighNZRangeCheck,  GenBit15SetRangeCheck, GenBit15SetRangeCheck),
 {Byte}    (GenBit7SetRangeCheck,  nil,                   nil,                  nil,                   nil),
 {Word}    (GenHigh9NZRangeCheck,  GenBit15SetRangeCheck, GenHighNZRangeCheck,  nil,                   nil),
 {Pointer} (GenHigh9NZRangeCheck,  GenBit15SetRangeCheck, GenHighNZRangeCheck,  nil,                   nil));
 
-procedure GenRangeCheck(Reg: TCPUReg;FromType, ToType: TVarType;Prim: PPrimitiveNG;Options: TMoveOptionSet);
+procedure GenRangeCheck(Reg: TCPUReg;FromType, ToType: TVarType;Prim: PPrimitive;Options: TMoveOptionSet);
 var Proc: TRangeCheckProc;
+  Optimised: TRangeCheckProc;
   ProcName: String;
 begin
   //Filter out anything we don't need to range check.
@@ -271,28 +322,16 @@ begin
     EXIT;
   Assert(ToType <> vtUnknown);
 
-
   //Assign generic default
   Proc := ValidationMatrix[FromType, ToType];
-
+  //May be overridden with an optimised proc
+  Optimised := nil;
   if Assigned(Prim) then
-  begin
-    //Do we have a special case validation routine for conversion to said type?
-    case FromType of
-      vtInt8: ProcName := Prim.RangeCheckToS8;
-      vtByte: ProcName := Prim.RangeCheckToU8;
-      vtInteger: ProcName := Prim.RangeCheckToS16;
-      vtWord, vtPointer: ProcName := Prim.RangeCheckToU16;
-    else
-      raise Exception.Create('Unhandled numeric type GenRangeCheck');
-    end;
-    if ProcName <> '' then
-      Proc := RangeCheckStrToProc(ProcName);
-  end;
+    Optimised := GetOptimisedRangeCheckProc(Prim, FromType);
 
-  //Note: Primitives file may explicitly specify NO range checks (eg. for typecasts),
-  //in which case we'll have a nil by the time we get here
-  if Assigned(Proc) then
+  if Assigned(Optimised) then
+    Optimised(Reg, Options)
+  else if Assigned(Proc) then
     Proc(Reg, Options);
 end;
 
@@ -339,11 +378,30 @@ begin
   Assert(Reg in CPUReg8Bit);
   Assert(FromType in [vtInteger, vtWord, vtPointer]);
   Assert(ToType in [vtInt8, vtByte]);
+  Assert(not ((FromType = vtInteger) and (ToType = vtInt8)), 'Use specialises routines');
 
+  //From    To    Check?
+  //Integer Int8  ??  - Use another routine
+  //Integer Byte  No  - We've tested Integer was positive via high byte
+  //Word    Int8  Yes - Avoid accidental negatives
+  //Word    Byte  No
   //If both types have the same signed/unsigned status, no need for checks
   //If both types have different signed/unsigned status we require bit 7 to be clear
-  if IsSignedType(FromType) <> IsSignedType(ToType) then
+  if IsSignedType(ToType) and not IsSignedType(FromType) then
     GenBit7SetRangeCheck(Reg, Options);
+end;
+
+procedure GenRangeCheckIntegerToInt8Part1;
+begin
+  Instr('rla');
+end;
+
+procedure GenRangeCheckIntegerToInt8Part2;
+begin
+  Instr('adc a,$00');
+  Instr('jp nz,raise_range');
+  RegStateSetLiteral(rA, 0);
+  RegStateSetUnknowns([rFlags, rCF]);
 end;
 
 end.

@@ -40,7 +40,7 @@ end;
 
 type TTestZ80LoadVariable = class(TTestZ80LoadStoreMove)
   protected
-    procedure DoTestLoadVariable(Reg: TCPUReg;PrimFlags: TPrimFlagSetNG;Options: TMoveOptionSet;
+    procedure DoTestLoadVariable(Reg: TCPUReg;PrimFlags: TPrimFlagSet;Options: TMoveOptionSet;
       VarType: TVarType;VarStorage: TVarStorage;InState: String;
       RangeCheck: Boolean; ToType: TVarType;
       OutCode, OutState: String);
@@ -483,10 +483,6 @@ begin
   DoTestLoadRegLiteral(rA, TImmValue.CreateInteger(0), [],
     '','xor a','A:!$00 CF:!0 Flags:!?');
 
-  //SBC A,A preserves CF
-  DoTestLoadRegLiteral(rA, TImmValue.CreateInteger(0), [moPreserveCF],
-    '','sbc a,a','A:!$00 CF:_ Flags:!?');
-
   //Boring fallback preserves all flags
   DoTestLoadRegLiteral(rA, TImmValue.CreateInteger(0), [moPreserveOtherFlags],
     '','ld a,$00','A:!$00 CF:_ Flags:_');
@@ -527,7 +523,7 @@ end;
 { TTestZ80LoadVariable }
 
 procedure TTestZ80LoadVariable.DoTestLoadVariable(Reg: TCPUReg;
-  PrimFlags: TPrimFlagSetNG; Options: TMoveOptionSet; VarType: TVarType;VarStorage: TVarStorage;
+  PrimFlags: TPrimFlagSet; Options: TMoveOptionSet; VarType: TVarType;VarStorage: TVarStorage;
   InState: String;RangeCheck: Boolean;ToType: TVarType;
   OutCode, OutState: String);
 var Param: TILParam;
@@ -1000,8 +996,8 @@ begin //Note: We'll also test Range checks when FromType and ToType are the same
   DoTestLoadVariable(rH, [], [],
     vtInteger, vsStatic, '',
     True, vtInt8,
-    'ld a,(_v__Global_Test1 +1):rlca:adc a,$00:jp nz,raise_range:ld a,(_v__Global_Test1):ld h,a',
-    'a:!\_v__Global_Test1#10 h:!\_v__Global_Test1#10');
+    'ld a,(_v__Global_Test1):ld h,a:rla:ld a,(_v__Global_Test1 +1):adc a,$00:jp nz,raise_range',
+    'a:!$00 h:\_v__Global_Test1#10');
   //Word/Pointer to Int8
   DoTestLoadVariable(rH, [], [],
     vtWord, vsStatic, '',
@@ -1025,7 +1021,7 @@ begin //Note: We'll also test Range checks when FromType and ToType are the same
   DoTestLoadVariable(rH, [], [],
     vtInteger, vsStatic, '',
     True, vtByte,
-    'ld a,(_v__Global_Test1 +1):and a:jp nz,raise_range:ld a,(_v__Global_Test1):ld h,a:and a:jp m,raise_range',
+    'ld a,(_v__Global_Test1 +1):and a:jp nz,raise_range:ld a,(_v__Global_Test1):ld h,a',
     'a:!? h:!?');
   //Word/Pointer to Byte
   DoTestLoadVariable(rH, [], [],
@@ -1107,7 +1103,7 @@ begin
   DoTestLoadVariable(rH, [], [],
     vtInteger, vsStack, '',
     True, vtInt8,
-    'ld a,(ix+_v__Global_Test1 +1):rlca:adc a,$00:jp nz,raise_range:ld h,(ix+_v__Global_Test1)',
+    'ld h,(ix+_v__Global_Test1):ld a,h:rla:ld a,(ix+_v__Global_Test1 +1):adc a,$00:jp nz,raise_range',
     'a:!$00 h:!\_v__Global_Test1#10');
   //Word/Pointer to Int8
   DoTestLoadVariable(rH, [], [],
@@ -1132,7 +1128,7 @@ begin
   DoTestLoadVariable(rH, [], [],
     vtInteger, vsStack, '',
     True, vtByte,
-    'ld a,(ix+_v__Global_Test1 +1):and a:jp nz,raise_range:ld h,(ix+_v__Global_Test1):bit 7,h:jp nz,raise_range',
+    'ld a,(ix+_v__Global_Test1 +1):and a:jp nz,raise_range:ld h,(ix+_v__Global_Test1)',
     'a:!$00 h:!?');
   //Word/Pointer to Byte
   DoTestLoadVariable(rH, [], [],
@@ -1219,7 +1215,7 @@ begin
   DoTestLoadVariable(rH, [], [],
     vtInteger, vsStack, 'de:%Test1#10',
     True, vtInt8,
-    'ld a,d:rlca:adc a,$00:jp nz,raise_range:ld h,e',
+    'ld a,e:rla:ld a,d:adc a,$00:jp nz,raise_range:ld h,e',
     'a:!$00 h:!\_v__Global_Test1#10');
   //Word/Pointer to Int8
   DoTestLoadVariable(rH, [], [],
@@ -1231,7 +1227,7 @@ begin
   DoTestLoadVariable(rA, [], [],
     vtInteger, vsStack, 'de:%Test1#10',
     True, vtInt8,
-    'ld a,d:rlca:adc a,$00:jp nz,raise_range:ld a,e',
+    'ld a,e:rla:ld a,d:adc a,$00:jp nz,raise_range:ld a,e',
     'a:\_v__Global_Test1#10');
   //Pointer to Int8 in A
   DoTestLoadVariable(rA, [], [],
@@ -1244,7 +1240,7 @@ begin
   DoTestLoadVariable(rH, [], [],
     vtInteger, vsStack, 'de:%Test1#10',
     True, vtByte,
-    'ld a,d:and a:jp nz,raise_range:ld h,e:bit 7,h:jp nz,raise_range',
+    'ld a,d:and a:jp nz,raise_range:ld h,e',
     'a:$00 h:\_v__Global_Test1#10 HL:?');
   //Word/Pointer to Byte
   DoTestLoadVariable(rH, [], [],
@@ -1284,7 +1280,7 @@ begin
   CPUStringToState(InState);
   RegStateClearModified;
 
-  GenStoreParam(Param, FromType, RangeCheck, Options);  //<--- This is the big call
+  GenDestParam(Param, FromType, RangeCheck, nil, Options);  //<--- This is the big call
 
   Code := PeekAssembly;
   State := CPUStateToString;
@@ -1404,13 +1400,13 @@ begin
   //Integer to Int8
   DoTestStoreVariable(rHL, [], True, vtInteger,
     vtInt8, vsStack, '',
-    'ld a,h:rlca:adc a,$00:jp nz,raise_range:ld (ix+_v__Global_Test1),l',
+    'ld a,l:rla:ld a,h:adc a,$00:jp nz,raise_range:ld (ix+_v__Global_Test1),l',
     'a:!$00');
   //Integer to Byte
   DoTestStoreVariable(rDE, [], True, vtInteger,
     vtByte, vsStack, '',
-    'ld a,e:and $80:or d:jp nz,raise_range:ld (ix+_v__Global_Test1),e',
-    'a:!?');
+    'ld a,d:and a:jp nz,raise_range:ld (ix+_v__Global_Test1),e',
+    'a:!$00');
   //Word to Int8
   DoTestStoreVariable(rBC, [], True, vtWord,
     vtInt8, vsStack, '',
@@ -1575,12 +1571,13 @@ begin
   //Integer to Int8
   DoTestStoreVariable(rHL, [], True, vtInteger,
     vtInt8, vsStatic, '',
-    'ld a,h:rlca:adc a,$00:jp nz,raise_range:ld a,l:ld (_v__Global_Test1),a',
+    'ld a,l:rla:ld a,h:adc a,$00:jp nz,raise_range:ld a,l:ld (_v__Global_Test1),a',
+//IDEAL:    'ld a,l:ld (_v__Global_Test1),a:rla:ld a,h:adc a,$00:jp nz,raise_range',
     'a:%_v__Global_Test1#10');
   //Integer to Byte
   DoTestStoreVariable(rDE, [], True, vtInteger,
     vtByte, vsStatic, '',
-    'ld a,e:and $80:or d:jp nz,raise_range:ld a,e:ld (_v__Global_Test1),a',
+    'ld a,d:and a:jp nz,raise_range:ld a,e:ld (_v__Global_Test1),a',
     'a:%_v__Global_Test1#10');
   //Word to Int8
   DoTestStoreVariable(rBC, [], True, vtWord,

@@ -31,14 +31,15 @@ uses Def.IL, Def.Primitives, Def.QTypes,
 //Loading an 8-bit static value usually corrupts the A register. (A future version
 //may be able to load static values via the HL register instead, but this is not
 //currently an option).
-procedure GenLoadParam(const Param: TILParam;ToType: TVarType;PrimFlags: TPrimFlagSetNG;Options: TMoveOptionSet);
+procedure GenLoadParam(const Param: TILParam;ToType: TVarType;PrimFlags: TPrimFlagSet;
+  Options: TMoveOptionSet);
 
 //Loads parameters from memory* into registers as needed.
 //Data is loaded from the locations specified by the ILItem parameters into the
 //registers specified by ILItem.Param1Alloc and ILItem.Param2Alloc, if any registers
 //are specified there.
 //* - can also handle parameters which are already in registers
-procedure LoadBeforePrim(ILItem: PILItem; Prim: PPrimitiveNG);
+procedure LoadBeforePrim(ILItem: PILItem; Prim: PPrimitive);
 
 implementation
 uses Def.Variables,
@@ -69,7 +70,7 @@ uses Def.Variables,
 
 //================================VARIABLES
 
-function PrimFlagsToKind(PrimFlags: TPrimFlagSetNG): TRegStateKind;
+function PrimFlagsToKind(PrimFlags: TPrimFlagSet): TRegStateKind;
 begin
   if pfnLoadRPHigh in PrimFlags then
     Result := rskVarValueHigh
@@ -81,22 +82,22 @@ end;
 
 //Basic load of an 8 bit variable into an 8-bit register
 //Returns True if we loaded the value via the A register (but Reg <> rA)
-function GenVarLoad8(Reg: TCPUReg;Variable: PVariable;VarVersion: Integer;
+function GenVarLoad8(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
   Kind: TRegStateKind;Options: TMoveOptionSet): Boolean;
 begin
-  Assert(Reg in CPUReg8Bit);
+  Assert(ToReg in CPUReg8Bit);
 
   Result := False;
   case Variable.Storage of
     vsStack:
-      OpLD(Reg, rIX, Variable);
+      OpLD(ToReg, rIX, Variable);
     vsStatic:
     begin
       OpLD(rA, Variable);
-      if Reg <> rA then
+      if ToReg <> rA then
       begin
         Assert(not (moPreserveA in Options));
-        OpLD(Reg, rA);
+        OpLD(ToReg, rA);
         RegStateSetVariable(rA, Variable, VarVersion, Kind);
         Result := True;
       end;
@@ -104,66 +105,66 @@ begin
   else
     Assert(False);
   end;
-  RegStateSetVariable(Reg, Variable, VarVersion, Kind);
+  RegStateSetVariable(ToReg, Variable, VarVersion, Kind);
 end;
 
 //Basic load of an 16 bit variable into an 16-bit register
 //Returns True if we loaded the value via the A register (but Reg <> rA)
-function GenVarLoad16(Reg: TCPUReg;Variable: PVariable;VarVersion: Integer;
+function GenVarLoad16(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
   Kind: TRegStateKind;Options: TMoveOptionSet): Boolean;
 begin
-  Assert(Reg in CPURegPairs);
+  Assert(ToReg in CPURegPairs);
 
   Result := False;
   case Variable.Storage of
     vsStack:
-      OpLD(Reg, rIX, Variable);
+      OpLD(ToReg, rIX, Variable);
     vsStatic:
-      OpLD(Reg, Variable);
+      OpLD(ToReg, Variable);
   else
     Assert(False);
   end;
-  RegStateSetVariable(Reg, Variable, VarVersion, Kind);
+  RegStateSetVariable(ToReg, Variable, VarVersion, Kind);
 end;
 
 //Basic load of the high byte (and the next byte) of a 16 bit variable into an 16-bit register
 //Used for loading RPHigh for static vars
 //Returns True if we loaded the value via the A register (but Reg <> rA)
-function GenVarLoadHighTo16(Reg: TCPUReg;Variable: PVariable;VarVersion: Integer;
+function GenVarLoadHighTo16(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
   Kind: TRegStateKind;Options: TMoveOptionSet): Boolean;
 begin
-  Assert(Reg in CPURegPairs);
+  Assert(ToReg in CPURegPairs);
 
   Result := False;
   case Variable.Storage of
     vsStack:
-      OpLD(Reg, rIX, Variable, 1);
+      OpLD(ToReg, rIX, Variable, 1);
     vsStatic:
-      OpLD(Reg, Variable, 1);
+      OpLD(ToReg, Variable, 1);
   else
     Assert(False);
   end;
-  RegStateSetVariable(Reg, Variable, VarVersion, Kind);
+  RegStateSetVariable(ToReg, Variable, VarVersion, Kind);
 end;
 
 //Basic load of the high half of a 16 bit variable into an 8-bit register
 //Returns True if we loaded the value via the A register (but Reg <> rA)
-function GenVarLoad16High(Reg: TCPUReg;Variable: PVariable;VarVersion: Integer;
+function GenVarLoad16High(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
   Kind: TRegStateKind;Options: TMoveOptionSet): Boolean;
 begin
-  Assert(Reg in CPUReg8Bit);
+  Assert(ToReg in CPUReg8Bit);
 
   Result := False;
   case Variable.Storage of
     vsStack:
-      OpLD(Reg, rIX, Variable, 1);
+      OpLD(ToReg, rIX, Variable, 1);
     vsStatic:
     begin
       OpLD(rA, Variable, 1);
-      if Reg <> rA then
+      if ToReg <> rA then
       begin
         Assert(not (moPreserveA in Options));
-        OpLD(Reg, rA);
+        OpLD(ToReg, rA);
         RegStateSetVariable(rA, Variable, VarVersion, Kind);
         Result := True;
       end;
@@ -171,27 +172,27 @@ begin
   else
     Assert(False);
   end;
-  RegStateSetVariable(Reg, Variable, VarVersion, Kind);
+  RegStateSetVariable(ToReg, Variable, VarVersion, Kind);
 end;
 
 //Basic load of the low half of a 16 bit variable into an 8-bit register
 //Returns True if we loaded the value via the A register (but Reg <> rA)
-function GenVarLoad16Low(Reg: TCPUReg;Variable: PVariable;VarVersion: Integer;
+function GenVarLoad16Low(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
   Kind: TRegStateKind;Options: TMoveOptionSet): Boolean;
 begin
-  Assert(Reg in CPUReg8Bit);
+  Assert(ToReg in CPUReg8Bit);
 
   Result := False;
   case Variable.Storage of
     vsStack:
-      OpLD(Reg, rIX, Variable);
+      OpLD(ToReg, rIX, Variable);
     vsStatic:
     begin
       OpLD(rA, Variable);
-      if Reg <> rA then
+      if ToReg <> rA then
       begin
         Assert(not (moPreserveA in Options));
-        OpLD(Reg, rA);
+        OpLD(ToReg, rA);
         RegStateSetVariable(rA, Variable, VarVersion, Kind);
         Result := True;
       end;
@@ -199,20 +200,20 @@ begin
   else
     Assert(False);
   end;
-  RegStateSetVariable(Reg, Variable, VarVersion, Kind);
+  RegStateSetVariable(ToReg, Variable, VarVersion, Kind);
 end;
 
 //===============================
 
-procedure GenLoadVar8BitToReg8Bit(Reg: TCPUReg;Variable: PVariable;VarVersion: Integer;
-  PrimFlags: TPrimFlagSetNG;ToType: TVarType;RangeCheck: Boolean;Options: TMoveOptionSet);
+procedure GenLoadVar8BitToReg8Bit(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
+  PrimFlags: TPrimFlagSet;ToType: TVarType;RangeCheck: Boolean;Options: TMoveOptionSet);
 var ChangeSigned: Boolean;
   Kind: TRegStateKind;
   IsTypecast: Boolean;
   Scavenge: TCPUReg;
   ViaA: Boolean;
 begin
-  Assert(Reg in CPUReg8Bit);
+  Assert(ToReg in CPUReg8Bit);
   Assert(GetTypeSize(Variable.VarType) = 1);
 
   Kind := PrimFlagsToKind(PrimFlags);
@@ -235,25 +236,25 @@ begin
 
   if Scavenge <> rNone then
   begin
-    if Scavenge <> Reg then
-      GenRegMove(Scavenge, Reg, False, Options);
+    if Scavenge <> ToReg then
+      GenRegMove(Scavenge, ToReg, False, Options);
     ViaA := Scavenge = rA;
   end
   else
-    ViaA := GenVarLoad8(Reg, Variable, VarVersion, Kind, Options);
+    ViaA := GenVarLoad8(Variable, VarVersion, ToReg, Kind, Options);
 
   //Range check
   //Don't range check typecasts
   if RangeCheck and not IsTypecast then
   begin
     if ViaA then
-      Reg := rA;
-    GenRangeCheck(Reg, Variable.VarType, ToType, nil, Options);
+      ToReg := rA;
+    GenRangeCheck(ToReg, Variable.VarType, ToType, nil, Options);
   end;
 end;
 
-procedure GenLoadVar8BitToReg16Bit(Reg: TCPUReg;Variable: PVariable;VarVersion: Integer;
-  PrimFlags: TPrimFlagSetNG;ToType: TVarType;RangeCheck: Boolean;Options: TMoveOptionSet);
+procedure GenLoadVar8BitToReg16Bit(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
+  PrimFlags: TPrimFlagSet;ToType: TVarType;RangeCheck: Boolean;Options: TMoveOptionSet);
 var SignedLoss: Boolean;
   Kind: TRegStateKind;
   IsTypecast: Boolean;
@@ -261,7 +262,7 @@ var SignedLoss: Boolean;
   ViaA: Boolean;
   Via: TCPUReg;
 begin
-  Assert(Reg in CPUReg16Bit);
+  Assert(ToReg in CPUReg16Bit);
   Assert(GetTypeSize(Variable.VarType) = 1);
 
   Kind := PrimFlagsToKind(PrimFlags);
@@ -286,57 +287,67 @@ begin
   if Scavenge in CPURegPairs then
   begin
     //We can just copy - no need for range checking
-    if Scavenge <> Reg then
-      GenRegMove(Scavenge, Reg, False, Options)
+    if Scavenge <> ToReg then
+      GenRegMove(Scavenge, ToReg, False, Options)
   end
   else
   begin
     if Scavenge <> rNone then
     begin
       Assert(Scavenge in CPUReg8Bit);
-      if Scavenge <> CPURegPairToLow[Reg] then
-        GenRegMove(Scavenge, CPURegPairToLow[Reg], False, Options);
+      if Scavenge <> CPURegPairToLow[ToReg] then
+        GenRegMove(Scavenge, CPURegPairToLow[ToReg], False, Options);
       ViaA := Scavenge = rA;
     end
     else
       if Variable.Storage = vsStack then
-        ViaA := GenVarLoad8(CPURegPairToLow[Reg], Variable, VarVersion, Kind, Options)
+        ViaA := GenVarLoad8(Variable, VarVersion, CPURegPairToLow[ToReg], Kind, Options)
       else  //Static - load as pair then overwrite high byte
       begin
-        ViaA := GenVarLoad16(Reg, Variable, VarVersion, Kind, Options);
-        RegStateSetVariable(CPURegPairToLow[Reg], Variable, VarVersion, Kind);
+        ViaA := GenVarLoad16(Variable, VarVersion, ToReg, Kind, Options);
+        RegStateSetVariable(CPURegPairToLow[ToReg], Variable, VarVersion, Kind);
       end;
 
     if ViaA then
       Via := rA
     else
-      Via := CPURegPairToLow[Reg];
+      Via := CPURegPairToLow[ToReg];
 
     //Range check
     //Don't range check typecasts
     if RangeCheck and not IsTypecast then
       GenRangeCheck(Via, Variable.VarType, ToType, nil, Options);
 
-    if IsSignedType(Variable.VarType) and (IsSignedType(ToType) or (ToType = vtUnknown)) and not IsTypecast then
+    //From To       Range Extend
+    //Int8 Integer  Y     Signed
+    //              N     Signed
+    //Int8 Word     Y     Zero  (because illegal filtered out)
+    //              N     Signed
+    //Byte Integer  Y     Zero
+    //              N     Zero
+    //Byte Word     Y     Zero
+    //              N     Zero
+    if IsSignedType(Variable.VarType) and
+      (IsSignedType(ToType) or (not IsSignedType(ToType) and not RangeCheck)) then
     begin
       //Sign extend
-      GenSignExtend(Via, CPURegPairToHigh[Reg], Options);
-      RegStateSetUnknown(CPURegPairToHigh[Reg]);
+      GenSignExtend(Via, CPURegPairToHigh[ToReg], Options);
+      RegStateSetUnknown(CPURegPairToHigh[ToReg]);
     end
     else  //Zero extend
-      GenLoadRegLiteral(CPURegPairToHigh[Reg], TImmValue.CreateInteger(0), Options);
+      GenLoadRegLiteral(CPURegPairToHigh[ToReg], TImmValue.CreateInteger(0), Options);
   end;
 end;
 
 //Load a 16-bit variable into an 8-bit register
-procedure GenLoadVar16BitToReg8Bit(Reg: TCPUReg;Variable: PVariable;VarVersion: Integer;
-  PrimFlags: TPrimFlagSetNG;ToType: TVarType;RangeCheck: Boolean;Options: TMoveOptionSet);
+procedure GenLoadVar16BitToReg8Bit(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
+  PrimFlags: TPrimFlagSet;ToType: TVarType;RangeCheck: Boolean;Options: TMoveOptionSet);
 var ChangeSigned: Boolean;
   Kind: TRegStateKind;
   Scavenge: TCPUReg;
   ViaA: Boolean;
 begin
-  Assert(Reg in CPUReg8Bit);
+  Assert(ToReg in CPUReg8Bit);
   Assert(GetTypeSize(Variable.VarType) = 2);
 
   Kind := PrimFlagsToKind(PrimFlags);
@@ -347,22 +358,22 @@ begin
       Scavenge := RegStateFindVariable8(Variable, VarVersion, Kind);
       if Scavenge <> rNone then
       begin
-        if Scavenge <> Reg then
-          GenRegMove(Scavenge, Reg, False, Options)
+        if Scavenge <> ToReg then
+          GenRegMove(Scavenge, ToReg, False, Options)
       end
       else
-        GenVarLoad16High(Reg, Variable, VarVersion, Kind, Options);
+        GenVarLoad16High(Variable, VarVersion, ToReg, Kind, Options);
     end;
     rskVarValueLow:
     begin
       Scavenge := RegStateFindVariable8(Variable, VarVersion, Kind);
       if Scavenge <> rNone then
       begin
-        if Scavenge <> Reg then
-          GenRegMove(Scavenge, Reg, False, Options)
+        if Scavenge <> ToReg then
+          GenRegMove(Scavenge, ToReg, False, Options)
       end
       else
-        GenVarLoad16Low(Reg, Variable, VarVersion, Kind, Options);
+        GenVarLoad16Low(Variable, VarVersion, ToReg, Kind, Options);
     end;
     rskVarValue:
     begin //We just need low byte of the 16-bit value, but high byte might need
@@ -375,51 +386,85 @@ begin
         //If not can we scavenge low byte as 8-bit?
         Scavenge := RegStateFindVariable8(Variable, VarVersion, rskVarValueLow);
 
-      //Load and range check the high byte
-      if RangeCheck then
-      begin //And we need to range check the shrink
+      if RangeCheck and IsSignedType(ToType) and not ChangeSigned then
+      (*******************************************************************************
+      TODO: When we load a 16-bit signed to an 8-bit signed we need to check all
+      9 high bits are equal (if range checking). To do that we need to get bit 7 of
+      the low byte into the carry flag, which means that we must load the low byte
+      first. This is a PITA!
+      *******************************************************************************)
+      begin
         if Scavenge in CPURegPairs then
-          GenRangeCheckHighByte(CPURegPairToHigh[Scavenge], Variable.VarType, ToType, Options)
+        begin //We already have the full value in registers, do regular range check
+          GenRangeCheck(Scavenge, Variable.VarType, ToType, nil, Options);
+          GenRegMove(CPURegPairToLow[Scavenge], ToReg, False, Options);
+        end
         else
         begin
-          Assert(not (moPreserveA in Options));
-          GenVarLoad16High(rA, Variable, VarVersion, rskVarValueHigh, Options);
-          //...and range check it
-          GenRangeCheckHighByte(rA, Variable.VarType, ToType, Options);
+          //Load low byte into both target reg and A (if different)
+          ViaA := GenVarLoad16Low(Variable, VarVersion, ToReg, rskVarValueLow, Options);
+          if not ViaA and (ToReg <> rA) then
+            GenRegMove(ToReg, rA, False, Options);
+          //First part of the range check (RLA)
+          GenRangeCheckIntegerToInt8Part1;
+//-->          Low byte to Carry flag (RLA)
+          //Load the high byte
+          GenVarLoad16High(Variable, VarVersion, rA, rskVarValueHigh, Options + [moPreserveCF]);
+          //Second part of the range check (ADC A,$00:JP NZ,RAISE_RANGE)
+          GenRangeCheckIntegerToInt8Part2;
+          //Reload the trashed low byte into A
+          if ToReg = rA then
+            GenVarLoad16Low(Variable, VarVersion, ToReg, rskVarValueLow, Options);
         end;
-      end;
-
-      //NOTE: Changing types and scavenging
-      //Try and help the scavenger here, but being cautious. We could argue that
-      //the variable value is guaranteed to be in the register, since the value
-      //here must be within range. BUT if code paths merge (eg if this code is
-      //part of conditionally executed code, when the paths merge the allocator
-      //and scavenger may not know what we've done.
-      if ChangeSigned then
-        Kind := rskUnknown
-      else
-        Kind := rskVarValueLow;
-
-      //Load the low byte
-      if Scavenge <> rNone then
-      begin
-        if Scavenge in CPURegPairs then
-          Scavenge := CPURegPairToLow[Scavenge];
-        if Scavenge <> Reg then
-          GenRegMove(Scavenge, Reg, False, Options);
-        ViaA := Scavenge = rA;
       end
       else
-        ViaA := GenVarLoad16Low(Reg, Variable, VarVersion, Kind, Options);
-
-      //Range check
-      //Don't range check typecasts
-      if RangeCheck then
       begin
-        if ViaA then
-          Reg := rA;
-        //Low byte of a 16-bit value
-        GenRangeCheckLowByte(Reg, Variable.VarType, ToType, Options);
+        //Load and range check the high byte
+        if RangeCheck then
+        begin //And we need to range check the shrink
+          if Scavenge in CPURegPairs then
+            GenRangeCheckHighByte(CPURegPairToHigh[Scavenge], Variable.VarType, ToType, Options)
+          else
+          begin
+            Assert(not (moPreserveA in Options));
+            GenVarLoad16High(Variable, VarVersion, rA, rskVarValueHigh, Options);
+            //...and range check it
+            GenRangeCheckHighByte(rA, Variable.VarType, ToType, Options);
+          end;
+        end;
+
+        //NOTE: Changing types and scavenging
+        //Try and help the scavenger here, but being cautious. We could argue that
+        //the variable value is guaranteed to be in the register, since the value
+        //here must be within range. BUT if code paths merge (eg if this code is
+        //part of conditionally executed code, when the paths merge the allocator
+        //and scavenger may not know what we've done.
+        if ChangeSigned then
+          Kind := rskUnknown
+        else
+          Kind := rskVarValueLow;
+
+        //Load the low byte
+        if Scavenge <> rNone then
+        begin
+          if Scavenge in CPURegPairs then
+            Scavenge := CPURegPairToLow[Scavenge];
+          if Scavenge <> ToReg then
+            GenRegMove(Scavenge, ToReg, False, Options);
+          ViaA := Scavenge = rA;
+        end
+        else
+          ViaA := GenVarLoad16Low(Variable, VarVersion, ToReg, Kind, Options);
+
+        //Range check
+        //Don't range check typecasts
+        if RangeCheck then
+        begin
+          if ViaA then
+            ToReg := rA;
+          //Low byte of a 16-bit value
+          GenRangeCheckLowByte(ToReg, Variable.VarType, ToType, Options);
+        end;
       end;
     end;
   else
@@ -427,13 +472,13 @@ begin
   end;
 end;
 
-procedure GenLoadVar16BitToReg16Bit(Reg: TCPUReg;Variable: PVariable;VarVersion: Integer;
-  PrimFlags: TPrimFlagSetNG;ToType: TVarType;RangeCheck: Boolean;Options: TMoveOptionSet);
+procedure GenLoadVar16BitToReg16Bit(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
+  PrimFlags: TPrimFlagSet;ToType: TVarType;RangeCheck: Boolean;Options: TMoveOptionSet);
 var ChangeSigned: Boolean;
   Kind: TRegStateKind;
   Scavenge: TCPUReg;
 begin
-  Assert(Reg in CPUReg16Bit);
+  Assert(ToReg in CPUReg16Bit);
   Assert(GetTypeSize(Variable.VarType) = 2);
 
   Kind := PrimFlagsToKind(PrimFlags);
@@ -446,20 +491,20 @@ begin
       Scavenge := RegStateFindVariable8(Variable, VarVersion, Kind);
       if Scavenge <> rNone then
       begin
-        if Scavenge <> Reg then
-          GenRegMove(Scavenge, Reg, False, Options)
+        if Scavenge <> ToReg then
+          GenRegMove(Scavenge, ToReg, False, Options)
       end
       else
         if Variable.Storage = vsStack then
-          GenVarLoad16High(CPURegPairToLow[Reg], Variable, VarVersion, rskVarValueHigh, Options)
+          GenVarLoad16High(Variable, VarVersion, CPURegPairToLow[ToReg], rskVarValueHigh, Options)
         else //Static - easier to load the pair and overwrite the high byte
         begin
-          GenVarLoadHighTo16(Reg, Variable, VarVersion, rskVarValue, Options);
-          RegStateSetVariable(CPURegPairToLow[Reg], Variable, VarVersion, rskVarValueHigh);
+          GenVarLoadHighTo16(Variable, VarVersion, ToReg, rskVarValue, Options);
+          RegStateSetVariable(CPURegPairToLow[ToReg], Variable, VarVersion, rskVarValueHigh);
         end;
 
       //Zero extend
-      GenLoadRegLiteral(CPURegPairToHigh[Reg], TImmValue.CreateInteger(0), Options);
+      GenLoadRegLiteral(CPURegPairToHigh[ToReg], TImmValue.CreateInteger(0), Options);
     end;
     rskVarValueLow:
     begin
@@ -468,17 +513,17 @@ begin
       Scavenge := RegStateFindVariable8(Variable, VarVersion, Kind);
       if Scavenge <> rNone then
       begin
-        if Scavenge <> Reg then
-          GenRegMove(Scavenge, Reg, False, Options)
+        if Scavenge <> ToReg then
+          GenRegMove(Scavenge, ToReg, False, Options)
       end
       else
         if Variable.Storage = vsStack then
-          GenVarLoad16Low(CPURegPairToLow[Reg], Variable, VarVersion, rskVarValueLow, Options)
+          GenVarLoad16Low(Variable, VarVersion, CPURegPairToLow[ToReg], rskVarValueLow, Options)
         else  //Static - easier to load the pair and overwrite the high byte
-          GenVarLoad16(Reg, Variable, VarVersion, rskVarValue, Options);
+          GenVarLoad16(Variable, VarVersion, ToReg, rskVarValue, Options);
 
       //Zero extend
-      GenLoadRegLiteral(CPURegPairToHigh[Reg], TImmValue.CreateInteger(0), Options);
+      GenLoadRegLiteral(CPURegPairToHigh[ToReg], TImmValue.CreateInteger(0), Options);
     end;
     rskVarValue:
     begin
@@ -497,18 +542,18 @@ begin
 
       if Scavenge <> rNone then
       begin
-        if Scavenge <> Reg then
-          GenRegMove(Scavenge, Reg, False, Options)
+        if Scavenge <> ToReg then
+          GenRegMove(Scavenge, ToReg, False, Options)
       end
       else
-        GenVarLoad16(Reg, Variable, VarVersion, Kind, Options);
+        GenVarLoad16(Variable, VarVersion, ToReg, Kind, Options);
 
       if ChangeSigned then
         //We know what's in to low byte but not the high byte
-        RegStateSetVariable(CPURegPairToLow[Reg], Variable, VarVersion, rskVarValueLow);
+        RegStateSetVariable(CPURegPairToLow[ToReg], Variable, VarVersion, rskVarValueLow);
 
       if RangeCheck then
-        GenRangeCheck(Reg, Variable.VarType, ToType, nil, Options);
+        GenRangeCheck(ToReg, Variable.VarType, ToType, nil, Options);
     end;
   else
     Assert(False);
@@ -517,7 +562,7 @@ end;
 
 //Load a 16 bit value to an index register
 procedure GenLoadVar16BitToXY(Reg: TCPUReg;Variable: PVariable;VarVersion: Integer;
-  PrimFlags: TPrimFlagSetNG;ToType: TVarType;RangeCheck: Boolean;Options: TMoveOptionSet);
+  PrimFlags: TPrimFlagSet;ToType: TVarType;RangeCheck: Boolean;Options: TMoveOptionSet);
 begin
   Assert(Reg in [rIX, rIY]);
   Assert(Variable.Storage = vsStatic,'Can''t load stack variables into index register');
@@ -535,7 +580,7 @@ end;
 
 //Load the value of a variable into the given register
 procedure GenLoadRegVarValue(Reg: TCPUReg;Variable: PVariable;VarVersion: Integer;
-  PrimFlags: TPrimFlagSetNG;ToType: TVarType;RangeCheck: Boolean;Options: TMoveOptionSet);
+  PrimFlags: TPrimFlagSet;ToType: TVarType;RangeCheck: Boolean;Options: TMoveOptionSet);
 begin
   //Value already in register?
   if RegStateEqualsVariable(Reg, Variable, VarVersion, rskVarValue) then
@@ -544,15 +589,15 @@ begin
   case Reg of
     rA..rL:
       case GetTypeSize(Variable.VarType) of
-        1: GenLoadVar8BitToReg8Bit(Reg, Variable, VarVersion, PrimFlags, ToType, RangeCheck, Options);
-        2: GenLoadVar16BitToReg8Bit(Reg, Variable, VarVersion, PrimFlags, ToType, RangeCheck, Options);
+        1: GenLoadVar8BitToReg8Bit(Variable, VarVersion, Reg, PrimFlags, ToType, RangeCheck, Options);
+        2: GenLoadVar16BitToReg8Bit(Variable, VarVersion, Reg, PrimFlags, ToType, RangeCheck, Options);
       else
         Assert(False);
       end;
     rHL..rBC:
       case GetTypeSize(Variable.VarType) of
-        1: GenLoadVar8BitToReg16Bit(Reg, Variable, VarVersion, PrimFlags, ToType, RangeCheck, Options);
-        2: GenLoadVar16BitToReg16Bit(Reg, Variable, VarVersion, PrimFlags, ToType, RangeCheck, Options);
+        1: GenLoadVar8BitToReg16Bit(Variable, VarVersion, Reg, PrimFlags, ToType, RangeCheck, Options);
+        2: GenLoadVar16BitToReg16Bit(Variable, VarVersion, Reg, PrimFlags, ToType, RangeCheck, Options);
       else
         Assert(False);
       end;
@@ -571,7 +616,7 @@ end;
 //Param: The parameter to load, including the desired Reg and VarType if a variable
 //ToType: The type of the destination. Used for range checking. If ToType is vtUnknown
 //  no range checking will be performed
-procedure GenLoadParam(const Param: TILParam; ToType: TVarType;PrimFlags: TPrimFlagSetNG;Options: TMoveOptionSet);
+procedure GenLoadParam(const Param: TILParam; ToType: TVarType;PrimFlags: TPrimFlagSet;Options: TMoveOptionSet);
 begin
   case Param.Kind of
     pkNone: ; //No param to load
@@ -594,7 +639,7 @@ end;
 //in the register named in Reg. (Reg can either not be touched, or can be moved
 //elsewhere (e.g. another register or the stack) and move back before the function
 //returns.
-procedure LoadPreserving(const Param: TILParam;Reg: TCPUReg;ToType: TVarType;PrimFlags: TPrimFlagSetNG);
+procedure LoadPreserving(const Param: TILParam;Reg: TCPUReg;ToType: TVarType;PrimFlags: TPrimFlagSet);
 var
   V: PVariable;
   PreserveIn: TCPUReg;
@@ -631,7 +676,7 @@ end;
 //Determines the best strategy based on whether the load will damage any registers
 //and the registers required from FromReg and ToReg
 procedure LoadWithMove(const Param: TILParam; ToType: TVarType;FromReg, ToReg: TCPUReg;
-  PrimFlags: TPrimFlagSetNG);
+  PrimFlags: TPrimFlagSet);
 var
   MoveBefore: Boolean;  //Do the move before or after the load?
 begin
@@ -647,7 +692,7 @@ end;
 
 //Load two Parameters. Determines which should be loaded first and which second based
 //whether either will trash a register during loading.
-procedure LoadBoth(ILItem: PILItem; P1Type, P2Type: TVarType; PrimFlags: TPrimFlagSetNG);
+procedure LoadBoth(ILItem: PILItem; P1Type, P2Type: TVarType; PrimFlags: TPrimFlagSet);
 begin
   //Select a register loading order so the second load won't trash the first.
 
@@ -670,9 +715,9 @@ end;
 //registers specified by ILItem.Param1Alloc and ILItem.Param2Alloc, if any registers
 //are specified there.
 //* - can also handle parameters which are already in registers
-procedure LoadBeforePrim(ILItem: PILItem; Prim: PPrimitiveNG);
+procedure LoadBeforePrim(ILItem: PILItem; Prim: PPrimitive);
 var// Swap: Boolean;
-  PrimFlags: TPrimFlagSetNG;
+  PrimFlags: TPrimFlagSet;
   P1Reg: TCPUReg; //If P1 is already in a register
   P2Reg: TCPUReg; //If P2 is already in a register
   P1Move: Boolean;  //P1 is already in a register but not the required one
@@ -683,11 +728,11 @@ begin
   if Assigned(Prim) then
   begin
     PrimFlags := Prim.Flags;
-    if not (cgRangeCheck in ILItem.Param1.Flags) then
+    if cgRangeCheck in ILItem.Param1.Flags then
       P1Type := Prim.LType
     else
       P1Type := vtUnknown;
-    if not (cgRangeCheck in ILItem.Param2.Flags) then
+    if cgRangeCheck in ILItem.Param2.Flags then
       P2Type := Prim.RType
     else
       P2Type := vtUnknown;

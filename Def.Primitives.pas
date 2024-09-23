@@ -10,7 +10,7 @@ type
   TCodeGenProc = procedure(ILItem: PILItem);
   TValidationProc = procedure(RH, RL: Char);
 
-  TPrimFlagNG = (
+  TPrimFlag = (
     pfnLoadRPLow,   //Load only the low byte of the (16-bit) parameter
                     //If the value being loaded is 8-bit it will be zero extended
                     //(NOT sign extended)
@@ -20,10 +20,10 @@ type
     pfnDestRelVar      //Store to an IX relative variable
     );
 
-  TPrimFlagSetNG = set of TPrimFlagNG;
+  TPrimFlagSet = set of TPrimFlag;
 
-  PPrimitiveNG = ^TPrimitiveNG;
-  TPrimitiveNG = record
+  PPrimitive = ^TPrimitive;
+  TPrimitive = record
     //Fields to use for primitive selection
     Op: TOperator;
     ProcName: String;     //Name of the Proc (code), Fragment, or Subroutine used
@@ -37,7 +37,7 @@ type
     IfOverflowChecking: TPrimValidation;  //Can this routine be used if overflow checking is on? off? either?
 
     //Fields for primitive use
-    Flags: TPrimFlagSetNG;//Flags
+    Flags: TPrimFlagSet;  //Flags
     LRegs: TCPURegSet;    //What registers can the left parameter accept?
     RRegs: TCPURegSet;    //What registers can the right operator accept?
     ResultInLReg: Boolean;  //If True the result is returned in the same register
@@ -89,12 +89,12 @@ function PrimFindParseUnary(Op: TOperator;const Left: TExprSlug;
 
 //---Codegen time
 
-function ILItemToPrimitiveNG(const ILItem: TILItem;out SwapParams: Boolean): PPrimitiveNG;
+function ILItemToPrimitive(const ILItem: TILItem;out SwapParams: Boolean): PPrimitive;
 
 //Returns a primitive stuitable for storing a constant into the Variable
-function PrimFindStoreImm(Variable: PVariable): PPrimitiveNG;
+function PrimFindStoreImm(Variable: PVariable): PPrimitive;
 
-function PrimFindByProcNameNG(AName: String): PPrimitiveNG;
+function PrimFindByProcName(AName: String): PPrimitive;
 
 //Find a codegen proc directly from it's name
 function FindCodeGenProc(AName: String): TCodeGenProc;
@@ -110,7 +110,7 @@ procedure PrimSetValProc(Name: String;Proc: TValidationProc);
 
 procedure InitialisePrimitives;
 
-procedure LoadPrimitivesNGFile(const Filename: String);
+procedure LoadPrimitivesFile(const Filename: String);
 
 //Validates that generators are available for every primitive.
 //Raises an exception if there is a problem
@@ -174,14 +174,14 @@ begin
   Result := nil;
 end;
 
-var PrimListNG: TList<PPrimitiveNG>;
+var PrimList: TList<PPrimitive>;
 
 procedure ClearPrimList;
-var PrimNG: PPrimitiveNG;
+var Prim: PPrimitive;
 begin
-  for PrimNG in PrimListNG do
-    Dispose(PrimNG);
-  PrimListNG.Clear;
+  for Prim in PrimList do
+    Dispose(Prim);
+  PrimList.Clear;
 end;
 
 procedure InitialisePrimitives;
@@ -227,7 +227,7 @@ begin
   Result := high(TNumberRange);
 end;
 
-function ParamRegMatch(Prim: PPrimitiveNG;AvailableRegs: TCPURegSet;
+function ParamRegMatch(Prim: PPrimitive;AvailableRegs: TCPURegSet;
   Kind: TILParamKind;Storage: TVarStorage): Boolean;
 begin
   if Kind = pkNone then
@@ -247,7 +247,7 @@ begin
   Result := (AvailableRegs * [rA..rE,rH..rL, rHL..rBC]) <> [];
 end;
 
-function IfOverflowCheckingMatchNG(const Prim: PPrimitiveNG;const ILItem: PILItem): Boolean;
+function IfOverflowCheckingMatch(const Prim: PPrimitive;const ILItem: PILItem): Boolean;
 begin
   case Prim.IfOverflowChecking of
     pvYes: EXIT(cgOverflowCheck in ILItem.Flags) ;
@@ -258,7 +258,7 @@ begin
   end;
 end;
 
-function DestRegMatch(const Prim: PPrimitiveNG;const ILDest: TILParam): Boolean;
+function DestRegMatch(const Prim: PPrimitive;const ILDest: TILParam): Boolean;
 var V: PVariable;
 begin
   case ILDest.Kind of
@@ -300,7 +300,7 @@ begin
   end;
 end;
 
-function DestMatch(Prim: PPrimitiveNG;ILItem: PILItem): Boolean;
+function DestMatch(Prim: PPrimitive;ILItem: PILItem): Boolean;
 begin
   case ILItem.Dest.Kind of
     pkNone, pkPush, pkPushByte: Result := True;
@@ -433,7 +433,7 @@ type TPrimSearchRec = record
     SwapParams: Boolean;
   end;
 
-function CalcTypeFitness(const SearchRec: TPrimSearchRec;Prim: PPrimitiveNG;Swap: Boolean): Integer;
+function CalcTypeFitness(const SearchRec: TPrimSearchRec;Prim: PPrimitive;Swap: Boolean): Integer;
 var
   Fitness: Integer;
   Signed: Boolean;
@@ -486,7 +486,7 @@ begin
   end;
 end;
 
-function CalcFitness(const SearchRec: TPrimSearchRec;Prim: PPrimitiveNG;Swap: Boolean): Integer;
+function CalcFitness(const SearchRec: TPrimSearchRec;Prim: PPrimitive;Swap: Boolean): Integer;
 begin
   Result := CalcTypeFitness(SearchRec, Prim, Swap);
   if Result = -1 then
@@ -521,7 +521,7 @@ begin
         EXIT(-1);
     end;
 
-    if not IfOverflowCheckingMatchNG(Prim, SearchRec.ILItem) then
+    if not IfOverflowCheckingMatch(Prim, SearchRec.ILItem) then
       EXIT(-1);
     if not DestMatch(Prim, SearchRec.ILItem) then
       EXIT(-1);
@@ -546,7 +546,7 @@ var
   BestFitness: Integer;
   BestIndex: Integer;
   SwapParams: Boolean;
-  Prim: PPrimitiveNG;
+  Prim: PPrimitive;
 begin
   BestFitness := MaxInt;
   BestIndex := -1;
@@ -556,10 +556,10 @@ begin
   Index := Operations[SearchRec.Op].FirstPrimIndex;
 
   SearchRec.SwapParams := False;
-  while (Index < PrimListNG.Count) and (PrimListNG[Index].Op = SearchRec.Op)
+  while (Index < PrimList.Count) and (PrimList[Index].Op = SearchRec.Op)
     and (BestFitness <> 0) do
   begin
-    Prim := PrimListNG[Index];
+    Prim := PrimList[Index];
 
     SearchRec.ResultType := Prim.ResultType;
     //TODO: Parameterised operators (how??)
@@ -590,7 +590,7 @@ begin
     EXIT;
 
   SearchRec.PrimIndex := BestIndex;
-  Prim := PrimListNG[SearchRec.PrimIndex];
+  Prim := PrimList[SearchRec.PrimIndex];
   if Prim.ResultTypeIsLType then
     SearchRec.ResultType := SearchRec.LType
   else if Prim.ResultTypeIsRType then
@@ -741,7 +741,7 @@ end;
 // * Otherwise look for ResultType matching OpType (this may be part of the above)
 // * Match validation
 // * Match Locations (Not sure this should be here?)
-function ILItemToPrimitiveNG(const ILItem: TILItem;out SwapParams: Boolean): PPrimitiveNG;
+function ILItemToPrimitive(const ILItem: TILItem;out SwapParams: Boolean): PPrimitive;
 var
   SearchRec: TPrimSearchRec;
   V: PVariable;
@@ -785,23 +785,23 @@ begin
 
   if PrimSearch(SearchRec) then
   begin
-    Result := PrimListNG[SearchRec.PrimIndex];
+    Result := PrimList[SearchRec.PrimIndex];
     SwapParams := SearchRec.SwapParams;
   end
   else
     Result := nil;
 end;
 
-function PrimFindStoreImm(Variable: PVariable): PPrimitiveNG;
+function PrimFindStoreImm(Variable: PVariable): PPrimitive;
 var Index: Integer;
 begin
   Index := Operations[opStoreImm].FirstPrimIndex;
-  while PrimListNG[Index].Op = opStoreImm do
+  while PrimList[Index].Op = opStoreImm do
   begin
-    if PrimListNG[Index].LType = Variable.VarType then
-      if ((Variable.Storage = vsStatic) and (pfnDestStaticVar in PrimListNG[Index].Flags)) or
-        ((Variable.Storage = vsStack) and (pfnDestRelVar in PrimListNG[Index].Flags)) then
-      EXIT(PrimListNG[Index]);
+    if PrimList[Index].LType = Variable.VarType then
+      if ((Variable.Storage = vsStatic) and (pfnDestStaticVar in PrimList[Index].Flags)) or
+        ((Variable.Storage = vsStack) and (pfnDestRelVar in PrimList[Index].Flags)) then
+      EXIT(PrimList[Index]);
     inc(Index);
   end;
 
@@ -809,9 +809,9 @@ begin
 end;
 
 //================OTHER
-function PrimFindByProcNameNG(AName: String): PPrimitiveNG;
+function PrimFindByProcName(AName: String): PPrimitive;
 begin
-  for Result in PrimListNG do
+  for Result in PrimList do
     if CompareText(Result.ProcName, AName) =  0 then
       EXIT;
 
@@ -819,16 +819,16 @@ begin
 end;
 
 procedure PrimSetProc(Name: String;Proc: TCodeGenProc);
-var PrimNG: PPrimitiveNG;
+var Prim: PPrimitive;
   Found: Boolean;
 begin
   AddCodeGenProc(Name, Proc);
 
   Found := False;
-  for PrimNG in PrimListNG do
-    if CompareText(PrimNG.ProcName, Name) = 0 then
+  for Prim in PrimList do
+    if CompareText(Prim.ProcName, Name) = 0 then
     begin
-      PrimNG.Proc := Proc;
+      Prim.Proc := Proc;
       Found := True;
     end;
 
@@ -837,15 +837,15 @@ begin
 end;
 
 procedure PrimSetValProc(Name: String;Proc: TValidationProc);
-var PrimNG: PPrimitiveNG;
+var Prim: PPrimitive;
   Found: Boolean;
 begin
   AddValProc(Name, Proc);
   Found := False;
-  for PrimNG in PrimListNG do
-    if CompareText(PrimNG.ProcName, Name) = 0 then
+  for Prim in PrimList do
+    if CompareText(Prim.ProcName, Name) = 0 then
     begin
-      PrimNG.ValidateProc := Proc;
+      Prim.ValidateProc := Proc;
       Found := True;
     end;
 //  if not Found then
@@ -919,7 +919,7 @@ begin
     Result := Result + [StrToCPUReg(X, ForCorrupts)];
 end;
 
-function StrToPrimFlagSetNG(S: String): TPrimFlagSetNG;
+function StrToPrimFlagSet(S: String): TPrimFlagSet;
 var X: String;
 begin
   Result := [];
@@ -942,33 +942,33 @@ end;
 
 const
   //Primitive selection data
-  fNGName           = 1;
-  fNGLType          = 2;
-  fNGRType          = 3;
-  fNGCommutative    = 4;
-  fNGResultType     = 5;
-  fNGIfOverflowChecking = 6;
+  fName           = 1;
+  fLType          = 2;
+  fRType          = 3;
+  fCommutative    = 4;
+  fResultType     = 5;
+  fIfOverflowChecking = 6;
 
   //Primitive data (hopefully to evenetually be migrated into the fragment and
   //library files
-  fNGFlags          = 7;
-  fNGProcName       = 8;
+  fFlags          = 7;
+  fProcName       = 8;
   //Empty columns to give half-decent presentation in Excel
-  fNGLRegs          = 11;
-  fNGRRegs          = 12;
-  fNGResultReg      = 13;
-  fNGCorrupts       = 14;
-  fNGOverflowCheckProc   = 15;
-  fNGRangeCheckToS8   = 16;
-  fNGRangeCheckToU8   = 17;
-  fNGRangeCheckToS16  = 18;
-  fNGRangeCheckToU16  = 19;
+  fLRegs          = 11;
+  fRRegs          = 12;
+  fResultReg      = 13;
+  fCorrupts       = 14;
+  fOverflowCheckProc   = 15;
+  fRangeCheckToS8   = 16;
+  fRangeCheckToU8   = 17;
+  fRangeCheckToS16  = 18;
+  fRangeCheckToU16  = 19;
 
-procedure LoadPrimitivesNGFile(const Filename: String);
+procedure LoadPrimitivesFile(const Filename: String);
 var Data: TStringList;
   Line: String;
   Fields: TArray<String>;
-  Prim: PPrimitiveNG;
+  Prim: PPrimitive;
   I: Integer;
 begin
   Data := TStringList.Create;
@@ -981,71 +981,71 @@ begin
         EXIT;
 
       Fields := Line.Split([',']);
-      if Fields[fNGName] <> '' then
+      if Fields[fName] <> '' then
       begin
         if Length(Fields) < 17 then
           raise Exception.Create('PrimitivesNG line too short: ' + Line);
         for I:=0 to Length(Fields)-1 do
           Fields[I] := Fields[I].Trim;
 
-        Prim := New(PPrimitiveNG);
-        PrimListNG.Add(Prim);
+        Prim := New(PPrimitive);
+        PrimList.Add(Prim);
 
         //Primitive selection data
-        Prim.Op := IdentToOperator(Fields[fNGName]);
+        Prim.Op := IdentToOperator(Fields[fName]);
         if Prim.Op = opUnknown then
           raise Exception.Create('Operation not found for primitive in ' + Line);
         if Operations[Prim.Op].FirstPrimIndex < 0 then
-          Operations[Prim.Op].FirstPrimIndex := PrimListNG.Count-1;
+          Operations[Prim.Op].FirstPrimIndex := PrimList.Count-1;
 
-        Prim.ProcName := Fields[fNGProcName];
-        if CompareText(Fields[fNGLType], 'none') = 0 then
+        Prim.ProcName := Fields[fProcName];
+        if CompareText(Fields[fLType], 'none') = 0 then
           Prim.RType := vtUnknown
         else
         begin
-          Prim.LType := StringToVarType(Fields[fNGLType]);
+          Prim.LType := StringToVarType(Fields[fLType]);
           if Prim.LType = vtUnknown then
-            raise Exception.Create('Unknown LType: ' + Fields[fNGLType]);
+            raise Exception.Create('Unknown LType: ' + Fields[fLType]);
         end;
 
-        if CompareText(Fields[fNGRType], 'none') = 0 then
+        if CompareText(Fields[fRType], 'none') = 0 then
           Prim.RType := vtUnknown
         else
         begin
-          Prim.RType := StringToVarType(Fields[fNGRType]);
+          Prim.RType := StringToVarType(Fields[fRType]);
           if Prim.RType = vtUnknown then
-            raise Exception.Create('Unknown RType: ' + Fields[fNGRType]);
+            raise Exception.Create('Unknown RType: ' + Fields[fRType]);
         end;
-        Prim.Commutative := StringToBoolean(Fields[fNGCommutative]);
+        Prim.Commutative := StringToBoolean(Fields[fCommutative]);
 
-        Prim.ResultTypeIsLType := CompareText(Fields[fNGResultType], 'LType') = 0;
-        Prim.ResultTypeIsRType := CompareText(Fields[fNGResultType], 'RType') = 0;
+        Prim.ResultTypeIsLType := CompareText(Fields[fResultType], 'LType') = 0;
+        Prim.ResultTypeIsRType := CompareText(Fields[fResultType], 'RType') = 0;
         if Prim.ResultTypeIsLType or Prim.ResultTypeIsRType then
           Prim.ResultType := vtUnknown
-        else if CompareText(Fields[fNGResultType], 'None') = 0 then
+        else if CompareText(Fields[fResultType], 'None') = 0 then
           Prim.ResultType := vtUnknown
         else
         begin
-          Prim.ResultType := StringToVarType(Fields[fNGResultType]);
+          Prim.ResultType := StringToVarType(Fields[fResultType]);
           if Prim.ResultType = vtUnknown then
-            raise Exception.Create('Unknown ResultType: ' + Fields[fNGResultType]);
+            raise Exception.Create('Unknown ResultType: ' + Fields[fResultType]);
         end;
 
-        if Length(Fields[fNGIfOverFlowChecking]) <> 1 then
-          raise Exception.Create('Error in PrimitivesNG.Validation field: ' + Fields[fNGIfOverflowChecking]);
-        case Fields[fNGIfOverflowChecking].Chars[0] of
+        if Length(Fields[fIfOverFlowChecking]) <> 1 then
+          raise Exception.Create('Error in PrimitivesNG.Validation field: ' + Fields[fIfOverflowChecking]);
+        case Fields[fIfOverflowChecking].Chars[0] of
           'y','Y': Prim.IfOverflowChecking := pvYes;
           'n','N': Prim.IfOverflowChecking := pvNo;
           'x','X': Prim.IfOverflowChecking := pvEither;
         else
-          raise Exception.Create('Error in PrimitivesNG.Validation field: ' + Fields[fNGIfOverflowChecking]);
+          raise Exception.Create('Error in PrimitivesNG.Validation field: ' + Fields[fIfOverflowChecking]);
         end;
 
 
         //Primitive usage data
-        Prim.Flags := StrToPrimFlagSetNG(Fields[fNGFlags]);
+        Prim.Flags := StrToPrimFlagSet(Fields[fFlags]);
 
-        Prim.LRegs := StrToCPURegSet(Fields[fNGLRegs], False);
+        Prim.LRegs := StrToCPURegSet(Fields[fLRegs], False);
         if rImm in Prim.LRegs then
           Assert(Prim.LRegs = [rImm])
         else if rIndirect in Prim.LRegs then
@@ -1053,7 +1053,7 @@ begin
         else if rOffset in Prim.LRegs then
           Assert(Prim.LRegs = [rOffset]);
 
-        Prim.RRegs := StrToCPURegSet(Fields[fNGRRegs], False);
+        Prim.RRegs := StrToCPURegSet(Fields[fRRegs], False);
         if rImm in Prim.RRegs then
           Assert(Prim.RRegs = [rImm])
         else if rIndirect in Prim.RRegs then
@@ -1061,16 +1061,16 @@ begin
         else if rOffset in Prim.RRegs then
           Assert(Prim.RRegs = [rOffset]);
 
-        Prim.ResultInLReg := CompareText(Fields[fNGResultReg], 'param1') = 0;
+        Prim.ResultInLReg := CompareText(Fields[fResultReg], 'param1') = 0;
         if not Prim.ResultInLReg then
-          Prim.ResultReg :=   StrToCPUReg(Fields[fNGResultReg], False);
-        Prim.Corrupts :=  StrToCPURegSet(Fields[fNGCorrupts], True);
+          Prim.ResultReg :=   StrToCPUReg(Fields[fResultReg], False);
+        Prim.Corrupts :=  StrToCPURegSet(Fields[fCorrupts], True);
 
-        Prim.OverflowCheckProcName := Fields[fNGOverflowCheckProc];
-        Prim.RangeCheckToS8 := Fields[fNGRangeCheckToS8];
-        Prim.RangeCheckToU8 := Fields[fNGRangeCheckToU8];
-        Prim.RangeCheckToS16 := Fields[fNGRangeCheckToS16];
-        Prim.RangeCheckToU16 := Fields[fNGRangeCheckToU16];
+        Prim.OverflowCheckProcName := Fields[fOverflowCheckProc];
+        Prim.RangeCheckToS8 := Fields[fRangeCheckToS8];
+        Prim.RangeCheckToU8 := Fields[fRangeCheckToU8];
+        Prim.RangeCheckToS16 := Fields[fRangeCheckToS16];
+        Prim.RangeCheckToU16 := Fields[fRangeCheckToU16];
 
         Prim.Proc := nil;
         Prim.ValidateProc := nil;
@@ -1094,10 +1094,10 @@ begin
     raise Exception.Create('Load primitives: Fragment not found: ''' + S + '''');
 end;
 
-procedure ValidatePrimitiveNG(PrimNG: PPrimitiveNG);
+procedure ValidatePrimitive(Prim: PPrimitive);
 begin
-  if not Assigned(PrimNG.Proc) then
-    ValidateProc(PrimNG.ProcName);
+  if not Assigned(Prim.Proc) then
+    ValidateProc(Prim.ProcName);
 
 //  ValidateProc(PrimNG.ValidateProcName);
 //  ValidateProc(PrimNG.ValidateToS8);
@@ -1107,14 +1107,14 @@ begin
 end;
 
 procedure ValidatePrimitives;
-var PrimNG: PPrimitiveNG;
+var Prim: PPrimitive;
 begin
   //TODO: Verify that Fragments and library routines are also available
 
-  for PrimNG in PrimListNG do
-    ValidatePrimitiveNG(PrimNG);
+  for Prim in PrimList do
+    ValidatePrimitive(Prim);
 end;
 
 initialization
-  PrimListNG := TList<PPrimitiveNG>.Create;
+  PrimList := TList<PPrimitive>.Create;
 end.

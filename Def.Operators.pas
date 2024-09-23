@@ -174,7 +174,7 @@ function IdentToOperator(const Name: String): TOperator;
 
 procedure InitialiseOperators;
 
-procedure LoadOperatorsFileNG(const Filename: String);
+procedure LoadOperatorsFile(const Filename: String);
 
 //Convert an operator index to a string explaining it's usage
 function OpToUsage(Op: TOperator): String;
@@ -277,7 +277,7 @@ const
   fNGPrecedence = 2;
   fNGSignCombine = 3;
 
-procedure LoadOperatorsFileNG(const Filename: String);
+procedure LoadOperatorsFile(const Filename: String);
 var Data: TStringList;
   Line: String;
   Fields: TArray<String>;

@@ -83,15 +83,19 @@ end
 //would be at -1.
 function CoordToOffset(X, Y: Byte): Word
 begin
+  //The byte values need to be explicitly expanded to words to
+  //avoid overflow during the mutliplication
   Result := Word(Y) * (ColCount+2) + X
 end
 
-function ReadCell(Buffer: Pointer;X, Y: Word): Boolean
+function ReadCell(Buffer: Pointer;X, Y: Byte): Boolean
 begin
+  //The third parameter specifies the return type of the Peek
+  //function
   Result := Peek(Buffer + CoordToOffset(X, Y), Boolean)
 end
 
-procedure WriteCell(Buffer: Pointer;X, Y: Byte;Value: Byte)
+procedure WriteCell(Buffer: Pointer;X, Y, Value: Byte)
 begin
   //Parenthesis are optional (see notes at top)
   //Sometimes it just feels natural to omit them
@@ -162,8 +166,8 @@ end
 //Also updates the display as it goes for maximum speed.
 procedure Update(OldBuf, NewBuf: Pointer)
 var Offset: Word
-var X:Word
-var Y:Word
+var X:Byte
+var Y:Byte
 begin
   //Position of first active pixel (second address of second row)
   Offset := ColCount+3
@@ -183,15 +187,15 @@ begin
 
       inc(Offset)
     end
-    //Step of right and left margin bytes
+    //Step over right and left margin bytes
     inc(Offset,2)
   end
 end
 
 //Update the display to show the state of Buffer
 procedure UpdateScreen(Buffer: Pointer);
-var X: Word
-var Y: Word
+var X: Byte
+var Y: Byte
 begin
   for Y := 1 to RowCount do
   begin
@@ -218,7 +222,9 @@ begin
   //'Constants'
   ColCount := 20
   RowCount := 20
-  BufSize := (ColCount + 2) * (RowCount + 2)
+  //The byte values need to be explicitly expanded to words
+  //to avoid overflow in the multiplication
+  BufSize := Word(ColCount + 2) * (RowCount + 2)
 
   //Init buffer pointers
   Buffer1 := $4000

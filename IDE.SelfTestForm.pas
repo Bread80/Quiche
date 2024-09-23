@@ -5,7 +5,9 @@ interface
 uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
   FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs, FMX.Layouts,
-  FMX.TreeView, FMX.Controls.Presentation, FMX.StdCtrls, FMX.ScrollBox, FMX.Memo;
+  FMX.TreeView, FMX.Controls.Presentation, FMX.StdCtrls, FMX.ScrollBox, FMX.Memo,
+  IDE.SelfTest;
+
 
 type
   TSelfTestF = class(TForm)
@@ -21,6 +23,8 @@ type
     mmDetails: TMemo;
     lbTestName: TLabel;
     Layout3: TLayout;
+    Splitter1: TSplitter;
+    Splitter2: TSplitter;
     procedure btnLoadTestsClick(Sender: TObject);
     procedure tvTestsChangeCheck(Sender: TObject);
     procedure btnAllClick(Sender: TObject);
@@ -32,6 +36,9 @@ type
   private
     //If > 0 we're in UpdateChecks and calls to ChangeCheck should be ignored
     FInUpdateChecks: Integer;
+
+
+    function ItemToTest(Item: TTreeViewItem): TTestable;
     //Updates check marks for the item and any child items based on the Run properties
     //of the data
     procedure UpdateChecks(Item: TTreeViewItem);
@@ -48,7 +55,6 @@ var
   SelfTestF: TSelfTestF;
 
 implementation
-uses IDE.SelfTest;
 
 {$R *.fmx}
 
@@ -77,21 +83,19 @@ begin
 end;
 
 procedure TSelfTestF.btnLoadTestsClick(Sender: TObject);
-var List: TTestFile;
+var List: TTestGroup;
   FileItem: TTreeViewItem;
   TestItem: TTreeViewItem;
   I: Integer;
 begin
   tvTests.Clear;
-  ClearTestFiles;
-
-  LoadTestFolder('c:\DropBox\Delphi\Quiche\Tests');
+  LoadSelfTests;
 
   try
     tvTests.BeginUpdate;
 
     //Now load the files + tests in ListView
-    for List in TestFiles do
+    for List in TestGroups do
     begin
       FileItem := TTreeViewItem.Create(tvTests);
       tvTests.AddObject(FileItem);
@@ -139,11 +143,13 @@ begin
 
 procedure TSelfTestF.EnableIfFailed(Item: TTreeViewItem);
 var I: Integer;
+  Test: TTestable;
 begin
   try
     tvTests.BeginUpdate;
-    if Item.TagObject is TTestable then
-      Item.IsChecked := (Item.TagObject as TTestable).Status <> tsPassed;
+    Test := ItemToTest(Item);
+    if Assigned(Test) then
+      Item.IsChecked := Test.Status <> tsPassed;
 
     for I := 0 to Item.Count-1 do
       EnableIfFailed(Item.Items[I]);
@@ -163,8 +169,9 @@ var Status: TTestStatus;
   Test: TTestable;
   I: Integer;
 begin
-  if Item.TagObject is TTestable then
-    Status := (Item.TagObject as TTestable).Status
+  Test := ItemToTest(Item);
+  if Assigned(Test) then
+    Status := Test.Status
   else
     Status := tsNotRun;
 
@@ -180,7 +187,7 @@ begin
   end;
 
   if Item = tvTests.Selected then
-    if Item.TagObject is TTestable then
+    if Assigned(Test) then
     begin
       Test := Item.TagObject as TTestable;
       lbTestName.Text := Test.Name;
@@ -189,6 +196,14 @@ begin
       //TODO: Adjust memo sizes
     end;
   Application.ProcessMessages;
+end;
+
+function TSelfTestF.ItemToTest(Item: TTreeViewItem): TTestable;
+begin
+  if Item.TagObject is TTestable then
+    Result := Item.TagObject as TTestable
+  else
+    Result := nil;
 end;
 
 procedure TSelfTestF.RunItemTests(Item: TTreeViewItem);
@@ -209,7 +224,6 @@ begin
 end;
 
 procedure TSelfTestF.tvTestsChange(Sender: TObject);
-var Test: TTestable;
 begin
   if tvTests.Selected = nil then
   begin
@@ -218,15 +232,7 @@ begin
   end
   else
     ItemShowResults(tvTests.Selected);
-{  else if tvTests.Selected.TagObject is TTestable then
-  begin
-    Test := tvTests.Selected.TagObject as TTestable;
-    lbTestName.Text := Test.Name;
-    mmReport.Text := Test.Report;
-    mmDetails.Text := Test.Details;
-    //TODO: Adjust memo sizes
-  end;
-}end;
+end;
 
 procedure TSelfTestF.tvTestsChangeCheck(Sender: TObject);
 var Item: TTreeViewItem;

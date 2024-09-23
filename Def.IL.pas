@@ -77,8 +77,8 @@ type
         VarVersion: Integer; );   //Current version of the variable
       pkPop: ();           //Currently invalid for input params
       pkPopByte: ();       //Currently invalid for input params
-      pkPush: ();
-      pkPushByte: ();
+      pkPush, pkPushByte: (
+        PushType: TVarType; );  //Type of the value to be pushed
       pkBranch: (           //For unconditional branches.
         BranchBlockID: Integer; );  //Block number to branch to
       pkCondBranch: (        //For conditional branches
@@ -497,6 +497,8 @@ begin
       Result := Imm.VarType;
     pkVarSource, pkVarDest:
       Result := Variable.VarType;
+    pkPush, pkPushByte, pkPop, pkPopByte:
+      Result := PushType;
   else
     raise Exception.Create('Unknown parameter kind');
   end;
@@ -551,8 +553,10 @@ begin
       Assert(Assigned(Variable));
       Result := VarToString;
     end;
-    pkPush: Result := Result + 'PUSH /' + CPURegStrings[Reg];
-    pkPushByte: Result := Result + 'PUSHBYTE /' + CPURegStrings[Reg];
+    pkPush:
+      Result := Result + 'PUSH /' + CPURegStrings[Reg] + VarTypeToName(Imm.VarType);
+    pkPushByte:
+      Result := Result + 'PUSHBYTE /' + CPURegStrings[Reg] + VarTypeToName(Imm.VarType);
     pkBranch:
     begin
 //      Assert(Param = @ILItem.Param1, 'pkBranch must be Param1');

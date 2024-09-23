@@ -133,6 +133,7 @@ begin
   begin
     MoveState[R].Done := True;
     MoveState[R].Param := nil;
+    MoveState[R].FuncParam := nil;
     MoveState[R].CheckType := vtUnknown;
     MoveState[R].MoveType := mtUnused;
     MoveState[R].ProcessType := ptNone;
@@ -420,6 +421,7 @@ procedure SetFuncMoveState(Func: PFunction;Loading: Boolean);
     ILParam.VarVersion := 0;
 
     MoveState[FuncParam.Reg].Done := False;
+    MoveState[FuncParam.Reg].FuncParam := FuncParam;
     MoveState[FuncParam.Reg].MoveType := AssessMoveType(ILParam);
     MoveState[FuncParam.Reg].ProcessType := AssessProcessType(ILParam);
   end;
@@ -555,30 +557,31 @@ end;
 //Store selected registers into variables if either MoveType or ProcessType applies
 //to that parameter
 procedure GenDataLoadParams(Regs: TCPURegSet;MoveTypes: TMoveTypeSet;
-  ProcessTypes: TProcessTypeSet;PrimFlags: TPrimFlagSetNG;Options: TMoveOptionSet);
+  ProcessTypes: TProcessTypeSet;PrimFlags: TPrimFlagSet;Options: TMoveOptionSet);
 var Reg: TCPUReg;
   ToType: TVarType;
 begin
   for Reg := low(MoveState) to High(MoveState) do
     if not MoveState[Reg].Done then
-      if MoveState[Reg].Param <> nil then
-        if (MoveState[Reg].MoveType in MoveTypes) or (MoveState[Reg].ProcessType in ProcessTypes) then
-        begin
-          //The type we're loading into (for extending/range checking)
-          //If calling a func, set ToType to parameters VarType
-          if MoveState[Reg].FuncParam <> nil then
-            ToType := MoveState[Reg].FuncParam.VarType
-          //else no type conversion to validate
-          else
-            ToType := MoveState[Reg].Param.GetVarType;
+      if Reg in Regs then
+        if MoveState[Reg].Param <> nil then
+          if (MoveState[Reg].MoveType in MoveTypes) or (MoveState[Reg].ProcessType in ProcessTypes) then
+          begin
+            //The type we're loading into (for extending/range checking)
+            //If calling a func, set ToType to parameters VarType
+            if MoveState[Reg].FuncParam <> nil then
+              ToType := MoveState[Reg].FuncParam.VarType
+            //else no type conversion to validate
+            else
+              ToType := MoveState[Reg].Param.GetVarType;
 
-          GenLoadParam(MoveState[Reg].Param^, ToType, PrimFlags, Options);
-          MoveState[Reg].Done := True;
-        end;
+            GenLoadParam(MoveState[Reg].Param^, ToType, PrimFlags, Options);
+            MoveState[Reg].Done := True;
+          end;
 end;
 
 function GenRegLoad(ILIndex: Integer): Integer;
-var PrimFlags: TPrimFlagSetNG;
+var PrimFlags: TPrimFlagSet;
 begin
   InitMoveAnalysis;
 
@@ -607,7 +610,7 @@ begin
   //Load all values into registers other than A
   GenDataLoadParams([rB, rC, rD, rE, rH, rL, rBC, rDE, rHL, rIX, rIY],
     [mtStatic16, mtStack, mtAddr{??}, mtCopy, mtImm, mtImmCopy], [], PrimFlags,
-    [moPreserveHLDE, {moPreserveA, }moPreserveCF, moPreserveOtherFlags]); //<--- Mostly just error checking here
+    [moPreserveHLDE{, moPreserveA, moPreserveCF, moPreserveOtherFlags}]); //<--- Mostly just error checking here
 
   if DataMoveDone then
     EXIT;
@@ -726,6 +729,7 @@ end;
 
 procedure GenFuncCall(ILIndex: Integer);
 var ILItem: PILItem;
+  Code: String;
 begin
   while True do
   begin
@@ -733,9 +737,10 @@ begin
     Assert(ILItem.Op in [opFuncCall, opFuncCallExtended]);
     if Assigned(ILItem.Func) then
     begin
-      ProcCall(ILItem.Func);
+      Code := ILItem.Func.GetCallInstruction;
+      Instr(Code);
 
-      //TEMP: Clear register state. Update to depend on functions Corrupts data
+      //TEMP: Clear register state. Update to depend on functions Corrupt's data
       RegStateInitialise;
 
       EXIT;
@@ -750,7 +755,7 @@ end;
 //Store selected registers into variables if either MoveType or ProcessType applies
 //to that parameter
 procedure GenDataStoreParams(Regs: TCPURegSet;MoveTypes: TMoveTypeSet;
-  ProcessTypes: TProcessTypeSet;PrimFlags: TPrimFlagSetNG;
+  ProcessTypes: TProcessTypeSet;PrimFlags: TPrimFlagSet;
   Options: TMoveOptionSet);
 var Reg: TCPUReg;
   FromType: TVarType;
@@ -768,14 +773,14 @@ begin
           else
             FromType := MoveState[Reg].Param.GetVarType;
 
-          GenStoreParam(MoveState[Reg].Param^, FromType,
-            cgRangeCheck in MoveState[Reg].Param.Flags, Options);
+          GenDestParam(MoveState[Reg].Param^, FromType,
+            cgRangeCheck in MoveState[Reg].Param.Flags, nil, Options);
           MoveState[Reg].Done := True;
         end;
 end;
 
 function GenRegStore(ILIndex: Integer): Integer;
-var PrimFlags: TPrimFlagSetNG;
+var PrimFlags: TPrimFlagSet;
 begin
   InitMoveAnalysis;
 

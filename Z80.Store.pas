@@ -8,7 +8,7 @@ unit Z80.Store;
 
 interface
 uses Def.IL, Def.Primitives, Def.QTypes,
-  Z80.CPU;
+  Z80.CPU, Z80.Validation;
 
 //Generates code to store an immediate/literal value into a variable in memory.
 //ILItem contains a source parameter which is an immediate value and a dest
@@ -22,8 +22,9 @@ procedure GenStoreImm(ILItem: PILItem;Options: TMoveOptionSet);
 //PrimFlags (Hi() and Lo() functions) are not relevent
 //The RangeCheck parameter specifies whether range checking should be carried out
 //or not (again subject to FromType <> vtUnknown, and the relevant types).
-procedure GenStoreParam(const Param: TILParam;FromType: TVarType;RangeCheck: Boolean;
-  Options: TMoveOptionSet);
+//RangeCheckProc, if not nil, specifies an optimised range checking procedure.
+procedure GenDestParam(const Param: TILParam;FromType: TVarType;RangeCheck: Boolean;
+  RangeCheckProc: TRangeCheckProc;Options: TMoveOptionSet);
 
 //Takes the result from the register specified in ILItem.DestAlloc and stores it
 //into the location specified in ILItem.Dest
@@ -31,7 +32,7 @@ procedure GenStoreParam(const Param: TILParam;FromType: TVarType;RangeCheck: Boo
 // * if validation is enabled, will generate code to ensure the value will fit into
 //the destination type
 // * generates code to handle the type conversion (if necessary)
-procedure StoreAfterPrimNG(ILItem: PILItem;Prim: PPrimitiveNG);
+procedure StoreAfterPrim(ILItem: PILItem;Prim: PPrimitive);
 
 //Generate code for an ILItem which is an unconditional jump
 procedure GenUncondBranch(ILItem: PILItem);
@@ -44,9 +45,37 @@ implementation
 uses Classes, SysUtils,
   Def.Variables,
   CodeGen,
-  Z80.CodeGen, Z80.CPUState, Z80.Validation;
+  Z80.CodeGen, Z80.CPUState;
 
-//==================================================Store Registers to Variables
+//Generates the code to convert a boolean value from various sources into a boolean
+//value in A
+procedure GenToBoolean(Reg: TCPUReg;const Param: TILParam;Options: TMoveOptionSet);
+var FlagsCorrupt: Boolean;
+begin
+  FlagsCorrupt := True; //Assume
+  case Reg of
+    rA, rAF: FlagsCorrupt := False;
+    rZF:   GenLibraryParamProc('zftoboolean', Param, 'd');
+    rZFA:  GenLibraryParamProc('notatoboolean', Param, 'd');
+    rNZF:  GenLibraryParamProc('nzftoboolean', Param, 'd');
+    rNZFA: GenLibraryParamProc('atoboolean', Param, 'd');
+    rCPLA: GenLibraryParamProc('cpla', Param, 'd');
+    rCF:   GenLibraryParamProc('cftoboolean', Param, 'd');
+    rNCF:  GenLibraryParamProc('ncftoboolean', Param, 'd');
+  else
+    Assert(False);
+  end;
+  if FlagsCorrupt then
+  begin
+    Assert(Options * [moPreserveCF, moPreserveOtherFlags, moPreserveA] = [],
+      'I can''t perform this action whilst preserving A or Flags');
+    RegStateSetUnknowns([rCF, rZF, rFlags]);
+  end;
+  if Param.Kind = pkVarDest then
+    RegStateSetVariable(rA, Param.Variable, Param.VarVersion, rskVarValue);
+end;
+
+//==================================================STORE REGISTERS TO VARIABLES
 
 //Basic store of an 8 bit register to an 8-bit variable
 //Returns True if we stored the value via the A register (but Reg <> rA)
@@ -121,8 +150,7 @@ begin
   end;
 end;
 
-
-//===================================================Store literals to Variables
+//===================================================STORE LITERALS TO VARIABLES
 
 procedure GenStoreLiteralToVariable(Variable: PVariable;const Value: TImmValue;
   Options: TMoveOptionSet);
@@ -179,7 +207,6 @@ begin
   end;
 end;
 
-
 procedure GenStoreLiteralToVariableHigh(Variable: PVariable;const Value: TImmValue;
   Options: TMoveOptionSet);
 var Reg: TCPUReg;
@@ -212,7 +239,6 @@ begin
   end;
 end;
 
-
 procedure GenStoreImm(ILItem: PILItem;Options: TMoveOptionSet);
 var V: PVariable;
 begin
@@ -225,43 +251,12 @@ begin
   GenStoreLiteralToVariable(V, ILItem.Param1.Imm, Options);
 end;
 
-
-//================================ VALIDATE AND STORE RESULTS
-
-//Stores a value in an 8-bit register to an 8-bit variable
-procedure GenStoreReg8BitToVar8Bit(Reg: TCPUReg;Variable: PVariable;VarVersion: Integer;
-  FromType: TVarType;Options: TMoveOptionSet);
-begin
-  Assert(Reg in CPUReg8Bit);
-  Assert(GetTypeSize(Variable.VarType) = 1);
-
-  GenVarStore8(Reg, Variable, VarVersion, Options);
-end;
-
-//Stores the low byte of a register pair to an 8-bit variable
-procedure GenStoreReg16BitToVar8Bit(Reg: TCPUReg;Variable: PVariable;VarVersion: Integer;
-  FromType: TVarType;Options: TMoveOptionSet);
-begin
-  Assert(Reg in CPURegPairs);
-  Assert(GetTypeSize(Variable.VarType) = 1);
-
-  GenVarStore8(CPURegPairToLow[Reg], Variable, VarVersion, Options);
-end;
-
-//Stores a 16-bit value in registers to a 16-bit variable
-procedure GenStoreReg16BitToVar16Bit(Reg: TCPUReg;Variable: PVariable;VarVersion: Integer;
-  FromType: TVarType;Options: TMoveOptionSet);
-begin
-  Assert(Reg in CPURegPairs);
-  Assert(GetTypeSize(Variable.VarType) = 2);
-
-  GenVarStore16(Reg, Variable, VarVersion, Options);
-end;
+//=================================================== VALIDATE AND STORE RESULTS
 
 //Stores an 8-bit value to a 16-bit variable, either sign extending or zero extending
 //as necessary
-procedure GenStoreReg8BitToVar16Bit(Reg: TCPUReg;Variable: PVariable;VarVersion: Integer;
-  FromType: TVarType;RangeChecked: Boolean;Options: TMoveOptionSet);
+procedure GenStoreReg8BitToVar16Bit(Reg: TCPUReg;FromType: TVarType;
+  Variable: PVariable;VarVersion: Integer;RangeChecked: Boolean;Options: TMoveOptionSet);
 var ViaA: Boolean;
 begin
   Assert(Reg in CPUReg8Bit);
@@ -287,47 +282,79 @@ begin
     GenStoreLiteralToVariableHigh(Variable, TImmValue.CreateInteger(0), Options);
 end;
 
-//Stores a 16 bit value in an index register to a 16-bit variable
-procedure GenStoreXYRegToVar16Bit(Reg: TCPUReg;Variable: PVariable;VarVersion: Integer;
-  FromType: TVarType;Options: TMoveOptionSet);
-begin
-  Assert(Reg in [rIX, rIY]);
-  Assert(GetTypeSize(Variable.VarType) = 2);
-  Assert(Variable.Storage = vsStatic, 'Sorry, can''t store index registers to stack variables');
-
-  OpLD(Variable, Reg);
-end;
-
-
 //Store the variable value from the register into the variable
-procedure StoreRegVarValue(Reg: TCPUReg;Variable: PVariable;VarVersion: Integer;
-  FromType: TVarType;RangeCheck: Boolean;Options: TMoveOptionSet);
+//If RangeChecked is True it signifies the value has been range check. If so the
+//store routine may be able to simplify the conversion (ie a signed value may be able to
+//be zero extended rather than requiring sign extending
+procedure GenStoreRegVarValue(Reg: TCPUReg;FromType: TVarType;
+  Variable: PVariable;VarVersion: Integer;RangeChecked: Boolean;Options: TMoveOptionSet);
 begin
-  //Range check as we store
-  if RangeCheck then
-    GenRangeCheck(Reg, FromType, Variable.VarType, nil, []);
-
   case Reg of
     rA..rL:
       case GetTypeSize(Variable.VarType) of
-        1: GenStoreReg8BitToVar8Bit(Reg, Variable, VarVersion, FromType, Options);
-        2: GenStoreReg8BitToVar16Bit(Reg, Variable, VarVersion, FromType, RangeCheck, Options);
+        1: GenVarStore8(Reg, Variable, VarVersion, Options);
+        2: GenStoreReg8BitToVar16Bit(Reg, FromType, Variable, VarVersion, RangeChecked, Options);
       else
         Assert(False);
       end;
     rHL..rBC:
       case GetTypeSize(Variable.VarType) of
-        1: GenStoreReg16BitToVar8Bit(Reg, Variable, VarVersion, FromType, Options);
-        2: GenStoreReg16BitToVar16Bit(Reg, Variable, VarVersion, FromType, Options);
+        1: GenVarStore8(CPURegPairToLow[Reg], Variable, VarVersion, Options);
+        2: GenVarStore16(Reg, Variable, VarVersion, Options);
       else
         Assert(False);
       end;
-    rIX, rIY: GenStoreXYRegToVar16Bit(Reg, Variable, VarVersion, FromType, Options);
+    rIX, rIY:
+    begin
+      Assert(Variable.Storage = vsStatic, 'Sorry, can''t store index registers to stack variables');
+
+      OpLD(Variable, Reg);
+    end;
     //Note: Flags should have been processed before we get here, to convert them to
     //a register
   else
     Assert(False);
   end;
+end;
+
+procedure GenPush16(Reg: TCPUReg;FromType, ToType: TVarType;RangeChecked: Boolean;Options: TMoveOptionSet);
+begin
+  Assert((FromType = ToType) or (FromType = vtUnknown), 'PUSHes can''t do type conversions');
+
+//  case GetTypeSize(FromType) of
+//    1: Assert(False, 'TODO: Push 8 to 16');
+    {2:} OpPUSH(Reg);
+//  else
+//    Assert(False);
+//  end;
+end;
+
+procedure GenPush8(Reg: TCPUReg;FromType, ToType: TVarType;RangeChecked: Boolean;Options: TMoveOptionSet);
+begin
+  Assert((FromType = ToType) or (FromType = vtUnknown), 'PUSHes can''t do type conversions');
+
+  //If the value is a boolean, and it's in a flag (or in a register but needs processing)
+  //this call will do than and put the value in A
+  case Reg of
+    rA: Reg := rAF;
+    rC, rE, rL:
+    begin //Push via A
+      GenRegMove(Reg, rA, False, Options);
+      Reg := rAF;
+    end;
+    rBC, rDE, rHL:
+    begin //Push low byte via A
+      GenRegMove(CPURegPairToLow[Reg], rA, False, Options);
+      Reg := rAF;
+    end;
+    rB, rD, rH:
+      Reg := CPUReg8ToPair[Reg];
+  else
+    Assert(False, 'Invalid register for BytePush');
+  end;
+
+  OpPUSH(Reg);
+  Instr('inc sp');  //Adjust stack to only push a single byte
 end;
 
 //=====================================================================BRANCHING
@@ -410,36 +437,53 @@ begin
   end;
 end;
 
-procedure GenStoreParam(const Param: TILParam;FromType: TVarType;RangeCheck: Boolean;
-  Options: TMoveOptionSet);
+//========================================================PROCESSING DEST PARAMS
+
+procedure GenDestParam(const Param: TILParam;FromType: TVarType;RangeCheck: Boolean;
+  RangeCheckProc: TRangeCheckProc;Options: TMoveOptionSet);
+var Reg: TCPUReg;
 begin
+  //Conditional branches require raw flags (ie no conversion and storing of result)
+  //So handle and return
+  if Param.Kind = pkCondBranch then
+  begin
+    GenCondBranch(Param);
+    EXIT;
+  end;
+
+  //Convert flags to a value in the A register which can be stored
+  Reg := Param.Reg;
+  if Reg in [rZF, rZFA, rNZF, rNZFA, rCPLA, rCF, rNCF] then
+  begin //Storing a flag to a variable, we need to convert it to a value in the A register
+    GenToBoolean(Param.Reg, Param, Options);
+    Reg := rA;
+  end;
+
+  //TODO: Move range check to /after/ storing.
+  //TODO: If stored via A reg range check against value already in A
+  //Range check
+  if RangeCheck then
+    if Assigned(RangeCheckProc) then
+      RangeCheckProc(Reg, Options)
+    else
+    case Param.Kind of
+      pkNone: ;
+      pkVarDest:
+        GenRangeCheck(Reg, FromType, Param.Variable.VarType, nil, []);
+      pkPush, pkPushByte:
+        GenRangeCheck(Reg, FromType, Param.PushType, nil, []);
+    else
+      Assert(False);
+    end;
+
   case Param.Kind of
     pkNone: ; //No param to load
     pkVarDest:
-      if Param.Reg in [rZF, rZFA, rNZF, rNZFA, rCPLA, rCF, rNCF] then
-      begin //Storing a flag to a variable, we need to convert it to a value in the A register
-        GenToBoolean(Param.Reg, Param, Options);
-        StoreRegVarValue(rA, Param.Variable, Param.VarVersion, vtBoolean, RangeCheck, Options);
-      end
-      else
-       StoreRegVarValue(Param.Reg, Param.Variable, Param.VarVersion, FromType, RangeCheck, Options);
-    pkCondBranch:
-      GenCondBranch(Param);
-    pkPush: //The stack
-      OpPUSH(Param.Reg);
-    pkPushByte:
-    begin
-      //If the value is a boolean, and it's in a flag (or in a register but needs processing)
-      //this call will do than and put the value in A
-      if Param.Reg in [rZF, rZFA, rNZF, rNZFA, rCPLA, rCF, rNCF] then
-      begin
-        GenToBoolean(Param.Reg, Param, []);
-        OpPUSH(rAF);
-      end
-      else
-        OpPUSH(Param.Reg);
-        Instr('inc sp');
-    end;
+      //RangeCheck here signifies that the value has /been/ range checked, which
+      //may allow simplification of a sign extend operation
+      GenStoreRegVarValue(Reg, FromType, Param.Variable, Param.VarVersion, RangeCheck, Options);
+    pkPush: GenPush16(Reg, FromType, Param.PushType, RangeCheck, Options);
+    pkPushByte: GenPush8(Reg, FromType, Param.PushType, RangeCheck, Options);
   else
     System.Assert(False, 'Invalid param kind for param store');
   end;
@@ -451,15 +495,20 @@ end;
 // * if validation is enabled, will generate code to ensure the value will fit into
 //the destination type
 // * generates code to handle the type conversion (if necessary)
-procedure StoreAfterPrimNG(ILItem: PILItem;Prim: PPrimitiveNG);
+procedure StoreAfterPrim(ILItem: PILItem;Prim: PPrimitive);
+var RangeCheckProc: TRangeCheckProc;
+  VarType: TVarType;
 begin
-  if ILItem.Dest.Kind = pkVarDest then
-    //NOTE: Do explicit Range checking here because we need to use the Result data in Prim...
-    if cgRangeCheck in ILItem.Dest.Flags then
-      GenRangeCheck(ILItem.Dest.Reg, ILItem.ResultType, ILItem.Dest.Variable.VarType, Prim, []);
+  //If we have an optimised range check proc for the primitive & type conversion
+  //find it and pass to the store routine
+  VarType := vtUnknown;
+  case ILItem.Dest.Kind of
+    pkVarDest: VarType := ILItem.Dest.Variable.VarType;
+    pkPush, pkPushByte: VarType := ILItem.Dest.PushType;
+  end;
+  RangeCheckProc := GetOptimisedRangeCheckProc(Prim, VarType);
 
-  //...so pass False to RangeCheck parameter
-  GenStoreParam(ILItem.Dest, ILItem.ResultType, False, []);
+  GenDestParam(ILItem.Dest, ILItem.ResultType, cgRangeCheck in ILItem.Dest.Flags, RangeCheckProc, []);
 end;
 
 end.

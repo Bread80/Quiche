@@ -46,7 +46,8 @@ uses
   Z80.Store in 'Z80.Store.pas',
   Z80.Validation in 'Z80.Validation.pas',
   IDE.SelfTest in 'IDE.SelfTest.pas',
-  IDE.SelfTestForm in 'IDE.SelfTestForm.pas' {SelfTestF};
+  IDE.SelfTestForm in 'IDE.SelfTestForm.pas' {SelfTestF},
+  Z80.RegAlloc in 'Z80.RegAlloc.pas';
 
 {$R *.res}
 

@@ -430,6 +430,7 @@
             <Form>SelfTestF</Form>
             <FormType>fmx</FormType>
         </DCCReference>
+        <DCCReference Include="Z80.RegAlloc.pas"/>
         <None Include="Tests.txt"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>

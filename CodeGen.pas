@@ -63,6 +63,7 @@ uses SysUtils,
   Parse.Base,
   CG.Fragments,
   Z80.CPU, Z80.Optimise, Z80.CPUState, Z80.CodeGen, Z80.LoadStoreMove, Z80.Load, Z80.Store,
+  Z80.RegAlloc,
   IDE.Compiler; //<-- Allowed here ONLY so we can access assembler output meta data settings
 
 function ByteToStr(Value: Integer): String;
@@ -225,18 +226,19 @@ end;
 //This routine is called after the primitive has executed.
 //The validation routine (if there is one) is specifiied in the 'Validate' column
 //of the Primitives table (spreadsheet)
-procedure OverflowCheckAfterPrimNG(ILItem: PILItem;Prim: PPrimitiveNG);
+procedure OverflowCheckAfterPrim(ILItem: PILItem;Prim: PPrimitive);
 begin
-  if cgOverflowCheck in ILItem.Flags then
-    //Validation for the operation itself
-    GenCode(Prim.OverflowCheckProcName, ILItem);
+  if Prim <> nil then
+    if cgOverflowCheck in ILItem.Flags then
+      //Validation for the operation itself
+      GenCode(Prim.OverflowCheckProcName, ILItem);
 end;
 
 //========================= CODE GENERATOR
 
 procedure DoCodeGenItem(ILIndex: Integer);
 var ILItem: PILItem;
-  PrimNG: PPrimitiveNG;
+  Prim: PPrimitive;
   SwapParams: Boolean;
   Comments: String;
 begin
@@ -275,12 +277,13 @@ begin
     opBranch: GenUncondBranch(ILItem);
     opMove: //Move a single value between variables or to/from the stack etc.
     begin //TODO: Rework this to be neater
-      PrimNG := PrimFindByProcNameNG('empty');
-      TEMPRegAllocNG(ILItem, PrimNG); //(??)
-      LoadBeforePrim(ILItem, PrimNG);
-      OverflowCheckAfterPrimNG(ILItem, PrimNG);
-      StoreAfterPrimNG(ILItem, PrimNG);
-    end;
+      //When loading: load to type specified in Dest (extend, range check etc).
+      //GenOpMove(ILItem);
+      TEMPRegAllocMove(ILItem); //(??)
+      GenLoadParam(ILItem.Param1, ILItem.Dest.GetVarType, [], []);
+      //Range checking and extending (if required) is done while loading
+      GenDestParam(ILItem.Dest, vtUnknown, False, nil, [])
+     end;
     opRegLoad, opRegLoadExtended: //Load multiple values to registers
       ILIndex := GenRegLoad(ILIndex);
     opRegStore, opRegStoreExtended: //Store multiple values from registers
@@ -294,30 +297,29 @@ begin
 
   else    //Operations which do use the parameter load-store mechanism
     //Find the Prim based on the operation and parameter data type(s)
-    PrimNG := ILItemToPrimitiveNG(ILItem^, SwapParams);
-    if not assigned(PrimNG) then
+    Prim := ILItemToPrimitive(ILItem^, SwapParams);
+    if not assigned(Prim) then
       Error('No primitiveNG found:'#13#10 + ILItem.ToString);
     if SwapParams then
       ILItem.SwapParams;
-
     if LogPrimitives then
-      PrimitiveLog.Add(PrimNG.ProcName);
+      PrimitiveLog.Add(Prim.ProcName);
 
     //Temp
-    TEMPRegAllocNG(ILItem, PrimNG);
+    TEMPRegAllocPrim(ILItem, Prim);
 
-    LoadBeforePrim(ILItem, PrimNG);
-    if Assigned(PrimNG.Proc) then
-      PrimNG.Proc(ILItem)
+    LoadBeforePrim(ILItem, Prim);
+    if Assigned(Prim.Proc) then
+      Prim.Proc(ILItem)
     else
-      GenLibraryProc(PrimNG.ProcName, ILItem);
+      GenLibraryProc(Prim.ProcName, ILItem);
 
     //TEMP - clear all state
     RegStateInitialise;
 
-    OverflowCheckAfterPrimNG(ILItem, PrimNG);
+    OverflowCheckAfterPrim(ILItem, Prim);
     //Also generates branches
-    StoreAfterPrimNG(ILItem, PrimNG);
+    StoreAfterPrim(ILItem, Prim);
   end;
 
   if IDE.Compiler.Config.CodeGen.CPUState then

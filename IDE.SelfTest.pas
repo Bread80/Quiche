@@ -72,7 +72,7 @@ type
 
 
 type TTestable = class
-  protected
+  private
     function GetName: String;virtual;abstract;
     function GetIsEnabled: Boolean;virtual;abstract;
     procedure SetIsEnabled(Value: Boolean);virtual;abstract;
@@ -127,9 +127,8 @@ type TTestable = class
     //If we had an unwanted compile or runtime error
     FErrorReport: String;
     FStatus: TTestStatus;
-
   protected
-    //Virtual methods
+    //Inherited methods
     function GetName: String;override;
     function GetIsEnabled: Boolean;override;
     procedure SetIsEnabled(Value: Boolean);override;
@@ -142,7 +141,7 @@ type TTestable = class
 
     //Compile and run code
     procedure ClearTestStatuses;
-    procedure InitialiseCompiler;
+    procedure WarmInitCompiler;
     function Compile: Boolean;
     function Emulate: Boolean;
 
@@ -169,6 +168,8 @@ type TTestable = class
     function AddRuntimeError(Fields: TArray<String>): String;
 
     procedure Run;override;
+    property Name: String read FName write FName;
+    property Code: String read FCode write FCode;
     property CompileOkay: Boolean read FCompileOkay;
 
     //Parser
@@ -191,51 +192,81 @@ type TTestable = class
   end;
 
 
-type TTestFile = class(TTestable)
+type TTestGroup = class(TTestable)
   private
     FTests: TList<TTest>;
-    FLastError: String;
     FName: String;
     function GetCount: Integer;
     function GetTests(Index: Integer): TTest;
   protected
-    //Virtual methods
+    //Inherited methods
     function GetName: String;override;
     function GetIsEnabled: Boolean;override;
     procedure SetIsEnabled(Value: Boolean);override;
+    //True is one or more of  tests has Enabled = True
+    //False only if all tests have Enabled = False
     function GetStatus: TTestStatus;override;
+    function GetReport: String;override;
 
+    procedure ColdInitCompiler;
     procedure InitOptions(var Options: TTestOptions);
-
-    //Test options
-    function ParseBlockType(Fields: TArray<String>): TBlockType;
-    function ParseParseType(Fields: TArray<String>): TParseType;
-    function ParseBoolean(Fields: TArray<String>): Boolean;
   public
     constructor Create;
     destructor Destroy;override;
 
     procedure Clear;
-    //Create a new, empty test with the given optins and adds it to the list of tests
+    //Create a new, empty test with the given options and adds it to the list of tests
     function CreateTest(const Options: TTestOptions): TTest;
-    procedure LoadTestFile(const Filename: String);
 
     //Run any enabled tests
     procedure Run;override;
 
     property Count: Integer read GetCount;
     property Tests[Index: Integer]: TTest read GetTests;default;
-
-    //True is one or more of  tests has Enabled = True
-    //False only if all tests have Enabled = False
   end;
 
-  TTestFiles = TList<TTestFile>;
+type TTestFile = class(TTestGroup)
+  private
+    FLastError: String;
+  protected
+    //Test options
+    function ParseBlockType(Fields: TArray<String>): TBlockType;
+    function ParseParseType(Fields: TArray<String>): TParseType;
+    function ParseBoolean(Fields: TArray<String>): Boolean;
+  public
+    procedure LoadTestFile(const Filename: String);
+  end;
 
-var TestFiles: TTestFiles;
+//Abstract type for generated tests
+type TGeneratedTests = class(TTestGroup)
+  protected
+    function GetName: String;override;
 
-procedure ClearTestFiles;
-procedure LoadTestFolder(const Folder: String);
+    function TypecastInteger(Value: Integer;ToType: TVarType): Integer;
+  public
+    procedure Generate;virtual;abstract;
+  end;
+
+//Test the register mode parameter loading (ie. for register mode function call)
+type TTestLoadParams = class(TGeneratedTests)
+  private
+  public
+    procedure Generate;override;
+  end;
+
+//Test the register mode parameter loading (ie. for register mode function call)
+type TTestStoreResults = class(TGeneratedTests)
+  private
+  public
+    procedure Generate;override;
+  end;
+
+type
+  TTestGroups = TList<TTestGroup>;
+
+var TestGroups: TTestGroups;
+
+procedure LoadSelfTests;
 
 implementation
 uses Classes, IOUtils;
@@ -277,7 +308,7 @@ end;
 
 function TTestable.GetReport: String;
 begin
-  Result := 'Status: ' + StatusStrings[Status];
+  Result := 'Status: ' + StatusStrings[Status] + #13;
 end;
 
 { TTest }
@@ -405,10 +436,10 @@ begin
   FWRiteBuffer := '';
   FRuntimeError := 0;
 
-  FEmulateError := IDE.Compiler.Emulate(IDE.Compiler.BinaryFileName);
-  Result := FEmulateError;
+  Result := IDE.Compiler.Emulate(IDE.Compiler.BinaryFileName);
+  FEmulateError := not Result;
   if FEmulateError then
-    FErrorReport := 'ERROR: Unexpected runtime error '
+    FErrorReport := 'ERROR: Unexpected runtime error '#13
   else
   begin
     FWriteBuffer := IDE.Compiler.WriteBuffer;
@@ -474,17 +505,7 @@ function TTest.GetReport: String;
 var Step: PTestStep;
   I: Integer;
 begin
-  Result := inherited + #13#13;
-
-  if (ParseErrorNo <> 0) and not FWantCompileError then
-    Result := Result + FErrorReport
-  else if AssembleError then
-    Result := Result + FErrorReport
-  else if (FRuntimeError <> 0) and not FWantRuntimeError then
-    Result := Result + FErrorReport;
-
-
-
+  Result := inherited + #13 + FErrorReport;
 
   for I := 0 to Length(FSteps)-1 do
   begin
@@ -499,20 +520,201 @@ begin
   Result := FStatus;
 end;
 
-procedure TTest.InitialiseCompiler;
+procedure TTest.Pass(Step: PTestStep);
 begin
-  //Initialise directive to known state. Cold start the compiler (load data files)
-  IDE.Compiler.Initialise(True, False);    //Initialise directives to known state
+  Step.Status := tsPassed;
+  Step.Report := '';
+end;
 
-  //Platform
-  IDE.Compiler.Config.PlatformName := 'TestCase';
-  IDE.Compiler.Deploy.Clear;
-  //TODO: TEMPORARY
-    IDE.Compiler.Deploy.LoadFromFile('C:\Dropbox\Delphi\Quiche\Platforms\TestCase\Deploy\EmulateRun.deploy');
-{TPath.Combine(
-      TPath.Combine(IDE.Compiler.GetPlatformFolder, DeployFolderName),
-      cbDeploy.Items[cbDeploy.ItemIndex] + DeployExt));
-}
+procedure TTest.Run;
+begin
+  FStatus := tsNotRun;
+  FTestLog := '';
+  FEmulateError := False;
+  FErrorReport := '';
+
+  ClearTestStatuses;
+  WarmInitCompiler;
+
+  if Compile and (FParseErrorNo = 0) and not AssembleError then
+    if not Emulate then
+      FStatus := tsError;
+
+  RunSteps;
+  if FStatus = tsNotRun then
+    FStatus := tsPassed;
+end;
+
+procedure TTest.RunSteps;
+var Step: PTestStep;
+  I: Integer;
+begin
+  FErrorReport := '';
+  //If we got a code gen asertion failure we'll get an error string but no parse error.
+  //TODO: Make this better
+  if (ParseErrorNo = 0) and (ParseErrorString <> '') then
+  begin
+    FErrorReport := ParseErrorString;
+    FStatus := tsError;
+  end
+  else if (ParseErrorNo <> 0) and not FWantCompileError then
+  begin
+    FErrorReport := 'Unexpected Compile (Parse) Error: '#13 + ParseErrorString + #13;
+    FStatus := tsFailed;
+  end
+  else if FAssembleError then
+  begin
+    FErrorReport := 'Assembly error:'#13 + FAssemblerLog + #13;
+    FStatus := tsFailed;
+  end
+  else if (RuntimeError <> 0) and not FWantRuntimeError then
+  begin
+    FErrorReport := 'Unexpected Runtime Error: ' + RuntimeError.ToString + #13;
+    FStatus := tsFailed;
+  end;
+
+  if Length(FSteps) = 0 then
+  begin
+    FErrorReport := 'Empty test'#13;
+    FStatus := tsError;
+    EXIT;
+  end;
+
+  for I := 0 to Length(FSteps)-1 do
+  begin
+    Step := @FSteps[I];
+    try
+      case Step.Action of
+        taVarType: TestVarType(Step);
+        taCompileError: TestCompileError(Step);
+        taUsesPrimitive: TestUsesPrimitive(Step);
+        taVarValue:
+          if (ParseErrorNo = 0) and not FAssembleError and not FEmulateError then
+            TestVarValue(Step);
+        taRuntimeError:
+          if (ParseErrorNo = 0) and not FAssembleError and not FEmulateError then
+            TestRuntimeError(Step);
+        else
+        raise Exception.Create('Unknown Step Action');
+      end;
+    except
+      on E:Exception do
+      begin
+        FStatus := tsError;
+        Step.Status := tsError;
+        Step.Report := 'EXCEPTION: ' + E.Message;
+      end;
+    end;
+  end;
+end;
+
+procedure TTest.SetIsEnabled(Value: Boolean);
+begin
+  FIsEnabled := Value;
+end;
+
+procedure TTest.TestCompileError(Step: PTestStep);
+begin
+  if CompareText(Step.Name, 'noerror') = 0 then
+    EXIT;
+
+  //TODO: check for the exact error. (For now we can just test for the presence of
+  //an error
+  Check(ParseErrorNo <> 0, Step, 'Parse error NOT generated. Expected ''' + Step.Name + ''''#13);
+end;
+
+procedure TTest.TestRunTimeError(Step: PTestStep);
+begin
+  if CompareText(Step.Name, 'noerror') = 0 then
+    EXIT;
+
+  //TODO: check for the exact error. (For now we can just test for the presence of
+  //an error
+  Check(RuntimeError <> 0, Step, 'Runtime error NOT generated. Expected ''' + Step.Name + ''''#13);
+end;
+
+procedure TTest.TestUsesPrimitive(Step: PTestStep);
+var PrimName: String;
+begin
+  Check(CodeGen.UsesPrimitive(Step.Name), Step, 'Compiler failed to use primitive: ''' + Step.Name + ''''#13);
+end;
+
+procedure TTest.TestVarType(Step: PTestStep);
+var V: PVariable;
+begin
+  V := VarFindByNameAllScopes(Step.Name);
+  if not Assigned(V) then
+    Error(Step, 'ERROR: No such variable: ''' + Step.Name + ''''#13)
+  else
+    Check(CompareText(VarTypeToName(V.VarType), Step.Value) = 0, Step, 'VarType mismatch on ' + V.Name +
+      ', wanted ' + Step.Value + ' got ' + VarTypeToName(V.VarType) + #13);
+end;
+
+procedure TTest.TestVarValue(Step: PTestStep);
+
+  function CharToStr(I: Integer): String;
+  begin
+    if (I > 32) and (I < 128) then
+      Result := '''' + Chr(I) + ''' '
+    else
+      Result := '';
+    Result := Result + '(#' + I.ToString + ')';
+  end;
+
+var V: PVariable;
+  I: Integer;
+  C: Char;
+begin
+  V := VarFindByNameAllScopes(Step.Name);
+  if not Assigned(V) then
+    Error(Step, 'ERROR: No such variable: ''' + Step.Name + ''''#13)
+  else
+  case V.VarType of
+    vtInteger, vtInt8, vtWord, vtByte, vtPointer:
+    begin
+      if not TryStrToInt(Step.Value, I) then
+        Error(Step, 'Invalid integer value: ''' + Step.Value + ''''#13)
+      else
+        Check(V.ValueInt = I, Step, 'VarValue mismatch on ' + V.Name +
+          ', wanted ' + Step.Value + ' got ' + V.ValueInt.ToString + #13);
+    end;
+    vtBoolean:
+    begin
+      if CompareText(Step.Value, 'false') = 0 then
+      Check(V.ValueInt = valueFalse and $ff, Step, 'VarValue mismatch on ' + V.Name +
+        ', wanted ' + Step.Value + ' got ' + V.ValueInt.ToString + #13)
+      else if CompareText(Step.Value, 'true') = 0 then
+        Check(V.ValueInt = valueTrue and $ff, Step, 'VarValue mismatch on ' + V.Name +
+          ', wanted ' + Step.Value + ' got ' + V.ValueInt.ToString + #13)
+      else
+        Error(Step, 'Invalid boolean value: ''' + Step.Value + ''''#13);
+    end;
+    vtChar:
+    begin
+      if (Length(Step.Value) = 3) and (Step.Value.Chars[0] = '''') and (Step.Value.Chars[2] = '''') then
+      begin
+        C := Step.Value.Chars[1];
+        Check(V.ValueInt = ord(C), Step, 'VarValue mismatch on ' + V.Name +
+          ', wanted ''' + C + ''' got ''' + chr(V.ValueInt) + ''''#13);
+      end
+      else if Step.Value.Chars[0] = '#' then
+        //Numeric char literal
+        if TryStrToInt(Step.Value.Substring(1), I) then
+          if I <= 255 then
+            Check(V.ValueInt = I, Step, 'VarValue mismatch on ' + V.Name +
+              ', wanted ' + CharToStr(I) + ' got ''' + chr(V.ValueInt) + ''''#13)
+          else
+            Error(Step, 'Invalid string value: ''' + Step.Value + ''''#13)
+        else
+          Error(Step, 'Invalid string value: ''' + Step.Value + ''''#13);
+    end;
+  else
+    Error(Step, 'Unknown variable type for ' + Step.Name + ''''#13);
+  end;
+end;
+
+procedure TTest.WarmInitCompiler;
+begin
   //Compiler options
 //  Def.Globals.optAllowAutoCreation := ??
   Def.Globals.optOverflowChecks := FOptions.OverFlowCheck;
@@ -539,166 +741,9 @@ begin
   FRunTimeErrorAddress := 0;
 end;
 
-procedure TTest.Pass(Step: PTestStep);
-begin
-  Step.Status := tsPassed;
-  Step.Report := '';
-end;
+{ TTestGroup }
 
-procedure TTest.Run;
-begin
-  FStatus := tsNotRun;
-  FTestLog := '';
-  FEmulateError := False;
-
-  ClearTestStatuses;
-  InitialiseCompiler;
-
-  if Compile and (FParseErrorNo = 0) and not AssembleError then
-    if not Emulate then
-      FStatus := tsError;
-
-  RunSteps;
-  if FStatus = tsNotRun then
-    FStatus := tsPassed;
-end;
-
-procedure TTest.RunSteps;
-var Step: PTestStep;
-  I: Integer;
-begin
-  FErrorReport := '';
-  if (ParseErrorNo <> 0) and not FWantCompileError then
-  begin
-    FErrorReport := 'Unexpected Compile (Parse) Error: ' + ParseErrorString;
-    FStatus := tsFailed;
-  end
-  else if FAssembleError then
-  begin
-    FErrorReport := 'Assembly error:'#13 + FAssemblerLog;
-    FStatus := tsFailed;
-  end
-  else if (RuntimeError <> 0) and not FWantRuntimeError then
-  begin
-    FErrorReport := 'Unexpected Runtime Error: ' + RuntimeError.ToString;
-    FStatus := tsFailed;
-  end;
-
-  for I := 0 to Length(FSteps)-1 do
-  begin
-    Step := @FSteps[I];
-    case Step.Action of
-      taVarType: TestVarType(Step);
-      taCompileError: TestCompileError(Step);
-      taUsesPrimitive: TestUsesPrimitive(Step);
-      taVarValue:
-        if (ParseErrorNo = 0) and not FAssembleError and not FEmulateError then
-          TestVarValue(Step);
-      taRuntimeError:
-        if (ParseErrorNo = 0) and not FAssembleError and not FEmulateError then
-          TestRuntimeError(Step);
-      else
-      raise Exception.Create('Unknown Step Action');
-    end;
-  end;
-end;
-
-procedure TTest.SetIsEnabled(Value: Boolean);
-begin
-  FIsEnabled := Value;
-end;
-
-procedure TTest.TestCompileError(Step: PTestStep);
-begin
-  if CompareText(Step.Name, 'noerror') = 0 then
-    EXIT;
-
-  //TODO: check for the exact error. (For now we can just test for the presence of
-  //an error
-  Check(ParseErrorNo <> 0, Step, 'Parse error NOT generated. Expected ''' + Step.Name);
-end;
-
-procedure TTest.TestRunTimeError(Step: PTestStep);
-begin
-  if CompareText(Step.Name, 'noerror') = 0 then
-    EXIT;
-
-  //TODO: check for the exact error. (For now we can just test for the presence of
-  //an error
-  Check(RuntimeError <> 0, Step, 'Runtime error NOT generated. Expected ''' + Step.Name);
-end;
-
-procedure TTest.TestUsesPrimitive(Step: PTestStep);
-var PrimName: String;
-begin
-  Check(CodeGen.UsesPrimitive(Step.Name), Step, 'Compiler failed to use primitive: ''' + Step.Name + '''');
-end;
-
-procedure TTest.TestVarType(Step: PTestStep);
-var V: PVariable;
-begin
-  V := VarFindByNameAllScopes(Step.Name);
-  if not Assigned(V) then
-    Error(Step, 'ERROR: No such variable: ' + Step.Name)
-  else
-    Check(CompareText(VarTypeToName(V.VarType), Step.Value) = 0, Step, 'VarType mismatch on ' + V.Name +
-      ', wanted ' + Step.Value + ' got ' + VarTypeToName(V.VarType));
-end;
-
-procedure TTest.TestVarValue(Step: PTestStep);
-var V: PVariable;
-  I: Integer;
-  C: Char;
-begin
-  V := VarFindByNameAllScopes(Step.Name);
-  if not Assigned(V) then
-    Error(Step, 'ERROR: No such variable: ' + Step.Name)
-  else
-  case V.VarType of
-    vtInteger, vtInt8, vtWord, vtByte, vtPointer:
-    begin
-      if not TryStrToInt(Step.Value, I) then
-        Error(Step, 'Invalid integer value: ''' + Step.Value + '''')
-      else
-        Check(V.ValueInt = I, Step, 'VarValue mismatch on ' + V.Name +
-          ', wanted ' + Step.Value + ' got ' + V.ValueInt.ToString);
-    end;
-    vtBoolean:
-    begin
-      if CompareText(Step.Value, 'false') = 0 then
-      Check(V.ValueInt = valueFalse and $ff, Step, 'VarValue mismatch on ' + V.Name +
-        ', wanted ' + Step.Value + ' got ' + V.ValueInt.ToString)
-      else if CompareText(Step.Value, 'true') = 0 then
-        Check(V.ValueInt = valueTrue and $ff, Step, 'VarValue mismatch on ' + V.Name +
-          ', wanted ' + Step.Value + ' got ' + V.ValueInt.ToString)
-      else
-        Error(Step, 'Invalid boolean value: ''' + Step.Value + '''');
-    end;
-    vtChar:
-    begin
-      if (Length(Step.Value) = 3) and (Step.Value.Chars[0] = '''') and (Step.Value.Chars[2] = '''') then
-        Check(V.ValueInt = ord(C), Step, 'VarValue mismatch on ' + V.Name +
-          ', wanted ''' + C + ''' got ''' + chr(V.ValueInt) + '''')
-      else if Step.Value.Chars[0] = '#' then
-        //Numeric char literal
-        if TryStrToInt(Step.Value.Substring(1), I) then
-          if I <= 255 then
-            Check(V.ValueInt = ord(C), Step, 'VarValue mismatch on ' + V.Name +
-              ', wanted ''' + C + ''' got ''' + chr(V.ValueInt) + '''')
-          else
-            Error(Step, 'Invalid string value: ''' + Step.Value + '''')
-        else
-          Error(Step, 'Invalid string value: ''' + Step.Value + '''');
-    end;
-  else
-    Error(Step, 'Unknown variable type for ' + Step.Name + '''');
-  end;
-end;
-
-{ TTestList }
-
-
-procedure TTestFile.Clear;
+procedure TTestGroup.Clear;
 var Test: TTest;
 begin
   for Test in FTests do
@@ -706,14 +751,30 @@ begin
   FTests.Clear;
 end;
 
-constructor TTestFile.Create;
+procedure TTestGroup.ColdInitCompiler;
+begin
+  //Initialise directive to known state. Cold start the compiler (load data files)
+  IDE.Compiler.Initialise(True, False);    //Initialise directives to known state
+
+  //Platform
+  IDE.Compiler.Config.PlatformName := 'TestCase';
+  IDE.Compiler.Deploy.Clear;
+  //TODO: TEMPORARY
+    IDE.Compiler.Deploy.LoadFromFile('C:\Dropbox\Delphi\Quiche\Platforms\TestCase\Deploy\EmulateRun.deploy');
+{TPath.Combine(
+      TPath.Combine(IDE.Compiler.GetPlatformFolder, DeployFolderName),
+      cbDeploy.Items[cbDeploy.ItemIndex] + DeployExt));
+}
+end;
+
+constructor TTestGroup.Create;
 begin
   inherited;
 
   FTests := TList<TTest>.Create;
 end;
 
-function TTestFile.CreateTest(const Options: TTestOptions): TTest;
+function TTestGroup.CreateTest(const Options: TTestOptions): TTest;
 begin
   Result := TTest.Create;
   FTests.Add(Result);
@@ -726,19 +787,19 @@ begin
   Result.FIsEnabled := True; //For now!
 end;
 
-destructor TTestFile.Destroy;
+destructor TTestGroup.Destroy;
 begin
   Clear;
   FTests.Free;
   inherited;
 end;
 
-function TTestFile.GetCount: Integer;
+function TTestGroup.GetCount: Integer;
 begin
   Result := FTests.Count;
 end;
 
-function TTestFile.GetIsEnabled: Boolean;
+function TTestGroup.GetIsEnabled: Boolean;
 var Test: TTest;
 begin
   for Test in FTests do
@@ -748,12 +809,31 @@ begin
   Result := False;
 end;
 
-function TTestFile.GetName: String;
+function TTestGroup.GetName: String;
 begin
   Result := FName;
 end;
 
-function TTestFile.GetStatus: TTestStatus;
+function TTestGroup.GetReport: String;
+var Counts: array[low(TTestStatus)..high(TTestStatus)] of Integer;
+  Stat: TTestStatus;
+  Test: TTest;
+begin
+  for Stat := low(TTestStatus) to high(TTestStatus) do
+    Counts[Stat] := 0;
+
+  for Test in FTests do
+    inc(Counts[Test.Status]);
+
+  Result := Inherited + #13;
+  for Stat := low(TTestStatus) to high(TTestStatus) do
+    Result := Result + Counts[Stat].ToString + ' ' + StatusStrings[Stat] + #13;
+
+  Result := Result + '-----'#13 +
+    Count.ToString + ' Total'#13;
+end;
+
+function TTestGroup.GetStatus: TTestStatus;
 var Test: TTest;
 begin
   Result := tsNotRun;
@@ -762,12 +842,12 @@ begin
       Result := Test.Status;
 end;
 
-function TTestFile.GetTests(Index: Integer): TTest;
+function TTestGroup.GetTests(Index: Integer): TTest;
 begin
   Result := FTests[Index];
 end;
 
-procedure TTestFile.InitOptions(var Options: TTestOptions);
+procedure TTestGroup.InitOptions(var Options: TTestOptions);
 begin
   Options.BlockType := btStatic;
   Options.ParseType := ptCode;
@@ -775,6 +855,24 @@ begin
   Options.RangeCheck := True;
   Options.LogPrimitives := False;
 end;
+
+procedure TTestGroup.Run;
+var Test: TTest;
+begin
+  ColdInitCompiler;
+  for Test in FTests do
+    if Test.IsEnabled then
+      Test.Run;
+end;
+
+procedure TTestGroup.SetIsEnabled(Value: Boolean);
+var Test: TTest;
+begin
+  for Test in FTests do
+    Test.FIsEnabled := Value;
+end;
+
+{ TTestFile }
 
 procedure TTestFile.LoadTestFile(const Filename: String);
 var Options: TTestOptions;
@@ -855,7 +953,6 @@ begin
   end;
 end;
 
-
 function TTestFile.ParseBlockType(Fields: TArray<String>): TBlockType;
 begin
   Result := btStatic;
@@ -911,53 +1008,228 @@ begin
     FLastError := errInvalidField + Fields[1];
 end;
 
-procedure TTestFile.Run;
-var Test: TTest;
-begin
-  for Test in FTests do
-    if Test.IsEnabled then
-      Test.Run;
-end;
-
-procedure TTestFile.SetIsEnabled(Value: Boolean);
-var Test: TTest;
-begin
-  for Test in FTests do
-    Test.FIsEnabled := Value;
-end;
-
 //;;================
 
-
-
-procedure ClearTestFiles;
-var F: TTestFile;
+procedure ClearTestGroups;
+var F: TTestGroup;
 begin
-  for F in TestFiles do
+  for F in TestGroups do
   begin
     F.Free;
   end;
-  TestFiles.Clear;
+  TestGroups.Clear;
 end;
 
 procedure LoadTestFolder(const Folder: String);
 var Files: TArray<String>;
   Filename: String;
   TestFile: TTestFile;
+  Gen: TGeneratedTests;
 begin
   Files := TDirectory.GetFiles(Folder, '*.tst');
 
   for Filename in Files do
   begin
     TestFile := TTestFile.Create;
-    TestFiles.Add(TestFile);
+    TestGroups.Add(TestFile);
     TestFile.LoadTestFile(Filename);
+  end;
+
+  Gen := TTestLoadParams.Create;
+  Gen.Generate;
+  TestGroups.Add(Gen);
+  Gen := TTestStoreResults.Create;
+  Gen.Generate;
+  TestGroups.Add(Gen);
+end;
+
+procedure LoadSelfTests;
+begin
+  ClearTestGroups;
+  LoadTestFolder('c:\DropBox\Delphi\Quiche\Tests');
+end;
+
+{ TGeneratedTests }
+
+function TGeneratedTests.GetName: String;
+begin
+  if ClassName.StartsWith('TTest') then
+    Result := ClassName.SubString(5) + ' (Generated)'
+  else
+    Result := ClassName;
+end;
+
+function TGeneratedTests.TypecastInteger(Value: Integer;
+  ToType: TVarType): Integer;
+begin
+  case ToType of
+    vtInteger:
+    begin
+      Result := Value and iCPUWordMask;
+      if Result and iIntegerMin <> 0 then
+        Result := Result or (-1 xor iCPUWordMask);
+    end;
+    vtInt8:
+    begin
+      Result := Value and $ff;
+      if Result and $80 <> 0 then
+        Result := Result or (-1 xor $ff);
+    end;
+    vtByte: Result := Value and $ff;
+    vtWord, vtPointer: Result := Value and iCPUWordMask;
+  else
+    raise Exception.Create('Unhandled integer type');
   end;
 end;
 
+const IntegerValues: TArray<Integer> = [-32768, -32767, -129, -128, -127, -1, 0, 1, 127, 128, 255, 256, 32767];const Int8Values: TArray<Integer> = [-128, -127, -1, 0, 1, 127];const WordValues: TArray<Integer> = [0, 1, 127, 128, 255, 256, 32767, 32768, 65535];const ByteValues: TArray<Integer> = [0, 1, 127, 128, 255];
+{ TTestLoadParams }
+
+procedure TTestLoadParams.Generate;
+const NameTemplate = '%%From->%%To (%%Value) Range %%Range %%Access';
+const CodeTemplate =
+'var x: %%To;'#13+''#13+'procedure f(a: %%To);%%Access;'#13+'begin'#13+'  x:= a;'#13+'end;'#13+''#13+'begin'#13+'  var i: %%From = %%Value;'#13+'  f(i);'#13+'end.'#13;var Options: TTestOptions;
+  FromType: TVarType;
+  ToType: TVarType;
+  Values: TArray<Integer>;
+  Value: Integer;
+  RangeCheck: Boolean;
+  Access: Boolean;
+  ToValues: TArray<Integer>;
+  Test: TTest;
+const BoolStr: array[False..True] of String = ('Off', 'On');
+const AccessStr: array[False..True] of String = ('Stack', 'Register');
+begin
+  InitOptions(Options);
+  Options.ParseType := ptDeclarations;
+
+  for FromType in [vtInteger, vtInt8, vtByte, vtWord, vtPointer] do
+  begin
+    case FromType of
+      vtByte: Values := ByteValues;
+      vtInt8: Values := Int8Values;
+      vtInteger: Values := IntegerValues;
+      vtWord, vtPointer: Values := WordValues;
+    else
+      raise Exception.Create('Unhandled type');
+    end;
+    for ToType in [vtInteger, vtInt8, vtByte, vtWord, vtPointer] do
+    begin
+      case ToType of
+        vtByte: ToValues := ByteValues;
+        vtInt8: ToValues := Int8Values;
+        vtInteger: ToValues := IntegerValues;
+        vtWord, vtPointer: ToValues := WordValues;
+      else
+        raise Exception.Create('Unhandled type');
+      end;
+      for Value in Values do
+        for RangeCheck in [False..True] do
+          for Access in [False..True] do
+        begin
+          Options.RangeCheck := RangeCheck;
+          Test := CreateTest(Options);
+          Test.Name := NameTemplate;
+          Test.Name := Test.Name.Replace('%%From', VarTypeToName(FromType), [rfReplaceAll]);
+          Test.Name := Test.Name.Replace('%%To', VarTypeToName(ToType), [rfReplaceAll]);
+          Test.Name := Test.Name.Replace('%%Value', Value.ToString, [rfReplaceAll]);
+          Test.Name := Test.Name.Replace('%%Range', BoolStr[RangeCheck], [rfReplaceAll]);
+          Test.Name := Test.Name.Replace('%%Access', AccessStr[Access], [rfReplaceAll]);
+          Test.Code := CodeTemplate;
+          Test.Code := Test.Code.Replace('%%From', VarTypeToName(FromType), [rfReplaceAll]);
+          Test.Code := Test.Code.Replace('%%To', VarTypeToName(ToType), [rfReplaceAll]);
+          Test.Code := Test.Code.Replace('%%Value', Value.ToString, [rfReplaceAll]);
+          Test.Code := Test.Code.Replace('%%Access', AccessStr[Access], [rfReplaceAll]);
+
+
+          if (Value < ToValues[0]) or (Value > ToValues[Length(ToValues)-1]) then
+            if RangeCheck then
+              Test.AddRuntimeError(['', 'rangecheck'])
+            else
+              Test.AddVarValue(['','x', TypecastInteger(Value, ToType).ToString])
+          else
+            Test.AddVarValue(['', 'x', Value.ToString]);
+        end;
+      end;
+    end;
+end;
+
+{ TTestStoreResults }
+
+procedure TTestStoreResults.Generate;
+
+const NameTemplate = '%%From->%%To (%%Value) Range %%Range %%Access';
+const CodeTemplate =
+'function f: %%From;%%Access;'#13+'begin'#13+'  var a:%%From = %%Value'#13+'  Result := a;'#13+'end;'#13+''#13+'var x: %%To;'#13+'begin'#13+'  x := f;'#13+'end.'#13;var Options: TTestOptions;  FromType: TVarType;
+  ToType: TVarType;
+  Values: TArray<Integer>;
+  Value: Integer;
+  RangeCheck: Boolean;
+  ToValues: TArray<Integer>;
+  Access: Boolean;
+  Test: TTest;
+const BoolStr: array[False..True] of String = ('Off', 'On');
+const AccessStr: array[False..True] of String = ('Stack', 'Register');
+begin
+  InitOptions(Options);
+  Options.ParseType := ptDeclarations;
+
+  for FromType in [vtInteger, vtInt8, vtByte, vtWord, vtPointer] do
+  begin
+    case FromType of
+      vtByte: Values := ByteValues;
+      vtInt8: Values := Int8Values;
+      vtInteger: Values := IntegerValues;
+      vtWord, vtPointer: Values := WordValues;
+    else
+      raise Exception.Create('Unhandled type');
+    end;
+    for ToType in [vtInteger, vtInt8, vtByte, vtWord, vtPointer] do
+    begin
+      case ToType of
+        vtByte: ToValues := ByteValues;
+        vtInt8: ToValues := Int8Values;
+        vtInteger: ToValues := IntegerValues;
+        vtWord, vtPointer: ToValues := WordValues;
+      else
+        raise Exception.Create('Unhandled type');
+      end;
+
+      for Value in Values do
+        for RangeCheck in [False..True] do
+          for Access in [False..True] do
+          begin
+            Options.RangeCheck := RangeCheck;
+            Test := CreateTest(Options);
+            Test.Name := NameTemplate;
+            Test.Name := Test.Name.Replace('%%From', VarTypeToName(FromType), [rfReplaceAll]);
+            Test.Name := Test.Name.Replace('%%To', VarTypeToName(ToType), [rfReplaceAll]);
+            Test.Name := Test.Name.Replace('%%Value', Value.ToString, [rfReplaceAll]);
+            Test.Name := Test.Name.Replace('%%Range', BoolStr[RangeCheck], [rfReplaceAll]);
+            Test.Name := Test.Name.Replace('%%Access', AccessStr[Access], [rfReplaceAll]);
+
+            Test.Code := CodeTemplate;
+            Test.Code := Test.Code.Replace('%%From', VarTypeToName(FromType), [rfReplaceAll]);
+            Test.Code := Test.Code.Replace('%%To', VarTypeToName(ToType), [rfReplaceAll]);
+            Test.Code := Test.Code.Replace('%%Value', Value.ToString, [rfReplaceAll]);
+            Test.Code := Test.Code.Replace('%%Access', AccessStr[Access], [rfReplaceAll]);
+
+
+            if (Value < ToValues[0]) or (Value > ToValues[Length(ToValues)-1]) then
+              if RangeCheck then
+                Test.AddRuntimeError(['', 'rangecheck'])
+              else
+                Test.AddVarValue(['','x', TypecastInteger(Value, ToType).ToString])
+            else
+              Test.AddVarValue(['', 'x', Value.ToString]);
+          end;
+        end;
+      end;
+end;
+
 initialization
-  TestFiles := TTestFiles.Create;
+  TestGroups := TTestGroups.Create;
 finalization
-  ClearTestFiles;
-  TestFiles.Free;
+  ClearTestGroups;
+  TestGroups.Free;
 end.

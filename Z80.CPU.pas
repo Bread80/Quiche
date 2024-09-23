@@ -509,15 +509,7 @@ begin //We only want optimisations which are faster/smaller than loading a liter
     end
     //Set A to zero
     else if not PreserveOtherFlags then
-      if Value = 0 then
-        if PreserveCF then
-        begin
-          Opcode('sbc','a','a');
-          //Trash flags except CF
-          RegStateSetUnknown(rFlags); //Except CF
-          EXIT(True);
-        end
-        else
+      if (Value = 0) and not PreserveCF then
         begin
           Opcode('xor','a');
           RegStateSetUnknown(rFlags);

@@ -81,6 +81,7 @@ begin
       else
         Assert(False, 'Item too large for stack - needs to be passed by reference');
       end;
+      ILItem.Dest.PushType := Arg.VarType;
     end;
   else
     Assert(False, 'Invalid calling convention');

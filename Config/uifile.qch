@@ -1,11 +1,11 @@
-function a(x: integer;y:h as byte;out z: byte): Word;register
+ var x: Integer;
+
+procedure f(a: Integer);Stack;
 begin
-  Result := x+y
-  z := 100;
-end
+  x:= a;
+end;
 
 begin
-  var d:Byte=10
-  var dest: Byte
-  var r := a(d,d, dest)
+  var i: Int8 = -128;
+  f(i);
 end.
