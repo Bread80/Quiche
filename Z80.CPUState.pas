@@ -53,6 +53,10 @@ function RegStateFindVariable8(AVariable: PVariable;AVersion: Integer;AKind: TRe
 //Returns True if the given variable already contains the given variable version
 function RegStateEqualsVariable(Reg: TCPUReg;AVariable: PVariable;AVersion: Integer;AKind: TRegStateKind): Boolean;
 
+//If the address (@ operator) of a variable is already loaded in registers returns
+//the register, otherwise returns rNone
+function RegStateFindAddrOf(AVariable: PVariable): TCPUReg;
+
 //If any 8-bit register contains the required value, returns the name of that register,
 //otherwise returns rNone
 function RegStateFindLiteral8(AValue: Integer): TCPUReg;
@@ -475,6 +479,20 @@ function RegStateEqualsVariable(Reg: TCPUReg;AVariable: PVariable;AVersion: Inte
 begin
   Result := (CPUState[Reg].Kind = AKind) and (CPUState[Reg].Variable = AVariable) and
     (CPUState[Reg].Version = AVersion);
+end;
+
+function RegStateFindAddrOf(AVariable: PVariable): TCPUReg;
+var R: TCPUReg;
+  State: TRegState;
+begin
+  for R := rHL to rIY do
+  begin
+    State := CPUState[R];
+    if (State.Kind = rskVarAddr) and (State.Variable = AVariable) then
+      EXIT(R);
+  end;
+
+  Result := rNone;
 end;
 
 function RegStateAllocReg8(Avoid: TCPURegSet): TCPUReg;

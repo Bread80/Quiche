@@ -126,13 +126,15 @@ var Reg: TCPUReg;
   Regs: TCPURegSet;
 begin
   Assert(ILItem.Op = opMove);
-  Assert(ILItem.Param1.Kind in [pkImmediate, pkVarSource, pkPop, pkPopByte]);
+  Assert(ILItem.Param1.Kind in [pkImmediate, pkVarSource, pkAddrOf, pkPop, pkPopByte]);
   Assert(ILItem.Param2.Kind = pkNone);
   Assert(ILItem.Param3.Kind in [pkVarDest, pkPush, pkPushByte]);
 
-  //If the Dest is 8-bit load it into A, if 16-bit load it into HL
   if ILItem.Param1.Reg = rNone then
-    if GetTypeSize(ILItem.Dest.GetVarType) = 1 then
+    if ILItem.Param1.Kind = pkAddrOf then
+      ILItem.Param1.Reg := rHL
+    //If the Dest is 8-bit load it into A, if 16-bit load it into HL
+    else if GetTypeSize(ILItem.Dest.GetVarType) = 1 then
       ILItem.Param1.Reg := rA
     else
       ILItem.Param1.Reg := rHL;

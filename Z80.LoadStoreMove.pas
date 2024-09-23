@@ -66,7 +66,8 @@ type
     mtStatic16, //No side effects
     mtStatic8,  //Requires A reg (or HL)
     mtStack,    //No side effects
-{TODO}  mtAddr,     //?? Probably requires HL and Flags. Possibly more!
+{TODO}  mtAddrStatic, //Static address - easy peasy
+    mtAddrStack,  //Probably requires HL, DE and Flags. Possibly more!
     mtCopy,     //Value is already in a register and just needs moving
     mtImm,      //Literal value. No side effects
     mtImmKeep,  //LiteralValue already in register
@@ -216,6 +217,30 @@ begin
         end;
       end;
     end;
+    pkAddrOf:
+    begin
+      V := Param.AddrVar;
+      if RegStateEqualsVariable(R, V, 0, rskVarAddr) then
+      begin
+        Result  := mtKeep;
+        inc(MoveAnalysis.ToKeepCount);
+      end
+      else
+      begin
+        inc(MoveAnalysis.ToMoveCount);
+        if RegStateFindVariable(V, 0, rskVarAddr) <> rNone then
+          Result := mtCopy
+        else
+        case V.Storage of
+          vsStatic:
+            Result := mtAddrStatic;
+          vsStack:
+            Result := mtAddrStack;
+        else
+          System.Assert(False);
+        end;
+      end;
+    end;
   else
     System.Assert(False);
   end;
@@ -232,7 +257,7 @@ begin
   Result := ptNone;
 
   case Param.Kind of
-    pkImmediate: ;  //Nothing
+    pkImmediate, pkAddrOf: ;  //Nothing
     pkVarSource:
     begin
       V := Param.ToVariable;
@@ -374,7 +399,7 @@ begin
           Assert(MoveAnalysis.CondBranchParam = nil, 'Multiple pkCondBranch in a move');
           MoveAnalysis.CondBranchParam := Param;
         end;
-      pkImmediate, pkVarSource,pkPush,pkPushByte:
+      pkImmediate, pkVarSource,pkAddrOf,pkPush,pkPushByte:
         if Loading then
           CopyParamToMoveState(Param);
     else
@@ -476,7 +501,7 @@ begin
       end;
 end;
 
-//=============================================MORE ANALYSYS
+//=============================================MORE ANALYSIS
 
 //Loading is True to analyse for a Load, False to analyse for a Store
 procedure AnalyseMove(Loading: Boolean);
@@ -500,47 +525,14 @@ begin
       if MoveState[R].ProcessType in [ptRangeCheck8, ptRangeCheck16] then //TODO
         inc(MoveAnalysis.RequiresFlags);
   end;
-end;
 
-(*
-procedure LoadScavenge()
-begin
-  Move any Variables which can be moved (scavenged)
-    If we get a deadlock (can't move anything whithout trashing something, eg
-    two registers which need to be swapped - ?)
+  //Fail (disgracefully) if we see this annoying code generator limitation
+  if (MoveState[rHL].Param <> nil) and (MoveState[rHL].Param.Kind = pkAddrOf) and (MoveState[rHL].Param.AddrVar.Storage = vsStack) and
+    (MoveState[rDE].Param <> nil) and (MoveState[rDE].Param.Kind = pkAddrOf) and (MoveState[rDE].Param.AddrVar.Storage = vsStack) then
+    raise Exception.Create('Code generator limitation: Unable to load @variable (address of) into both HL and DE in one operation '+
+      'where both are stored on the stack. Try creating a pointer variable(s), assign the @variable to it (them) and'+
+      'pass the variables to the function (or return or wherever).');
 end;
-
-procedure DoTryLoad()
-begin
-  for Reg in Regs do
-    if State[Reg].CanBeLoaded then (Target is available)
-    begin
-      RegLoadParam
-      Update State table (to done?)
-      inc LoadedCount
-      dec ToLoadCount
-    end;
-end;
-*)
-(*
-//Load/scavenge variables
-procedure DoDataLoad(ToLoadCount)
-begin
-  //Allow EX HL,DE?
-  while not AllMoved do
-  begin
-    LoadedCount := DoTryLoad()
-    if LoadedCount = 0 and not allMoved then **Account for A reg (if not loading yet)
-      ERROR
-  end;
-end;
-
-//Load literal values
-procedure LoadLiterals
-begin
-end;
-*)
-
 
 //====================================LOAD, CALL, STORE
 
@@ -599,6 +591,13 @@ begin
 
   PrimFlags := [];
 
+  if DataMoveDone then
+    EXIT;
+  //Load any stack address params - these usually require HL, DE and flags
+  GenDataLoadParams([rBC, rDE, rHL, rIX, rIY],
+    [mtAddrStack], [], PrimFlags,
+    []); //<--- Mostly just error checking here
+
   //Load values which will trash A or flags for all registers except A and Flags
   GenDataLoadParams([rB, rC, rD, rE, rH, rL, rBC, rDE, rHL, rIX, rIY],
     [mtStatic8], [ptSignExtend, ptShrink, ptRangeCheck8, ptRangeCheck16], PrimFlags,
@@ -609,13 +608,13 @@ begin
     EXIT;
   //Load all values into registers other than A
   GenDataLoadParams([rB, rC, rD, rE, rH, rL, rBC, rDE, rHL, rIX, rIY],
-    [mtStatic16, mtStack, mtAddr{??}, mtCopy, mtImm, mtImmCopy], [], PrimFlags,
+    [mtStatic16, mtStack, mtAddrStatic, mtCopy, mtImm, mtImmCopy], [], PrimFlags,
     [moPreserveHLDE{, moPreserveA, moPreserveCF, moPreserveOtherFlags}]); //<--- Mostly just error checking here
 
   if DataMoveDone then
     EXIT;
   //Load values which will trash A register into A register
-  GenDataLoadParams([rA], [mtStatic16, mtStatic8, mtStack, mtAddr{??}, mtCopy, mtImm, mtImmCopy],
+  GenDataLoadParams([rA], [mtStatic16, mtStatic8, mtStack, mtCopy, mtImm, mtImmCopy],
     [ptSignExtend, ptShrink, ptRangeCheck8, ptRangeCheck16], PrimFlags, [moPreserveHLDE]);
 
   Assert(DataMoveDone, 'Data Load failed to load everything :(');
@@ -875,6 +874,12 @@ begin
   AnalyseMove(True);
 
   if not DataMoveDone then
+    //Load any stack relative addresses. These usually require HL, DE and flags
+    GenDataLoadParams([rBC, rDE, rHL, rIX, rIY],
+      [mtAddrStack], [ptSignExtend, ptShrink, ptRangeCheck8, ptRangeCheck16], [],
+      []);  //<-- we'll need more analysis before allowing EX HL,DE
+                        //(it might Undo a move we've already done!)
+  if not DataMoveDone then
     //Load values which will trash A or flags for all registers except A and Flags
     GenDataLoadParams([rB, rC, rD, rE, rH, rL, rBC, rDE, rHL, rIX, rIY],
       [mtStatic8], [ptSignExtend, ptShrink, ptRangeCheck8, ptRangeCheck16], [],
@@ -884,12 +889,12 @@ begin
   if not DataMoveDone then
     //Load all values into registers other than A
     GenDataLoadParams([rB, rC, rD, rE, rH, rL, rBC, rDE, rHL, rIX, rIY],
-      [mtStatic16, mtStack, mtAddr{??}, mtCopy, mtImm, mtImmCopy], [], [],
+      [mtStatic16, mtStack, mtAddrStatic, mtCopy, mtImm, mtImmCopy], [], [],
       [moPreserveHLDE, moPreserveA, moPreserveCF, moPreserveOtherFlags]); //<--- Mostly just error checking here
 
   if not DataMoveDone then
     //Load values which will trash A register into A register
-    GenDataLoadParams([rA], [mtStatic16, mtStatic8, mtStack, mtAddr{??}, mtCopy, mtImm, mtImmCopy],
+    GenDataLoadParams([rA], [mtStatic16, mtStatic8, mtStack, mtCopy, mtImm, mtImmCopy],
       [ptSignExtend, ptShrink, ptRangeCheck8, ptRangeCheck16], [], [moPreserveHLDE]);
 
   Assert(DataMoveDone, 'Data Load failed to load everything :(');

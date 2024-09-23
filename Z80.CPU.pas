@@ -144,9 +144,14 @@ procedure OpLD(Dest: TCPUReg;SourceV: PVariable);overload;
 //ByteIndex allows to specify high or low byte. Reg must be 8-bit
 procedure OpLD(Dest: TCPUReg;SourceV: PVariable;ByteIndex: Integer);overload;
 procedure OpLD(DestV: PVariable;ByteIndex: Integer;Source: TCPUReg);overload;
+procedure OpLD(Dest: TCPUReg;Source: String);overload;
 
 procedure OpPUSH(Reg: TCPUReg);
 procedure OpPOP(Reg: TCPUReg);
+
+procedure OpADD(RAcc, RAdd: TCPUReg);
+procedure OpINC(Reg: TCPUReg);
+procedure OpDEC(Reg: TCPUReg);
 
 //Used to specify limitations when loading, storing, converting, validating, etc. parameters etc.
 type TMoveOptions = (
@@ -297,6 +302,11 @@ begin
   Opcode('ld', S, CPURegStrings[Source]);
 end;
 
+procedure OpLD(Dest: TCPUReg;Source: String);overload;
+begin
+  Opcode('ld', CPURegStrings[Dest], Source);
+end;
+
 procedure OpPUSH(Reg: TCPUReg);
 begin
   Assert(Reg in (CPUReg16Bit + [rAF]));
@@ -307,6 +317,21 @@ procedure OpPOP(Reg: TCPUReg);
 begin
   Assert(Reg in (CPUReg16Bit + [rAF]));
   Opcode('pop',CPURegStrings[Reg]);
+end;
+
+procedure OpADD(RAcc, RAdd: TCPUReg);
+begin
+  Opcode('add',CPURegStrings[RAcc],CPURegStrings[RAdd]);
+end;
+
+procedure OpINC(Reg: TCPUReg);
+begin
+  Opcode('inc',CPURegStrings[Reg]);
+end;
+
+procedure OpDEC(Reg: TCPUReg);
+begin
+  Opcode('dec',CPURegStrings[Reg]);
 end;
 
 //Sign extends an 8-bit value in RIn to a 16-bit value in ROutRIn

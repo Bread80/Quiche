@@ -55,6 +55,7 @@ type TQuicheError = (
   qeInvalidCharLiteral,
   qeUnmatchedBrackets,
   qeIntrinsicCantBeEvaluatedAtCompileTime,  //Used as a signal, not an error
+  qeAt,                 //@ operator syntax
 
   //Techie stuff
   qeAttributeError,     //Error in an attribute
@@ -109,6 +110,7 @@ const Errors : array[TQuicheError] of String = (
   'Incorrect character literal',
   'Unmatched brackets',
   'qeIntrinsicCantBeEvaluatedAtCompileTime',
+  '@-able expression expected',
 
   'Invalid attribute',
   'Error in code generation',
@@ -148,6 +150,7 @@ const SubErrors : array[TQuicheError] of String = (
   '',
   '',
 
+  '',
   '',
   '',
   '',

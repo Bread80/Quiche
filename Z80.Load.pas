@@ -561,53 +561,134 @@ begin
 end;
 
 //Load a 16 bit value to an index register
-procedure GenLoadVar16BitToXY(Reg: TCPUReg;Variable: PVariable;VarVersion: Integer;
+procedure GenLoadVar16BitToXY(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
   PrimFlags: TPrimFlagSet;ToType: TVarType;RangeCheck: Boolean;Options: TMoveOptionSet);
 begin
-  Assert(Reg in [rIX, rIY]);
+  Assert(ToReg in [rIX, rIY]);
   Assert(Variable.Storage = vsStatic,'Can''t load stack variables into index register');
   Assert(GetTypeSize(Variable.VarType) = 2, 'Can''t extend 8-bit load into index register');
   Assert(PrimFlags * [pfnLoadRPHigh, pfnLoadRPLow] = [], 'Can''t load RPHigh, RPLow to index register');
 
-  OpLD(Reg, Variable);
-  RegStateSetVariable(Reg, Variable, VarVersion, rskVarValue);
+  OpLD(ToReg, Variable);
+  RegStateSetVariable(ToReg, Variable, VarVersion, rskVarValue);
 
   if RangeCheck then
     //PS this will fail as can't currently range check index registers.
     //But maybe fixed later
-    GenRangeCheck(Reg, Variable.VarType, ToType, nil, Options);
+    GenRangeCheck(ToReg, Variable.VarType, ToType, nil, Options);
 end;
 
 //Load the value of a variable into the given register
-procedure GenLoadRegVarValue(Reg: TCPUReg;Variable: PVariable;VarVersion: Integer;
+procedure GenLoadRegVarValue(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
   PrimFlags: TPrimFlagSet;ToType: TVarType;RangeCheck: Boolean;Options: TMoveOptionSet);
 begin
   //Value already in register?
-  if RegStateEqualsVariable(Reg, Variable, VarVersion, rskVarValue) then
+  if RegStateEqualsVariable(ToReg, Variable, VarVersion, rskVarValue) then
     EXIT;
 
-  case Reg of
+  case ToReg of
     rA..rL:
       case GetTypeSize(Variable.VarType) of
-        1: GenLoadVar8BitToReg8Bit(Variable, VarVersion, Reg, PrimFlags, ToType, RangeCheck, Options);
-        2: GenLoadVar16BitToReg8Bit(Variable, VarVersion, Reg, PrimFlags, ToType, RangeCheck, Options);
+        1: GenLoadVar8BitToReg8Bit(Variable, VarVersion, ToReg, PrimFlags, ToType, RangeCheck, Options);
+        2: GenLoadVar16BitToReg8Bit(Variable, VarVersion, ToReg, PrimFlags, ToType, RangeCheck, Options);
       else
         Assert(False);
       end;
     rHL..rBC:
       case GetTypeSize(Variable.VarType) of
-        1: GenLoadVar8BitToReg16Bit(Variable, VarVersion, Reg, PrimFlags, ToType, RangeCheck, Options);
-        2: GenLoadVar16BitToReg16Bit(Variable, VarVersion, Reg, PrimFlags, ToType, RangeCheck, Options);
+        1: GenLoadVar8BitToReg16Bit(Variable, VarVersion, ToReg, PrimFlags, ToType, RangeCheck, Options);
+        2: GenLoadVar16BitToReg16Bit(Variable, VarVersion, ToReg, PrimFlags, ToType, RangeCheck, Options);
       else
         Assert(False);
       end;
     rIX, rIY:
-      GenLoadVar16BitToXY(Reg, Variable, VarVersion, PrimFlags, ToType, RangeCheck, Options);
+      GenLoadVar16BitToXY(Variable, VarVersion, ToReg, PrimFlags, ToType, RangeCheck, Options);
   else
     System.Assert(False);
   end;
 end;
 
+//Load the address of Variable into ToReg
+procedure GenLoadRegAddrOf(Variable: PVariable;ToReg: TCPUReg;ToType: TVarType;
+  Options: TMoveOptionSet);
+var Reg: TCPUReg;
+  Optimise: Boolean;
+  I: Integer;
+begin
+  Assert(ToReg in CPUReg16Bit);
+
+  //Do we already have the value loaded anywhere?
+  Reg := RegStateFindAddrOf(Variable);
+  //Already in target register <g>
+  if Reg = ToReg then
+    EXIT;
+
+  case Variable.Storage of
+    vsStatic:
+      OpLD(ToReg, Variable.GetAsmName);
+    vsStack:
+    begin
+      if Reg <> rNone then
+        //If we can copy this will be easier
+        GenRegMove(Reg, ToReg, False, Options)
+      else
+      begin
+        //Can we optimise?
+        //Timings:             Combined
+        //LD dd,nn - 3/3/10
+        //ADD HL,ss - 1/3/11  4/6/21
+        //ADD xy,ss - 2/4/15  5/7/25
+        //INC/DEC rr - 1/1/6  4x = 4/4/24 <-- use for offsets <= 4
+        //INC/DEC xy - 2/2/10 3x = 6/6/30 <-- use for offsets <= 3
+        Optimise := ((ToReg in [rHL, rDE, rBC]) and (abs(Variable.Offset) <= 4))
+          or ((ToReg in [rIX, rIY]) and (abs(Variable.Offset) <= 3));
+
+        //Reg to use as accumulator in the addition
+        if Optimise then
+          Reg := ToReg
+        else if ToReg in [rHL, rIX, rIY] then
+          Reg := ToReg
+        else
+          Reg := rHL;
+
+        //Copy stack base pointer to Accumulator Reg
+        if ToReg <> rIX then
+        begin
+          OpPUSH(rIX);
+          OpPOP(Reg);
+        end;
+
+        //Add (subtract) stack offset
+        if Variable.Offset = 0 then
+          //Nothing needed
+        else if Optimise then
+        begin
+          for I := 1 to abs(Variable.Offset) do
+            if Variable.Offset < 0 then
+              OpDEC(Reg)
+            else
+              OpINC(Reg);
+        end
+        else
+        begin
+          //Load offset into DE
+          GenLoadRegLiteral(rDE, TImmValue.CreateInteger(Variable.Offset), Options);
+          OpADD(Reg, rDE);
+          RegStateSetVariable(Reg, Variable, 0, rskVarAddr);
+          RegStateSetUnknowns([rFlags, rCF]); //ZF not touched
+        end;
+
+        //Move to the final register
+        if Reg <> ToReg then
+          GenRegMove(Reg, ToReg, False, Options);
+      end;
+    end;
+  else
+    Assert(False);
+  end;
+
+  RegStateSetVariable(ToReg, Variable, 0, rskVarAddr);
+end;
 
 //=========================================OLD CODE
 
@@ -625,10 +706,10 @@ begin
       if not (Param.Reg in [rNone, rImm]) then
         GenLoadRegLiteral(Param.Reg, Param.Imm, Options);
     pkVarSource:
-      GenLoadRegVarValue(Param.Reg, Param.Variable, Param.VarVersion, PrimFlags, ToType,
+      GenLoadRegVarValue(Param.Variable, Param.VarVersion, Param.Reg, PrimFlags, ToType,
         cgRangeCheck in Param.Flags, Options);
-
-    //TODO: Load var address (@ operator)
+    pkAddrOf:
+      GenLoadRegAddrOf(Param.Variable, Param.Reg, ToType, Options);
   else
     System.Assert(False, 'Invalid param kind for param load');
   end;

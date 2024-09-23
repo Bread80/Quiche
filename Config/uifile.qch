@@ -1,11 +1,11 @@
- var x: Integer;
-
-procedure f(a: Integer);Stack;
+function Get(x: Integer): Integer
+var a: Pointer
 begin
-  x:= a;
-end;
+  a := @x
+  Result := peek(a, Integer)
+end
 
 begin
-  var i: Int8 = -128;
-  f(i);
+ var i:Integer=0;
+ i := Get(2000);
 end.

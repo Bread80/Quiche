@@ -520,89 +520,105 @@ begin
 
   Ch := Parser.TestChar;
   case Ch of
-  '(':
-    begin //Sub-expressions
-      Parser.SkipChar;
+    '(':
+      begin //Sub-expressions
+        Parser.SkipChar;
 
-      Result := ParseExpressionToSlug(Slug, Slug.ResultType{, Slug.ImplicitType});
+        Result := ParseExpressionToSlug(Slug, Slug.ResultType{, Slug.ImplicitType});
+        if Result <> qeNone then
+          EXIT;
+
+        //If the expression parser generated any IL code
+  {      if Slug.ILItem <> nil then
+         Slug.AssignToHiddenVar;
+}
+        if Parser.TestChar <> ')' then
+          EXIT(Err(qeUnmatchedBrackets));
+        Parser.SkipChar;
+        Result := qeNone;
+      end;
+//  csIdentFirst
+    'a'..'z','A'..'Z','_': //Identifiers - variables, functions or keyword values
+    begin
+      Result := ParseIdentifier(#0, Ident);
       if Result <> qeNone then
         EXIT;
 
-      //If the expression parser generated any IL code
-{      if Slug.ILItem <> nil then
-        Slug.AssignToHiddenVar;
-}
-      if Parser.TestChar <> ')' then
-        EXIT(Err(qeUnmatchedBrackets));
+      if CompareText(Ident, 'not') = 0 then
+      begin
+        case UnaryOp of
+          opUnknown: Result := ParseOperand(Slug, opComplement);
+          opNegate: Result := ParseOperand(Slug, opComplement);
+          opComplement: Result := ParseOperand(Slug, opUnknown);
+        else
+          EXIT(ErrMsg(qeBUG, 'Unknown/invalid unary operator'));
+        end;
+        if UnaryOp = opComplement then
+          UnaryOp := opUnknown;
+      end
+      else
+        Result := ParseOperandIdentifier(Slug, Ident);
+
+      if Result <> qeNone then
+        EXIT;
+    end;
+//    csDecimalFirst
+    '0'..'9': //Numeric constants
+      if UnaryOp = opNegate then
+      begin
+        Result := ParseNegativeInteger(Slug);
+        UnaryOp := opUnknown;
+      end
+      else
+        Result := ParseInteger(Slug);
+    '$': //Hex constant
+      Result := ParseHex(Slug);
+    '%': //Binary constant
+      Result := ParseBinary(Slug);
+    '.': //Real constant
+      EXIT(ErrMsg(qeTODO, 'Floating point numbers not yet supported'));
+    '''': //Char or string
+      Result := ParseString(Slug);
+    '#': //Character literal
+      Result := ParseCharLiteral(Slug);
+    '@': //Address prefix
+    begin //Sub-expressions
       Parser.SkipChar;
+
+      Result := ParseOperand(Slug, UnaryOp);
+      if Result <> qeNone then
+        EXIT;
+
+      if UnaryOp <> opUnknown then
+        EXIT(Err(qeAt));
+      if Slug.ILItem <> nil then
+        EXIT(Err(qeAt));
+      if Slug.Operand.Kind <> pkVarSource then
+        EXIT(Err(qeAt));
+      Slug.Operand.Kind := pkAddrOf;
+
       Result := qeNone;
     end;
-//  csIdentFirst
-  'a'..'z','A'..'Z','_': //Identifiers - variables, functions or keyword values
-  begin
-    Result := ParseIdentifier(#0, Ident);
-    if Result <> qeNone then
-      EXIT;
-
-    if CompareText(Ident, 'not') = 0 then
+    '+': //Unary plus
     begin
-      case UnaryOp of
-        opUnknown: Result := ParseOperand(Slug, opComplement);
-        opNegate: Result := ParseOperand(Slug, opComplement);
-        opComplement: Result := ParseOperand(Slug, opUnknown);
-      else
-        EXIT(ErrMsg(qeBUG, 'Unknown/invalid unary operator'));
-      end;
-      if UnaryOp = opComplement then
-        UnaryOp := opUnknown;
-    end
-    else
-      Result := ParseOperandIdentifier(Slug, Ident);
-
-    if Result <> qeNone then
-      EXIT;
-  end;
-//  csDecimalFirst
-  '0'..'9': //Numeric constants
-    if UnaryOp = opNegate then
-    begin
-      Result := ParseNegativeInteger(Slug);
-      UnaryOp := opUnknown;
-    end
-    else
-      Result := ParseInteger(Slug);
-  '$': //Hex constant
-    Result := ParseHex(Slug);
-  '%': //Binary constant
-    Result := ParseBinary(Slug);
-  '.': //Real constant
-    EXIT(ErrMsg(qeTODO, 'Floating point numbers not yet supported'));
-  '''': //Char or string
-    Result := ParseString(Slug);
-  '#': //Character literal
-    Result := ParseCharLiteral(Slug);
-  '@': //Address prefix
-    EXIT(ErrMsg(qeTODO, '''@'' operator not yet supported'));
-  '+': //Unary plus
-  begin
-    Parser.SkipChar;
-    EXIT(ParseOperand(Slug, UnaryOp));
-  end;
-  '-': //Unary subtract/negative
-  begin
-    Parser.SkipChar;
-    case UnaryOp of
-      opUnknown: Result := ParseOperand(Slug, opNegate);
-      opNegate: Result := ParseOperand(Slug, opUnknown);
-      opComplement: Result := ParseOperand(Slug, opNegate);
-    else
-      EXIT(errMsg(qeBUG, 'Unknown/invalid unary operator'));
+      Parser.SkipChar;
+      EXIT(ParseOperand(Slug, UnaryOp));
     end;
-    if Result <> qeNone then
-      EXIT;
-    if UnaryOp = opNegate then
-      UnaryOp := opUnknown;
-  end;
+    '-': //Unary subtract/negative
+    begin
+      Parser.SkipChar;
+      case UnaryOp of
+        opUnknown: Result := ParseOperand(Slug, opNegate);
+        opNegate: Result := ParseOperand(Slug, opUnknown);
+        opComplement: Result := ParseOperand(Slug, opNegate);
+      else
+        EXIT(errMsg(qeBUG, 'Unknown/invalid unary operator'));
+      end;
+      if Result <> qeNone then
+        EXIT;
+      if UnaryOp = opNegate then
+        UnaryOp := opUnknown;
+    end;
   else
     EXIT(Err(qeOperandExpected));
   end;

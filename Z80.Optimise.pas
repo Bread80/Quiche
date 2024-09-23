@@ -16,6 +16,7 @@ type
                               //we can eliminate the write and keep the value in registers
     PhiWrite: Boolean;  //The first(!) write to the variable is a Phi function
     PhiRead: Boolean;   //The last read from this variable is a Phi function
+    AddrOf: Boolean;    //The code references the address of this variable - optimiser beware!
 
     function ToString: String;  //For debugging etc.
   end;
@@ -38,6 +39,21 @@ begin
   VarMap.Clear;
 end;
 
+//Creates, initialises and adds to the map
+function CreateVarData(Variable: PVariable;Version: Integer): PVarData;
+begin
+  New(Result);
+  VarMap.Add(Result);
+  Result.Variable := Variable;
+  Result.Version := Version;
+  Result.WriteILStep := -1;
+  Result.ReadCount := 0;
+  Result.FirstReadILStep := -1;
+  Result.PhiRead := False;
+  Result.PhiWrite := False;
+  Result.AddrOf := False;
+end;
+
 function VarMapFind(Variable: PVariable;Version: Integer): PVarData;
 var I: Integer;
 begin
@@ -55,12 +71,13 @@ begin
   //In loops the first write may happen /after/ the first read. We need to handle
   //that scenario
   if Assigned(Result) then
-  begin
-    Assert(Result.WriteILStep = -1, 'Variable written to multipe times');
-    Result.WriteILStep := Step;
-  end
+    Assert(Result.WriteILStep = -1, 'Variable written to multipe times')
   else
-  begin
+    Result := CreateVarData(Variable, Version);
+
+  Result.WriteILStep := Step;
+
+(*  begin
     New(Result);
     VarMap.Add(Result);
     Result.Variable := Variable;
@@ -70,13 +87,16 @@ begin
     Result.FirstReadILStep := -1;
     Result.PhiRead := False;
     Result.PhiWrite := False;
+    Result.AddrOf := False;
   end;
-end;
+*)end;
 
 function AddVarMapRead(Variable: PVariable;Version: Integer;Step: Integer): PVarData;
 begin
   Result := VarMapFind(Variable, Version);
   if not Assigned(Result) then
+    Result := CreateVarData(Variable, Version);
+(*
   begin //Not found -> create (you have a read before writing, Mr Programmer!)
     New(Result);
     VarMap.Add(Result);
@@ -88,10 +108,19 @@ begin
     Result.PhiRead := False;
     Result.PhiWrite := False;
   end;
-
+*)
   inc(Result.ReadCount);
   if Result.FirstReadILStep = -1 then
     Result.FirstReadILStep := Step;
+end;
+
+function AddVarMapAddrOf(Variable: PVariable): PVarData;
+begin
+  Result := VarMapFind(Variable, 0);
+  if not Assigned(Result) then
+    Result := CreateVarData(Variable, 0);
+
+  Result.AddrOf := True;
 end;
 
 procedure AddVarMapParam(const Param, Dest: TILParam;Step: Integer);
@@ -103,6 +132,8 @@ begin
       AddVarMapRead(Param.Variable, Param.VarVersion, Step);
     pkVarDest:
       AddVarMapWrite(Param.Variable, Param.VarVersion, Step);
+    pkAddrOf:
+      AddVarMapAddrOf(Param.AddrVar);
     pkPhiVarSource:
     begin
       Data := AddVarMapRead(Dest.PhiVar, Param.PhiSourceVersion, Step);
