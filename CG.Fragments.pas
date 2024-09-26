@@ -124,6 +124,18 @@ begin
   Comment := Variable.Name;
 end;
 
+function CodeRawOffset(const Param: TILParam;out Comment: String): String;
+var Variable: PVariable;
+begin
+  Variable := Param.ToVariable;
+  Assert(Variable.Storage = vsStack);
+  Result := '';
+  if Variable.Offset < 0 then
+    Result := Result + '0-';
+  Result := Result + Variable.GetAsmName;
+  Comment := Variable.Name + ' offset';
+end;
+
 function CodeVarName(const Param: TILParam;out Comment: String): String;
 var Variable: PVariable;
 begin
@@ -197,7 +209,8 @@ begin
           Sub := CodeOffset(Param, Comment)
         else if CompareText(PName, 'offsethigh') = 0 then
           Sub := CodeOffsetHigh(Param, Comment)
-        ;
+        else if CompareText(PName, 'rawoffset') = 0 then
+          Sub := CodeRawOffset(Param, Comment)        ;
 
         if Sub = '' then
         begin

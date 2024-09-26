@@ -118,7 +118,7 @@ begin
       EXIT;
 
     //Manual validation of some intrinsic properties
-    if Func.Op in [opInc, opDec] then
+    if Func.Op in [Def.Operators.opInc, Def.Operators.opDec] then
       if (ArgIndex = 1) then
         //First arg must be an integer constant
         if (Slugs[ArgIndex].ILItem <> nil) or (Slugs[ArgIndex].Operand.Kind <> pkImmediate) then

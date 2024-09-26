@@ -1,11 +1,10 @@
-function Get(x: Integer): Integer
-var a: Pointer
+function a:Integer
+var y:Integer=2565
 begin
-  a := @x
-  Result := peek(a, Integer)
-end
+  result := peek(@y, Integer)
+end;
 
+var x:Integer
 begin
- var i:Integer=0;
- i := Get(2000);
+  x := a
 end.

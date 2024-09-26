@@ -217,30 +217,6 @@ begin
         end;
       end;
     end;
-    pkAddrOf:
-    begin
-      V := Param.AddrVar;
-      if RegStateEqualsVariable(R, V, 0, rskVarAddr) then
-      begin
-        Result  := mtKeep;
-        inc(MoveAnalysis.ToKeepCount);
-      end
-      else
-      begin
-        inc(MoveAnalysis.ToMoveCount);
-        if RegStateFindVariable(V, 0, rskVarAddr) <> rNone then
-          Result := mtCopy
-        else
-        case V.Storage of
-          vsStatic:
-            Result := mtAddrStatic;
-          vsStack:
-            Result := mtAddrStack;
-        else
-          System.Assert(False);
-        end;
-      end;
-    end;
   else
     System.Assert(False);
   end;
@@ -257,7 +233,7 @@ begin
   Result := ptNone;
 
   case Param.Kind of
-    pkImmediate, pkAddrOf: ;  //Nothing
+    pkImmediate: ;  //Nothing
     pkVarSource:
     begin
       V := Param.ToVariable;
@@ -399,7 +375,7 @@ begin
           Assert(MoveAnalysis.CondBranchParam = nil, 'Multiple pkCondBranch in a move');
           MoveAnalysis.CondBranchParam := Param;
         end;
-      pkImmediate, pkVarSource,pkAddrOf,pkPush,pkPushByte:
+      pkImmediate, pkVarSource,pkPush,pkPushByte:
         if Loading then
           CopyParamToMoveState(Param);
     else
@@ -525,13 +501,6 @@ begin
       if MoveState[R].ProcessType in [ptRangeCheck8, ptRangeCheck16] then //TODO
         inc(MoveAnalysis.RequiresFlags);
   end;
-
-  //Fail (disgracefully) if we see this annoying code generator limitation
-  if (MoveState[rHL].Param <> nil) and (MoveState[rHL].Param.Kind = pkAddrOf) and (MoveState[rHL].Param.AddrVar.Storage = vsStack) and
-    (MoveState[rDE].Param <> nil) and (MoveState[rDE].Param.Kind = pkAddrOf) and (MoveState[rDE].Param.AddrVar.Storage = vsStack) then
-    raise Exception.Create('Code generator limitation: Unable to load @variable (address of) into both HL and DE in one operation '+
-      'where both are stored on the stack. Try creating a pointer variable(s), assign the @variable to it (them) and'+
-      'pass the variables to the function (or return or wherever).');
 end;
 
 //====================================LOAD, CALL, STORE

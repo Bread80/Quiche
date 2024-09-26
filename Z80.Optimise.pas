@@ -132,7 +132,7 @@ begin
       AddVarMapRead(Param.Variable, Param.VarVersion, Step);
     pkVarDest:
       AddVarMapWrite(Param.Variable, Param.VarVersion, Step);
-    pkAddrOf:
+    pkVarAddr:
       AddVarMapAddrOf(Param.AddrVar);
     pkPhiVarSource:
     begin

@@ -289,6 +289,9 @@ end;
 procedure GenStoreRegVarValue(Reg: TCPUReg;FromType: TVarType;
   Variable: PVariable;VarVersion: Integer;RangeChecked: Boolean;Options: TMoveOptionSet);
 begin
+  //Update CPU state
+//  RegStateSetVariable(Reg, Variable, VarVersion, rskVarValue);
+
   case Reg of
     rA..rL:
       case GetTypeSize(Variable.VarType) of

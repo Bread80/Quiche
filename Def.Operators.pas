@@ -115,7 +115,7 @@ type
     opNegate, //Unary minus
     //Note: Unary addition is skipped by parser
     opComplement,    //Unary NOT
-    opAddr,  //@ (address of)
+    opAddrOf,  //@ (address of)
 
     //Typecasts
     //These have one input/source parameter (Param1) and an output/dest/result value (Dest/Param3)
@@ -137,7 +137,7 @@ type
 const
   SystemOps = [opUnknown..opFuncReturn];
   BinaryOps = [opAdd..opSHL];
-  UnaryOps = [opNegate..opAddr];
+  UnaryOps = [opNegate..opAddrOf];
   TypecastOps = [opInt8..opChar];
   IntrinsicOps = [opAbs..opUpcase];
 
@@ -198,7 +198,7 @@ const OpStrings : array[low(TOperator)..high(TOperator)] of String = (
   'In', 'SHR', 'SHL',
 
   //Unary operators
-  'Negate', 'Complement', 'Addr',
+  'Negate', 'Complement', 'AddrOf',
 
   //Typecasts
   'Int8', 'Integer', 'Byte', 'Word', 'Pointer', {Real,}

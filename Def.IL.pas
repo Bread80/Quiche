@@ -13,7 +13,7 @@ type TILParamKind = (
     pkPhiVarDest,   // "
     pkVarSource,    //Read from variable
     pkVarDest,      //Write to variable
-    pkAddrOf,       //Address of a variable, constant, function etc.
+    pkVarAddr,       //Address of a variable
     pkPop,          //The stack
     pkPopByte,      //Single byte on the stack
     pkPush,
@@ -76,7 +76,7 @@ type
       pkVarSource, pkVarDest: (
         Variable: PVariable;  //The variable
         VarVersion: Integer; );   //Current version of the variable
-      pkAddrOf: (
+      pkVarAddr: (
         AddrVar: PVariable; );
       pkPop: ();           //Currently invalid for input params
       pkPopByte: ();       //Currently invalid for input params
@@ -211,8 +211,8 @@ uses SysUtils,
   Parse.Base, Parse.Source;
 
 const CPURegStrings: array[low(TCPUReg)..high(TCPUReg)] of String = (
-    'None','Immediate','Indirect','Offset',
-    'Param1',
+    'None',//'Immediate','Indirect','Offset',
+//    'Param1',
     'A','B','C','D','E','H','L',
     'AF',
     'HL','DE','BC','IX','IY',
@@ -500,7 +500,7 @@ begin
       Result := Imm.VarType;
     pkVarSource, pkVarDest:
       Result := Variable.VarType;
-    pkAddrOf: //TODO: Make this a typed pointer
+    pkVarAddr: //TODO: Make this a typed pointer
       Result := vtPointer;
     pkPush, pkPushByte, pkPop, pkPopByte:
       Result := PushType;
@@ -558,7 +558,7 @@ begin
       Assert(Assigned(Variable));
       Result := VarToString;
     end;
-    pkAddrOf:
+    pkVarAddr:
     begin
       Assert(Assigned(AddrVar));
       Result := Result + '@' + AddrVar.Name;
@@ -589,8 +589,12 @@ end;
 
 function TILParam.ToVariable: PVariable;
 begin
-  Assert(Kind in [pkVarSource, pkVarDest]);
-  Result := Variable;
+  case Kind of
+    pkVarSource, pkVarDest: Result := Variable;
+    pkVarAddr: Result := AddrVar;
+  else
+    Assert(False);
+  end;
 end;
 
 
@@ -634,7 +638,7 @@ begin
       Result := Result + #13';VarSource    ' + CPURegStrings[Param.Reg] + ' := ' + Param.ToString;
     pkVarDest:
       Result := Result + #13';VarDest    ' + Param.ToString + ' := ' + CPURegStrings[Param.Reg];
-    pkAddrOf:
+    pkVarAddr:
     begin
       Assert(Assigned(Param.AddrVar));
       Result := Result + CPURegStrings[Param.Reg] + ' := @' + Param.AddrVar.Name;
@@ -664,9 +668,9 @@ begin
     opRegStore, opRegStoreExtended,
     opFuncCall, opFuncCallExtended:
     begin
-      Assert(Param1.Kind in [pkNone, pkImmediate, pkVarSource, pkVarDest, pkAddrOf]);
-      Assert(Param2.Kind in [pkNone, pkImmediate, pkVarSource, pkVarDest, pkAddrOf]);
-      Assert(Param3.Kind in [pkNone, pkImmediate, pkVarSource, pkVarDest, pkAddrOf, pkCondBranch]);
+      Assert(Param1.Kind in [pkNone, pkImmediate, pkVarSource, pkVarDest, pkVarAddr]);
+      Assert(Param2.Kind in [pkNone, pkImmediate, pkVarSource, pkVarDest, pkVarAddr]);
+      Assert(Param3.Kind in [pkNone, pkImmediate, pkVarSource, pkVarDest, pkVarAddr, pkCondBranch]);
       Result := Result + OpStrings[Op];
 
       FuncToDo := Func;
@@ -692,8 +696,8 @@ begin
         Result := Result + #13';    CALL: ' + Func.ToString;
     end;
   else //General operation types
-    Assert(Param1.Kind in [pkNone, pkImmediate, pkVarSource, pkAddrOf, pkPhiVarSource]);
-    Assert(Param2.Kind in [pkNone, pkImmediate, pkVarSource, pkAddrOf, pkPhiVarSource]);
+    Assert(Param1.Kind in [pkNone, pkImmediate, pkVarSource, pkVarAddr, pkPhiVarSource]);
+    Assert(Param2.Kind in [pkNone, pkImmediate, pkVarSource, pkVarAddr, pkPhiVarSource]);
     Assert(Dest.Kind in [pkNone, pkCondBranch, pkBranch, pkVarDest, pkPhiVarDest, pkPush, pkPushByte]);
     Result := Result + Param3.ToString;
 
@@ -701,7 +705,7 @@ begin
       Result := Result + ' = ';
     if Op <> opUnknown then
     begin
-      Result := Result + Operations[Op].Name;
+      Result := Result + OpStrings[Op];//Operations[Op].Name;
       if not (Dest.Kind in [pkNone, pkPhiVarDest]) then
         Result := Result + ':' + VarTypeToName(ResultType);
       Result := Result + ' ';

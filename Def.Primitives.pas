@@ -14,13 +14,19 @@ type
     pfnLoadRPLow,   //Load only the low byte of the (16-bit) parameter
                     //If the value being loaded is 8-bit it will be zero extended
                     //(NOT sign extended)
-    pfnLoadRPHigh,  //Load only high byte of the (16-bit) parameter
-
-    pfnDestStaticVar,  //Store to a static variable
-    pfnDestRelVar      //Store to an IX relative variable
+    pfnLoadRPHigh  //Load only high byte of the (16-bit) parameter
     );
 
   TPrimFlagSet = set of TPrimFlag;
+
+  //Where is the parameter value stored (Location)
+  TPrimLoc = (
+    plRegister, //Value will be consumed from/be output in a register
+    //The remaining types are used where a primitive can directly consume/write to
+    //a location other than a CPU register
+    plImmediate,  //The primitive can directly consume an immediate/literal, eg. LD r,n. Not valid as a result.
+    plStaticVar,  //The primitive can read from/write to a static variable, eg. LD a,(nn)
+    plStackVar);  //The primitive can read from/write to a stack variable , eg. INC (IX+d)
 
   PPrimitive = ^TPrimitive;
   TPrimitive = record
@@ -38,13 +44,19 @@ type
 
     //Fields for primitive use
     Flags: TPrimFlagSet;  //Flags
-    LRegs: TCPURegSet;    //What registers can the left parameter accept?
-    RRegs: TCPURegSet;    //What registers can the right operator accept?
+
+    LLoc: TPrimLoc;       //Where is the left parameter stored.
+    LRegs: TCPURegSet;    //If LLoc is plRegister, what registers can the left parameter accept?
+    RLoc: TPrimLoc;       //Again for right parameter
+    RRegs: TCPURegSet;
+    ResultLoc: TPrimLoc;  //And for result
+    ResultRegs: TCPURegSet;   //What register is the result returned in? (if ResultInLReg is False)
     ResultInLReg: Boolean;  //If True the result is returned in the same register
                           //as used for LReg. If False, see DRegs
-    ResultReg: TCPUReg;   //What register is the result returned in? (if ResultInLReg is False)
+
     Corrupts: TCPURegSet; //What registers are corrupted by this routine
                           //(Should this include Result register?)
+
     OverflowCheckProcName: String; //Used when we need to overflow check the result value
                           //If empty a generic overflow checking routine will be used
                           //Set this value if there is an alternate routine needs to be
@@ -90,9 +102,6 @@ function PrimFindParseUnary(Op: TOperator;const Left: TExprSlug;
 //---Codegen time
 
 function ILItemToPrimitive(const ILItem: TILItem;out SwapParams: Boolean): PPrimitive;
-
-//Returns a primitive stuitable for storing a constant into the Variable
-function PrimFindStoreImm(Variable: PVariable): PPrimitive;
 
 function PrimFindByProcName(AName: String): PPrimitive;
 
@@ -227,24 +236,20 @@ begin
   Result := high(TNumberRange);
 end;
 
-function ParamRegMatch(Prim: PPrimitive;AvailableRegs: TCPURegSet;
+function ParamRegMatch(Prim: PPrimitive;PrimLoc: TPrimLoc;AvailableRegs: TCPURegSet;
   Kind: TILParamKind;Storage: TVarStorage): Boolean;
 begin
   if Kind = pkNone then
     EXIT(True);
 
-  if AvailableRegs = [rImm] then
-    EXIT(Kind = pkImmediate);
-
-  if AvailableRegs = [rIndirect] then
-    EXIT(Storage = vsStatic);
-
-  if AvailableRegs = [rOffset] then
-    EXIT(Storage = vsStack);
-
-  //If we can't find a suitable routine which accepts an Imm value then we'll
-  //use one which doesn't and manually load it into a register.
-  Result := (AvailableRegs * [rA..rE,rH..rL, rHL..rBC]) <> [];
+  case PrimLoc of
+    plImmediate: Result := Kind = pkImmediate;
+    plStaticVar: Result := Storage = vsStatic;
+    plStackVar:  Result := Storage = vsStack;
+    plRegister:  Result := (AvailableRegs * [rA..rE,rH..rL, rHL..rBC]) <> [];
+  else
+    Assert(False);
+  end;
 end;
 
 function IfOverflowCheckingMatch(const Prim: PPrimitive;const ILItem: PILItem): Boolean;
@@ -257,7 +262,7 @@ begin
     Assert(False, 'Unknown primitive validation option');
   end;
 end;
-
+(*
 function DestRegMatch(const Prim: PPrimitive;const ILDest: TILParam): Boolean;
 var V: PVariable;
 begin
@@ -268,44 +273,36 @@ begin
       if Prim.ResultInLReg then
         Result := [rHL,rDE,rBC] * Prim.LRegs <> []
       else
-        Result := Prim.ResultReg in [rHL, rDE, rBC];
+        Result := Prim.ResultRegs * [rHL, rDE, rBC] <> [];
     pkPushByte:
       //TODO: Update this to have more regs available
       if Prim.ResultInLReg then
         Result := [rA,rB,rD,rH, rZFA,rNZFA,rCPLA] * Prim.LRegs <> []
       else
-        Result := Prim.ResultReg in [rA,rB,rD,rH, rZFA,rNZFA,rCPLA];
-    pkVarDest:
-    begin //We need a result suitable for writing to a variable
-//      if ILDest.Kind in [pkVar] then
-      begin
-        if ((Prim.ResultInLReg) and (Prim.LRegs = [rIndirect])) or (Prim.ResultReg = rIndirect) then
-        begin
-          V := ILDest.ToVariable;
-          EXIT(V.Storage = vsStatic);
-        end;
+        Result := Prim.ResultRegs * [rA,rB,rD,rH, rZFA,rNZFA,rCPLA] <> [];
 
-        if ((Prim.ResultInLReg) and (Prim.LRegs = [rOffset])) or (Prim.ResultReg = rOffset) then
-        begin
-          V := ILDest.ToVariable;
-          EXIT(V.Storage = vsStack);
-        end;
-
-        //If it's anything else then we can convert it as needed
-        Result := True;
-      end
-    end;
   else
     Assert(False, 'ToDo (Branches?)');
   end;
 end;
-
+*)
 function DestMatch(Prim: PPrimitive;ILItem: PILItem): Boolean;
+var V: PVariable;
 begin
   case ILItem.Dest.Kind of
     pkNone, pkPush, pkPushByte: Result := True;
     pkCondBranch: Result := Prim.ResultType in [vtBoolean, vtFlag];
-    pkVarDest: Result := DestRegMatch(Prim, ILItem.Dest);
+    pkVarDest: //We need a result suitable for writing to a variable
+    begin
+      V := ILItem.Dest.ToVariable;
+      case Prim.ResultLoc of
+        plRegister:  Result := True;
+        plStaticVar: Result := V.Storage = vsStatic;
+        plStackVar:  Result := V.Storage = vsStack;
+      else
+        Assert(False);
+      end;
+    end;
   else
     Assert(False);
   end;
@@ -506,18 +503,18 @@ begin
   begin
     if Swap then
     begin
-      if not ParamRegMatch(Prim, Prim.LRegs, SearchRec.RKind, SearchRec.RStorage) then
+      if not ParamRegMatch(Prim, Prim.LLoc, Prim.LRegs, SearchRec.RKind, SearchRec.RStorage) then
         EXIT(-1);
       if (Prim.RType <> vtUnknown) and
-        not ParamRegMatch(Prim, Prim.RRegs, SearchRec.LKind, SearchRec.LStorage) then
+        not ParamRegMatch(Prim, Prim.RLoc, Prim.RRegs, SearchRec.LKind, SearchRec.LStorage) then
         EXIT(-1);
     end
     else
     begin
-      if not ParamRegMatch(Prim, Prim.LRegs, SearchRec.LKind, SearchRec.LStorage) then
+      if not ParamRegMatch(Prim, Prim.LLoc, Prim.LRegs, SearchRec.LKind, SearchRec.LStorage) then
         EXIT(-1);
       if (Prim.RType <> vtUnknown) and
-        not ParamRegMatch(Prim, Prim.RRegs, SearchRec.RKind, SearchRec.RStorage) then
+        not ParamRegMatch(Prim, Prim.RLoc, Prim.RRegs, SearchRec.RKind, SearchRec.RStorage) then
         EXIT(-1);
     end;
 
@@ -527,7 +524,7 @@ begin
       EXIT(-1);
 
     //Primitives which read/write directly to/from variables
-    if SearchRec.ResultKind = pkVarDest then
+(*    if SearchRec.ResultKind = pkVarDest then
     begin
       if pfnDestStaticVar in Prim.Flags then
         if SearchRec.ResultStorage <> vsStatic then
@@ -536,7 +533,7 @@ begin
         if SearchRec.ResultStorage <> vsStack then
           EXIT(-1);
     end;
-  end;
+*)  end;
 end;
 
 function PrimSearch(var SearchRec: TPrimSearchRec): Boolean;
@@ -747,7 +744,7 @@ var
   V: PVariable;
 begin
   //This routine is not valid for these operators
-  Assert(ILItem.Op >= opAdd, 'Cannot use this function with this operator');
+  Assert(ILItem.Op >= Def.Operators.opAdd, 'Cannot use this function with this operator');
 
   SearchRec.Op := ILItem.Op;
   SearchRec.PrimIndex := -1;
@@ -763,14 +760,14 @@ begin
   SearchRec.MatchResultType := vtUnknown;
 
   SearchRec.LKind := ILItem.Param1.Kind;
-  if SearchRec.LKind = pkVarSource then
+  if SearchRec.LKind in [pkVarSource, pkVarAddr] then
   begin
     V := ILItem.Param1.ToVariable;
     SearchRec.LStorage := V.Storage;
   end;
 
   SearchRec.RKind := ILItem.Param2.Kind;
-  if SearchRec.RKind = pkVarSource then
+  if SearchRec.RKind in [pkVarSource, pkVarAddr] then
   begin
     V := ILItem.Param2.ToVariable;
     SearchRec.RStorage := V.Storage;
@@ -790,22 +787,6 @@ begin
   end
   else
     Result := nil;
-end;
-
-function PrimFindStoreImm(Variable: PVariable): PPrimitive;
-var Index: Integer;
-begin
-  Index := Operations[opStoreImm].FirstPrimIndex;
-  while PrimList[Index].Op = opStoreImm do
-  begin
-    if PrimList[Index].LType = Variable.VarType then
-      if ((Variable.Storage = vsStatic) and (pfnDestStaticVar in PrimList[Index].Flags)) or
-        ((Variable.Storage = vsStack) and (pfnDestRelVar in PrimList[Index].Flags)) then
-      EXIT(PrimList[Index]);
-    inc(Index);
-  end;
-
-  Result := nil;
 end;
 
 //================OTHER
@@ -854,7 +835,7 @@ end;
 
 const lutCharToCPUReg: array['a'..'z'] of TCPUReg = (
   rA, rB, rC, rD, rE, rFlags, rNone,  //A..G
-  rH, rImm, rNone, rNone, rL, rNone,  //L..M
+  rH, rNone, rNone, rNone, rL, rNone,  //L..M
   rNone, rNone, rNone, rNone, rNone, rNone, rNone, rNone, //N..U
   rNone, rNone, rNone, rNone, rNone);   //V..Z
 
@@ -879,10 +860,6 @@ begin
     Result := CharToCPUReg(S.Chars[0], ForCorrupts)
   else if CompareText(S, 'none') = 0 then
     Result := rNone
-  else if CompareText(S, 'imm') = 0 then
-    Result := rImm
-  else if CompareText(S, 'p1') = 0 then
-    Result := rP1
   else if (S = 'bc') or (S = 'BC') then
     Result := rBC
   else if (S = 'de') or (S = 'DE') then
@@ -919,6 +896,22 @@ begin
     Result := Result + [StrToCPUReg(X, ForCorrupts)];
 end;
 
+procedure StrToPrimLoc(const S: String;out Loc: TPrimLoc;out Regs: TCPURegSet);
+begin
+  Regs := [];
+  if CompareText(S, 'imm') = 0 then
+    Loc := plImmediate
+  else if CompareText(S, 'static') = 0 then
+    Loc := plStaticVar
+  else if CompareText(S, 'stack') = 0 then
+    Loc := plStackVar
+  else
+  begin
+    Loc := plRegister;
+    Regs := StrToCPURegSet(S, False);
+  end;
+end;
+
 function StrToPrimFlagSet(S: String): TPrimFlagSet;
 var X: String;
 begin
@@ -928,14 +921,6 @@ begin
       Result := Result + [pfnLoadRPLow]
     else if CompareText(X, 'load_rp_high') = 0 then
       Result := Result + [pfnLoadRPHigh]
-{    else if CompareText(X, 'p1staticvar') = 0 then
-      Result := Result + [pfP1StaticVar]
-    else if CompareText(X, 'p1relvar') = 0 then
-      Result := Result + [pfP1RelVar]
-}    else if CompareText(X, 'deststaticvar') = 0 then
-      Result := Result + [pfnDestStaticVar]
-    else if CompareText(X, 'destrelvar') = 0 then
-      Result := Result + [pfnDestRelVar]
     else
       raise Exception.Create('Unknown prim flag NG: ' + X);
 end;
@@ -956,7 +941,7 @@ const
   //Empty columns to give half-decent presentation in Excel
   fLRegs          = 11;
   fRRegs          = 12;
-  fResultReg      = 13;
+  fResultRegs      = 13;
   fCorrupts       = 14;
   fOverflowCheckProc   = 15;
   fRangeCheckToS8   = 16;
@@ -1045,25 +1030,21 @@ begin
         //Primitive usage data
         Prim.Flags := StrToPrimFlagSet(Fields[fFlags]);
 
-        Prim.LRegs := StrToCPURegSet(Fields[fLRegs], False);
-        if rImm in Prim.LRegs then
-          Assert(Prim.LRegs = [rImm])
-        else if rIndirect in Prim.LRegs then
-          Assert(Prim.LRegs = [rIndirect])
-        else if rOffset in Prim.LRegs then
-          Assert(Prim.LRegs = [rOffset]);
+        StrToPrimLoc(Fields[fLRegs], Prim.LLoc, Prim.LRegs);
+        StrToPrimLoc(Fields[fRRegs], Prim.RLoc, Prim.RRegs);
 
-        Prim.RRegs := StrToCPURegSet(Fields[fRRegs], False);
-        if rImm in Prim.RRegs then
-          Assert(Prim.RRegs = [rImm])
-        else if rIndirect in Prim.RRegs then
-          Assert(Prim.RRegs = [rIndirect])
-        else if rOffset in Prim.RRegs then
-          Assert(Prim.RRegs = [rOffset]);
-
-        Prim.ResultInLReg := CompareText(Fields[fResultReg], 'param1') = 0;
-        if not Prim.ResultInLReg then
-          Prim.ResultReg :=   StrToCPUReg(Fields[fResultReg], False);
+        Prim.ResultInLReg := CompareText(Fields[fResultRegs], 'param1') = 0;
+        if Prim.ResultInLReg then
+        begin
+          Prim.ResultLoc := Prim.LLoc;
+          Prim.ResultRegs := Prim.LRegs;
+        end
+        else
+        begin
+          StrToPrimLoc(Fields[fResultRegs], Prim.ResultLoc, Prim.ResultRegs);
+          if Prim.ResultLoc = plImmediate then
+            raise Exception.Create('Invalid ResultLoc: Immediate');
+        end;
         Prim.Corrupts :=  StrToCPURegSet(Fields[fCorrupts], True);
 
         Prim.OverflowCheckProcName := Fields[fOverflowCheckProc];

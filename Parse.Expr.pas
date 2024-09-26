@@ -502,6 +502,32 @@ begin
 end;
 
 
+function ParseAddrOf(var Slug: TExprSlug): TQuicheError;
+var UnaryOp: TUnaryOperator;
+begin //Sub-expressions
+  Parser.SkipChar;
+
+  ParseOperand(Slug, UnaryOp);
+  if Result <> qeNone then
+    EXIT;
+
+  if UnaryOp <> opUnknown then
+    EXIT(Err(qeAt));
+  if Slug.Op <> opUnknown then
+    EXIT(Err(qeAt));
+  if Slug.Operand.Kind <> pkVarSource then
+     EXIT(Err(qeAt));
+
+  Slug.ILItem := ILAppend(OpAddrOf);
+  Slug.ILItem.Param1 := Slug.Operand;
+  Slug.ILItem.Param1.Kind := pkVarAddr;
+  Slug.ILItem.ResultType := vtPointer;
+  Slug.Operand.Kind := pkNone;
+  Slug.ResultType := vtPointer;
+  Slug.ImplicitType := vtPointer;
+
+  Result := qeNone;
+end;
 
 //Parses an operand (of an expression) and returns the data in Operand
 //Also parses sub-expressions (in parenthesis)
@@ -582,23 +608,7 @@ begin
     '#': //Character literal
       Result := ParseCharLiteral(Slug);
     '@': //Address prefix
-    begin //Sub-expressions
-      Parser.SkipChar;
-
-      Result := ParseOperand(Slug, UnaryOp);
-      if Result <> qeNone then
-        EXIT;
-
-      if UnaryOp <> opUnknown then
-        EXIT(Err(qeAt));
-      if Slug.ILItem <> nil then
-        EXIT(Err(qeAt));
-      if Slug.Operand.Kind <> pkVarSource then
-        EXIT(Err(qeAt));
-      Slug.Operand.Kind := pkAddrOf;
-
-      Result := qeNone;
-    end;
+      Result := ParseAddrOf(Slug);
     '+': //Unary plus
     begin
       Parser.SkipChar;
@@ -724,7 +734,7 @@ end;
 //that there is a suitable primitive available (as noted in the OpTypes field of
 //the Operands list.
 //Returns False if operands are incompatible with the operator/available primitives
-function AssignSlugTypesNG(var Left, Right: TExprSlug): Boolean;
+function AssignSlugTypes(var Left, Right: TExprSlug): Boolean;
 var
   LType: TVarType;
   RType: TVarType;
@@ -781,7 +791,7 @@ begin
       if Result <> qeNone then
         EXIT;
 
-      if not AssignSlugTypesNG(Left, Right) then
+      if not AssignSlugTypes(Left, Right) then
         EXIT(ErrOpUsage('No primitive available for operand types ' +
           VarTypeToName(Left.Operand.GetVarType) + ' and ' +
           VarTypeToName(Right.Operand.GetVarType), Left.Op));
@@ -818,7 +828,7 @@ begin
     if not Evalled then
     begin
       //Modifies operand types and result type based on available primitives
-      if not AssignSlugTypesNG(Left, Right) then
+      if not AssignSlugTypes(Left, Right) then
         EXIT(ErrOpUsage('No operator available for operand types ' +
           VarTypeToName(Left.Operand.GetVarType) + ' and ' +
           VarTypeToName(Right.Operand.GetVarType), Left.Op));

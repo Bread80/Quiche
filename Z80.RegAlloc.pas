@@ -42,47 +42,34 @@ begin
 
   Assert(Assigned(Prim));
 
-  if ILItem.Param1.Reg = rNone then
-  begin
-    Regs := [];
+  if (ILItem.Param1.Reg = rNone) and (ILItem.Param1.Kind <> pkNone) then
     //Prim doesn't use this parameter?
-    if Prim.LRegs = [] then
-      ILItem.Param1.Reg := rNone
-    //Param is immediate and Prim can handle an immediate value?
-    else if (ILItem.Param1.Kind = pkImmediate) and (rImm in Prim.LRegs) then
-      ILItem.Param1.Reg := rImm
-    else  //...otherwise assign a register for the parameter to be loaded into
-      Regs := Prim.LRegs;
-
-    if Regs <> [] then
+    if Prim.LLoc = plRegister then
     begin
-      //Find an available register
-      Reg := Pred(rA);
-      ILItem.Param1.Reg := rNone;
-      repeat
-        Reg := Succ(Reg);
-        if Reg in Regs then
-          ILItem.Param1.Reg := Reg;
-      until (ILItem.Param1.Reg <> rNone) or (Reg = high(TCPUReg));
-      if ILItem.Param1.Reg = rNone then
-        raise Exception.Create('TEMNRegAlloc couldn''t find suitable Param1 register');
+      //assign a register for the parameter to be loaded into
+      Regs := Prim.LRegs;
+      if Regs <> [] then
+      begin
+        //Find an available register
+        Reg := Pred(rA);
+        ILItem.Param1.Reg := rNone;
+        repeat
+          Reg := Succ(Reg);
+          if Reg in Regs then
+            ILItem.Param1.Reg := Reg;
+        until (ILItem.Param1.Reg <> rNone) or (Reg = high(TCPUReg));
+        if ILItem.Param1.Reg = rNone then
+          raise Exception.Create('TEMNRegAlloc couldn''t find suitable Param1 register');
+      end;
     end;
-  end;
 
-  if (ILItem.Param2.Reg = rNone) and (ILItem.Op <> opMove) then
-  begin
-    if Prim.RRegs = [] then
-      ILItem.Param2.Reg := rNone
-    else if (ILItem.Param2.Kind = pkImmediate) and (rImm in Prim.RRegs) then
-      ILItem.Param2.Reg := rImm
-    else
+  if (ILItem.Param2.Reg = rNone) and (ILItem.Param2.Kind <> pkNone) then
+    if Prim.RLoc = plRegister then
     begin
       //Get allowable registers
       //TODO: Needs to be more flexible!
       Regs := Prim.RRegs - [ILItem.Param1.Reg];
-
       Reg := Pred(rA);
-      ILItem.Param2.Reg := rNone;
       repeat
         Reg := Succ(Reg);
         if Reg in Regs then
@@ -91,34 +78,40 @@ begin
       if ILItem.Param2.Reg = rNone then
         raise Exception.Create('TEMNRegAlloc couldn''t find suitable Param2 register');
     end;
-  end;
 
-  if ILItem.Dest.Kind = pkNone then
-    //Nothing to do
-  else if not (ILItem.Dest.Kind in [pkCondBranch, pkVarDest, pkPush, pkPushByte]) then
-    Assert(False) //Invalid/unknown ParamKind
-  else
-  begin
-    //Use result data from Primitive
-    if Prim.ResultInLReg then
+  if (ILItem.Dest.Reg = rNone) and (ILItem.Dest.Kind <> pkNone) then
+    if Prim.ResultLoc = plRegister then
     begin
-      if ILItem.Dest.Kind in [pkPushByte, pkPush] then
-        case ILItem.Param1.Reg of
-          rA: Reg := rAF;
-          rB: Reg := rBC;
-          rD: Reg := rDE;
-          rH: Reg := rHL;
-        else
-          Reg := ILItem.Param1.Reg;
-        end
-      else
-        Reg := ILItem.Param1.Reg;
-    end
-    else
-      Reg := Prim.ResultReg;
+      if not (ILItem.Dest.Kind in [pkCondBranch, pkVarDest, pkPush, pkPushByte]) then
+        Assert(False); //Invalid/unknown ParamKind
 
-    ILItem.Dest.Reg := Reg
-  end;
+      if Prim.ResultInLReg then
+      begin //Use result data from Primitive
+        if ILItem.Dest.Kind in [pkPushByte, pkPush] then
+          case ILItem.Param1.Reg of
+            rA: ILItem.Dest.Reg := rAF;
+            rB: ILItem.Dest.Reg := rBC;
+            rD: ILItem.Dest.Reg := rDE;
+            rH: ILItem.Dest.Reg := rHL;
+          else
+            ILItem.Dest.Reg := ILItem.Param1.Reg;
+          end
+        else
+        ILItem.Dest.Reg := ILItem.Param1.Reg;
+      end
+      else
+      begin //Choose a register
+        Regs := Prim.ResultRegs;
+        Reg := Pred(rA);
+        repeat
+          Reg := Succ(Reg);
+          if Reg in Regs then
+            ILItem.Dest.Reg := Reg;
+        until (ILItem.Dest.Reg <> rNone) or (Reg = high(TCPUReg));
+        if ILItem.Dest.Reg = rNone then
+          raise Exception.Create('TEMNRegAlloc couldn''t find suitable Dest register');
+      end;
+    end;
 end;
 
 procedure TEMPRegAllocMove(var ILItem: PILItem);
@@ -126,15 +119,13 @@ var Reg: TCPUReg;
   Regs: TCPURegSet;
 begin
   Assert(ILItem.Op = opMove);
-  Assert(ILItem.Param1.Kind in [pkImmediate, pkVarSource, pkAddrOf, pkPop, pkPopByte]);
+  Assert(ILItem.Param1.Kind in [pkImmediate, pkVarSource, pkPop, pkPopByte]);
   Assert(ILItem.Param2.Kind = pkNone);
   Assert(ILItem.Param3.Kind in [pkVarDest, pkPush, pkPushByte]);
 
   if ILItem.Param1.Reg = rNone then
-    if ILItem.Param1.Kind = pkAddrOf then
-      ILItem.Param1.Reg := rHL
     //If the Dest is 8-bit load it into A, if 16-bit load it into HL
-    else if GetTypeSize(ILItem.Dest.GetVarType) = 1 then
+    if GetTypeSize(ILItem.Dest.GetVarType) = 1 then
       ILItem.Param1.Reg := rA
     else
       ILItem.Param1.Reg := rHL;

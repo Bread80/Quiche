@@ -702,14 +702,13 @@ begin
   case Param.Kind of
     pkNone: ; //No param to load
     pkImmediate:
-      //If Reg is rImm the data is loaded by the primitive itself
-      if not (Param.Reg in [rNone, rImm]) then
+      //If Reg is rNone the literal is loaded by the primitive itself
+      if Param.Reg <> rNone then
         GenLoadRegLiteral(Param.Reg, Param.Imm, Options);
     pkVarSource:
       GenLoadRegVarValue(Param.Variable, Param.VarVersion, Param.Reg, PrimFlags, ToType,
         cgRangeCheck in Param.Flags, Options);
-    pkAddrOf:
-      GenLoadRegAddrOf(Param.Variable, Param.Reg, ToType, Options);
+    pkVarAddr: ;  //Handled by the primitive
   else
     System.Assert(False, 'Invalid param kind for param load');
   end;

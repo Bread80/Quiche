@@ -21,10 +21,11 @@
 ;r16		- a 16 bit register pair
 ;r16low		- the low register of a register pair
 ;r16high	- the high register of a register pair
-;offset		- the offset to a stack variable
-;offsetlow	- offset to the low byte of a stack variable
-;offsethigh	- offset to the high byte of a stack variable
+;offset		- IX based the offset to a stack variable (IX+/-name)
+;offsetlow	- IX based offset to the low byte of a stack variable (IX+/-name)
+;offsethigh	- IX based offset to the high byte of a stack variable (IX+/-name+1)
 ;varname	- Fully qualified name of the variable
+;rawoffset  - Offset to a stack variable - just the offset
 
 ;Variables and stackframe data
 ;paramsbytesize	- number of bytes allocated on the stack for parameters by the current function
@@ -133,8 +134,24 @@
 =load_pr16low_rellow
   ld <p.r16low>,(ix<p.offsetlow>)	;$$
 
+=load_p1_r16_varaddr
+  ld <d.r16>,<p1.varname>
 
+=load_p1_ix_varaddr_to_hl
+  push ix
+  pop hl
+  ld de,<p1.rawoffset>
+  add hl,de
 
+;Untested
+=load_p1_ix_varaddr_to_bc
+  push ix
+  pop hl
+  ld bc,<p1.rawoffset>
+  add hl,bc
+  ld c,l
+  ld b,h
+  
 ;Assigns
 ;===================================================
 ;Assigns are used to (usually) set varaibles from constant values.

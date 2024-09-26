@@ -1,43 +1,25 @@
 ﻿,,Table of available Primitives,,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,
-,,For full documentation see TPrimitiveNG record in the PrimitivesEx.pas file,,,,,,,,,,,,,,,,,,
+,,"The parser will search this list to ascertain that a combination of parameter types and operator is available, and the result type that combination will return.",,,,,,,,,,,,,,,,,,
+,,The code generator will search this list to find the optimum routine to generate for the combination of parameter types and locations.,,,,,,,,,,,,,,,,,,
+,,The register allocater will use the list to choose registers to parameters and results to.,,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,
+,,For full documentation see TPrimitive record in the Def.Primitives.pas file,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,
+,,"Valid values for Lreg, Rregs and ResultRegs:",,,,,,,,,,,,,,,,,,
+,,,"imm, static, stack, or a semicolon separated list of CPU registers and flags. Imm is invalid for ResultReg.",,,,,,,,,,,,,,,,,
+,,,"imm, static, stack cannot be included in a list or locations - they must be the only value given",,,,,,,,,,,,,,,,,
+,,,"Where imm, static or stack are given another variant which uses register must (usually!) be available",,,,,,,,,,,,,,,,,
 ,,"Lines will be ignored if they begin with a semicolon, or if Operation column is empty",,,,,,,,,,,,,,,,,,
 ,,Terminate the file with 'END' in capitals in first column,,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,
 ,,;Notes: Ordering of items in the table is significant!,,,,,,,,,,,,,,,,,,
 ,,,;All handlers for an operation must be grouped together,,,,,,,,,,,,,,,,,
-,,,";Immediate, indirect and offset locations must be listed before register locations",,,,,,,,,,,,,,,,,
 ,,,;Smaller types /should/ be listed before larger types (but not currently a requirement),,,,,,,,,,,,,,,,,
-,,,;Immediate Indirect and Offset cannot be mixed with other locations (i.e. they must be the only item in a list),,,,,,,,,,,,,,,,,
-,,,"Where there is an option for Immediate, Indirect, Offset, there *MUST* also be an identical variant which uses Registers. The compiler will fail if this is not the case!",,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,(Empty columns for formatting),,,,,,,,,,,
-;,,----Primitive Selection----,,,,,,----Primitive Data----,,,,,,,,Optimised range checks for type conversions,,,,
-;,Operation,Ltype,Rtype,Commutative,ResultType,IfOverflowChecking,Flags,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,OverflowCheck,Int8,Byte,Integer,Word,Notes
-;,funccall,Byte,Byte,n,Byte,x,,proccall,,,a;b;c;d;e;h;l;bc;de;hl,a;b;c;d;e;h;l;bc;de;hl,Param1,,,,,,,Placeholder. Data is ignored! (except Proc)
-,move,Byte,Byte,n,Byte,x,,empty,,,a;b;c;d;e;h;l;bc;de;hl,a;b;c;d;e;h;l;bc;de;hl,Param1,,,,,,,Placeholder. Data is ignored! (except Proc)
-,,,,,,,,,,,,,,,,,,,,
-;,,"StoreImms use a different primitive lookup routine. Only Ltype, Flags and Proc are used.",,,,,,,,,,,,,,,,,,
-;,,ResultReg is none: data is written by the routine. 'None' cancels code generator writing 'after' code,,,,,,,,,,,,,,,,,,
-,storeimm,Byte,none,n,none,x,deststaticvar,assign_abs8_a,,,a,,none,,none,,,,,
-,storeimm,Byte,none,n,none,x,destrelvar,assign_rel8_imm8       ,,,imm,,none,,none,,,,,
-,storeimm,Int8,none,n,none,x,deststaticvar,assign_abs8_a,,,a,,none,,none,,,,,
-,storeimm,Int8,none,n,none,x,destrelvar,assign_rel8_imm8       ,,,imm,,none,,none,,,,,
-,storeimm,Boolean,none,n,none,x,deststaticvar,assign_abs8_a,,,a,,none,,none,,,,,
-,storeimm,Boolean,none,n,none,x,destrelvar,assign_rel8_imm8       ,,,imm,,none,,none,,,,,
-,storeimm,Char,none,n,none,x,deststaticvar,assign_abs8_a,,,a,,none,,none,,,,,
-,storeimm,Char,none,n,none,x,destrelvar,assign_rel8_imm8       ,,,imm,,none,,none,,,,,
-,storeimm,Integer,none,n,none,x,deststaticvar,assign_abs16_r16,,,hl;de;bc,,none,,none,,,,,
-,storeimm,Integer,none,n,none,x,destrelvar,assign_rel16_imm16,,,imm,,none,,none,,,,,
-,storeimm,Word,none,n,none,x,deststaticvar,assign_abs16_r16,,,hl;de;bc,,none,,none,,,,,
-,storeimm,Word,none,n,none,x,destrelvar,assign_rel16_imm16,,,imm,,none,,none,,,,,
-,storeimm,Pointer,none,n,none,x,deststaticvar,assign_abs16_r16,,,hl;de;bc,,none,,none,,,,,
-,storeimm,Pointer,none,n,none,x,destrelvar,assign_rel16_imm16,,,imm,,none,,none,,,,,
 ,,,,,,,,,,,,,,,,,,,,
 ;,Binary operators,,,,,,,,(Empty columns for formatting),,,,,,,,,,,
-;,,----Primitive Selection----,,,,,,----Primitive Data----,,,,,,,,Special validations on type conversion,,,,
-;,Operation,Ltype,Rtype,Commutative,ResultType,Validation,,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,Validate,Int8,Byte,Integer,Word,Notes
+;,,----Primitive Selection----,,,,,,----Primitive Data----,,,,,,,,Optimised range checks for type conversions,,,,
+;,Operation,Ltype,Rtype,Commutative,ResultType,Validation,Flags,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,OverflowCheck,Int8,Byte,Integer,Word,Notes
 ,add,Byte,Byte,y,Byte,x,,add8_reg_imm,,,a,imm,a,a;f,c_overflow,m_range,,,,
 ,add,Byte,Byte,y,Byte,x,,add8_reg_reg,,,a,a;b;c;d;e;h;l,a,a;f,c_overflow,m_range,,,,
 ,add,Int8,Int8,y,Int8,x,,add8_reg_imm,,,a,imm,a,a;f,pe_overflow,,m_range,,m_range,
@@ -128,8 +110,8 @@
 ,shr,Word,Word,n,LType,x,,:right_shift_16_by_16,,,hl,bc,hl,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,
 ,,,,,,,,(Empty columns for formatting),,,,,,,,,,,,
-;,,----Primitive Selection----,,,,----Primitive Data----,,,,,,,,,Special validations on type conversion,,,,,
-;,Operation,Ltype,Rtype,Commutative,ResultType,Validation,,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,Validate,Int8,Byte,Integer,Word,Notes
+;,,----Primitive Selection----,,,,----Primitive Data----,,,,,,,,,,Optimised range checks for type conversions,,,,
+;,Operation,Ltype,Rtype,Commutative,ResultType,Validation,Flags,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,OverflowCheck,Int8,Byte,Integer,Word,Notes
 ,equal,Byte,Byte,y,<Flag>,x,,compare8_reg_imm,,,a,imm,zf,f,empty,,,,,For branches - only sets flag
 ,equal,Byte,Byte,y,<Flag>,x,,compare8_reg_reg,,,a,a;b;c;d;e;h;l,zf,f,empty,,,,,For branches - only sets flag
 ,equal,Byte,Byte,y,Boolean,x,,sub8_reg_imm,,,a,imm,zfa,a;f,empty,,,,,zfa: sets z flag and a <> 0
@@ -265,8 +247,8 @@
 ,lessequal,Char,Char,n,Boolean,x,,compare8swap_reg_reg,,,b;c;d;e;h;l,a,ncf,f,empty,,,,,"Operands reversed. A should be an option for param1, but allocator is greedy and would choose A for param1 and fail on param2"
 ,,,,,,,,,,,,,,,,,,,,
 ,,,,,,,,(Empty columns for formatting),,,,,,,,,,,,
-;,,----Primitive Selection----,,,,----Primitive Data----,,,,,,,,,Special validations on type conversion,,,,,
-;,Operation,Ltype,Rtype,Commutative,ResultType,Validation,,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,Validate,Int8,Byte,Integer,Word,Notes
+;,,----Primitive Selection----,,,,----Primitive Data----,,,,,,,,,,Optimised range checks for type conversions,,,,
+;,Operation,Ltype,Rtype,Commutative,ResultType,Validation,Flags,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,OverflowCheck,Int8,Byte,Integer,Word,Notes
 ,or,Byte,Byte,y,Byte,x,,or8_reg_imm,,,a,imm,a,f,empty,,,,,
 ,or,Byte,Byte,y,Byte,x,,or8_reg_reg,,,a,a;b;c;d;e;h;l,a,f,empty,,,,,
 ,or,Int8,Int8,y,Int8,x,,or8_reg_imm,,,a,imm,a,f,empty,,,,,
@@ -314,8 +296,8 @@
 ,,,,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,
 ;,Unary operators,,,,,,,(Empty columns for formatting),,,,,,,,,,,,
-;,,----Primitive Selection----,,,,----Primitive Data----,,,,,,,,,Special validations on type conversion,,,,,
-;,Operation,Ltype,Rtype,Commutative,ResultType,Validation,,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,Validate,Int8,Byte,Integer,Word,Notes
+;,,----Primitive Selection----,,,,----Primitive Data----,,,,,,,,,,Optimised range checks for type conversions,,,,
+;,Operation,Ltype,Rtype,Commutative,ResultType,Validation,Flags,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,OverflowCheck,Int8,Byte,Integer,Word,Notes
 ,negate,Int8,none,n,Int8,x,,negate_s8,,,a,,a,a;f,pe_overflow,,,,,
 ,negate,Word,none,n,Integer,y,,:negate_u16_with_overflow,,,hl,,hl,h;l;d;e;f,nc_overflow,,nz_range,p_range,nz_range,
 ,negate,Word,none,n,Integer,n,,:negate_s16,,,hl,,hl,h;l;a;f,,,,,,
@@ -332,8 +314,8 @@
 ,,,,,,,,,,,,,,,,,,,,
 ;,Typecasts,,,,,,,,,,,,,,,,,,,
 ;,,,,,,,,(Empty columns for formatting),,,,,,,!! 'Empty' here explicitly specifies no checking !!,,,,,
-;,,----Primitive Selection----,,,,----Primitive Data----,,,,,,,,,Special validations on type conversion,,,,,
-;,Operation,Ltype,Rtype,Commutative,ResultType,Validation,,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,Validate,Int8,Byte,Integer,Word,Notes
+;,,----Primitive Selection----,,,,----Primitive Data----,,,,,,,,,,Optimised range checks for type conversions,,,,
+;,Operation,Ltype,Rtype,Commutative,ResultType,Validation,Flags,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,OverflowCheck,Int8,Byte,Integer,Word,Notes
 ,Int8,Int8,none,n,Int8,x,,empty,,,a;b;c;d;e;h;l,,param1,,empty,empty,empty,empty,empty,
 ,Int8,Integer,none,n,Int8,x,load_rp_low,empty,,,a;b;c;d;e;h;l,,param1,,empty,empty,empty,empty,empty,
 ,Int8,Byte,none,n,Int8,x,,empty,,,a;b;c;d;e;h;l,,param1,,empty,empty,empty,empty,empty,
@@ -390,8 +372,8 @@
 ;,Intrinsics (I.e. small operations mostly enacted via CPU instructions),,,,,,,,,,,,,,,,,,,
 ;,,,,,,,,,,,,,,,,,,,,
 ,,,,,,,,(Empty columns for formatting),,,,,,,,,,,,
-;,,----Primitive Selection----,,,,----Primitive Data----,,,,,,,,,Special validations on type conversion,,,,,
-;,Operation,Ltype,Rtype,Commutative,ResultType,Validation,,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,Validate,Int8,Byte,Integer,Word,Notes
+;,,----Primitive Selection----,,,,----Primitive Data----,,,,,,,,,,Optimised range checks for type conversions,,,,
+;,Operation,Ltype,Rtype,Commutative,ResultType,Validation,Flags,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,OverflowCheck,Int8,Byte,Integer,Word,Notes
 ,abs,Integer,none,n,Integer,x,,:abs_hl_with_overflow,,,hl,,hl,a;f;h;l,nc_overflow,,,,,
 ,abs,Byte,none,n,Byte,x,,empty,,,a;b;c;d;e;h;l,,param1,,empty,,,,,Does nothing!
 ,abs,Word,none,n,Word,x,,empty,,,hl;de;bc,,param1,,empty,,,,,Does nothing!
@@ -420,7 +402,9 @@
 ,odd,Word,none,n,<Flag>,x,load_rp_low,odd8_reg_branch,,,a,,cf,a;f,,,,,,
 ,odd,Integer,none,n,<Flag>,x,load_rp_low,odd8_reg_branch,,,a,,cf,a;f,,,,,,
 ,,,,,,,,,,,,,,,,,,,,
-;,addr,??,none,n,Pointer,x,,,,,,,hl,,,,,,,TODO
+,addrof,Pointer,none,n,Pointer,x,,load_p1_r16_varaddr,,,static,,hl;de;bc;ix;iy,,empty,,,,,Address of static variable
+,addrof,Pointer,none,n,Pointer,x,,load_p1_ix_varaddr_to_hl,,,stack,,hl,hl;de,empty,,,,,Address of stack variable.
+;,addrof,Pointer,none,n,Pointer,x,,load_p1_ix_varaddr_to_bc,,,stack,,bc,hl,empty,,,,,Address of stack variable. Untested
 ,,,,,,,,,,,,,,,,,,,,
 ,hi,Word,none,n,Byte,x,load_rp_high,empty,,,a;b;c;d;e;h;l,,param1,,empty,,,,,
 ,hi,Integer,none,n,Byte,x,load_rp_high,empty,,,a;b;c;d;e;h;l,,param1,,empty,,,,,
@@ -437,8 +421,8 @@
 ;,inp,Byte,none,n,Byte,x,,in_a_n,,,imm,,a,,,,,,,Not yet supported (How to differentiate between the two? Compiler option?)
 ,,,,,,,,,,,,,,,,,,,,
 ,,,,,,,,(Empty columns for formatting),,,,,,,,,,,,
-;,,----Primitive Selection----,,,,----Primitive Data----,,,,,,,,,Special validations on type conversion,,,,,
-;,Operation,Ltype,Rtype,Commutative,ResultType,Validation,Flags,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,Validate,Int8,Byte,Integer,Word,Notes
+;,,----Primitive Selection----,,,,----Primitive Data----,,,,,,,,,,Optimised range checks for type conversions,,,,
+;,Operation,Ltype,Rtype,Commutative,ResultType,Validation,Flags,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,OverflowCheck,Int8,Byte,Integer,Word,Notes
 ,lo,Word,none,n,Byte,x,load_rp_low,empty,,,a;b;c;d;e;h;l,,param1,,empty,,,,,
 ,lo,Integer,none,n,Byte,x,load_rp_low,empty,,,a;b;c;d;e;h;l,,param1,,empty,,,,,
 ,,,,,,,,,,,,,,,,,,,,
@@ -463,9 +447,9 @@
 ;,out,Byte,Char,n,None,x,,out_n_a,,,imm,a,,,,,,,,Not yet supported (How to differentiate between the two? Compiler option?)
 ,,,,,,,,,,,,,,,,,,,,
 ,peek,Word,Byte,n,Byte,x,,peek8_imm,,,imm,imm,a,,empty,,,,,Param2 is consumed at compile time. We put imm here to fool the Primitive search algorithm
-,peek,Word,Byte,n,Byte,x,,peek8_reg16,,,hl,imm,a,,empty,,,,,
+,peek,Word,Byte,n,Byte,x,,peek8_reg16,,,hl,imm,a;b;c;d;e;h;l,,empty,,,,,
 ,peek,Word,Int8,n,Int8,x,,peek8_imm,,,imm,imm,a,,empty,,,,,Code gen can't handle choice of result registers
-,peek,Word,Int8,n,Int8,x,,peek8_reg16,,,hl,imm,a,,empty,,,,,Code gen can't handle choice of result registers
+,peek,Word,Int8,n,Int8,x,,peek8_reg16,,,hl,imm,a;b;c;d;e;h;l,,empty,,,,,Code gen can't handle choice of result registers
 ,peek,Word,Word,n,Word,x,,peek16_imm,,,imm,imm,hl,,empty,,,,,
 ,peek,Word,Word,n,Word,x,,peek16_reg16,,,hl,imm,de,hl,empty,,,,,
 ,peek,Word,Pointer,n,Pointer,x,,peek16_imm,,,imm,imm,hl,,empty,,,,,
@@ -473,9 +457,9 @@
 ,peek,Word,Integer,n,Integer,x,,peek16_imm,,,imm,imm,hl,,empty,,,,,
 ,peek,Word,Integer,n,Integer,x,,peek16_reg16,,,hl,imm,de,hl,empty,,,,,
 ,peek,Word,Boolean,n,Boolean,x,,peek8_imm,,,imm,imm,a,,empty,,,,,
-,peek,Word,Boolean,n,Boolean,x,,peek8_reg16,,,hl,imm,a,,empty,,,,,
+,peek,Word,Boolean,n,Boolean,x,,peek8_reg16,,,hl,imm,a;b;c;d;e;h;l,,empty,,,,,
 ,peek,Word,Char,n,Char,x,,peek8_imm,,,imm,imm,a,,empty,,,,,
-,peek,Word,Char,n,Char,x,,peek8_reg16,,,hl,imm,a,,empty,,,,,
+,peek,Word,Char,n,Char,x,,peek8_reg16,,,hl,imm,a;b;c;d;e;h;l,,empty,,,,,
 ,,,,,,,,,,,,,,,,,,,,
 ,poke,Word,Byte,n,None,x,,poke_imm_a,,,imm,a,,,,,,,,
 ,poke,Word,Byte,n,None,x,,poke_hl_imm8,,,hl,imm,,,,,,,,
@@ -511,8 +495,8 @@
 ,pred,Char,Integer,n,Char,n,,proc_dec8_reg,,,a;b;c;d;e;h;l,imm,param1,f,empty,,,,,No overflow checking
 ,pred,Char,Byte,n,Char,y,,sub8_reg_imm,,,a,imm,a,a;f,c_overflow,m_range,,,,
 ,,,,,,,,,,,,,,,,,,,,
-;,,----Primitive Selection----,,,,----Primitive Data----,,,,,,,,,Special validations on type conversion,,,,,
-;,Operation,Ltype,Rtype,Commutative,ResultType,Validation,Flags,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,Validate,Int8,Byte,Integer,Word,Notes
+;,,----Primitive Selection----,,,,----Primitive Data----,,,,,,,,,,Optimised range checks for type conversions,,,,
+;,Operation,Ltype,Rtype,Commutative,ResultType,Validation,Flags,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,OverflowCheck,Int8,Byte,Integer,Word,Notes
 ,sizeof,Typedef,none,n,Word,x,,,,,hl,,hl,,empty,,,,,Compile time only (until we have variant arrays <g>)
 ,,,,,,,,,,,,,,,,,,,,
 ,succ,Byte,Byte,n,Byte,n,,proc_inc8_reg,,,a;b;c;d;e;h;l,imm,param1,f,empty,,,,,No overflow checking
@@ -545,15 +529,9 @@
 ,,,,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,
-;,,----Primitive Selection----,,,,----Primitive Data----,,,,,,,,,Special validations on type conversion,,,,,
-;,Operation,Ltype,Rtype,Commutative,ResultType,Validation,Flags,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,Validate,Int8,Byte,Integer,Word,Notes
+;,,----Primitive Selection----,,,,----Primitive Data----,,,,,,,,,,Optimised range checks for type conversions,,,,
+;,Operation,Ltype,Rtype,Commutative,ResultType,Validation,Flags,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,OverflowCheck,Int8,Byte,Integer,Word,Notes
 ,chr,Byte,none,n,Char,x,,empty,,,a;b;c;d;e;h;l,,Param1,,empty,,,,,Basically we're doing a tyecast but with validation available
-;,chr,Int8,none,n,Char,y,,empty,,,a;b;c;d;e;h;l,,Param1,,bit7_set_overflow,,,,,
-;,chr,Int8,none,n,Char,n,,empty,,,a;b;c;d;e;h;l,,Param1,,empty,,,,,
-;,chr,Word,none,n,Char,y,,empty,,,hl;de;bc,,Param1,,high_nz_overflow,,,,,
-;,chr,Word,none,n,Char,n,load_rp_low,empty,,,a;b;c;d;e;h;l,,Param1,,empty,,,,,
-;,chr,Integer,none,n,Char,y,,empty,,,hl;de;bc,,Param1,,high9_nz_overflow,,,,,
-;,chr,Integer,none,n,Char,n,load_rp_low,empty,,,a;b;c;d;e;h;l,,Param1,,empty,,,,,
 ,,,,,,,,,,,,,,,,,,,,
 ,downcase,Char,none,n,Char,x,,:downcase_char,,,a,,a,,empty,,,,,
 ,,,,,,,,,,,,,,,,,,,,
@@ -566,24 +544,3 @@
 ,,,,,,,,,,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,,,
 END,,,,,,,,,,,,,,,,,,,,
-,,,,,,,,,,,,,,,,,,,,
-;,,,,,,Procedures,,Register options available,,,,,Special validations on type conversion,,,,,,,
-;,Name ,OpType,FirstParamType,DestType,Validation,Exec,Flags,Param1,Param2,Dest,Corrupts,Validate,s8,u8,s16,u16,Notes,,,
-;,Misc   ,,,,,,,,,,,,,,,,,,,
-;Validation routines,,,,,,,,,,,,,,,,,,,,
-;,x,,,,x,c_overflow,,,,,,,,,,,Overflow error if carry true,,,
-;,x,,,,x,m_overflow,,,,,,,,,,,Overflow if sign flag is negative (high bit set),,,
-,x,,,,x,b7sov,,,,p1,f,,,,,,Overflow if bit 7 set,,,
-,x,,,,x,b15sov,,,,p1,f,,,,,,Overflow if bit 15 set,,,
-;,,,,,,,,,,,,,,,,,,,,
-,condbranch,boolean,,branch,x,atozf,,a,,zf,f,,,,,,Conditional branch,,,
-;,,,,,,,,,,,,,,,,,,,,
-;,Name,OpType,FirstParamType,DestType,Validation,Exec,,Param1,Param2,Dest,Corrupts,Validate,s8,u8,s16,u16,Notes,,,
-,writechar,u8,,,x,:s_writechar,,a,,,,empty,,,,,Write character to output,,,
-,writeinteger,u8,,,x,:write_byte,,l,,,a;f;h;l,empty,,,,,Write byte to the output,,,
-,writeinteger,u16,,,x,:write_word,,hl,,,a;f;h;l,empty,,,,,Write word to the output,,,
-,writeinteger,s16,,,x,:write_integer,,hl,,,a;f;h;l,empty,,,,,Write signed integer to the output,,,
-,writeboolean,boolean,,,x,:write_bool,,a,,,a;f;h;l,empty,,,,,,,,
-;,writeasciiz,u16,,,x,:write_asciiz,,hl,,,a;f;h;l,empty,,,,,Write ASCIIZ string,,,
-;,writeascii7,u16,,,x,:write_ascii7,,hl,,,a;f;h;l,empty,,,,,Write ASCII7 string (bit 7 of final char set),,,
-,writenewline,,,,x,:s_newline,,,,,,empty,,,,,Write end of line marker,,,
