@@ -1351,11 +1351,13 @@ begin
   DoTestStoreVariable(rA, [], True, vtInt8,
     vtInteger, vsStack, '',
     'ld (ix+_v__Global_Test1),a:rla:sbc a,a:ld (ix+_v__Global_Test1 +1),a',
-    'a:!?');
+    'a:/_v__Global_Test1#10');
+//    'a:!?');
   DoTestStoreVariable(rH, [], True, vtInt8,
     vtInteger, vsStack, '',
     'ld (ix+_v__Global_Test1),h:ld a,h:rla:sbc a,a:ld (ix+_v__Global_Test1 +1),a',
-    'a:!?');
+    'a:/_v__Global_Test1#10 h:\_v__Global_Test1#10');
+//    'a:!?');
   //Byte to Integer
   DoTestStoreVariable(rA, [], True, vtByte,
     vtInteger, vsStack, '',
@@ -1443,13 +1445,13 @@ begin
   //Signed extend
   DoTestStoreVariable(rA, [], False, vtInt8,
     vtInteger, vsStack, '',
-    'ld (ix+_v__Global_Test1),a:rla:sbc a,a:ld (ix+_v__Global_Test1 +1),a', 'a:!?');
+    'ld (ix+_v__Global_Test1),a:rla:sbc a,a:ld (ix+_v__Global_Test1 +1),a', 'A:/_v__Global_Test1#10');
   DoTestStoreVariable(rE, [], False, vtInt8,
     vtInteger, vsStack, '',
-    'ld (ix+_v__Global_Test1),e:ld a,e:rla:sbc a,a:ld (ix+_v__Global_Test1 +1),a', 'a:!?');
+    'ld (ix+_v__Global_Test1),e:ld a,e:rla:sbc a,a:ld (ix+_v__Global_Test1 +1),a', 'a:/_v__Global_Test1#10 e:\_v__Global_Test1#10');
   DoTestStoreVariable(rH, [], False, vtInt8,
     vtInteger, vsStack, '',
-    'ld (ix+_v__Global_Test1),h:ld a,h:rla:sbc a,a:ld (ix+_v__Global_Test1 +1),a', 'a:!?');
+    'ld (ix+_v__Global_Test1),h:ld a,h:rla:sbc a,a:ld (ix+_v__Global_Test1 +1),a', 'a:/_v__Global_Test1#10 h:\_v__Global_Test1#10');
 end;
 
 procedure TTestZ80StoreVariable.TestStoreRegStatic16;
@@ -1522,46 +1524,54 @@ begin
   DoTestStoreVariable(rA, [], True, vtInt8,
     vtInteger, vsStatic, '',
     'ld (_v__Global_Test1),a:rla:sbc a,a:ld (_v__Global_Test1 +1),a',
-    'a:!?');
+    'a:/_v__Global_Test1#10');
   DoTestStoreVariable(rH, [], True, vtInt8,
     vtInteger, vsStatic, '',
     'ld a,h:ld (_v__Global_Test1),a:rla:sbc a,a:ld (_v__Global_Test1 +1),a',
-    'a:!?');
+    'a:/_v__Global_Test1#10 h:\_v__Global_Test1#10');
   //Byte to Integer
   DoTestStoreVariable(rA, [], True, vtByte,
     vtInteger, vsStatic, '',
     'ld (_v__Global_Test1),a:xor a:ld (_v__Global_Test1 +1),a',
+//    'a:/_v__Global_Test1#10');
     'a:!$00');
   DoTestStoreVariable(rH, [], True, vtByte,
     vtInteger, vsStatic, '',
     'ld a,h:ld (_v__Global_Test1),a:xor a:ld (_v__Global_Test1 +1),a',
+//    'a:/_v__Global_Test1#10 h:\_v__Global_Test1#10');
     'a:!$00');
   //Int8 to Word
   DoTestStoreVariable(rA, [], True, vtInt8,
     vtWord, vsStatic, '',
     'and a:jp m,raise_range:ld (_v__Global_Test1),a:xor a:ld (_v__Global_Test1 +1),a',
+//    'a:/_v__Global_Test1#10');
     'a:$00');
   DoTestStoreVariable(rL, [], True, vtInt8,
     vtWord, vsStatic, '',
     'bit 7,l:jp nz,raise_range:ld a,l:ld (_v__Global_Test1),a:xor a:ld (_v__Global_Test1 +1),a',
+//    'a:/_v__Global_Test1#10 l:\_v__Global_Test1#10');
     'a:!$00');
   //Byte to Word
   DoTestStoreVariable(rA, [], True, vtByte,
     vtWord, vsStatic, '',
     'ld (_v__Global_Test1),a:xor a:ld (_v__Global_Test1 +1),a',
+//    'a:/_v__Global_Test1#10');
     'a:$00');
   DoTestStoreVariable(rH, [], True, vtByte,
     vtWord, vsStatic, '',
     'ld a,h:ld (_v__Global_Test1),a:xor a:ld (_v__Global_Test1 +1),a',
+//    'a:/_v__Global_Test1#10 h:\_v__Global_Test1#10');
     'a:$00');
   //Byte to Pointer
   DoTestStoreVariable(rA, [], True, vtByte,
     vtPointer, vsStatic, '',
     'ld (_v__Global_Test1),a:xor a:ld (_v__Global_Test1 +1),a',
+//    'a:/_v__Global_Test1#10');
     'a:$00');
   DoTestStoreVariable(rL, [], True, vtByte,
     vtPointer, vsStatic, '',
     'ld a,l:ld (_v__Global_Test1),a:xor a:ld (_v__Global_Test1 +1),a',
+//    'a:/_v__Global_Test1#10 l:\_v__Global_Test1#10');
     'a:$00');
 end;
 
@@ -1615,10 +1625,10 @@ begin
   //Signed extending
   DoTestStoreVariable(rA, [], False, vtInt8,
     vtInteger, vsStatic, '',
-    'ld (_v__Global_Test1),a:rla:sbc a,a:ld (_v__Global_Test1 +1),a', 'a:!?');
+    'ld (_v__Global_Test1),a:rla:sbc a,a:ld (_v__Global_Test1 +1),a', 'a:/_v__Global_Test1#10');
   DoTestStoreVariable(rH, [], False, vtInt8,
     vtInteger, vsStatic, '',
-    'ld a,h:ld (_v__Global_Test1),a:rla:sbc a,a:ld (_v__Global_Test1 +1),a', 'a:!?');
+    'ld a,h:ld (_v__Global_Test1),a:rla:sbc a,a:ld (_v__Global_Test1 +1),a', 'a:/_v__Global_Test1#10 h:\_v__Global_Test1#10');
 end;
 
 initialization

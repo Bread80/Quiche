@@ -84,6 +84,8 @@ function GenVarStore8(Reg: TCPUReg;Variable: PVariable;VarVersion: Integer;
 begin
   Assert(Reg in CPUReg8Bit);
 
+  RegStateSetVariable(Reg, Variable, VarVersion, rskVarValue);
+
   Result := False;
   case Variable.Storage of
     vsStack:
@@ -112,6 +114,8 @@ function GenVarStore16(Reg: TCPUReg;Variable: PVariable;VarVersion: Integer;
 begin
   Assert(Reg in CPURegPairs);
 
+  RegStateSetVariable(Reg, Variable, VarVersion, rskVarValue);
+
   Result := False;
   case Variable.Storage of
     vsStack:
@@ -130,6 +134,8 @@ function GenVarStore16High(Reg: TCPUReg;Variable: PVariable;VarVersion: Integer;
 begin
   Assert(Reg in CPUReg8Bit);
 
+  RegStateSetVariable(Reg, Variable, VarVersion, rskVarValueHigh);
+
   Result := False;
   case Variable.Storage of
     vsStack:
@@ -140,7 +146,7 @@ begin
       begin
         Assert(not (moPreserveA in Options));
         OpLD(rA, Reg);
-        RegStateSetVariable(rA, Variable, VarVersion, rskVarValue);
+        RegStateSetVariable(rA, Variable, VarVersion, rskVarValueHigh);
         Result := True;
       end;
       OpLD(Variable, 1, Reg);
@@ -156,7 +162,6 @@ procedure GenStoreLiteralToVariable(Variable: PVariable;const Value: TImmValue;
   Options: TMoveOptionSet);
 var Reg: TCPUReg;
 begin
-
   case GetTypeSize(Variable.VarType) of
     1:
     case Variable.Storage of
@@ -264,6 +269,9 @@ begin
 
   //Store register to low byte of variable
   ViaA := GenVarStore8(Reg, Variable, VarVersion, Options);
+  RegStateSetVariable(Reg, Variable, VarVersion, rskVarValueLow);
+  if ViaA then
+    RegStateSetVariable(rA, Variable, VarVersion, rskVarValueLow);
 
   if IsSignedType(FromType) and
   //If we'e been range checked, and the destination is unsigned then zero extend
@@ -289,9 +297,6 @@ end;
 procedure GenStoreRegVarValue(Reg: TCPUReg;FromType: TVarType;
   Variable: PVariable;VarVersion: Integer;RangeChecked: Boolean;Options: TMoveOptionSet);
 begin
-  //Update CPU state
-//  RegStateSetVariable(Reg, Variable, VarVersion, rskVarValue);
-
   case Reg of
     rA..rL:
       case GetTypeSize(Variable.VarType) of

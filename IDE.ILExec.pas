@@ -64,14 +64,14 @@ begin
     begin
       New(Result);
       TempVars.Add(Result);
-      Result.ValueInt := 0;
+      Result.Value := TImmValue.CreateInteger(0);
       Result.VarType := vtUnknown;
       Result.WriteCount := -1;
     end
   else
   begin
     Result := TempVars[Index];
-    Result.ValueInt := 0;
+    Result.Value := TImmValue.CreateInteger(0);
     Result.VarType := vtUnknown;
   end;
 end;
@@ -86,7 +86,7 @@ begin
     begin
       Variable := ILItem.Param3.PhiVar;
 //      ExecTest(Variable.Sub = Sub, 'Variable Sub doesn''t match param Sub version (Phi node)');
-      Result := Variable.ValueInt;
+      Result := Variable.Value.ToInteger;
       ValueType := Variable.VarType;
       SubMismatch := Variable.WriteCount <> Param.VarVersion;
     end;
@@ -99,7 +99,7 @@ begin
     begin
       Variable := Param.Variable;
       ExecTest(Variable.WriteCount = Param.VarVersion, 'Variable Sub doesn''t match param Sub version (normal node)');
-      Result := Variable.ValueInt;
+      Result := Variable.Value.ToInteger;
       ValueType := Variable.VarType;
     end;
   else
@@ -279,14 +279,14 @@ begin
         pkPhiVarDest:
         begin
           Variable := ILItem.Param3.PhiVar;
-          Variable.ValueInt := Value;
+          Variable.Value := TImmValue.CreateInteger(Value);
           Variable.VarType := ValueType;
           Variable.WriteCount := ILItem.Param3.PhiDestVersion;
         end;
         pkVarDest:
         begin
           Variable := ILItem.Param3.Variable;
-          Variable.ValueInt := Value;
+          Variable.Value := TImmValue.CreateInteger(Value);
           Variable.VarType := ValueType;
           Variable.WriteCount := ILItem.Param3.VarVersion;
         end;

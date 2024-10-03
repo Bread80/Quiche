@@ -675,17 +675,17 @@ begin
       if not TryStrToInt(Step.Value, I) then
         Error(Step, 'Invalid integer value: ''' + Step.Value + ''''#13)
       else
-        Check(V.ValueInt = I, Step, 'VarValue mismatch on ' + V.Name +
-          ', wanted ' + Step.Value + ' got ' + V.ValueInt.ToString + #13);
+        Check(V.Value.ToInteger = I, Step, 'VarValue mismatch on ' + V.Name +
+          ', wanted ' + Step.Value + ' got ' + V.Value.ToString + #13);
     end;
     vtBoolean:
     begin
       if CompareText(Step.Value, 'false') = 0 then
-      Check(V.ValueInt = valueFalse and $ff, Step, 'VarValue mismatch on ' + V.Name +
-        ', wanted ' + Step.Value + ' got ' + V.ValueInt.ToString + #13)
+      Check(V.Value.ToInteger = valueFalse and $ff, Step, 'VarValue mismatch on ' + V.Name +
+        ', wanted ' + Step.Value + ' got ' + V.Value.ToString + #13)
       else if CompareText(Step.Value, 'true') = 0 then
-        Check(V.ValueInt = valueTrue and $ff, Step, 'VarValue mismatch on ' + V.Name +
-          ', wanted ' + Step.Value + ' got ' + V.ValueInt.ToString + #13)
+        Check(V.Value.ToInteger = valueTrue and $ff, Step, 'VarValue mismatch on ' + V.Name +
+          ', wanted ' + Step.Value + ' got ' + V.Value.ToString + #13)
       else
         Error(Step, 'Invalid boolean value: ''' + Step.Value + ''''#13);
     end;
@@ -694,15 +694,15 @@ begin
       if (Length(Step.Value) = 3) and (Step.Value.Chars[0] = '''') and (Step.Value.Chars[2] = '''') then
       begin
         C := Step.Value.Chars[1];
-        Check(V.ValueInt = ord(C), Step, 'VarValue mismatch on ' + V.Name +
-          ', wanted ''' + C + ''' got ''' + chr(V.ValueInt) + ''''#13);
+        Check(V.Value.ToInteger = ord(C), Step, 'VarValue mismatch on ' + V.Name +
+          ', wanted ''' + C + ''' got ''' + chr(V.Value.ToInteger) + ''''#13);
       end
       else if Step.Value.Chars[0] = '#' then
         //Numeric char literal
         if TryStrToInt(Step.Value.Substring(1), I) then
           if I <= 255 then
-            Check(V.ValueInt = I, Step, 'VarValue mismatch on ' + V.Name +
-              ', wanted ' + CharToStr(I) + ' got ''' + chr(V.ValueInt) + ''''#13)
+            Check(V.Value.ToInteger = I, Step, 'VarValue mismatch on ' + V.Name +
+              ', wanted ' + CharToStr(I) + ' got ''' + chr(V.Value.ToInteger) + ''''#13)
           else
             Error(Step, 'Invalid string value: ''' + Step.Value + ''''#13)
         else

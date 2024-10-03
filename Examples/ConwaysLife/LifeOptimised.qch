@@ -125,14 +125,14 @@ begin
 
   //Row above
   Alive := peek(Base - ColCount-3) +
-  peek(Base - ColCount-2) + peek(Base - ColCount-1) +
+    peek(Base - ColCount-2) + peek(Base - ColCount-1) +
 
-  //Current row
-  peek(Base - 1) + peek(Base + 1) +
+    //Current row
+    peek(Base - 1) + peek(Base + 1) +
 
-  //Row below
-  peek(Base + ColCount+1) + peek(Base + ColCount+2) +
-  peek(Base + ColCount+3)
+    //Row below
+    peek(Base + ColCount+1) + peek(Base + ColCount+2) +
+    peek(Base + ColCount+3)
 
   if peek(Base) <> 0 then
   begin //Live cell, die unless two or three neighbours

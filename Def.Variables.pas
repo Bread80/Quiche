@@ -63,8 +63,7 @@ type
     AdjustVersionTo: Integer;   //...we need to change that read to reference this version.
 
     //Execution time only data
-    //TODO: Change this to an TImmValue
-    ValueInt: Integer;
+    Value: TImmValue; //Value (read from emulator)
 
     //The Name can *only* be set if it is blank. *Only* to be used where the
     //variable has to be created where the name is unknown, and the name is
@@ -552,16 +551,16 @@ begin
       case V.Storage of
         vsStack:
           case V.VarType of
-            vtInteger: V.ValueInt := Int16(Mem[Base+V.Offset] + (Mem[Base+V.Offset+1] shl 8));
-            vtInt8: V.ValueInt := Int8(Mem[Base+V.Offset]);
-            vtWord, vtPointer: V.ValueInt := Mem[Base+V.Offset] + (Mem[Base+V.Offset+1] shl 8);
-            vtByte, vtBoolean, vtChar, vtTypeDef:  V.ValueInt := Mem[Base+V.Offset];
+            vtInteger: V.Value := TImmValue.CreateInteger(Int16(Mem[Base+V.Offset] + (Mem[Base+V.Offset+1] shl 8)));
+            vtInt8: V.Value := TImmValue.CreateInteger(Int8(Mem[Base+V.Offset]));
+            vtWord, vtPointer: V.Value := TImmValue.CreateInteger(Mem[Base+V.Offset] + (Mem[Base+V.Offset+1] shl 8));
+            vtByte, vtBoolean, vtChar, vtTypeDef:  V.Value := TImmValue.CreateInteger(Mem[Base+V.Offset]);
           else
             raise Exception.Create('Invalid VarType in LoadVarsFromMemoryDump');
           end;
         vsStatic:
           //TODO
-          V.ValueInt := -1;
+          V.Value := TImmValue.CreateInteger(-1);
       end;
     end;
 
@@ -597,13 +596,13 @@ begin
   Result := Result + GetAsmName + ': ' + VarTypeToName(VarType);
   if not TypeSummary then
   begin
-    Result := Result + ' = ';
-    case VarType of
+    Result := Result + ' = ' + Value.ToString;
+(*    case VarType of
       vtUnknown: ;
-      vtInteger, vtInt8: Result := Result + IntToStr(ValueInt);
-      vtWord, vtByte, vtPointer: Result := Result + IntToStr(Word(ValueInt));
+      vtInteger, vtInt8: Result := Result + Value.ToString;
+      vtWord, vtByte, vtPointer: Result := Result + Value.ToString;
       vtBoolean:
-        case ValueInt of
+        case Value of
           valueFalse: Result := Result + 'False';
           valueTrue and $ff: Result := Result + 'True';
         else
@@ -616,7 +615,7 @@ begin
     else
       Result := Result + '*** Unknown variable type ***';
     end;
-  end;
+*)  end;
 end;
 
 procedure VarsToStrings(S: TStrings;TypeSummary: Boolean);
@@ -637,7 +636,7 @@ var V: PVariable;
 begin
   for V in Vars do
   begin
-    V.ValueInt := 0;
+    V.Value := TImmValue.CreateInteger(0);
     V.VarType := vtUnknown;
     V.WriteCount := 0;
   end;
