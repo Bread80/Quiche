@@ -79,7 +79,7 @@ function ParseExprToILItem(out ILItem: PILItem;out VType: TVarType): TQuicheErro
 implementation
 uses SysUtils,
   Def.Globals, Def.Functions, Def.Primitives, Def.Scopes, Def.Variables,
-  Parse.Base, Parse.Eval, Parse.FuncCall;
+  Parse.Base, Parse.Eval, Parse.FuncCall, Parse.Source;
 
 //===================================== Slugs
 
@@ -184,7 +184,7 @@ end;
 
 
 //Parses and returns a hex literal
-//Parser must be pointing to
+//Parser must be pointing to the preceding $
 function ParseHex(var Slug: TExprSlug): TQuicheError;
 var
   Ch: Char;
@@ -193,10 +193,11 @@ var
   Digits: Integer;
   Value: Word;
 begin
-  if Parser.TestChar = '$' then
-    Parser.SkipChar;
-
   Parser.Mark;
+
+  //Skip the $
+  Parser.SkipChar;
+
   Value := 0;
   Digits := 0;
   while True do
@@ -232,16 +233,17 @@ begin
 end;
 
 //Parses and returns a binary literal
+//Parse must be pointing at the preceding %
 function ParseBinary(var Slug: TExprSlug): TQuicheError;
 var
   Ch: Char;
   Digits: Integer;
   Value: Word;
 begin
-  if Parser.TestChar = '%' then
-    Parser.SkipChar;
-
   Parser.Mark;
+  //Skip %
+  Parser.SkipChar;
+
   Value := 0;
   Digits := 0;
   while True do
@@ -272,45 +274,28 @@ begin
 end;
 
 //Parses and returns a quoted string or character
-//Currently only handles single character strings (i.e. chars)
-function ParseString(var Slug: TExprSlug): TQuicheError;
+function ParseQuotedStringOrChar(var S: String): TQuicheError;
 var
   Ch: Char;
-  S: String;
 begin
-  Parser.Mark;
-  if Parser.TestChar = '''' then
-    Parser.SkipChar;
+  //Skip leading quote
+  Parser.SkipChar;
 
-  S := '';
   while True do
   begin
     Ch := Parser.TestChar;
     if Ch = #0 then
       EXIT(Err(qeUnterminatedString));
     if Ch = '''' then
-    begin
+    begin //Quote char
       Parser.SkipChar;
       if Parser.TestChar = '''' then
       begin
         S := S + '''';
         Parser.SkipChar;
       end
-      else
-      begin
-        if Length(S) = 1 then
-        begin
-          Slug.SetImmediate(vtChar);
-          Slug.Operand.Imm.CharValue := S.Chars[0];
-          Slug.ParamOrigin := poExplicit;
-          Slug.ImplicitType := vtChar;
-        end
-        else
-        begin
-          EXIT(ErrMsg(qeTODO, 'Strings are not yet supported :('));
-        end;
+      else  //Valid end of string
         EXIT(qeNone);
-      end;
     end
     else
     begin
@@ -320,41 +305,55 @@ begin
   end;
 end;
 
-//Parses and returns a character literal (# prefix)
+//Parses and returns a character or string
+//(# prefix)
 //Syntax: #<constant>
 //where <constant> can be a decimal, hex or binary value (with the appropriate
 //prefixes).
-function ParseCharLiteral(var Slug: TExprSlug): TQuicheError;
+//Currently only handles single character strings (i.e. chars)
+function ParseStringOrChar(var Slug: TExprSlug): TQuicheError;
 var
+  S: String;
   Ch: Char;
 begin
   Parser.Mark;
-  if Parser.TestChar = '#' then
-    Parser.SkipChar;
+  S := '';
 
-  Ch := Parser.TestChar;
-  case Ch of
-    '0'..'9': Result := ParseInteger(Slug);
-    '$': Result := ParseHex(Slug);
-    '%': Result := ParseBinary(Slug);
-  else
-    EXIT(Err(qeInvalidCharLiteral));
-  end;
-  if Result <> qeNone then
-    EXIT;
-
-  if Slug.Operand.Imm.IntValue < 256 then
+  while True do
   begin
-    Slug.Operand.Imm.VarType := vtChar;
-    Slug.Operand.Imm.CharValue := chr(Slug.Operand.Imm.IntValue);
-    Slug.ParamOrigin := poExplicit;
-    Slug.ImplicitType := vtChar;
-    Slug.ResultType := vtChar;
+    if Parser.TestChar = '''' then
+      ParseQuotedStringOrChar(S)
+    else if Parser.TestChar = '#' then
+    begin
+      Parser.SkipChar;
 
-    Result := qeNone;
-  end
-  else
-    Result := Err(qeInvalidCharLiteral);
+      Ch := Parser.TestChar;
+      case Ch of
+        '0'..'9': Result := ParseInteger(Slug);
+        '$': Result := ParseHex(Slug);
+        '%': Result := ParseBinary(Slug);
+      else
+        EXIT(Err(qeInvalidCharLiteral));
+      end;
+      if Result <> qeNone then
+        EXIT;
+
+      if Slug.Operand.Imm.IntValue < 256 then
+        S := S + chr(Slug.Operand.Imm.IntValue);
+    end
+    else  //End of string data
+      if Length(S) = 1 then
+      begin
+        Slug.SetImmediate(vtChar);
+        Slug.Operand.Imm.CharValue := S.Chars[0];
+        Slug.ParamOrigin := poExplicit;
+        Slug.ImplicitType := vtChar;
+        Slug.ResultType := vtChar;
+        EXIT(qeNone);
+      end
+      else
+        EXIT(ErrMsg(qeTODO, 'Strings are not yet supported :('));
+  end;
 end;
 
 
@@ -501,10 +500,11 @@ begin
   end;
 end;
 
-
+//Parses the @ operator. Value must be something which is addressable.
 function ParseAddrOf(var Slug: TExprSlug): TQuicheError;
 var UnaryOp: TUnaryOperator;
 begin //Sub-expressions
+  Parser.Mark;
   Parser.SkipChar;
 
   ParseOperand(Slug, UnaryOp);
@@ -541,7 +541,10 @@ var
   Ch: Char;
   Ident: String;
 begin
-  Parser.SkipWhiteSpaceAll;
+  Result := Parser.SkipWhiteNL;
+  if Result <> qeNone then
+    EXIT;
+
   Parser.Mark;
 
   Ch := Parser.TestChar;
@@ -554,13 +557,8 @@ begin
         if Result <> qeNone then
           EXIT;
 
-        //If the expression parser generated any IL code
-  {      if Slug.ILItem <> nil then
-         Slug.AssignToHiddenVar;
-}
-        if Parser.TestChar <> ')' then
+        if not Parser.SkipCharIf(')') then
           EXIT(Err(qeUnmatchedBrackets));
-        Parser.SkipChar;
         Result := qeNone;
       end;
 //  csIdentFirst
@@ -603,10 +601,8 @@ begin
       Result := ParseBinary(Slug);
     '.': //Real constant
       EXIT(ErrMsg(qeTODO, 'Floating point numbers not yet supported'));
-    '''': //Char or string
-      Result := ParseString(Slug);
-    '#': //Character literal
-      Result := ParseCharLiteral(Slug);
+    '''','#': //Char or string
+      Result := ParseStringOrChar(Slug);
     '@': //Address prefix
       Result := ParseAddrOf(Slug);
     '+': //Unary plus
@@ -646,13 +642,17 @@ end;
 function ParseOperator(var Slug: TExprSlug): TQuicheError;
 var Ident: String;
 begin
-  Parser.SkipWhiteSpace;
+  Result := Parser.SkipWhite;
+  if Result <> qeNone then
+    EXIT;
   Parser.Mark;
 
   Slug.Op := opUnknown;
 
   //End of (sub)-expression
   if CharInSet(Parser.TestChar, [')',';',',',#0]) then
+    EXIT(qeNone);
+  if Parser.EOLN then
     EXIT(qeNone);
 
   if TestSymbolFirst then

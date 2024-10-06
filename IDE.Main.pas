@@ -104,6 +104,12 @@ type
     MenuItem8: TMenuItem;
     FileSaveDialog: TSaveDialog;
     MenuItem9: TMenuItem;
+    ActionList1: TActionList;
+    acOpenProject: TAction;
+    acOpenScratchFile: TAction;
+    acSave: TAction;
+    acNew: TAction;
+    acSaveAs: TAction;
     procedure btnInterpretClick(Sender: TObject);
     procedure btnEmulateClick(Sender: TObject);
     procedure acRunExecute(Sender: TObject);

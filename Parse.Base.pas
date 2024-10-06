@@ -37,11 +37,13 @@ type TKeyword = (keyUNKNOWN,
 function IdentToKeyword(Ident: String): TKeyword;
 
 //Test for := assignment operator
+//Parser must be position on the first char of the identifier (':')
 //If found, the parser consumes the characters,
 //If not found, leaves the parser position unchanged
 function TestAssignment: Boolean;
 
 //Tests for a specific identifier.
+//Parser must be position on the first char of the identifier
 //If found, the parser consumes the characters,
 //if not found, leaves the parser position unchanged.
 function TestForIdent(Ident: String): Boolean;
@@ -162,7 +164,6 @@ var
   Ch: Char;
   S: String;
 begin
-  Parser.SkipWhiteSpaceAll;
   S := '';
   Parser.Mark;
 
@@ -184,8 +185,8 @@ end;
 
 function TestAssignment: Boolean;
 begin
+  Parser.SkipWhite; //<--TO BE REMOVED WHEN ASSIGNMENT REWRITTEN
   Parser.Mark;
-  Parser.SkipWhiteSpaceAll;
 
   if Parser.TestChar = ':' then
   begin
@@ -197,12 +198,12 @@ begin
     end;
   end;
   Parser.Undo;
-  EXIT(False);
+  Result := False;
 end;
 
 function TestSymbolFirst: Boolean;
 begin
-  Parser.SkipWhiteSpaceAll;
+  Parser.SkipWhite; //<--TO BE REMOVED
   Result := CharInSet(Parser.TestChar, csSymbolFirst);
 end;
 
@@ -211,7 +212,7 @@ var Ch: Char;
 begin
   Ident := '';
 
-  Parser.SkipWhiteSpaceAll;
+  Parser.SkipWhite; //<--TO BE REMOVED
   Parser.Mark;
 
   if not Parser.ReadChar(Ch) then
@@ -234,7 +235,7 @@ end;
 
 function TestIdentFirst: Boolean;
 begin
-  Parser.SkipWhiteSpaceAll;
+  Parser.SkipWhite; //<--TO BE REMOVED
   Result := CharInSet(Parser.TestChar, csIdentFirst);
 end;
 
@@ -245,7 +246,7 @@ begin
     Ident := First
   else
   begin
-    Parser.SkipWhiteSpaceAll;
+    Parser.SkipWhite; //<--TO BE REMOVED
     Parser.Mark;
 
     if not Parser.ReadChar(Ch) then
@@ -338,7 +339,7 @@ const
   strXorYRequired = 'X or Y required after I in Corrupts attribute (IX or IY register)';
 begin
   AttrCorrupts := [];
-  Parser.SkipWhiteSpace;
+  Parser.SkipWhite;  //<--TO BE REMOVED
   IXIYState := xsNone;
   Reg := rNone;
   while True do
@@ -417,7 +418,7 @@ begin
     Result := ParseIdentifier(#0, Ident);
     if Result <> qeNone then
       EXIT;
-}    Parser.SkipWhiteSpace;
+}    Parser.SkipWhite;
     if Parser.TestChar <> ']' then
       EXIT(ErrMsg(qeAttributeError, '''['' expected at end of attribute'));
     Parser.SkipChar;

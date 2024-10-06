@@ -3074,8 +3074,8 @@ object Form1: TForm1
           6174666F726D44656661756C74080B5374796C654C6F6F6B757006157363726F
           6C6C626172626F74746F6D627574746F6E085461624F72646572020000000000}
       end>
-    Left = 704
-    Top = 184
+    Left = 656
+    Top = 240
   end
   object Panel7: TPanel
     Align = Client
@@ -3304,29 +3304,34 @@ object Form1: TForm1
     object MenuItem2: TMenuItem
       Text = '&File'
       object MenuItem7: TMenuItem
+        Action = acNew
+        Enabled = True
         Locked = True
-        Text = '&New'
-        OnClick = acNewExecute
+        ImageIndex = -1
       end
       object MenuItem1: TMenuItem
+        Action = acOpenProject
+        Enabled = True
         Locked = True
-        Text = '&Open Project...'
-        OnClick = acOpenProjectExecute
+        ImageIndex = -1
       end
       object MenuItem5: TMenuItem
+        Action = acOpenScratchFile
+        Enabled = True
         Locked = True
-        Text = 'Open Scratch File'
-        OnClick = acOpenScratchExecute
+        ImageIndex = -1
       end
       object MenuItem6: TMenuItem
+        Action = acSave
+        Enabled = True
         Locked = True
-        Text = '&Save'
-        OnClick = acSaveExecute
+        ImageIndex = -1
       end
       object MenuItem8: TMenuItem
+        Action = acSaveAs
+        Enabled = True
         Locked = True
-        Text = 'Save as...'
-        OnClick = acSaveAsExecute
+        ImageIndex = -1
       end
     end
     object MenuItem4: TMenuItem
@@ -3347,13 +3352,43 @@ object Form1: TForm1
     DefaultExt = '.quiche'
     Filter = 'Quiche|*.quiche|Pascal|*.pas|Text|*.txt|All files|*.*'
     Options = [ofHideReadOnly, ofPathMustExist, ofFileMustExist, ofEnableSizing]
-    Left = 568
-    Top = 80
+    Left = 464
+    Top = 240
   end
   object FileSaveDialog: TSaveDialog
     DefaultExt = '.quiche'
     Filter = 'Quiche|*.quiche|Pascal|*.pas|Text|*.txt|All files|*.*'
-    Left = 632
-    Top = 80
+    Left = 568
+    Top = 240
+  end
+  object ActionList1: TActionList
+    Left = 384
+    Top = 240
+    object acOpenProject: TAction
+      Category = 'File'
+      Text = '&Open Project...'
+      ShortCut = 16463
+      OnExecute = acOpenProjectExecute
+    end
+    object acOpenScratchFile: TAction
+      Category = 'File'
+      Text = 'Open Stratch File'
+    end
+    object acSave: TAction
+      Category = 'File'
+      Text = '&Save'
+      ShortCut = 16467
+      OnExecute = acSaveExecute
+    end
+    object acNew: TAction
+      Category = 'File'
+      Text = '&New'
+      OnExecute = acNewExecute
+    end
+    object acSaveAs: TAction
+      Category = 'File'
+      Text = 'Save as...'
+      OnExecute = acSaveAsExecute
+    end
   end
 end

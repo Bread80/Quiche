@@ -325,6 +325,8 @@ begin
   Result.Offset := -1;
   Result.Access := vaLocal;
   Vars.Add(Result);
+
+  Result.Value.VarType := VType;
 end;
 
 function VarCreateHidden(VarType: TVarType): PVariable;

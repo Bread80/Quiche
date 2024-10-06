@@ -140,13 +140,13 @@ var Ident: String;
   VarType: TVarType;
   P: Integer;
 begin
-  Parser.SkipWhiteSpaceAll;
+  Parser.SkipWhiteNL;
   //Read type name or register name
   Result := ParseIdentifier(#0, Ident);
   if Result <> qeNone then
     EXIT;
 
-  Parser.SkipWhiteSpaceAll;
+  Parser.SkipWhiteNL;
   //Is a Z80 register (or flag!) specified?
   Reg := IdentToCPUReg(Ident);
   if Reg <> rNone then
@@ -217,7 +217,7 @@ begin
       EXIT(Err(qeDecTooManyParams));
 
     //Parameter access specifier or parameter name
-    Parser.SkipWhiteSpaceAll;
+    Parser.SkipWhiteNL;
     Result := ParseIdentifier(#0, Ident);
     if Result <> qeNone then
       EXIT;
@@ -244,11 +244,11 @@ begin
         Func.Params[ParamIndex].Access := Access;
 
       //Process (and parse if Ident is '') the parameter name and add it to the definition
-      Parser.SkipWhiteSpaceAll;
+      Parser.SkipWhiteNL;
       Result := ParseParamName(Ident, Func, ParamIndex);
       if Result <> qeNone then
         EXIT;
-      Parser.SkipWhiteSpaceAll;
+      Parser.SkipWhiteNL;
 
       //Next parameter
       inc(ParamIndex);
@@ -273,7 +273,7 @@ begin
     if Result <> qeNone then
       EXIT;
 
-    Parser.SkipWhiteSpaceAll;
+    Parser.SkipWhiteNL;
 
     //We want either a semicolon to start another parameter definition, or a
     //closing brace to end
@@ -360,11 +360,11 @@ begin
     Convention := ccUnknown;
 
     //Possible separator for directives
-    Parser.SkipWhiteSpaceAll;
+    Parser.SkipWhite;
     while Parser.TestChar = ';' do
     begin
       Parser.SkipChar;
-      Parser.SkipWhiteSpaceAll;
+      Parser.SkipWhite;
     end;
 
     //Do we have a any directives? E.g. calling convention
@@ -572,7 +572,7 @@ var Func: PFunction;
                     //(forward, extern etc).
 begin
   //Function name...
-  Parser.SkipWhiteSpace;
+  Parser.SkipWhite;
   Result := ParseIdentifier(#0, Ident);
   if Result <> qeNone then
     EXIT;
@@ -598,7 +598,7 @@ begin
   //exact copy of the original
 
   //Does it have a parameter list? If so parse it
-  Parser.SkipWhiteSpace;
+  Parser.SkipWhite;
   if Parser.TestChar = '(' then
   begin
     Parser.SkipChar;
@@ -609,7 +609,7 @@ begin
 
   //If it's a function then it needs a return type,
   //It it's a procedure then it mustn't have one
-  Parser.SkipWhiteSpaceAll;
+  Parser.SkipWhite;
   if not Proc then
     if Parser.TestChar = ':' then
     begin

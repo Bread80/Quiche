@@ -1,7 +1,8 @@
 unit Parse.Source;
 
 interface
-uses Classes;
+uses Classes,
+  Parse.Errors;
 
 const
   csWhiteSpace = [#0..' '];
@@ -12,22 +13,37 @@ const
   csSymbolFirst = ['*','/','+','-','=','<','>'];
   csSymbolOther = ['=','>'];  //For <= and <>
 
+type TParseState = (psCode, psCurlyComment, psBraceComment);
+
+//Used to preserve parser state if we need to undo, and for reporting errors
+type TParseCursor = record
+    Filename: String;
+    LineNo: Integer;
+    Column: Integer;
+    Indent: Integer;  //Indent level of the selected line
+
+    constructor Create(const AFilename: String;ALineNo, AColumn, AIndent: Integer);
+  end;
+
 //Line oriented source code reader
 //Can read data from a file or string
 //Most functions won't read past the end of the current line
-
 type TSourceReader = class
   private
     FFilename: String;
-    FLines: TStringList;
     FLineNo: Integer;
+    FColumn: Integer;
+    FIndent: Integer;
+    FLines: TStringList;
     FLine: String;
     FEOF: Boolean;
-    FPos: Integer;
+    FState: TParseState;
 
     FMarkLineNo: Integer;
     FMarkPos: Integer;
+    FMarkCursor: TParseCursor;
     function GetSource(Index: Integer): String;
+    function GetEOLN: Boolean;
   public
     destructor Destroy;override;
     function OpenFile(AFilename: String): Boolean;
@@ -49,14 +65,18 @@ type TSourceReader = class
     //Skip current character on current line
     //Returns True if a char was skipped, False if EOLN or EOF
     function SkipChar: Boolean;
-    //Skips whitespace chars on the current line (ie. doesn't advance to the next line)
-    //Returns True if we are at the end of the line
-    function SkipWhiteSpace: Boolean;virtual;
-    //Skips all whitespace, including new lines.
-    procedure SkipWhiteSpaceAll;
+    //If the next char is the the given char skips it.
+    //Returns true if the next char was the given one
+    function SkipCharIf(Ch: Char): Boolean;
+    //DEPRECATED
+    function SkipWhiteSpace: Boolean;
     //Get the next char on the current line without moving the current position
     //If no char available (EOF, EOLN) returns #0
     function TestChar: Char;
+
+    function GetCursor: TParseCursor;
+    //Restore the cursor to a previous position
+    procedure SetCursor(const Cursor: TParseCursor);
 
     //Stores current read position, for possible Undo call
     //Note that only one Mark position is available. A second call will overwrite
@@ -67,10 +87,13 @@ type TSourceReader = class
     procedure Undo;
 
     property FileName: String read FFileName;
+    property EOLN: Boolean read GetEOLN;
     property EOF: Boolean read FEOF;
-    property Pos: Integer read FPos;
+    property Pos: Integer read FColumn;
     property LineNo: Integer read FLineNo;
     property Line: String read FLine;
+    //Saved cursor position
+    property MarkCursor: TParseCursor read FMarkCursor;
     property MarkLineNo: Integer read FMarkLineNo;
     property MarkPos: Integer read FMarkPos;
     property Source[Index: Integer]: String read GetSource;
@@ -78,20 +101,37 @@ type TSourceReader = class
 
   TQuicheSourceReader= class(TSourceReader)
   private
+    function DoSkipWhiteLine: TQuicheError;
+
     // { .. } comment
     //Also parses compiler directives (TODO)
-    procedure SkipCurlyComment;
+    //If NewLines then multiple lines of comment camn be consumed,
+    //   If not the function will terminate (qeNone) if a new line is encountered
+    //     with FState as psCurlyComment
+    //Returns False if EOF or (EOLN and NewLines is False).
+    //Returns True if the comment terminated correctly at a }
+    function SkipCurlyCommentLine: TParseState;
     // (* *) commant. Initial ( must have been read. Bonus if the initial * has also been read
-    procedure SkipBraceComment;
+    function SkipBraceCommentLine: TParseState;
     // // .. EOLN/EOF commment
     //Doesn't NOT read the EOLN characters (I.e. does not advance to the next line, and EOLN
     //or EOF will always be True after calling this.
     procedure SkipSlashComment;
   public
-    //Skips whitespace within a line.
-    //Doesn't advance to the next line
-    //Returns True if the reader (after skipping) is at EOLN or EOF
-    function SkipWhiteSpace: Boolean;override;
+    //Skip whitespace and comments but NOT newlines (does NOT skip comments which
+    //span new lines)
+    function SkipWhite: TQuicheError;
+    //Skip whitespace and comments including new lines (including comments which
+    //span new lines)
+    function SkipWhiteNL: TQuicheError;
+    //Skips whitespace and comments up to and including the start of the next line
+    //Returns an error if there was content (other than whitespace and comments) before the
+    //line end
+    function SkipToNextLine: TQuicheError;
+    //Skips whitespace, comments, newlines and semicolons
+    //If SeparatorRequired is True an error will be returned if neither a semicolon
+    //new line is read.
+    function NextStatement(SeparatorRequired: Boolean): TQuicheError;
     //End-of-Statement
     //Returns True if:
     //Next char is a statement separator (semicolon ; )
@@ -105,12 +145,33 @@ type TSourceReader = class
 implementation
 uses SysUtils;
 
+{ TParseCursor }
+
+constructor TParseCursor.Create(const AFilename: String; ALineNo, AColumn,
+  AIndent: Integer);
+begin
+  Filename := AFilename;
+  LineNo := ALineNo;
+  Column := AColumn;
+  Indent := AIndent;
+end;
+
 { TSourceReader }
 
 destructor TSourceReader.Destroy;
 begin
   FLines.Free;
   inherited;
+end;
+
+function TSourceReader.GetCursor: TParseCursor;
+begin
+  Result.Create(FFilename, FLineNo, FColumn, FIndent);
+end;
+
+function TSourceReader.GetEOLN: Boolean;
+begin
+  Result := FEOF or (FColumn >= Length(Line));
 end;
 
 function TSourceReader.GetSource(Index: Integer): String;
@@ -143,11 +204,12 @@ procedure TSourceReader.Mark;
 begin
   FMarkLineNo := LineNo;
   FMarkPos := Pos;
+  FMarkCursor := GetCursor;
 end;
 
 function TSourceReader.NextChar(out Ch: Char): Boolean;
 begin
-  while FPos >= Length(FLine) do
+  while FColumn >= Length(FLine) do
     if not NextLine then
       EXIT(False);
 
@@ -162,7 +224,7 @@ begin
   begin
     FLineNo := FLineNo + 1;
     FLine := FLines[FLineNo-1];
-    FPos := 0;
+    FColumn := 0;
   end
   else
     FEOF := True;
@@ -183,11 +245,11 @@ end;
 
 function TSourceReader.ReadChar(out Ch: Char): Boolean;
 begin
-  Result := FPos < Length(FLine);
+  Result := FColumn < Length(FLine);
   if Result then
   begin
-    Ch := FLine.Chars[FPos];
-    inc(FPos);
+    Ch := FLine.Chars[FColumn];
+    inc(FColumn);
   end
   else
   begin
@@ -202,7 +264,7 @@ end;
 procedure TSourceReader.Reset;
 begin
   FEOF := False;
-  FPos := 0;
+  FColumn := 0;
   if FLines <> nil then
   begin
     FLineNo := 1;
@@ -214,39 +276,44 @@ begin
     FLineNo := -1;
   end;
   FMarkLineNo := -1;
+  FState := psCode;
+end;
+
+procedure TSourceReader.SetCursor(const Cursor: TParseCursor);
+begin
+  Assert(Filename = Cursor.Filename, 'Can''t set cursor into a different file');
+  FLineNo := Cursor.LineNo;
+  FColumn := Cursor.Column;
+  FIndent := Cursor.Indent;
+  if Assigned(FLines) then
+    FLine := FLines[FLineNo-1];
 end;
 
 function TSourceReader.SkipChar: Boolean;
 begin
-  Result :=  FPos < Length(FLine);
+  Result :=  FColumn < Length(FLine);
   if Result then
-    inc(FPos);
+    inc(FColumn);
+end;
+
+function TSourceReader.SkipCharIf(Ch: Char): Boolean;
+begin
+  Result := TestChar = Ch;
+  if Result then
+    SkipChar;
 end;
 
 function TSourceReader.SkipWhiteSpace: Boolean;
 begin
-  while (FPos < Length(FLine)) and CharInSet(FLine.Chars[FPos], csWhiteSpace) do
-    inc(FPos);
-  Result := FPos >= Length(FLine);
-end;
-
-procedure TSourceReader.SkipWhiteSpaceAll;
-begin
-  while True do
-  begin
-    if SkipWhiteSpace then
-      NextLine
-    else
-      EXIT;
-    if FEOF then
-      EXIT;
-  end;
+  while (FColumn < Length(FLine)) and CharInSet(FLine.Chars[FColumn], csWhiteSpace) do
+    inc(FColumn);
+  Result := FColumn >= Length(FLine);
 end;
 
 function TSourceReader.TestChar: Char;
 begin
-  if FPos < Length(FLine) then
-    Result := FLine.Chars[FPos]
+  if FColumn < Length(FLine) then
+    Result := FLine.Chars[FColumn]
   else
     Result := #0;
 end;
@@ -259,7 +326,7 @@ begin
     EXIT;
 //  Assert(FMarkLineNo >= 0, 'Unmatched Parser.Undo/Parser.Mark');
   FLineNo := FMarkLineNo;
-  FPos := FMarkPos;
+  FColumn := FMarkPos;
   if FLines <> nil then
     FLine := FLines[FLineNo-1];
   FMarkLineNo := -1;
@@ -268,42 +335,169 @@ end;
 { TQuicheSourceReader }
 (* Comment *)
 // Comment
+function TQuicheSourceReader.DoSkipWhiteLine: TQuicheError;
+var Cursor: TParseCursor;
+begin
+  case FState of
+    psCode: Result := qeNone;
+    psCurlyComment: FState := SkipCurlyCommentLine;
+    psBraceComment: FState := SkipBraceCommentLine;
+  else
+    Assert(False);
+  end;
+  if Result <> qeNone then
+    EXIT;
+
+  while not EOLN do
+  begin
+    case TestChar of
+      #1..#12,#14..' ': SkipChar;
+      '{': //Curly comment
+      begin
+        SkipChar;
+        FState := SkipCurlyCommentLine;
+        if FState <> psCode then
+          if EOF then
+            EXIT(Err(qeUnterminatedComment))
+          else
+            EXIT(qeNone);
+      end;
+      '(':  //(* ... *) comment?
+      begin
+        Cursor := GetCursor;
+        SkipChar;
+        if TestChar = '*' then
+        begin
+          SkipChar;
+          FState := SkipBraceCommentLine;
+          if FState <> psCode then
+            if EOF then
+              EXIT(Err(qeUnterminatedComment))
+            else
+              EXIT(qeNone);
+        end
+        else
+        begin
+          SetCursor(Cursor);
+          EXIT(qeNone);
+        end;
+      end;
+      '/':  // // comment
+      begin
+        Cursor := GetCursor;
+        SkipChar;
+        if TestChar = '/' then
+        begin
+          SkipSlashComment;
+          //We MUST be at end of line
+          EXIT(qeNone);
+        end
+        else
+          SetCursor(Cursor);
+      end;
+      '\':  //Line continuation
+      begin
+        Cursor := GetCursor;
+        SkipChar;
+        while not (TestChar in [#0,#13]) do
+        begin
+          if not (TestChar in [#1..#32]) then
+          begin //If text after continuation then its not a continuation!
+            SetCursor(Cursor);
+            EXIT(Err(qeTextAfterContinuationChar));
+          end;
+          SkipChar;
+        end;
+        NextLine;
+      end;
+    else
+      EXIT(qeNone);
+    end;
+  end;
+
+  //EOF
+  if EOF and (FState <> psCode) then
+    Result := qeUnterminatedComment
+  else
+    Result := qeNone;
+end;
+
 function TQuicheSourceReader.EOS: Boolean;
 begin
   Result := CharInSet(TestChar, [#0,';']);
 end;
 
-procedure TQuicheSourceReader.SkipBraceComment;
-var Ch: Char;
+function TQuicheSourceReader.NextStatement(SeparatorRequired: Boolean): TQuicheError;
+var NewLine: Boolean;
+  Done: Boolean;
 begin
-  //Note: We may need to parse past the initial '*' of the (*
-  if TestChar = '$' then
-    ; //Compiler directives here <<--- TODO
+  NewLine := False;
   while True do
   begin
-    if not ReadChar(Ch) then
-      //EOF
-      EXIT;
-    if Ch = '*' then
-      if TestChar = ')' then
-      begin
-        SkipChar;
+    Done := False;
+    repeat
+      Result := DoSkipWhiteLine;
+      if Result <> qeNone then
         EXIT;
-      end;
+      if EOF then
+      begin
+        Done := True;
+        NewLine := True;
+      end
+      else if EOLN then
+      begin
+        NewLine := True;
+        NextLine;
+      end
+      else
+        Done := FState = psCode;
+    until Done;
+
+    if TestChar = ';' then
+    begin
+      NewLine := True;
+      SkipChar;
+    end
+    else
+      if NewLine or not SeparatorRequired then
+        EXIT(qeNone)
+      else
+        EXIT(Err(qeEndOfStatementExpected));
   end;
 end;
 
-procedure TQuicheSourceReader.SkipCurlyComment;
+function TQuicheSourceReader.SkipBraceCommentLine: TParseState;
 var Ch: Char;
 begin
-  if not ReadChar(Ch) then
-    EXIT;
   if TestChar = '$' then
     ;    //Compiler directives here <<--- TODO
 
-  while Ch <> '}' do
-    if not ReadChar(Ch) then
-      EXIT;
+  while not EOLN do
+  begin
+    if ReadChar(Ch) then
+      if Ch = '*' then
+        if TestChar = ')' then
+        begin
+          SkipChar;
+          EXIT(psCode);
+        end;
+  end;
+  EXIT(psBraceComment);
+end;
+
+function TQuicheSourceReader.SkipCurlyCommentLine: TParseState;
+var Ch: Char;
+begin
+  if TestChar = '$' then
+    ;    //Compiler directives here <<--- TODO
+
+  while not EOLN do
+  begin
+    if ReadChar(Ch) then
+      if Ch = '}' then
+        EXIT(psCode);
+  end;
+  EXIT(psCurlyComment);
 end;
 
 procedure TQuicheSourceReader.SkipSlashComment;
@@ -315,53 +509,37 @@ begin
   until CharInSet(Ch, [#13,#10]);
 end;
 
-function TQuicheSourceReader.SkipWhiteSpace: Boolean;
+function TQuicheSourceReader.SkipToNextLine: TQuicheError;
 begin
-  while not EOF do
-  begin
-    case TestChar of
-      #0,#13: EXIT(True);
-      #1..#12,#14..' ': SkipChar;
-      '{':
-        SkipCurlyComment;
-      '(':
-      begin
-        Mark;
-        SkipChar;
-        if TestChar = '*' then
-        begin
-          SkipChar;
-          SkipBraceComment;
-        end
-        else
-        begin
-          Undo;
-          EXIT(False);
-        end;
-      end;
-      '/':
-      begin
-        Mark;
-        SkipChar;
-        if TestChar = '/' then
-        begin
-          SkipSlashComment;
-          //We MUST be at end of line
-          EXIT(True);
-        end
-        else
-        begin
-          Undo;
-          EXIT(False);
-        end;
-      end;
-    else
-      EXIT(False);
-    end;
-  end;
+  repeat
+    Result := DoSkipWhiteLine;
+    if Result <> qeNone then
+      EXIT;
+    if EOLN then
+      NextLine;
+  until FState = psCode;
+  Result := qeNone;
+end;
 
-  //EOF
-  Result := True;
+function TQuicheSourceReader.SkipWhite: TQuicheError;
+begin
+  Result := DoSkipWhiteLine;
+end;
+
+function TQuicheSourceReader.SkipWhiteNL: TQuicheError;
+begin
+  while True do
+  begin
+    Result := DoSkipWhiteLine;
+    if Result <> qeNone then
+      EXIT;
+    if EOF then
+      EXIT(qeNone);
+    if EOLN then
+      NextLine
+    else if FState = psCode then
+      EXIT(qeNone);
+  end;
 end;
 
 end.

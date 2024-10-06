@@ -17,6 +17,10 @@ type TQuicheError = (
   qeCodeAfterENDdot,
   qeInvalidTopLevel,
   qeUnexpectedEndOfFile,
+  qeTextAfterContinuationChar,  //After \ line ending
+  qeUnterminatedComment,
+  qeInvalidEndOfLine,     //End of line not allowed at this point
+  qeEndOfStatementExpected,
 
   //Function declarations
   qeFunctionRedeclared,
@@ -75,6 +79,10 @@ const Errors : array[TQuicheError] of String = (
   'Code after END.',
   'Incorrect code at top-level. Expecting FUNCTION, PROCEDURE, TYPE, CONST, VAR or BEGIN',
   'Unexpected end of file',
+  'Text after continuation character (\)',
+  'Untermined comment',
+  'End of line not allowed here',
+  'New line or semi-colon expected',
 
   'Function redeclared',
   'Function body expected',
@@ -124,6 +132,10 @@ const SubErrors : array[TQuicheError] of String = (
   '',
   '',
   'Invalid keyword: ''%s''',
+  '',
+  '',
+  '',
+  '',
   '',
   '',
   '',
