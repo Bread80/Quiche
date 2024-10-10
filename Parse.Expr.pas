@@ -130,7 +130,7 @@ end;
 //======================================Parsing literals
 
 //Parses and returns an integer literal
-function ParseInteger(var Slug: TExprSlug): TQuicheError;
+function ParseDecimal(var Slug: TExprSlug): TQuicheError;
 var
   Ch: Char;
   Value: Integer;
@@ -153,10 +153,13 @@ begin
       if Value < 256 then
         Slug.SetImmediate(vtByte)
       else
-        Slug.SetImmediate(vtWord);
+        Slug.SetImmediate(vtInteger);
       Slug.Operand.Imm.IntValue := Value;
       Slug.ParamOrigin := poImplicit;
-      Slug.ImplicitType := vtInteger;
+      if Value > 32767 then
+        Slug.ImplicitType := vtWord
+      else
+        Slug.ImplicitType := vtInteger;
       EXIT(qeNone);
     end;
 
@@ -165,9 +168,9 @@ begin
 end;
 
 //Where the '-' sign has already been parsed
-function ParseNegativeInteger(var Slug: TExprSlug): TQuicheError;
+function ParseNegativeDecimal(var Slug: TExprSlug): TQuicheError;
 begin
-  Result := ParseInteger(Slug);
+  Result := ParseDecimal(Slug);
   if Result <> qeNone then
     EXIT;
 
@@ -211,7 +214,7 @@ begin
       'a'..'f': Digit := ord(Ch) - ord('a') + 10;
       'A'..'F': Digit := ord(Ch) - ord('A') + 10;
       else
-        if Digits < 2 then
+        if Digits <= 2 then
           Slug.SetImmediate(vtByte)
         else
           Slug.SetImmediate(vtPointer);
@@ -329,7 +332,7 @@ begin
 
       Ch := Parser.TestChar;
       case Ch of
-        '0'..'9': Result := ParseInteger(Slug);
+        '0'..'9': Result := ParseDecimal(Slug);
         '$': Result := ParseHex(Slug);
         '%': Result := ParseBinary(Slug);
       else
@@ -590,11 +593,11 @@ begin
     '0'..'9': //Numeric constants
       if UnaryOp = opNegate then
       begin
-        Result := ParseNegativeInteger(Slug);
+        Result := ParseNegativeDecimal(Slug);
         UnaryOp := opUnknown;
       end
       else
-        Result := ParseInteger(Slug);
+        Result := ParseDecimal(Slug);
     '$': //Hex constant
       Result := ParseHex(Slug);
     '%': //Binary constant

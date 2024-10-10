@@ -272,7 +272,7 @@ implementation
 uses Classes, IOUtils;
 
 const TestActionStrings: array[low(TTestAction)..high(TTestAction)] of String = (
-  'VarType', 'CompileError', 'UsesPrimitive', 'VarValue','RuntimeError');
+  'VarType', 'Compile', 'UsesPrimitive', 'VarValue', 'Runtime');
 
 const StatusStrings: array[low(TTestStatus)..high(TTestStatus)] of String = (
   'Test not run',

@@ -102,6 +102,61 @@ function IsEnumerable(VarType: TVarType): Boolean;
 
 function TryIntegerToVarType(Value: Integer;out VarType: TVarType): Boolean;
 
+//===================Type fitness
+
+//Range types are used within the parser to assess how to store, expand and find
+//primitives for numeric types
+//NOTE: The compiler could be adapted for targets with different bitness by modifying
+//this table and/or the constants which go with it (NumberRangeBounds)
+//However, adaptations will almost certainly be required elsewhere.
+type TNumberRange = (
+    rgReal,   //..-32769:     Real                      n/a                      Real
+    rgS16,    //-32768..-129: Unsigned 16               Real                     S16
+    rgS8,     //-128..-1:     Signed 8 or Signed 16     Signed 16                S8
+    rgAny,    //0..127:       Signed 8 or unsigned 8    Signed 16 or Unsigned 16 Any
+    rgS16U8,  //128..255:     Signed 16 or unsigned 8   Signed 16 or Unsigned 16 S16U8
+    rgS16U16, //256..32767:   Signed 16 or Unsigned 16  Real or Unsigned 16      S16U16
+    rgU16     //32768..65535: Unsigned 16               Real                     U16
+//  (Real)      65536..:      Real                      n/a                      Real
+    );
+const SignedRanges = [rgReal, rgS16, rgS8];
+
+const NumberRangeBounds: array[low(TNumberRange)..high(TNumberRange)] of Integer = (
+      -32769, -129,      -1,     127,    255,       32767,     65535);
+    NumberRangeToSignedType: array[low(TNumberRange)..high(TNumberRange)] of TVarType = (
+      vtReal, vtInteger, vtInt8, vtInt8, vtInteger, vtInteger, vtReal);
+    NumberRangeToUnSignedType: array[low(TNumberRange)..high(TNumberRange)] of TVarType = (
+      vtReal, vtReal,    vtReal, vtByte, vtByte,    vtWord,    vtWord);
+
+//Takes an integer value and returns which of the above ranges if best fits
+function IntToNumberRange(Value: Integer): TNumberRange;
+
+//Assesses the compatibility level between the code (variable) type and primitive's
+//parameter type.
+//  <0: totally incompatible
+//   0: exact match
+//1..9: data will need to be expanded. The lower the number the less costly the
+//      expansion
+//>=10: data will need to be shrunk - note all values in the original type can
+//      be represented in the target type. Values will need to be validated
+//      (if validation is enabled). Result may fail (run-time error) or be incorrect
+//      The higher the value the greater the incompatibility
+
+//CodeType is the Type of the value (from a variable)
+//PrimType is the type of the primitive's argument
+//Signed should be true if SignCombine is set for the operator AND the other parameter
+//is a signed type[1].
+//Signed should be false in all other cases.
+//[1] If the other parameter is a constant it's type should be established (via
+//GetFitnessTypeRange) before calling this function
+function GetFitnessTypeType(CodeType, PrimType: TVarType;Signed: Boolean): Integer;
+
+//As GetFitnessTypeType but where the parameter is a constant AND a numerical type
+function GetFitnessTypeRange(CodeRange: TNumberRange; PrimType: TVarType;Signed: Boolean): Integer;
+
+function GetImmSignCombineType(Value: Integer;LType, RType: TVarType): TVarType;
+
+//===============TImmValue
 
 //Record to store a typed constant value. Used within ILParams and as default
 //parameters within function definitions
@@ -337,6 +392,138 @@ begin
 
   Result := True;
 end;
+
+//----------------------Fitness
+
+function IntToNumberRange(Value: Integer): TNumberRange;
+begin
+  for Result := low(TNumberRange) to high(TNumberRange) do
+    if Value <= NumberRangeBounds[Result] then
+      EXIT;
+  Result := high(TNumberRange);
+end;
+
+//Fitness values for (<primitive-type>,<code-type>)
+const FitnessVarTypeVarType: array[vtInt8..vtReal,vtInt8..vtReal] of Integer =
+//From. This axis is the parameter type. Other is primitive argument type
+//To	    Int8	Int	Byt	Wrd	Ptr	Real
+{Int8}	  ((0,	10,	10,	30,	30,	30),		//Otherwise:
+{Integer}	(1,	  0,	3,	10,	10,	10),		//	If both parameters are unsigned set Byte to Integer to 3
+{Byte}	  (20,	30,	0,	20,	20,	40),		//If SignCombine is set for an operator:
+{Word}	  (10,	20,	2,	0,	1,	20),		//If SignCombine is set for an operator:
+{Pointer}	(10,	20,	3,	1,	0,	20),		//	If either parameter is signed, set Byte to Integer to 1
+{Real}	  (4,	  4,	4,	4,	4,	0));    //**This is handled in code in GetFitnessTypeType
+
+
+//NOTE: FINAL VALUES TODO
+const FitnessNumberRangeVarTypeUnsigned:
+  array[vtInt8..vtReal,low(TNumberRange)..high(TNumberRange)] of Integer =
+//	From. This axis is the parameter type. Other is primitive argument type
+//To	  NR_Real	S16	S8	Any	S16U8	S16U16	U16
+{Int8}	  ((40,	30,	0,	0,	10,	  20,	  30),
+{Integer}	(20,  0,	1,	2,	2,	  1,	  10),
+{Byte}	  (30,  20,	10,	0,	0,	  10,	  20),
+{Word}	  (10,  10,	20,	1,	1,	  0,	  0),
+{Pointer}	(10,  10,	20,	1,	1,	  0,	  0),
+{Real}	  (0,	  4,	4,	4,	4,	  4,	  4));
+
+//NOTE: FINAL VALUES TODO
+const FitnessNumberRangeVarTypeSigned:
+  array[vtInt8..vtReal,low(TNumberRange)..high(TNumberRange)] of Integer =
+//	From. This axis is the parameter type. Other is primitive argument type
+//To	  NR_Real	S16	S8	Any	S16U8	S16U16	U16
+{Int8}	  ((40,	30,	0,	0,	10,	  20,	  30),
+{Integer}	(20,  0,	1,	1,	1,	  0,	  10), //-1 from Any S16U8 S16u16
+{Byte}	  (30,  20,	10,	0,	0,	  10,	  20),
+{Word}	  (10,  10,	20,	2,	2,	  1,	  0), //+1 to Any, S16U8, S16u16
+{Pointer}	(10,  10,	20,	2,	2,	  1,	  0), //+1 to Any, S16U8, S16u16
+{Real}	  (0,	  4,	4,	4,	4,	  4,	  4));
+
+//See the PrimSelection.xlsx spreadsheet for calculations, validations, and notes
+//on the above fitness values.
+
+//Assesses the compatibility level between the code (variable) type and primitive's
+//parameter type.
+//  <0: totally incompatible
+//   0: exact match
+//1..9: data will need to be expanded. The lower the number the less costly the
+//      expansion
+//>=10: data will need to be shrunk - note all values in the original type can
+//      be represented in the target type. Values will need to be validated
+//      (if validation is enabled). Result may fail (run-time error) or be incorrect
+//      The higher the value the greater the incompatibility
+
+//CodeType is the Type of the value (from a variable)
+//PrimType is the type of the primitive's argument
+//Signed should be true if SignCombine is set for the operator AND the other parameter
+//is a signed type[1].
+//Signed should be false in all other cases.
+//[1] If the other parameter is a constant it's type should be established (via
+//GetFitnessTypeRange) before calling this function
+function GetFitnessTypeType(CodeType, PrimType: TVarType;Signed: Boolean): Integer;
+begin
+  if IsNumericType(CodeType) then
+  begin
+    if not IsNumericType(PrimType) then
+      Result := -1
+    else
+      if Signed and (CodeType = vtByte) and (PrimType = vtInteger) then
+        Result := 1
+      else
+        Result := FitnessVarTypeVarType[PrimType, CodeType];
+  end
+  else
+    if CodeType = PrimType then
+      Result := 0
+    else
+      Result := -1;
+end;
+
+//As GetFitnessTypeType but where the parameter is a constant AND a numerical type
+function GetFitnessTypeRange(CodeRange: TNumberRange; PrimType: TVarType;Signed: Boolean): Integer;
+begin
+  //Ranges only apply to numeric types
+  if not IsNumericType(PrimType) then
+    EXIT(-1);
+
+  if Signed then
+    Result := FitnessNumberRangeVarTypeSigned[PrimType, CodeRange]
+  else
+    Result := FitnessNumberRangeVarTypeUnsigned[PrimType, CodeRange];
+end;
+
+function GetImmSignCombineType(Value: Integer;LType, RType: TVarType): TVarType;
+var VRange: TNumberRange;
+begin
+  Assert(IsNumericType(LType) and IsNumericType(RType));
+
+  if LType = RType  then
+    Result := LType
+  else if IsSignedType(LType) and IsSignedType(RType) then
+    Result := vtInteger
+  else if (LType = vtPointer) or (RType = vtPointer) then
+    Result := vtPointer
+  else if (GetTypeSize(LType) = 1) and (GetTypeSize(RType) = 1) then
+    if Value >= 0 then
+      Result := vtByte
+    else
+      Result := vtInt8
+  else if (LType = vtInteger) or (RType = vtInteger) then
+    Result := vtInteger
+  else
+    Result := vtWord;
+
+  if (Value >= GetMinValue(Result)) and (Value <= GetMaxValue(Result)) then
+    EXIT;
+  if Result in [vtInteger, vtWord, vtPointer] then
+    EXIT;
+  if Result = vtByte then
+    EXIT(vtWord);
+
+  Result := vtInteger;
+end;
+
+//----------------------TImmValue
 
 constructor TImmValue.CreateInteger(AValue: Integer);
 begin

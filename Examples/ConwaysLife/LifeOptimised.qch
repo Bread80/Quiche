@@ -58,9 +58,8 @@ procedure TXT_CUR_OFF; call $bb84;
 //we'll create them as VARs and initialise at startup
 var
   ColCount: Byte
-  //VAR should be sticky. It currently isn't :(
-var  RowCount: Byte
-var  BufSize: Word  //Buffer size is (ColCount + 2) * (RowCount + 2)
+  RowCount: Byte
+  BufSize: Word  //Buffer size is (ColCount + 2) * (RowCount + 2)
 
 //Initialise a buffer by setting all cells to off
 procedure InitBuffer(Buffer: Pointer)
@@ -166,8 +165,8 @@ end
 //Also updates the display as it goes for maximum speed.
 procedure Update(OldBuf, NewBuf: Pointer)
 var Offset: Word
-var X:Byte
-var Y:Byte
+  X:Byte
+  Y:Byte
 begin
   //Position of first active pixel (second address of second row)
   Offset := ColCount+3
@@ -195,7 +194,7 @@ end
 //Update the display to show the state of Buffer
 procedure UpdateScreen(Buffer: Pointer);
 var X: Byte
-var Y: Byte
+  Y: Byte
 begin
   for Y := 1 to RowCount do
   begin
@@ -217,7 +216,7 @@ var
   //for the start of each buffer
   //We have no memory management, so use buffer addresses which we know won't overwrite anything
   Buffer1: Pointer
-var  Buffer2: Pointer
+  Buffer2: Pointer
 begin
   //'Constants'
   ColCount := 20

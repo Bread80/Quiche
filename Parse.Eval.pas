@@ -207,7 +207,13 @@ begin
     EXIT;
 
   if Value.VarType = vtUnknown then
-    if IsNumericType(Value.VarType) then
+    if Operations[Op].SignCombine then
+    begin
+      Value.VarType := GetImmSignCombineType(Value.IntValue, P1.VarType, P2.VarType);
+      if Value.VarType = vtUnknown then
+        EXIT(Err(qeConstantExpressionOverflow));
+    end
+    else if IsNumericType(Value.VarType) then
       Result := ValueToVarType(Value.IntValue, Value.VarType)
     else
     begin

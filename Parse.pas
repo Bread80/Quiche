@@ -30,7 +30,7 @@ function ErrorLineNo: Integer;
 function ErrorPos: Integer;
 function ErrorLine: String;
 
-function DoVAR(Storage: TVarStorage): TQuicheError;
+function DoVAR(Ident: String;Storage: TVarStorage): TQuicheError;
 
 //Parses a single statement
 //If the first identifier has been parsed, it should be passed in in Ident,
@@ -349,10 +349,10 @@ end;
 //                        |  VAR <identifier><type-symbol> [:= <expr>]
 //                           (no space allowed between <identifier> and <type-symbol>)
 //                           VAR <identifier> := <expr>
-function DoVAR(Storage: TVarStorage): TQuicheError;
+function DoVAR(Ident: String;Storage: TVarStorage): TQuicheError;
 var Variable: PVariable;
 begin
-  Result := ParseAssignment(True, False, '', Variable, Storage);
+  Result := ParseAssignment(True, False, Ident, Variable, Storage);
 end;
 
 
@@ -398,8 +398,12 @@ var
   ILItem: PILItem; //Used for various Items
   PhiInsertCount: Integer;
 begin
-  ScopeIncDepth;  //If loop counter is decalred here, ensure it goes out of scope
+  ScopeIncDepth;  //If loop counter is declared here, ensure it goes out of scope
                   //after the loop
+
+  Result := Parser.SkipWhiteNL;
+  if Result <> qeNone then
+    EXIT;
 
   //ENTRY section - prepare for loop
   //-------------
@@ -411,10 +415,18 @@ begin
   VarRead := CompareText(LoopVarName, 'var') = 0;
   if VarRead then
   begin
+    Result := Parser.SkipWhiteNL;
+    if Result <> qeNone then
+      EXIT;
+
     Result := ParseIdentifier(#0, LoopVarName);
     if Result <> qeNone then
       EXIT;
   end;
+
+  Result := Parser.SkipWhiteNL;
+  if Result <> qeNone then
+    EXIT;
 
   //Insert test here for FOR .. IN form
 //  if TestForIdent('in') then
@@ -722,7 +734,7 @@ begin
   begin
     case Keyword of
     keyBEGIN: Result := ParseBlock(bsBeginRead, Storage);
-    keyVAR: Result := DoVAR(Storage);
+    keyVAR: Result := DoVAR('', Storage);
     keyFOR: Result := DoFOR(Storage);
     keyIF: Result := DoIF(Storage);
     else
@@ -823,10 +835,14 @@ end;
 // <main-block> := <block> . <end-of-file>
 //              (no space between <block> and the period).
 function ParseDeclarations(IsRoot: Boolean;AllowFuncs: Boolean;Storage: TVarStorage): TQuicheError;
+type TDeclState = (dsNone, dsVAR);
 var
   Ch: Char;
+  Ident: String;
   Keyword: TKeyword;
+  DeclState: TDeclState;
 begin
+  DeclState := dsNone;
   Result := Parser.NextStatement(False);
   if Result <> qeNone then
     EXIT;
@@ -840,18 +856,27 @@ begin
       Result := ParseAttribute;
       if Result <> qeNone then
         EXIT;
-      Keyword := keyUnknown;
+      Keyword := keyUNKNOWN;
     end
     else if CharInSet(Ch, csIdentFirst) then
     begin //Identifier
-      Result := ParseKeyword(Keyword);
+      Result := ParseIdentifier(#0, Ident);
+      Keyword := IdentToKeyword(Ident);
+//      Result := ParseKeyword(Keyword);
       if Result <> qeNone then
         EXIT;
-      if Keyword = keyUnknown then
-        if IsRoot then
-          EXIT(Err(qeInvalidTopLevel))
-        else
-          EXIT(Err(qeNestedFuncsNotAllowed));
+      if Keyword = keyUNKNOWN then
+        case DeclState of
+//          dsCONST: ;
+//          dsTYPE: ;
+          dsVAR:
+            Result := DoVAR(Ident, Storage);
+          else
+            if IsRoot then
+              EXIT(Err(qeInvalidTopLevel))
+            else
+              EXIT(Err(qeNestedFuncsNotAllowed));
+        end;
     end
     else if Ch = #0 then
       EXIT(Err(qeUnexpectedEndOfFile))
@@ -859,13 +884,33 @@ begin
       EXIT(Err(qeSyntax));
 
     case Keyword of
-      keyUNKNOWN: ; //Nothing to do
-//      keyCONST: ;
-      keyFUNCTION: Result := ParseFunctionDef(False);
-      keyPROCEDURE: Result := ParseFunctionDef(True);
-//      keyTYPE: ;
-      //At this scope all vars are global
-      keyVAR: Result := DoVAR(Storage);
+      keyUNKNOWN: ; //Ignore (already processed above)
+{      keyCONST:
+      begin
+        //...
+        DeclState := dsCONST;
+      end;
+}      keyFUNCTION:
+      begin
+        Result := ParseFunctionDef(False);
+        DeclState := dsNone;
+      end;
+      keyPROCEDURE:
+      begin
+        Result := ParseFunctionDef(True);
+        DeclState := dsNone;
+      end;
+{      keyTYPE:
+      begin
+        //...
+        DeclState := dsTYPE;
+      end;
+}      //At this scope all vars are global
+      keyVAR:
+      begin
+        Result := DoVAR('', Storage);
+        DeclState := dsVAR;
+      end;
       keyBEGIN: //BEGIN ... END block
       begin
         //Check for unsatisfied forward declared function
@@ -894,8 +939,8 @@ begin
 
         EXIT(qeNone);
       end;
-    else
-      EXIT(Err(qeInvalidTopLevel))
+    else  //Unknown keyword
+        EXIT(Err(qeInvalidTopLevel))
     end;
     if Result <> qeNone then
       EXIT;
