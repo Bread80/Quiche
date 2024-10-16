@@ -3303,31 +3303,31 @@ object Form1: TForm1
     TabOrder = 12
     object MenuItem2: TMenuItem
       Text = '&File'
-      object MenuItem7: TMenuItem
+      object mnuNew: TMenuItem
         Action = acNew
         Enabled = True
         Locked = True
         ImageIndex = -1
       end
-      object MenuItem1: TMenuItem
+      object mnuOpenProject: TMenuItem
         Action = acOpenProject
         Enabled = True
         Locked = True
         ImageIndex = -1
       end
-      object MenuItem5: TMenuItem
+      object mnuOpenScratchFile: TMenuItem
         Action = acOpenScratchFile
         Enabled = True
         Locked = True
         ImageIndex = -1
       end
-      object MenuItem6: TMenuItem
+      object mnuSave: TMenuItem
         Action = acSave
         Enabled = True
         Locked = True
         ImageIndex = -1
       end
-      object MenuItem8: TMenuItem
+      object mnuSaveAs: TMenuItem
         Action = acSaveAs
         Enabled = True
         Locked = True
@@ -3373,6 +3373,7 @@ object Form1: TForm1
     object acOpenScratchFile: TAction
       Category = 'File'
       Text = 'Open Stratch File'
+      OnExecute = acOpenScratchExecute
     end
     object acSave: TAction
       Category = 'File'

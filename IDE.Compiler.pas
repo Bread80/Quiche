@@ -113,7 +113,8 @@ procedure SaveObjectCode(Filename: String);
 
 implementation
 uses SysUtils, IOUtils,
-  Def.Functions, Def.IL, Def.Intrinsics, Def.Operators, Def.Primitives, Def.Scopes, Def.Variables,
+  Def.Functions, Def.IL, Def.Intrinsics, Def.Operators, Def.Primitives, Def.Scopes,
+  Def.Variables, Def.Consts,
   Parse, Parse.Base,
   CodeGen, CG.Fragments,
   IDE.Emulator, IDE.ILExec, IDE.Shell;
@@ -223,6 +224,7 @@ begin
     DoInitDirectives;
 
   InitialiseSkipMode;
+  InitialiseConsts;
   InitialiseVars;
   InitialiseScopes;
 

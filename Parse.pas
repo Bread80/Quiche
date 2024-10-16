@@ -30,8 +30,6 @@ function ErrorLineNo: Integer;
 function ErrorPos: Integer;
 function ErrorLine: String;
 
-function DoVAR(Ident: String;Storage: TVarStorage): TQuicheError;
-
 //Parses a single statement
 //If the first identifier has been parsed, it should be passed in in Ident,
 //otherwise Ident must be an empty string
@@ -48,6 +46,7 @@ function ParseDeclarations(IsRoot: Boolean;AllowFuncs: Boolean;Storage: TVarStor
 implementation
 uses SysUtils, Classes,
   Def.Functions, Def.Globals, Def.IL, Def.Operators, Def.QTypes, Def.Scopes,
+  Def.Consts,
   Parse.Base, Parse.Fixups, Parse.FuncCall, Parse.FuncDef, Parse.Source;
 
 //===============================================
@@ -204,22 +203,26 @@ end;
 //VarIndex returns the Index in the variable list of Variable
 //Also inspects the optAllowAutoCreation option to determine if a declaration
 //requires an explicit 'var' or can be implied by the first assignment to a variable
-function ParseAssignment(VarRead, AllowVar: Boolean;VarName: String;
+function ParseAssignment(VarRead, AllowVar: Boolean;const Ident: String;
   out Variable: PVariable;Storage: TVarStorage): TQuicheError;
 var Ch: Char;
+  VarName: String;
   VarType: TVarType;  //vtUnknown if we're using type inference
   DoAssign: Boolean;  //True if we're assigning a value
   Creating: Boolean;
   Keyword: TKeyword;
+  IdentType: TIdentType;
 begin
   Result := Parser.SkipWhiteNL;
   if Result <> qeNone then
     EXIT;
 
   //VAR keyword or variable name
-  if VarName = '' then
+  if Ident <> '' then
+    VarName := Ident
+  else
   begin
-    Result := ParseIdentifier(#0,VarName);
+    Result := ParseIdentifier(#0, VarName);
     if Result <> qeNone then
       EXIT;
   end;
@@ -267,7 +270,7 @@ begin
       if Result <> qeNone then
         EXIT;
 
-      Result := ParseVarType(VarType);
+      Result := ParseVarTypeName(VarType);
       if Result <> qeNone then
         EXIT;
       if VarType = vtUnknown then
@@ -287,9 +290,9 @@ begin
 
     if VarRead then
     begin
-      Variable := VarFindByNameInScope(VarName);
-      if Variable <> nil then
-        EXIT(ErrSub(qeVariableRedeclared, VarName));
+      if SearchCurrentScope(VarName, IdentType) <> nil then
+        EXIT(ErrSub(qeIdentifierRedeclared, VarName));
+      Variable := nil;
     end
     else
       Variable := VarFindByNameAllScopes(VarName);
@@ -336,7 +339,7 @@ begin
   begin //Otherwise just create it. Meh. Boring
     Variable := VarCreate(VarName, VarType);
     if Variable = nil then
-      EXIT(ErrSub(qeVariableRedeclared, VarName));
+      EXIT(ErrSub(qeIdentifierRedeclared, VarName));
     Result := qeNone;
   end;
 end;
@@ -349,12 +352,49 @@ end;
 //                        |  VAR <identifier><type-symbol> [:= <expr>]
 //                           (no space allowed between <identifier> and <type-symbol>)
 //                           VAR <identifier> := <expr>
-function DoVAR(Ident: String;Storage: TVarStorage): TQuicheError;
+function DoVAR(const Ident: String;Storage: TVarStorage): TQuicheError;
 var Variable: PVariable;
 begin
   Result := ParseAssignment(True, False, Ident, Variable, Storage);
 end;
 
+// <constant-declaration> := CONST <identifier>[: <type>] = <expr>
+//                           CONST <identifier><type-symbol> = <expr>
+function DoCONST(const Ident: String): TQuicheError;
+var ConstName: String;
+  Value: TImmValue;
+  VarType: TVarType;
+begin
+  Result := Parser.SkipWhiteNL;
+  if Result <> qeNone then
+    EXIT;
+
+  //Name
+  ConstName := Ident;
+  Result := ParseUniqueIdentifierIfNone(ConstName);
+  if Result <> qeNone then
+    EXIT;
+
+  //Type (if specified)
+  Result := ParseTypeSpecifier(VarType);
+  if Result <> qeNone then
+    EXIT;
+
+  //'='
+  Result := Parser.SkipWhite;
+  if Result <> qeNone then
+    EXIT;
+  if Parser.TestChar <> '=' then
+    EXIT(ErrSyntax(synConstDeclaration));
+  Parser.SkipChar;
+
+  //Value
+  Result := ParseConstantExpression(Value, VarType);
+  if Result <> qeNone then
+    EXIT;
+
+  Consts.Add(ConstName, VarType, Value);
+end;
 
 
 type TBlockState = (bsSingle, bsBeginRead);
@@ -734,6 +774,7 @@ begin
   begin
     case Keyword of
     keyBEGIN: Result := ParseBlock(bsBeginRead, Storage);
+    keyCONST: Result := DoCONST('');
     keyVAR: Result := DoVAR('', Storage);
     keyFOR: Result := DoFOR(Storage);
     keyIF: Result := DoIF(Storage);
@@ -835,7 +876,7 @@ end;
 // <main-block> := <block> . <end-of-file>
 //              (no space between <block> and the period).
 function ParseDeclarations(IsRoot: Boolean;AllowFuncs: Boolean;Storage: TVarStorage): TQuicheError;
-type TDeclState = (dsNone, dsVAR);
+type TDeclState = (dsNone, dsCONST, dsVAR);
 var
   Ch: Char;
   Ident: String;
@@ -867,10 +908,9 @@ begin
         EXIT;
       if Keyword = keyUNKNOWN then
         case DeclState of
-//          dsCONST: ;
+          dsCONST: Result := DoCONST(Ident);
 //          dsTYPE: ;
-          dsVAR:
-            Result := DoVAR(Ident, Storage);
+          dsVAR:   Result := DoVAR(Ident, Storage);
           else
             if IsRoot then
               EXIT(Err(qeInvalidTopLevel))
@@ -885,12 +925,12 @@ begin
 
     case Keyword of
       keyUNKNOWN: ; //Ignore (already processed above)
-{      keyCONST:
+      keyCONST:
       begin
-        //...
+        Result := DoCONST('');
         DeclState := dsCONST;
       end;
-}      keyFUNCTION:
+      keyFUNCTION:
       begin
         Result := ParseFunctionDef(False);
         DeclState := dsNone;

@@ -48,14 +48,13 @@ function TestAssignment: Boolean;
 //if not found, leaves the parser position unchanged.
 function TestForIdent(Ident: String): Boolean;
 
-//Test for a Type Suffix Symbol.
-//If found returns the type and consumes the characters,
-//if not returns vtUnknown and leaves the Parser unchanged
-function TestForTypeSymbol(out VarType: TVarType): TQuicheError;
-
 function TestSymbolFirst: Boolean;
 
 function ParseSymbol(out Ident: String): TQuicheError;
+
+//Tests whether the identifier has already been declared in the current scope,
+//and whether it is a keyword. If so returns a suitable error
+function TestUniqueIdentifier(const Ident: String): TQuicheError;
 
 //Is the next char to be consumed the start of an Identifier?
 function TestIdentFirst: Boolean;
@@ -65,6 +64,17 @@ function TestIdentFirst: Boolean;
 //of the Identifier. This is useful where the character has already been consumed,
 //from the Parser, for analysis.
 function ParseIdentifier(First: Char;out Ident: String): TQuicheError;
+//If Ident = '' then parses an identifier and returns it in Ident
+//Otherwise leaves Ident untouched
+function ParseIdentifierIfNone(var Ident: String): TQuicheError;
+
+//Parses an identifier. If the identifier is already defined in the current
+//scope returns a suitable error
+function ParseUniqueIdentifier(First: Char;out Ident: String): TQuicheError;
+//If Ident is '' reads an identifier, otherwises uses value passed in Ident
+//Tests whether the identifier is unique in the curren scope and returns a
+///suitable error if not
+function ParseUniqueIdentifierIfNone(var Ident: String): TQuicheError;
 
 //Parses the next item as a keyword.
 //If the next item is not a keyword returns Keyword = keyUnknown
@@ -72,7 +82,21 @@ function ParseKeyword(out Keyword: TKeyword): TQuicheError;
 
 //Parses the next item as a variable type.
 //If the next item is not a known type returns VT = vtUnknown
-function ParseVarType(out VT: TVarType): TQuicheError;
+function ParseVarTypeName(out VT: TVarType): TQuicheError;
+
+//Test for a Type Suffix Symbol.
+//If found returns the type and consumes the characters,
+//if not returns vtUnknown and leaves the Parser cursor unchanged
+function TestForTypeSymbol(out VarType: TVarType): TQuicheError;
+
+//With the parser positioned at the char after an identifier (variable, const etc)
+//attempts to parse a type-symbol or name
+//<type-specifier> := <type-symbol>
+//                  | :<type-name>
+//Anything other syntax will return qeNone, VT as vtUnknown, and leaves the parser
+//cursor unchanged
+//If the <type-name> is unknown will return an error
+function ParseTypeSpecifier(out VT: TVarType): TQuicheError;
 
 //Attribute data
 var AttrCorrupts: TCPURegSet;
@@ -111,7 +135,8 @@ function SkipModeStart(Enable: Boolean): Boolean;
 procedure SkipModeEnd(PrevSkipMode: Boolean);
 
 implementation
-uses SysUtils, IOUtils, Generics.Collections;
+uses SysUtils, IOUtils, Generics.Collections,
+  Def.Scopes;
 
 procedure LoadFromString(Source: String);
 begin
@@ -268,6 +293,38 @@ begin
   end;
 end;
 
+function ParseIdentifierIfNone(var Ident: String): TQuicheError;
+begin
+  if Ident = '' then
+    Result := ParseIdentifier(#0, Ident)
+  else
+    Result := qeNone;
+end;
+
+function TestUniqueIdentifier(const Ident: String): TQuicheError;
+var IdentType: TIdentType;
+begin
+  if IdentToKeyword(Ident) <> keyUNKNOWN then
+    EXIT(ErrSub(qeReservedWord, Ident));
+
+  if SearchCurrentScope(Ident, IdentType) <> nil then
+    EXIT(ErrSub(qeIdentifierRedeclared, Ident));
+end;
+
+function ParseUniqueIdentifier(First: Char;out Ident: String): TQuicheError;
+begin
+  Result := ParseIdentifier(First, Ident);
+  if Result <> qeNone then
+    Result := TestUniqueIdentifier(Ident);
+end;
+
+function ParseUniqueIdentifierIfNone(var Ident: String): TQuicheError;
+begin
+  Result := ParseIdentifierIfNone(Ident);
+  if Result = qeNone then
+    Result := TestUniqueIdentifier(Ident);
+end;
+
 function ParseKeyword(out Keyword: TKeyword): TQuicheError;
 var Ident: String;
 begin
@@ -276,7 +333,7 @@ begin
     Keyword := IdentToKeyword(Ident);
 end;
 
-function ParseVarType(out VT: TVarType): TQuicheError;
+function ParseVarTypeName(out VT: TVarType): TQuicheError;
 var Ident: String;
 begin
   Result := ParseIdentifier(#0, Ident);
@@ -291,6 +348,8 @@ end;
 function TestForTypeSymbol(out VarType: TVarType): TQuicheError;
 var Ch: Char;
 begin
+  Parser.Mark;
+
   Ch := Parser.TestChar;
   case Ch of
     '%': VarType := vtInteger;
@@ -323,7 +382,36 @@ begin
       EXIT(ErrMsg(qeTodo, 'Type not yet supported: ' + VarTypeToName(VarType)));
   end;
 
+  if VarType = vtUnknown then
+    Parser.Undo;
   Result := qeNone;
+end;
+
+function ParseTypeSpecifier(out VT: TVarType): TQuicheError;
+begin
+  if Parser.TestChar = ':' then
+  begin
+    Parser.Mark;
+    Parser.SkipChar;
+    if Parser.TestChar = '=' then
+    begin
+      Parser.Undo;
+      VT := vtUnknown;
+      EXIT(qeNone);
+    end;
+
+    Parser.SkipChar;
+    Result := Parser.SkipWhiteNL;
+    if Result <> qeNone then
+      EXIT;
+    Result := ParseVarTypeName(VT);
+  end
+  else
+  begin
+    Result := TestForTypeSymbol(VT);
+    if VT = vtUnknown then
+      Result := qeNone;
+  end;
 end;
 
 //Called after '[Corrupts' has been parsed

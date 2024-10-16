@@ -56,10 +56,11 @@ procedure TXT_CUR_OFF; call $bb84;
 
 //These should be CONSTants but the compiler doesn't have them yet, so
 //we'll create them as VARs and initialise at startup
-var
-  ColCount: Byte
-  RowCount: Byte
-  BufSize: Word  //Buffer size is (ColCount + 2) * (RowCount + 2)
+const ColCount = 20
+  RowCount = 20
+  //The byte values need to be explicitly expanded to words
+  //to avoid overflow in the multiplication
+  BufSize = Word(ColCount + 2) * (RowCount + 2)
 
 //Initialise a buffer by setting all cells to off
 procedure InitBuffer(Buffer: Pointer)
@@ -218,13 +219,6 @@ var
   Buffer1: Pointer
   Buffer2: Pointer
 begin
-  //'Constants'
-  ColCount := 20
-  RowCount := 20
-  //The byte values need to be explicitly expanded to words
-  //to avoid overflow in the multiplication
-  BufSize := Word(ColCount + 2) * (RowCount + 2)
-
   //Init buffer pointers
   Buffer1 := $4000
   Buffer2 := Buffer1 + BufSize

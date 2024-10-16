@@ -59,6 +59,13 @@ function ParseExpressionToSlug(var Slug: TExprSlug;var ExprType: TVarType): TQui
 //Dest and Operation data *must* be assigned by the caller
 function ParseExprToILItem(out ILItem: PILItem;out VType: TVarType): TQuicheError;
 
+//Parses a constant expression and returns it in Value.
+//If the expression is not a constant expression, or if the type is incompatible with
+//ExprType returns an error.
+//On entry a value of vtUnknown may be passed for ExprType. If so ExprType will
+//return the type of the expression parsed
+function ParseConstantExpression(out Value: TImmValue;var ExprType: TVarType): TQuicheError;
+
 
 (*
 //Parses an expression (or sub-expression) until we run out of operators
@@ -78,7 +85,7 @@ function ParseExprToILItem(out ILItem: PILItem;out VType: TVarType): TQuicheErro
 *)
 implementation
 uses SysUtils,
-  Def.Globals, Def.Functions, Def.Primitives, Def.Scopes, Def.Variables,
+  Def.Globals, Def.Functions, Def.Primitives, Def.Scopes, Def.Variables, Def.Consts,
   Parse.Base, Parse.Eval, Parse.FuncCall, Parse.Source;
 
 //===================================== Slugs
@@ -364,68 +371,25 @@ end;
 
 function ParseOperand(var Slug: TExprSlug;UnaryOp: TUnaryOperator): TQuicheError; forward;
 
-//Parses identifiers as expression parameters. Identifiers can be constants,
-//variables or functions
+//Parses identifiers as expression parameters.
+//Identifiers can be constants, variables or functions (or Types (TODO))
 function ParseOperandIdentifier(var Slug: TExprSlug;Ident: String): TQuicheError;
 var IdentType: TIdentType;
   Scope: PScope;
   Item: Pointer;
+  C: PConst;
   V: PVariable;
   VarType: TVarType;
 begin
-  //System constants - TODO - this needs to be somewhere else!
-  if CompareText(Ident, 'False') = 0 then
-  begin
-    Slug.SetImmediate(vtBoolean);
-    Slug.Operand.Imm.BoolValue := False;
-    Slug.ParamOrigin := poExplicit;
-    Slug.ImplicitType := vtBoolean;
-    EXIT(qeNone);
-  end;
-  if CompareText(Ident, 'True') = 0 then
-  begin
-    Slug.SetImmediate(vtBoolean);
-    Slug.Operand.Imm.BoolValue := True;
-    Slug.ParamOrigin := poExplicit;
-    Slug.ImplicitType := vtBoolean;
-    EXIT(qeNone);
-  end;
-  if CompareText(Ident, 'MinInt') = 0 then
-  begin
-    Slug.SetImmediate(vtInteger);
-    SetMinValue(Slug.Operand.Imm);
-    Slug.ParamOrigin := poExplicit;
-    Slug.ImplicitType := vtInteger;
-    EXIT(qeNone);
-  end;
-  if CompareText(Ident, 'MaxInt') = 0 then
-  begin
-    Slug.SetImmediate(vtInteger);
-    SetMaxValue(Slug.Operand.Imm);
-    Slug.ParamOrigin := poExplicit;
-    Slug.ImplicitType := vtInteger;
-    EXIT(qeNone);
-  end;
-  if CompareText(Ident, 'nil') = 0 then
-  begin
-    Slug.SetImmediate(vtPointer);
-    Slug.Operand.Imm.IntValue := 0;
-    Slug.ParamOrigin := poExplicit;
-    Slug.ImplicitType := vtPointer;
-    EXIT(qeNone);
-  end;
-
-  //Test for type names. If it is a typecast it will be followed by open bracket.
+  //Test for type names (used as data values).
+  //If it is a typecast it will be followed by open bracket.
   //If not it's a typename
   //Typecasts will be processed as functions in the next section
   VarType := StringToVarType(Ident);
   if VarType <> vtUnknown then
   begin
     if Parser.TestChar <> '(' then
-      //Typecast - Process as a function call (see above) (And this should have been caught above ??)
-(*      raise Exception.Create('TYpecasts aren''t functional at the moment')
-    else
-*)    begin
+    begin //Not a typecast
       Slug.SetImmediate(vtTypeDef);
       Slug.Operand.Imm.TypeValue := VarType;
       Slug.ParamOrigin := poExplicit;
@@ -434,13 +398,22 @@ begin
     end;
   end;
 
-
-  //Variable or function or const
+  //Const or Variable or function
   //Search everything we can see
   Item := SearchScopes(Ident, IdentType, Scope);
   if assigned(Item) then
   begin
     case IdentType of
+      itConst:
+      begin
+        C := PConst(Item);
+        Slug.Operand.SetImmediate(C.VarType);
+        Slug.Operand.Imm := C.Value;
+        Slug.ParamOrigin := poExplicit;
+        Slug.ResultType := C.VarType;
+        Slug.implicitType := C.VarType;
+        EXIT(qeNone);
+      end;
       itVar:
       begin
         V := PVariable(Item);
@@ -456,7 +429,6 @@ begin
         if Result <> qeNone then
           EXIT;
       end;
-      itConst: EXIT(ErrMsg(qeTODO, 'Constant lookup (in expressions) not yet implemented'));
       itType: EXIT(ErrMsg(qeTODO, 'Typecasts for user types not yet implemented. Type names not allowed in expressions'));
     else
       EXIT(ErrMsg(qeBUG, 'Invalid/unknown IdentType in ParseOperandIentifier'));
@@ -978,6 +950,19 @@ begin
   end;
 
   //Op data and Dest to be assigned by caller
+end;
+
+function ParseConstantExpression(out Value: TImmValue;var ExprType: TVarType): TQuicheError;
+var Slug: TExprSlug;
+begin
+  Result := ParseExpressionToSlug(Slug, ExprType);
+  if Result <> qeNone then
+    EXIT;
+
+  if Slug.Operand.Kind <> pkImmediate then
+    EXIT(Err(qeConstantExpressionExpected));
+
+  Value := Slug.Operand.Imm;
 end;
 
 end.

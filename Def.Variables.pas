@@ -148,9 +148,6 @@ function VarIndexToData(Index: Integer): PVariable;
 
 //------------Scope related
 
-//The maximum number of vars which can be created per Scope/VarList
-const ScopeVarCount = 1000;
-
 //These routines are called by the Scopes routines to create, clear and set Scopes
 function CreateVarList: TVarList;
 procedure ClearVarList(List: TVarList);
@@ -337,9 +334,10 @@ begin
 end;
 
 function VarCreate(AName: String;VarType: TVarType): PVariable;
+var IdentType: TIdentType;
 begin
   Assert(AName <> '');
-  if VarFindByNameInScope(AName) <> nil then
+  if SearchCurrentScope(AName, IdentType) <> nil then
     Result := nil
   else
     Result := VarCreateInt(AName, VarType, GetCurrentScope.GetLocalStorage);

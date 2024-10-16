@@ -36,7 +36,7 @@ type TQuicheError = (
   qeUndefinedIdentifier,
   qeReservedWord,
   qeVariableNotFound,
-  qeVariableRedeclared,
+  qeIdentifierRedeclared,
   qeUnknownType,
   qeConstNameNotValidHere,
 
@@ -96,7 +96,7 @@ const Errors : array[TQuicheError] of String = (
   'Undefined identifier',
   'Reserved word',
   'Variable not found',
-  'Variable already declared',
+  'Identifier already declared',
   'Invalid or undeclared type identifier',
   'Constant name not valid here',
 
@@ -201,6 +201,7 @@ type TSyntaxError = (
   synStatementExpected,
   synParameterList,
   synVariableDeclaration,
+  synConstDeclaration,
   synAssignmentExpected,
 
   synFunctionDeclaration,
@@ -216,6 +217,7 @@ const SyntaxErrors: array[TSyntaxError] of String = (
   'Statement expected',
   'Error in parameter list',
   'Invalid variable declaration',
+  'Invalid constant declaration',
   'Assignment expected',
 
   'Error in function declaration',
@@ -238,6 +240,9 @@ const SyntaxHelp: array[TSyntaxError] of String = (
     'VAR <var-name>: <type-name> = <expr>'#13#10 +
     'VAR <var-name><type-symbol> = <expr>'#13#10 +
     'VAR <var-name> := <expr>',
+
+  'CONST <identifier>[: <type>] = <constant-expr>' +
+     'CONST <identifier><type-symbol> = <constant-expr>',
 
   '<var-name> := <expr>',
 

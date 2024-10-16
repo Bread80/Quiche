@@ -96,12 +96,12 @@ type
     MenuItem4: TMenuItem;
     MenuItem3: TMenuItem;
     cbRangeChecks: TCheckBox;
-    MenuItem1: TMenuItem;
-    MenuItem5: TMenuItem;
-    MenuItem6: TMenuItem;
+    mnuOpenProject: TMenuItem;
+    mnuOpenScratchFile: TMenuItem;
+    mnuSave: TMenuItem;
     FileOpenDialog: TOpenDialog;
-    MenuItem7: TMenuItem;
-    MenuItem8: TMenuItem;
+    mnuNew: TMenuItem;
+    mnuSaveAs: TMenuItem;
     FileSaveDialog: TSaveDialog;
     MenuItem9: TMenuItem;
     ActionList1: TActionList;

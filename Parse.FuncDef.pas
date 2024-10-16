@@ -159,7 +159,7 @@ begin
     //TODO: Validate all params are reg params ?At end of definition?
     if TestForIdent('as') then
     begin //Type specified
-      Result := ParseVarType(VarType);
+      Result := ParseVarTypeName(VarType);
       if Result <> qeNone then
         EXIT;
       if VarType = vtUnknown then

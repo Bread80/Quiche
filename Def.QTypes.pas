@@ -162,6 +162,8 @@ function GetImmSignCombineType(Value: Integer;LType, RType: TVarType): TVarType;
 //parameters within function definitions
 type TImmValue = record
   constructor CreateInteger(AValue: Integer);
+  constructor CreateChar(AValue: Char);
+  constructor CreateBoolean(AVAlue: Boolean);
 
   //For (mostly) code generation
   //Only applicable to enumerated types
@@ -524,6 +526,18 @@ begin
 end;
 
 //----------------------TImmValue
+
+constructor TImmValue.CreateBoolean(AValue: Boolean);
+begin
+  VarType := vtBoolean;
+  BoolValue := AValue;
+end;
+
+constructor TImmValue.CreateChar(AValue: Char);
+begin
+  VarType := vtChar;
+  CharValue := AValue;
+end;
 
 constructor TImmValue.CreateInteger(AValue: Integer);
 begin
