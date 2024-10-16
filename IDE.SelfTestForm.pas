@@ -167,7 +167,6 @@ end;
 procedure TSelfTestF.ItemShowResults(Item: TTreeViewItem);
 var Status: TTestStatus;
   Test: TTestable;
-  I: Integer;
 begin
   Test := ItemToTest(Item);
   if Assigned(Test) then

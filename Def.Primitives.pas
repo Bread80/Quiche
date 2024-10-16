@@ -215,7 +215,7 @@ begin
     plStackVar:  Result := Storage = vsStack;
     plRegister:  Result := (AvailableRegs * [rA..rE,rH..rL, rHL..rBC]) <> [];
   else
-    Assert(False);
+    raise Exception.Create('Undefined PrimLoc');
   end;
 end;
 
@@ -226,7 +226,7 @@ begin
     pvNo: EXIT(not (cgOverFlowCheck in ILItem.Flags));
     pvEither: EXIT(True); //Always okay
   else
-    Assert(False, 'Unknown primitive validation option');
+    raise Exception.Create('Unknown primitive validation option');
   end;
 end;
 (*
@@ -256,6 +256,7 @@ end;
 function DestMatch(Prim: PPrimitive;ILItem: PILItem): Boolean;
 var V: PVariable;
 begin
+  Result := False;
   case ILItem.Dest.Kind of
     pkNone, pkPush, pkPushByte: Result := True;
     pkCondBranch: Result := Prim.ResultType in [vtBoolean, vtFlag];
@@ -271,7 +272,7 @@ begin
       end;
     end;
   else
-    Assert(False);
+    raise Exception.Create('Undefined Dest.Kind');
   end;
 end;
 
@@ -679,16 +680,16 @@ end;
 
 procedure PrimSetProc(Name: String;Proc: TCodeGenProc);
 var Prim: PPrimitive;
-  Found: Boolean;
+//  Found: Boolean;
 begin
   AddCodeGenProc(Name, Proc);
 
-  Found := False;
+//  Found := False;
   for Prim in PrimList do
     if CompareText(Prim.ProcName, Name) = 0 then
     begin
       Prim.Proc := Proc;
-      Found := True;
+//      Found := True;
     end;
 
 //  if not Found then
@@ -697,15 +698,15 @@ end;
 
 procedure PrimSetValProc(Name: String;Proc: TValidationProc);
 var Prim: PPrimitive;
-  Found: Boolean;
+//  Found: Boolean;
 begin
   AddValProc(Name, Proc);
-  Found := False;
+//  Found := False;
   for Prim in PrimList do
     if CompareText(Prim.ProcName, Name) = 0 then
     begin
       Prim.ValidateProc := Proc;
-      Found := True;
+//      Found := True;
     end;
 //  if not Found then
 //    raise Exception.Create('ValProc not used by any primitives: ' + Name);

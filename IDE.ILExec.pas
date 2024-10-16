@@ -136,7 +136,7 @@ begin
 end;
 
 function ExecILItem(Index: Integer): Integer;
-var ILItem: PILItem;
+{var ILItem: PILItem;
   PrevBlock: Integer;
   Value: Integer;
   ValueType: TVarType;
@@ -144,17 +144,17 @@ var ILItem: PILItem;
   Variable: PVariable;
   SubMismatch: Boolean;
   Op: POpData;
-begin
-  ILItem := ILIndexToData(Index);
+}begin
+{  ILItem := ILIndexToData(Index);
   if ILItem.BlockID >= 0 then
   begin
-    PrevBlock := CurrBlock;
+//    PrevBlock := CurrBlock;
     CurrBlock := ILItem.BlockID;
   end;
 
-  Result := Index + 1;
-
-  Op := @Operations[ILItem.Op];
+}  Result := Index + 1;
+{
+//  Op := @Operations[ILItem.Op];
   if ILItem.Op = opBranch then
     //Unconditional branch - don't evaluate parameters
   else
@@ -227,7 +227,7 @@ begin
         Value := Value * GetValue(ILItem, @ILItem.Param2, ValueType2, SubMismatch);
         ExecTest((ValueType = ValueType2) and (ValueType = vtInteger), 'Type mismatch');
       end;
-      {opDivide, }opDiv:
+      {opDivide, }{opDiv:
       begin
         Value := Value div GetValue(ILItem, @ILItem.Param2, ValueType2, SubMismatch);
         ExecTest((ValueType = ValueType2) and (ValueType = vtInteger), 'Type mismatch');

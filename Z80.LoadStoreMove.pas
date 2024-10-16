@@ -163,6 +163,7 @@ function AssessMoveType(Param: PILParam): TMoveType;
 var R: TCPUReg;
   V: PVariable;
 begin
+  Result := mtUnused;
   R := Param.Reg;
 
   //Analyse what move is needed (if any)

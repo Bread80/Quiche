@@ -319,7 +319,7 @@ begin
     ccRegister: Result := vsStatic;
     ccStack: Result := vsStack;
   else
-    Assert(False);
+    raise Exception.Create('Undefined Calling Convention');
   end;
 end;
 
@@ -332,7 +332,7 @@ begin
       Result := vsStatic;
     ccStack: Result := vsStack;
   else
-    Assert(False);
+    raise Exception.Create('Undefined Calling Convention');
   end;
 end;
 

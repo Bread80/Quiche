@@ -428,7 +428,10 @@ var
   LoopVarName: String;
   LoopVar: PVariable;
   Step: Integer;       //TO or DOWNTO?
-  EndValue: PVariable;  //Hidden variable to contain end value for the loop
+  ExprType: TVarType;
+  Slug: TExprSlug;
+  ToVar: PVariable;  //Hidden variable to contain end value for the loop. Nil if value is constant
+  ToValue: TImmValue;  //If EndVar is nil, contants constant endvalue
   EntryBlockID: Integer;
   EntryLastItemIndex: Integer;
   HeaderBlockID: Integer;
@@ -484,12 +487,17 @@ begin
   else
     EXIT(ErrSyntaxMsg(synFOR, 'TO expected'));
 
-  //Eval TO expression
-  EndValue := nil;
-  //Parse and create EndValue
-  Result := ParseAssignmentExpr(EndValue, LoopVar.VarType);
+  //TO value
+  ExprType := LoopVar.VarType;
+  Result := ParseExpressionToSlug(Slug, ExprType);
+  ToVar := nil;
   if Result <> qeNone then
     EXIT;
+  //If the value is a constant
+  if (Slug.ILItem = nil) and (Slug.Operand.Kind = pkImmediate) then
+    ToValue := Slug.Operand.Imm
+  else //if the value is not constant, assign it to a temp variable
+    AssignSlugToVariable(Slug, ToVar, ExprType);
 
   //TODO: Insert code here for Step value
 
@@ -497,6 +505,8 @@ begin
   if not TestForIdent('do') then
     if Parser.SkipToNextLine <> qeNone then
       EXIT(ErrSyntaxMsg(synFOR, 'DO expected'));
+
+  //TODO: Test if we should do loop inversion
 
   //Insert Branch into header
   ILAppendBranch(GetCurrBlockID + 1);
@@ -517,6 +527,7 @@ begin
   HeaderBlockID := GetCurrBlockID;
   PhiItemIndex := ILGetCount - 1; //Needed later so we can Phi any other variables
 
+  ExitTestItem := nil;
   //Test LoopVar and Branch to Body or Exit
   case Step of
     -1: ExitTestItem := ILAppend(OpGreaterEqual);
@@ -527,7 +538,13 @@ begin
   ExitTestItem.ResultType := vtBoolean;
 
   ExitTestItem.Param1.SetVarSource(LoopVar);
-  ExitTestItem.Param2.SetVarSource(EndValue);
+  if ToVar = nil then
+  begin //TO value is constant
+    ExitTestItem.Param2.SetImmediate(ToValue.VarType);
+    ExitTestItem.Param2.Imm := ToValue;
+  end
+  else  //To value is variable
+    ExitTestItem.Param2.SetVarSource(ToVar);
 
   ExitTestItem.Dest.SetCondBranch;
   ExitTestItem.Dest.TrueBlockID := GetCurrBlockID + 1; //Body BlockID
@@ -552,6 +569,7 @@ begin
   NewBlock := True;
   NewBlockComment := 'Loop Latch: ' + LoopVarName;
   //Next loopvar
+  ILItem := nil;
   case Step of
     1:
     if IsEnumerable(LoopVar.VarType) then
@@ -740,6 +758,7 @@ end;  //---------------------------------------------------------- IF
 
 // <statement> := <block>
 //             |  <function-call>
+//             |  <constant-declaration>
 //             |  <variable-declaration>
 //             |  <assignment>
 //             |  <if-statement>
@@ -749,7 +768,6 @@ end;  //---------------------------------------------------------- IF
 //             |  <until-statement>
 function ParseStatement(Storage: TVarStorage): TQuicheError;
 var
-  Ch: Char;
   Ident: String;
   Keyword: TKeyword;
   Scope: PScope;
@@ -870,9 +888,9 @@ end;
 // <globals> := [ <global-defs> ] [ <global-defs> ]
 //              <main-block>
 // <global-defs> := <function-def>
-//               | <variable-def>
-//               | <type-def>
-//               | <constant-def>
+//               | <variable-declaration>
+//               | <constant-declaration>
+//               | <type-declaration>
 // <main-block> := <block> . <end-of-file>
 //              (no space between <block> and the period).
 function ParseDeclarations(IsRoot: Boolean;AllowFuncs: Boolean;Storage: TVarStorage): TQuicheError;

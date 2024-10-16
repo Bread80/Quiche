@@ -482,7 +482,8 @@ begin //Sub-expressions
   Parser.Mark;
   Parser.SkipChar;
 
-  ParseOperand(Slug, UnaryOp);
+  UnaryOp := opUnknown;
+  Result := ParseOperand(Slug, UnaryOp);
   if Result <> qeNone then
     EXIT;
 

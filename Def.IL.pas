@@ -594,6 +594,7 @@ begin
     pkVarAddr: Result := AddrVar;
   else
     Assert(False);
+    Result := nil;
   end;
 end;
 

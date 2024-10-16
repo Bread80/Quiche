@@ -115,8 +115,6 @@ begin
 end;
 
 procedure TEMPRegAllocMove(var ILItem: PILItem);
-var Reg: TCPUReg;
-  Regs: TCPURegSet;
 begin
   Assert(ILItem.Op = opMove);
   Assert(ILItem.Param1.Kind in [pkImmediate, pkVarSource, pkPop, pkPopByte]);

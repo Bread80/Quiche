@@ -50,7 +50,7 @@ begin
       else
         Result := Value;
   else
-    Assert(False, 'Invalid type for logic result');
+    raise Exception.Create('Invalid type for logic result');
   end;
 end;
 

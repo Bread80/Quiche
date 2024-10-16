@@ -309,6 +309,8 @@ begin
 
   if SearchCurrentScope(Ident, IdentType) <> nil then
     EXIT(ErrSub(qeIdentifierRedeclared, Ident));
+
+  Result := qeNone;
 end;
 
 function ParseUniqueIdentifier(First: Char;out Ident: String): TQuicheError;

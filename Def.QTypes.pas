@@ -316,6 +316,7 @@ begin
     vtWord, vtPointer: Result := 65535;
   else
     Assert(False);
+    Result := 0;
   end;
 end;
 
@@ -342,6 +343,7 @@ begin
     vtInteger: Result := -32768;
   else
     Assert(False);
+    Result := 0;
   end;
 end;
 
@@ -495,7 +497,6 @@ begin
 end;
 
 function GetImmSignCombineType(Value: Integer;LType, RType: TVarType): TVarType;
-var VRange: TNumberRange;
 begin
   Assert(IsNumericType(LType) and IsNumericType(RType));
 
@@ -558,6 +559,7 @@ begin
     vtTypeDef: Result := ord(TypeValue);
   else
     Assert(False);
+    Result := 0;
   end;
 end;
 

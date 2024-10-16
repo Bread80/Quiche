@@ -310,7 +310,6 @@ const ValidationMatrix: array[vtInt8..vtPointer,vtInt8..vtPointer] of TRangeChec
 procedure GenRangeCheck(Reg: TCPUReg;FromType, ToType: TVarType;Prim: PPrimitive;Options: TMoveOptionSet);
 var Proc: TRangeCheckProc;
   Optimised: TRangeCheckProc;
-  ProcName: String;
 begin
   //Filter out anything we don't need to range check.
   //This will need to be updated at some point for array, enumeration, etc.

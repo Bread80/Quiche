@@ -400,8 +400,7 @@ begin
 end;
 
 procedure TTest.ClearTestStatuses;
-var Step: PTestStep;
-  I: Integer;
+var  I: Integer;
 begin
   for I := 0 to Length(FSteps)-1 do
   begin
@@ -634,7 +633,6 @@ begin
 end;
 
 procedure TTest.TestUsesPrimitive(Step: PTestStep);
-var PrimName: String;
 begin
   Check(CodeGen.UsesPrimitive(Step.Name), Step, 'Compiler failed to use primitive: ''' + Step.Name + ''''#13);
 end;
@@ -881,7 +879,6 @@ var Options: TTestOptions;
   Line: String;
   Fields: TArray<String>;
   InCode: Boolean;
-  Okay: Boolean;
   Error: String;
 begin
   FName := TPath.GetFilenameWithoutExtension(Filename);
@@ -907,7 +904,6 @@ begin
     else  //Not InCode
       if (Line.Trim.Length > 1) and (Line.Trim.Chars[0] <> ';') then
       begin
-        Okay := True;
         Fields := Line.Trim.Split([' ']);
         if CompareText(Fields[0], 'code') = 0 then
         begin

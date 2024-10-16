@@ -339,14 +339,12 @@ function TQuicheSourceReader.DoSkipWhiteLine: TQuicheError;
 var Cursor: TParseCursor;
 begin
   case FState of
-    psCode: Result := qeNone;
+    psCode: ;
     psCurlyComment: FState := SkipCurlyCommentLine;
     psBraceComment: FState := SkipBraceCommentLine;
   else
     Assert(False);
   end;
-  if Result <> qeNone then
-    EXIT;
 
   while not EOLN do
   begin
@@ -399,9 +397,9 @@ begin
       begin
         Cursor := GetCursor;
         SkipChar;
-        while not (TestChar in [#0,#13]) do
+        while not CharInSet(TestChar, [#0,#13]) do
         begin
-          if not (TestChar in [#1..#32]) then
+          if not CharInSet(TestChar, [#1..#32]) then
           begin //If text after continuation then its not a continuation!
             SetCursor(Cursor);
             EXIT(Err(qeTextAfterContinuationChar));

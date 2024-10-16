@@ -314,7 +314,7 @@ begin
 end;
 
 function OpToUsage(Op: TOperator): String;
-var OpData: POpData;
+//var OpData: POpData;
 begin
   //TODO
 //  OpData := @Operations[Op];
