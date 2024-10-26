@@ -40,7 +40,7 @@ end;
 
 type TTestZ80LoadVariable = class(TTestZ80LoadStoreMove)
   protected
-    procedure DoTestLoadVariable(Reg: TCPUReg;PrimFlags: TPrimFlagSet;Options: TMoveOptionSet;
+    procedure DoTestLoadVariable(Reg: TCPUReg;LoadType: TLoadParamType;Options: TMoveOptionSet;
       VarType: TVarType;VarStorage: TVarStorage;InState: String;
       RangeCheck: Boolean; ToType: TVarType;
       OutCode, OutState: String);
@@ -523,7 +523,7 @@ end;
 { TTestZ80LoadVariable }
 
 procedure TTestZ80LoadVariable.DoTestLoadVariable(Reg: TCPUReg;
-  PrimFlags: TPrimFlagSet; Options: TMoveOptionSet; VarType: TVarType;VarStorage: TVarStorage;
+  LoadType: TLoadParamType; Options: TMoveOptionSet; VarType: TVarType;VarStorage: TVarStorage;
   InState: String;RangeCheck: Boolean;ToType: TVarType;
   OutCode, OutState: String);
 var Param: TILParam;
@@ -545,13 +545,14 @@ begin
   Param.Variable := V;
   Param.VarVersion := 10;
   Param.Flags := [];
+  Param.LoadType := LoadType;
   if RangeCheck then
     Param.Flags := Param.Flags + [cgRangeCheck];
 
   CPUStringToState(InState);
   RegStateClearModified;
 
-  GenLoadParam(Param, ToType, PrimFlags, Options);  //<--- This is the big call
+  GenLoadParam(Param, ToType, Options);  //<--- This is the big call
   Code := PeekAssembly;
   State := CPUStateToString;
   Check(Code = OutCode, 'Expected ' + OutCode + ', got ' + Code + ' with ' + State);
@@ -562,17 +563,17 @@ end;
 procedure TTestZ80LoadVariable.TestLoadRegScavenge16;
 begin
   //16-bit value already in place
-  DoTestLoadVariable(rHL, [], [],
+  DoTestLoadVariable(rHL, lptNormal, [],
     vtInteger, vsStack, 'hl:%Test1#10',
     False, vtUnknown,
     '', 'hl:_%_v__Global_Test1#10 h:_/_v__Global_Test1#10 l:_\_v__Global_Test1#10');
   //16-bit scavenge with EX HL,DE
-  DoTestLoadVariable(rHL, [], [],
+  DoTestLoadVariable(rHL, lptNormal, [],
     vtInteger, vsStack, 'de:%Test1#10',
     False, vtUnknown,
     'ex hl,de', 'hl:!%_v__Global_Test1#10 h:!/_v__Global_Test1#10 l:!\_v__Global_Test1#10 de:!? d:!? e:!?');
   //16-bit scavenge without EX HL,DE
-  DoTestLoadVariable(rHL, [], [moPreserveHLDE],
+  DoTestLoadVariable(rHL, lptNormal, [moPreserveHLDE],
     vtInteger, vsStack, 'de:%Test1#10',
     False, vtUnknown,
     'ld l,e:ld h,d', 'hl:!%_v__Global_Test1#10 h:!/_v__Global_Test1#10 l:!\_v__Global_Test1#10 de:_');
@@ -581,21 +582,21 @@ end;
 procedure TTestZ80LoadVariable.TestLoadRegScavenge8;
 begin
   //8-bit value already in place
-  DoTestLoadVariable(rL, [], [],
+  DoTestLoadVariable(rL, lptNormal, [],
     vtByte, vsStack, 'l:%Test1#10',
     False, vtUnknown,
     '', 'l:_%_v__Global_Test1#10');
   //8-bit scavenged
-  DoTestLoadVariable(rA, [], [],
+  DoTestLoadVariable(rA, lptNormal, [],
     vtByte, vsStack, 'l:%Test1#10',
     False, vtUnknown,
     'ld a,l', 'a:!%_v__Global_Test1#10 l:_');
-  DoTestLoadVariable(rL, [], [],
+  DoTestLoadVariable(rL, lptNormal, [],
     vtByte, vsStack, 'a:%Test1#10',
     False, vtUnknown,
     'ld l,a', 'l:!%_v__Global_Test1#10 a:_');
   //And an Int8
-  DoTestLoadVariable(rL, [], [],
+  DoTestLoadVariable(rL, lptNormal, [],
     vtInt8, vsStack, 'a:%Test1#10',
     False, vtUnknown,
     'ld l,a', 'l:!%_v__Global_Test1#10 a:_');
@@ -604,28 +605,28 @@ end;
 procedure TTestZ80LoadVariable.TestLoadRegScavengeExtend;
 begin
   //Zero extended
-  DoTestLoadVariable(rHL, [], [],
+  DoTestLoadVariable(rHL, lptNormal, [],
     vtByte, vsStack, 'd:%Test1#10',
     False, vtUnknown,
     'ld l,d:ld h,$00', 'hl:!? h:!$00 l:!%_v__Global_Test1#10 de:_');
   //Sign extended
-  DoTestLoadVariable(rHL, [], [],
+  DoTestLoadVariable(rHL, lptNormal, [],
     vtInt8, vsStack, 'd:%Test1#10',
     False, vtUnknown,
     'ld l,d:ld a,l:rla:sbc a,a:ld h,a', 'hl:!? h:!? l:!%_v__Global_Test1#10 de:_');
 
   //Zero extend with scavenged value
-  DoTestLoadVariable(rHL, [], [],
+  DoTestLoadVariable(rHL, lptNormal, [],
     vtByte, vsStack, 'd:%Test1#10 b:$00',
     False, vtUnknown,
     'ld l,d:ld h,b', 'hl:!? h:!$00 l:!%_v__Global_Test1#10 de:_');
   //...but zero extend won't scavenge overwritten value
-  DoTestLoadVariable(rHL, [], [],
+  DoTestLoadVariable(rHL, lptNormal, [],
     vtByte, vsStack, 'd:%Test1#10 l:$00',
     False, vtUnknown,
     'ld l,d:ld h,$00', 'hl:!? h:!$00 l:!%_v__Global_Test1#10 de:_');
   //However, unchanged high byte should be accounted for
-  DoTestLoadVariable(rHL, [], [],
+  DoTestLoadVariable(rHL, lptNormal, [],
     vtByte, vsStack, 'd:%Test1#10 h:$00',
     False, vtUnknown,
     'ld l,d', 'hl:!? h:_$00 l:!%_v__Global_Test1#10 de:_');
@@ -634,22 +635,22 @@ end;
 procedure TTestZ80LoadVariable.TestLoadRegScavengeHighOrLow;
 begin
   //VarValueHigh to 8 bit; to 16-bit zero extend
-  DoTestLoadVariable(rA, [pfnLoadRPHigh], [],
+  DoTestLoadVariable(rA, lptHigh, [],
     vtInteger, vsStack, 'hl:%Test1#10',
     False, vtUnknown,
     'ld a,h', 'a:!/_v__Global_Test1#10 hl:_');
   //VarValueLow to 8-bit
-  DoTestLoadVariable(rA, [pfnLoadRPLow], [],
+  DoTestLoadVariable(rA, lptLow, [],
     vtInteger, vsStack, 'hl:%Test1#10',
     False, vtUnknown,
     'ld a,l', 'a:!\_v__Global_Test1#10 de:_');
   //VarValueHigh to 16-bit, zero extend
-  DoTestLoadVariable(rBC, [pfnLoadRPHigh], [],
+  DoTestLoadVariable(rBC, lptHigh, [],
     vtInteger, vsStack, 'hl:%Test1#10',
     False, vtUnknown,
     'ld c,h:ld b,$00', 'b:!$00 c:!/_v__Global_Test1#10 bc:!?');
   //VarValueLow to 16-bit, zero extend
-  DoTestLoadVariable(rBC, [pfnLoadRPLow], [],
+  DoTestLoadVariable(rBC, lptLow, [],
     vtInteger, vsStack, 'hl:%Test1#10',
     False, vtUnknown,
     'ld c,l:ld b,$00', 'b:!$00 c:!\_v__Global_Test1#10 bc:!?');
@@ -658,17 +659,17 @@ end;
 procedure TTestZ80LoadVariable.TestLoadRegStack16;
 begin
   //Basic loads 16-bit variable to 16-bit registers
-  DoTestLoadVariable(rHL, [], [],
+  DoTestLoadVariable(rHL, lptNormal, [],
     vtInteger, vsStack, '',
     False, vtUnknown,
     'ld l,(ix+_v__Global_Test1):ld h,(ix+_v__Global_Test1 +1)',
       'hl:!%_v__Global_Test1#10 h:!/_v__Global_Test1#10 l:!\_v__Global_Test1#10');
-  DoTestLoadVariable(rDE, [], [],
+  DoTestLoadVariable(rDE, lptNormal, [],
     vtInteger, vsStack, '',
     False, vtUnknown,
     'ld e,(ix+_v__Global_Test1):ld d,(ix+_v__Global_Test1 +1)',
       'de:!%_v__Global_Test1#10 d:!/_v__Global_Test1#10 e:!\_v__Global_Test1#10');
-  DoTestLoadVariable(rBC, [], [],
+  DoTestLoadVariable(rBC, lptNormal, [],
     vtInteger, vsStack, '',
     False, vtUnknown,
     'ld c,(ix+_v__Global_Test1):ld b,(ix+_v__Global_Test1 +1)',
@@ -677,12 +678,12 @@ begin
   //(Aside: We can't load IX or IY from stack)
 
   //Words and pointers - no troubles expected here
-  DoTestLoadVariable(rHL, [], [],
+  DoTestLoadVariable(rHL, lptNormal, [],
     vtWord, vsStack, '',
     False, vtUnknown,
     'ld l,(ix+_v__Global_Test1):ld h,(ix+_v__Global_Test1 +1)',
       'hl:!%_v__Global_Test1#10 h:!/_v__Global_Test1#10 l:!\_v__Global_Test1#10');
-  DoTestLoadVariable(rDE, [], [],
+  DoTestLoadVariable(rDE, lptNormal, [],
     vtPointer, vsStack, '',
     False, vtUnknown,
     'ld e,(ix+_v__Global_Test1):ld d,(ix+_v__Global_Test1 +1)',
@@ -692,41 +693,41 @@ end;
 procedure TTestZ80LoadVariable.TestLoadRegStack8;
 begin
   //8-bit loads to 8-bit registers
-  DoTestLoadVariable(rA, [], [],
+  DoTestLoadVariable(rA, lptNormal, [],
     vtByte, vsStack, '',
     False, vtUnknown,
     'ld a,(ix+_v__Global_Test1)', 'a:!%_v__Global_Test1#10');
-  DoTestLoadVariable(rB, [], [],
+  DoTestLoadVariable(rB, lptNormal, [],
     vtByte, vsStack, '',
     False, vtUnknown,
     'ld b,(ix+_v__Global_Test1)', 'b:!%_v__Global_Test1#10');
-  DoTestLoadVariable(rC, [], [],
+  DoTestLoadVariable(rC, lptNormal, [],
     vtByte, vsStack, '',
     False, vtUnknown,
     'ld c,(ix+_v__Global_Test1)', 'c:!%_v__Global_Test1#10');
-  DoTestLoadVariable(rD, [], [],
+  DoTestLoadVariable(rD, lptNormal, [],
     vtByte, vsStack, '',
     False, vtUnknown,
     'ld d,(ix+_v__Global_Test1)', 'd:!%_v__Global_Test1#10');
-  DoTestLoadVariable(rE, [], [],
+  DoTestLoadVariable(rE, lptNormal, [],
     vtByte, vsStack, '',
     False, vtUnknown,
     'ld e,(ix+_v__Global_Test1)', 'e:!%_v__Global_Test1#10');
-  DoTestLoadVariable(rH, [], [],
+  DoTestLoadVariable(rH, lptNormal, [],
     vtByte, vsStack, '',
     False, vtUnknown,
     'ld h,(ix+_v__Global_Test1)', 'h:!%_v__Global_Test1#10');
-  DoTestLoadVariable(rL, [], [],
+  DoTestLoadVariable(rL, lptNormal, [],
     vtByte, vsStack, '',
     False, vtUnknown,
     'ld l,(ix+_v__Global_Test1)', 'l:!%_v__Global_Test1#10');
 
   //And Int8s
-  DoTestLoadVariable(rA, [], [],
+  DoTestLoadVariable(rA, lptNormal, [],
     vtInt8, vsStack, '',
     False, vtUnknown,
     'ld a,(ix+_v__Global_Test1)', 'a:!%_v__Global_Test1#10');
-  DoTestLoadVariable(rB, [], [],
+  DoTestLoadVariable(rB, lptNormal, [],
     vtChar, vsStack, '',
     False, vtUnknown,
     'ld b,(ix+_v__Global_Test1)', 'b:!%_v__Global_Test1#10');
@@ -736,24 +737,24 @@ end;
 procedure TTestZ80LoadVariable.TestLoadRegStackExtend;
 begin
   //Unsigned extending
-  DoTestLoadVariable(rHL, [], [],
+  DoTestLoadVariable(rHL, lptNormal, [],
     vtByte, vsStack, '',
     False, vtUnknown,
     'ld l,(ix+_v__Global_Test1):ld h,$00',
       'hl:!? h:!$00 l:%_v__Global_Test1#10');
-  DoTestLoadVariable(rDE, [], [],
+  DoTestLoadVariable(rDE, lptNormal, [],
     vtByte, vsStack, '',
     False, vtUnknown,
     'ld e,(ix+_v__Global_Test1):ld d,$00',
       'de:!? d:!$00 e:!%_v__Global_Test1#10');
-  DoTestLoadVariable(rBC, [], [],
+  DoTestLoadVariable(rBC, lptNormal, [],
     vtByte, vsStack, '',
     False, vtUnknown,
     'ld c,(ix+_v__Global_Test1):ld b,$00',
       'bc:!? b:!$00 c:!%_v__Global_Test1#10');
 
   //Signed extending
-  DoTestLoadVariable(rHL, [], [],
+  DoTestLoadVariable(rHL, lptNormal, [],
     vtInt8, vsStack, '',
     False, vtUnknown,
     'ld l,(ix+_v__Global_Test1):ld a,l:rla:sbc a,a:ld h,a',
@@ -763,36 +764,36 @@ end;
 procedure TTestZ80LoadVariable.TestLoadRegStackHighOrLow;
 begin
   //Loading high or low byte of 16-bit value
-  DoTestLoadVariable(rA, [pfnLoadRPLow], [],
+  DoTestLoadVariable(rA, lptLow, [],
     vtWord, vsStack, '',
     False, vtUnknown,
     'ld a,(ix+_v__Global_Test1)', 'a:!\_v__Global_Test1#10');
-  DoTestLoadVariable(rH, [pfnLoadRPHigh], [],
+  DoTestLoadVariable(rH, lptHigh, [],
     vtInteger, vsStack, '',
     False, vtUnknown,
     'ld h,(ix+_v__Global_Test1 +1)', 'h:!/_v__Global_Test1#10');
 
   //Loading high or low byte of 16-bit value **and extend**. We must zero extend!
-  DoTestLoadVariable(rBC, [pfnLoadRPLow], [],
+  DoTestLoadVariable(rBC, lptLow, [],
     vtInteger, vsStack, '',
     False, vtUnknown,
     'ld c,(ix+_v__Global_Test1):ld b,$00', 'c:!\_v__Global_Test1#10 b:!$00 bc:!?');
-  DoTestLoadVariable(rDE, [pfnLoadRPHigh], [],
+  DoTestLoadVariable(rDE, lptHigh, [],
     vtInteger, vsStack, '',
     False, vtUnknown,
     'ld e,(ix+_v__Global_Test1 +1):ld d,$00', 'e:!/_v__Global_Test1#10 d:!$00 de:!?');
   //Scavenge the high byte
-  DoTestLoadVariable(rBC, [pfnLoadRPLow], [],
+  DoTestLoadVariable(rBC, lptLow, [],
     vtInteger, vsStack, 'a:$00',
     False, vtUnknown,
     'ld c,(ix+_v__Global_Test1):ld b,a', 'c:!\_v__Global_Test1#10 b:!$00 bc:!?');
   //The high byte can be scavenged. But verify we don't scavenge from an overwritten register
-  DoTestLoadVariable(rBC, [pfnLoadRPLow], [],
+  DoTestLoadVariable(rBC, lptLow, [],
     vtInteger, vsStack, 'c:$00',
     False, vtUnknown,
     'ld c,(ix+_v__Global_Test1):ld b,$00', 'c:!\_v__Global_Test1#10 b:!$00 bc:!?');
   //This time high byte already contains target value so leave it
-  DoTestLoadVariable(rBC, [pfnLoadRPLow], [],
+  DoTestLoadVariable(rBC, lptLow, [],
     vtInteger, vsStack, 'b:$00',
     False, vtUnknown,
     'ld c,(ix+_v__Global_Test1)', 'c:!\_v__Global_Test1#10 b:_$00 bc:!?');
@@ -801,33 +802,33 @@ end;
 procedure TTestZ80LoadVariable.TestLoadRegStatic16;
 begin
   //Basic loads 16-bit variable to 16-bit registers
-  DoTestLoadVariable(rHL, [], [],
+  DoTestLoadVariable(rHL, lptNormal, [],
     vtInteger, vsStatic, '',
     False, vtUnknown,
     'ld hl,(_v__Global_Test1)', 'hl:!%_v__Global_Test1#10 h:!/_v__Global_Test1#10 l:!\_v__Global_Test1#10');
-  DoTestLoadVariable(rDE, [], [],
+  DoTestLoadVariable(rDE, lptNormal, [],
     vtInteger, vsStatic, '',
     False, vtUnknown,
     'ld de,(_v__Global_Test1)', 'de:!%_v__Global_Test1#10');
-  DoTestLoadVariable(rBC, [], [],
+  DoTestLoadVariable(rBC, lptNormal, [],
     vtInteger, vsStatic, '',
     False, vtUnknown,
     'ld bc,(_v__Global_Test1)', 'bc:!%_v__Global_Test1#10');
-  DoTestLoadVariable(rIX, [], [],
+  DoTestLoadVariable(rIX, lptNormal, [],
     vtInteger, vsStatic, '',
     False, vtUnknown,
     'ld ix,(_v__Global_Test1)', 'ix:!%_v__Global_Test1#10');
-  DoTestLoadVariable(rIY, [], [],
+  DoTestLoadVariable(rIY, lptNormal, [],
     vtInteger, vsStatic, '',
     False, vtUnknown,
     'ld iy,(_v__Global_Test1)', 'iy:!%_v__Global_Test1#10');
 
   //Words and pointers - no troubles exppected here
-  DoTestLoadVariable(rHL, [], [],
+  DoTestLoadVariable(rHL, lptNormal, [],
     vtWord, vsStatic, '',
     False, vtUnknown,
     'ld hl,(_v__Global_Test1)', 'hl:!%_v__Global_Test1#10');
-  DoTestLoadVariable(rHL, [], [],
+  DoTestLoadVariable(rHL, lptNormal, [],
     vtPointer, vsStatic, '',
     False, vtUnknown,
     'ld hl,(_v__Global_Test1)', 'hl:!%_v__Global_Test1#10');
@@ -836,42 +837,42 @@ end;
 procedure TTestZ80LoadVariable.TestLoadRegStatic8;
 begin
   //8-bit loads to 8-bit registers
-  DoTestLoadVariable(rA, [], [],
+  DoTestLoadVariable(rA, lptNormal, [],
     vtByte, vsStatic, '',
     False, vtUnknown,
     'ld a,(_v__Global_Test1)', 'a:!%_v__Global_Test1#10');
   //8-bit loads need to go via the A register
-  DoTestLoadVariable(rB, [], [],
+  DoTestLoadVariable(rB, lptNormal, [],
     vtByte, vsStatic, '',
     False, vtUnknown,
     'ld a,(_v__Global_Test1):ld b,a', 'a:!%_v__Global_Test1#10 b:!%_v__Global_Test1#10 bc:!?');
-  DoTestLoadVariable(rC, [], [],
+  DoTestLoadVariable(rC, lptNormal, [],
     vtByte, vsStatic, '',
     False, vtUnknown,
     'ld a,(_v__Global_Test1):ld c,a', 'a:!%_v__Global_Test1#10 c:!%_v__Global_Test1#10 bc:!?');
-  DoTestLoadVariable(rD, [], [],
+  DoTestLoadVariable(rD, lptNormal, [],
     vtByte, vsStatic, '',
     False, vtUnknown,
     'ld a,(_v__Global_Test1):ld d,a', 'a:!%_v__Global_Test1#10 d:!%_v__Global_Test1#10 de:!?');
-  DoTestLoadVariable(rE, [], [],
+  DoTestLoadVariable(rE, lptNormal, [],
     vtByte, vsStatic, '',
     False, vtUnknown,
     'ld a,(_v__Global_Test1):ld e,a', 'a:!%_v__Global_Test1#10 e:!%_v__Global_Test1#10 de:!?');
-  DoTestLoadVariable(rH, [], [],
+  DoTestLoadVariable(rH, lptNormal, [],
     vtByte, vsStatic, '',
     False, vtUnknown,
     'ld a,(_v__Global_Test1):ld h,a', 'a:!%_v__Global_Test1#10 h:!%_v__Global_Test1#10 hl:!?');
-  DoTestLoadVariable(rL, [], [],
+  DoTestLoadVariable(rL, lptNormal, [],
     vtByte, vsStatic, '',
     False, vtUnknown,
     'ld a,(_v__Global_Test1):ld l,a', 'a:!%_v__Global_Test1#10 l:!%_v__Global_Test1#10 hl:!?');
 
   //And Int8s
-  DoTestLoadVariable(rB, [], [],
+  DoTestLoadVariable(rB, lptNormal, [],
     vtInt8, vsStatic, '',
     False, vtUnknown,
     'ld a,(_v__Global_Test1):ld b,a', 'a:!%_v__Global_Test1#10 b:!%_v__Global_Test1#10 bc:!?');
-  DoTestLoadVariable(rB, [], [],
+  DoTestLoadVariable(rB, lptNormal, [],
     vtInt8, vsStatic, '',
     False, vtUnknown,
     'ld a,(_v__Global_Test1):ld b,a', 'a:!%_v__Global_Test1#10 b:!%_v__Global_Test1#10 bc:!?');
@@ -880,21 +881,21 @@ end;
 procedure TTestZ80LoadVariable.TestLoadRegStaticExtend;
 begin
   //Unsigned extending
-  DoTestLoadVariable(rBC, [], [],
+  DoTestLoadVariable(rBC, lptNormal, [],
     vtByte, vsStatic, '',
     False, vtUnknown,
     'ld bc,(_v__Global_Test1):ld b,$00', 'b:$00 c:%_v__Global_Test1#10 bc:?');
-  DoTestLoadVariable(rDE, [], [],
+  DoTestLoadVariable(rDE, lptNormal, [],
     vtByte, vsStatic, '',
     False, vtUnknown,
     'ld de,(_v__Global_Test1):ld d,$00', 'd:$00 e:%_v__Global_Test1#10 de:?');
-  DoTestLoadVariable(rHL, [], [],
+  DoTestLoadVariable(rHL, lptNormal, [],
     vtByte, vsStatic, '',
     False, vtUnknown,
     'ld hl,(_v__Global_Test1):ld h,$00', 'h:$00 l:%_v__Global_Test1#10 hl:?');
 
   //Signed extending
-  DoTestLoadVariable(rBC, [], [],
+  DoTestLoadVariable(rBC, lptNormal, [],
     vtInt8, vsStatic, '',
     False, vtUnknown,
     'ld bc,(_v__Global_Test1):ld a,c:rla:sbc a,a:ld b,a',
@@ -904,35 +905,35 @@ end;
 procedure TTestZ80LoadVariable.TestLoadRegStaticHighOrLow;
 begin
   //Loading high or low byte of 16-bit value
-  DoTestLoadVariable(rB, [pfnLoadRPLow], [],
+  DoTestLoadVariable(rB, lptLow, [],
     vtWord, vsStatic, '',
     False, vtUnknown,
     'ld a,(_v__Global_Test1):ld b,a', 'a:!\_v__Global_Test1#10 b:!\_v__Global_Test1#10 bc:!?');
-  DoTestLoadVariable(rC, [pfnLoadRPHigh], [],
+  DoTestLoadVariable(rC, lptHigh, [],
     vtInteger, vsStatic, '',
     False, vtUnknown,
     'ld a,(_v__Global_Test1 +1):ld c,a', 'a:!/_v__Global_Test1#10 c:!/_v__Global_Test1#10 bc:!?');
 
   //Loading high or low byte of 16-bit value **and extend**. We must zero extend!
-  DoTestLoadVariable(rBC, [pfnLoadRPLow], [],
+  DoTestLoadVariable(rBC, lptLow, [],
     vtInteger, vsStatic, '',
     False, vtUnknown,
     'ld bc,(_v__Global_Test1):ld b,$00', 'c:!\_v__Global_Test1#10 b:!$00 bc:!?');
-  DoTestLoadVariable(rDE, [pfnLoadRPHigh], [],
+  DoTestLoadVariable(rDE, lptHigh, [],
     vtInteger, vsStatic, '',
     False, vtUnknown,
     'ld de,(_v__Global_Test1 +1):ld d,$00', 'e:!/_v__Global_Test1#10 d:!$00 de:!?');
   //Scavenge the high byte
-  DoTestLoadVariable(rBC, [pfnLoadRPLow], [],
+  DoTestLoadVariable(rBC, lptLow, [],
     vtInteger, vsStatic, 'a:$00',
     False, vtUnknown,
     'ld bc,(_v__Global_Test1):ld b,a', 'c:!\_v__Global_Test1#10 b:!$00 bc:!?');
   //The high byte can be scavenged. But verify we don't scavenge from an overwritten register
-  DoTestLoadVariable(rBC, [pfnLoadRPLow], [],
+  DoTestLoadVariable(rBC, lptLow, [],
     vtInteger, vsStatic, 'b:$00',
     False, vtUnknown,
     'ld bc,(_v__Global_Test1):ld b,$00', 'c:!\_v__Global_Test1#10 b:!$00 bc:!?');
-  DoTestLoadVariable(rBC, [pfnLoadRPLow], [],
+  DoTestLoadVariable(rBC, lptLow, [],
     vtInteger, vsStatic, 'c:$00',
     False, vtUnknown,
     'ld bc,(_v__Global_Test1):ld b,$00', 'c:!\_v__Global_Test1#10 b:!$00 bc:!?');
@@ -941,49 +942,49 @@ end;
 procedure TTestZ80LoadVariable.TestLoadRegStaticConvertTo16Bit;
 begin //Note: We'll also test Range checks when FromType and ToType are the same
   //Integer to Integer
-  DoTestLoadVariable(rHL, [], [],
+  DoTestLoadVariable(rHL, lptNormal, [],
     vtInteger, vsStatic, '',
     True, vtInteger,
     'ld hl,(_v__Global_Test1)', 'hl:!%_v__Global_Test1#10 h:!/_v__Global_Test1#10 l:!\_v__Global_Test1#10');
   //Word/Pointer to Integer
-  DoTestLoadVariable(rDE, [], [],
+  DoTestLoadVariable(rDE, lptNormal, [],
     vtPointer, vsStatic, '',
     True, vtInteger,
     'ld de,(_v__Global_Test1):bit 7,d:jp nz,raise_range',
     'd:? e:\_v__Global_Test1#10 de:?');
   //Byte to Integer
-  DoTestLoadVariable(rDE, [], [],
+  DoTestLoadVariable(rDE, lptNormal, [],
     vtByte, vsStatic, '',
     True, vtInteger,
     'ld de,(_v__Global_Test1):ld d,$00',
     'd:$00 e:%_v__Global_Test1#10 de:?');
   //Int8 to Integer
-  DoTestLoadVariable(rHL, [], [],
+  DoTestLoadVariable(rHL, lptNormal, [],
     vtInt8, vsStatic, '',
     True, vtInteger,
     'ld hl,(_v__Global_Test1):ld a,l:rla:sbc a,a:ld h,a',
     'a:? h:? l:%_v__Global_Test1#10 hl:?');
 
   //Integer to Word/Pointer
-  DoTestLoadVariable(rDE, [], [],
+  DoTestLoadVariable(rDE, lptNormal, [],
     vtInteger, vsStatic, '',
     True, vtWord,
     'ld de,(_v__Global_Test1):bit 7,d:jp nz,raise_range',
     'd:? e:\_v__Global_Test1#10 de:?');
   //Word/Pointer to Word/Pointer
-  DoTestLoadVariable(rBC, [], [],
+  DoTestLoadVariable(rBC, lptNormal, [],
     vtWord, vsStatic, '',
     True, vtPointer,
     'ld bc,(_v__Global_Test1)',
     'b:/_v__Global_Test1#10 c:\_v__Global_Test1#10 bc:%_v__Global_Test1#10');
   //Byte to Word/Pointer
-  DoTestLoadVariable(rHL, [], [],
+  DoTestLoadVariable(rHL, lptNormal, [],
     vtByte, vsStatic, '',
     True, vtWord,
     'ld hl,(_v__Global_Test1):ld h,$00',
     'h:$00 l:%_v__Global_Test1#10 hl:?');
   //Int8 to Word/Pointer
-  DoTestLoadVariable(rBC, [], [],
+  DoTestLoadVariable(rBC, lptNormal, [],
     vtInt8, vsStatic, '',
     True, vtWord,
     'ld bc,(_v__Global_Test1):bit 7,c:jp nz,raise_range:ld b,$00',
@@ -993,50 +994,50 @@ end;
 procedure TTestZ80LoadVariable.TestLoadRegStaticConvertTo8Bit;
 begin //Note: We'll also test Range checks when FromType and ToType are the same
   //Integer to Int8
-  DoTestLoadVariable(rH, [], [],
+  DoTestLoadVariable(rH, lptNormal, [],
     vtInteger, vsStatic, '',
     True, vtInt8,
     'ld a,(_v__Global_Test1):ld h,a:rla:ld a,(_v__Global_Test1 +1):adc a,$00:jp nz,raise_range',
     'a:!$00 h:\_v__Global_Test1#10');
   //Word/Pointer to Int8
-  DoTestLoadVariable(rH, [], [],
+  DoTestLoadVariable(rH, lptNormal, [],
     vtWord, vsStatic, '',
     True, vtInt8,
     'ld a,(_v__Global_Test1 +1):and a:jp nz,raise_range:ld a,(_v__Global_Test1):ld h,a:and a:jp m,raise_range',
     'a:!? h:!?');
   //Byte to Int8
-  DoTestLoadVariable(rH, [], [],
+  DoTestLoadVariable(rH, lptNormal, [],
     vtByte, vsStatic, '',
     True, vtInt8,
     'ld a,(_v__Global_Test1):ld h,a:and a:jp m,raise_range',
     'a:!? h:!?');
   //Int8 to Int8
-  DoTestLoadVariable(rH, [], [],
+  DoTestLoadVariable(rH, lptNormal, [],
     vtInt8, vsStatic, '',
     True, vtInt8,
     'ld a,(_v__Global_Test1):ld h,a',
     'a:%_v__Global_Test1#10 h:%_v__Global_Test1#10 hl:?');
 
   //Integer to Byte
-  DoTestLoadVariable(rH, [], [],
+  DoTestLoadVariable(rH, lptNormal, [],
     vtInteger, vsStatic, '',
     True, vtByte,
     'ld a,(_v__Global_Test1 +1):and a:jp nz,raise_range:ld a,(_v__Global_Test1):ld h,a',
     'a:!? h:!?');
   //Word/Pointer to Byte
-  DoTestLoadVariable(rH, [], [],
+  DoTestLoadVariable(rH, lptNormal, [],
     vtWord, vsStatic, '',
     True, vtByte,
     'ld a,(_v__Global_Test1 +1):and a:jp nz,raise_range:ld a,(_v__Global_Test1):ld h,a',
     'a:\_v__Global_Test1#10 h:\_v__Global_Test1#10 hl:?');
   //Byte to Byte
-  DoTestLoadVariable(rH, [], [],
+  DoTestLoadVariable(rH, lptNormal, [],
     vtByte, vsStatic, '',
     True, vtByte,
     'ld a,(_v__Global_Test1):ld h,a',
     'a:%_v__Global_Test1#10 h:%_v__Global_Test1#10 hl:!?');
   //Int8 to Byte
-  DoTestLoadVariable(rE, [], [],
+  DoTestLoadVariable(rE, lptNormal, [],
     vtInt8, vsStatic, '',
     True, vtByte,
     'ld a,(_v__Global_Test1):ld e,a:and a:jp m,raise_range',
@@ -1047,50 +1048,50 @@ end;
 procedure TTestZ80LoadVariable.TestLoadRegStackConvertTo16Bit;
 begin
   //Integer to Integer
-  DoTestLoadVariable(rHL, [], [],
+  DoTestLoadVariable(rHL, lptNormal, [],
     vtInteger, vsStack, '',
     True, vtInteger,
     'ld l,(ix+_v__Global_Test1):ld h,(ix+_v__Global_Test1 +1)',
     'hl:!%_v__Global_Test1#10 h:!/_v__Global_Test1#10 l:!\_v__Global_Test1#10');
   //Word/Pointer to Integer
-  DoTestLoadVariable(rDE, [], [],
+  DoTestLoadVariable(rDE, lptNormal, [],
     vtPointer, vsStack, '',
     True, vtInteger,
     'ld e,(ix+_v__Global_Test1):ld d,(ix+_v__Global_Test1 +1):bit 7,d:jp nz,raise_range',
     'd:? e:\_v__Global_Test1#10 de:?');
   //Byte to Integer
-  DoTestLoadVariable(rDE, [], [],
+  DoTestLoadVariable(rDE, lptNormal, [],
     vtByte, vsStack, '',
     True, vtInteger,
     'ld e,(ix+_v__Global_Test1):ld d,$00',
     'd:$00 e:%_v__Global_Test1#10 de:?');
   //Int8 to Integer
-  DoTestLoadVariable(rHL, [], [],
+  DoTestLoadVariable(rHL, lptNormal, [],
     vtInt8, vsStack, '',
     True, vtInteger,
     'ld l,(ix+_v__Global_Test1):ld a,l:rla:sbc a,a:ld h,a',
     'a:? h:? l:%_v__Global_Test1#10 hl:?');
 
   //Integer to Word/Pointer
-  DoTestLoadVariable(rDE, [], [],
+  DoTestLoadVariable(rDE, lptNormal, [],
     vtInteger, vsStack, '',
     True, vtWord,
     'ld e,(ix+_v__Global_Test1):ld d,(ix+_v__Global_Test1 +1):bit 7,d:jp nz,raise_range',
     'd:? e:\_v__Global_Test1#10 de:?');
   //Word/Pointer to Word/Pointer
-  DoTestLoadVariable(rBC, [], [],
+  DoTestLoadVariable(rBC, lptNormal, [],
     vtWord, vsStack, '',
     True, vtPointer,
     'ld c,(ix+_v__Global_Test1):ld b,(ix+_v__Global_Test1 +1)',
     'b:/_v__Global_Test1#10 c:\_v__Global_Test1#10 bc:%_v__Global_Test1#10');
   //Byte to Word/Pointer
-  DoTestLoadVariable(rHL, [], [],
+  DoTestLoadVariable(rHL, lptNormal, [],
     vtByte, vsStack, '',
     True, vtWord,
     'ld l,(ix+_v__Global_Test1):ld h,$00',
     'h:$00 l:%_v__Global_Test1#10 hl:?');
   //Int8 to Word/Pointer
-  DoTestLoadVariable(rBC, [], [],
+  DoTestLoadVariable(rBC, lptNormal, [],
     vtInt8, vsStack, '',
     True, vtWord,
     'ld c,(ix+_v__Global_Test1):bit 7,c:jp nz,raise_range:ld b,$00',
@@ -1100,50 +1101,50 @@ end;
 procedure TTestZ80LoadVariable.TestLoadRegStackConvertTo8Bit;
 begin
   //Integer to Int8
-  DoTestLoadVariable(rH, [], [],
+  DoTestLoadVariable(rH, lptNormal, [],
     vtInteger, vsStack, '',
     True, vtInt8,
     'ld h,(ix+_v__Global_Test1):ld a,h:rla:ld a,(ix+_v__Global_Test1 +1):adc a,$00:jp nz,raise_range',
     'a:!$00 h:!\_v__Global_Test1#10');
   //Word/Pointer to Int8
-  DoTestLoadVariable(rH, [], [],
+  DoTestLoadVariable(rH, lptNormal, [],
     vtWord, vsStack, '',
     True, vtInt8,
     'ld a,(ix+_v__Global_Test1 +1):and a:jp nz,raise_range:ld h,(ix+_v__Global_Test1):bit 7,h:jp nz,raise_range',
     'a:!$00 h:!?');
   //Byte to Int8
-  DoTestLoadVariable(rH, [], [],
+  DoTestLoadVariable(rH, lptNormal, [],
     vtByte, vsStack, '',
     True, vtInt8,
     'ld h,(ix+_v__Global_Test1):bit 7,h:jp nz,raise_range',
     'h:!? hl:!?');
   //Int8 to Int8
-  DoTestLoadVariable(rH, [], [],
+  DoTestLoadVariable(rH, lptNormal, [],
     vtInt8, vsStack, '',
     True, vtInt8,
     'ld h,(ix+_v__Global_Test1)',
     'h:%_v__Global_Test1#10 hl:?');
 
   //Integer to Byte
-  DoTestLoadVariable(rH, [], [],
+  DoTestLoadVariable(rH, lptNormal, [],
     vtInteger, vsStack, '',
     True, vtByte,
     'ld a,(ix+_v__Global_Test1 +1):and a:jp nz,raise_range:ld h,(ix+_v__Global_Test1)',
     'a:!$00 h:!?');
   //Word/Pointer to Byte
-  DoTestLoadVariable(rH, [], [],
+  DoTestLoadVariable(rH, lptNormal, [],
     vtWord, vsStack, '',
     True, vtByte,
     'ld a,(ix+_v__Global_Test1 +1):and a:jp nz,raise_range:ld h,(ix+_v__Global_Test1)',
     'a:$00 h:!\_v__Global_Test1#10 hl:?');
   //Byte to Byte
-  DoTestLoadVariable(rH, [], [],
+  DoTestLoadVariable(rH, lptNormal, [],
     vtByte, vsStack, '',
     True, vtByte,
     'ld h,(ix+_v__Global_Test1)',
     'h:!%_v__Global_Test1#10 hl:!?');
   //Int8 to Byte
-  DoTestLoadVariable(rE, [], [],
+  DoTestLoadVariable(rE, lptNormal, [],
     vtInt8, vsStack, '',
     True, vtByte,
     'ld e,(ix+_v__Global_Test1):bit 7,e:jp nz,raise_range',
@@ -1153,56 +1154,56 @@ end;
 procedure TTestZ80LoadVariable.TestLoadRegScavengeConvertTo16Bit;
 begin
   //Int8 to Integer
-  DoTestLoadVariable(rHL, [], [],
+  DoTestLoadVariable(rHL, lptNormal, [],
     vtInt8, vsStack, 'd:%Test1#10',
     True, vtInteger,
     'ld l,d:ld a,l:rla:sbc a,a:ld h,a',
     'a:!? d:%_v__Global_Test1#10 h:? l:%_v__Global_Test1#10');
   //Int8 in target low to Word/Pointer
-  DoTestLoadVariable(rHL, [], [],
+  DoTestLoadVariable(rHL, lptNormal, [],
     vtInt8, vsStack, 'l:%Test1#10',
     True, vtWord,
     'bit 7,l:jp nz,raise_range:ld h,$00',
     'h:!$00 l:%_v__Global_Test1#10');
   //Int8 in target high to Word/Pointer
-  DoTestLoadVariable(rHL, [], [],
+  DoTestLoadVariable(rHL, lptNormal, [],
     vtInt8, vsStack, 'h:%Test1#10',
     True, vtWord,
     'ld l,h:bit 7,l:jp nz,raise_range:ld h,$00',
     'h:!$00 l:%_v__Global_Test1#10');
   //Int8 in A to Integer
-  DoTestLoadVariable(rDE, [], [],
+  DoTestLoadVariable(rDE, lptNormal, [],
     vtInt8, vsStack, 'a:%Test1#10',
     True, vtInteger,
     'ld e,a:rla:sbc a,a:ld d,a',
     'a:!? d:!? e:%_v__Global_Test1#10');
   //Int8 in A to Word/Pointer
-  DoTestLoadVariable(rHL, [], [],
+  DoTestLoadVariable(rHL, lptNormal, [],
     vtInt8, vsStack, 'a:%Test1#10',
     True, vtPointer,
     'ld l,a:and a:jp m,raise_range:ld h,$00',
     'a:%_v__Global_Test1#10 h:!$00 l:%_v__Global_Test1#10');
 
   //Byte to Integer
-  DoTestLoadVariable(rHL, [], [],
+  DoTestLoadVariable(rHL, lptNormal, [],
     vtByte, vsStack, 'd:%Test1#10',
     True, vtInteger,
     'ld l,d:ld h,$00',
     'h:$00 l:%_v__Global_Test1#10 hl:!?');
   //Byte to Word/Pointer
-  DoTestLoadVariable(rHL, [], [],
+  DoTestLoadVariable(rHL, lptNormal, [],
     vtByte, vsStack, 'e:%Test1#10',
     True, vtWord,
     'ld l,e:ld h,$00',
     'h:$00 l:%_v__Global_Test1#10 hl:!?');
   //Byte in target low to Word/Pointer
-  DoTestLoadVariable(rHL, [], [],
+  DoTestLoadVariable(rHL, lptNormal, [],
     vtByte, vsStack, 'l:%Test1#10',
     True, vtWord,
     'ld h,$00',
     'h:$00 l:%_v__Global_Test1#10 hl:!?');
   //Byte in target high to Word/Pointer
-  DoTestLoadVariable(rHL, [], [],
+  DoTestLoadVariable(rHL, lptNormal, [],
     vtByte, vsStack, 'h:%Test1#10',
     True, vtWord,
     'ld l,h:ld h,$00',
@@ -1212,38 +1213,38 @@ end;
 procedure TTestZ80LoadVariable.TestLoadRegScavengeConvertTo8Bit;
 begin
   //Integer to Int8
-  DoTestLoadVariable(rH, [], [],
+  DoTestLoadVariable(rH, lptNormal, [],
     vtInteger, vsStack, 'de:%Test1#10',
     True, vtInt8,
     'ld a,e:rla:ld a,d:adc a,$00:jp nz,raise_range:ld h,e',
     'a:!$00 h:!\_v__Global_Test1#10');
   //Word/Pointer to Int8
-  DoTestLoadVariable(rH, [], [],
+  DoTestLoadVariable(rH, lptNormal, [],
     vtWord, vsStack, 'hl:%Test1#10',
     True, vtInt8,
     'ld a,h:and a:jp nz,raise_range:ld h,l:bit 7,h:jp nz,raise_range',
     'a:!$00 H:\_v__Global_Test1#10');
   //Integer to Int8 in A
-  DoTestLoadVariable(rA, [], [],
+  DoTestLoadVariable(rA, lptNormal, [],
     vtInteger, vsStack, 'de:%Test1#10',
     True, vtInt8,
     'ld a,e:rla:ld a,d:adc a,$00:jp nz,raise_range:ld a,e',
     'a:\_v__Global_Test1#10');
   //Pointer to Int8 in A
-  DoTestLoadVariable(rA, [], [],
+  DoTestLoadVariable(rA, lptNormal, [],
     vtPointer, vsStack, 'de:%Test1#10',
     True, vtInt8,
     'ld a,d:and a:jp nz,raise_range:ld a,e:and a:jp m,raise_range',
     'A:\_v__Global_Test1#10');
 
   //Integer to Byte
-  DoTestLoadVariable(rH, [], [],
+  DoTestLoadVariable(rH, lptNormal, [],
     vtInteger, vsStack, 'de:%Test1#10',
     True, vtByte,
     'ld a,d:and a:jp nz,raise_range:ld h,e',
     'a:$00 h:\_v__Global_Test1#10 HL:?');
   //Word/Pointer to Byte
-  DoTestLoadVariable(rH, [], [],
+  DoTestLoadVariable(rH, lptNormal, [],
     vtWord, vsStack, 'de:%Test1#10',
     True, vtByte,
     'ld a,d:and a:jp nz,raise_range:ld h,e',

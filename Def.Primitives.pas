@@ -3,6 +3,7 @@ unit Def.Primitives;
 interface
 uses Def.IL, Def.Operators, Def.QTypes, Def.Variables,
   Parse.Expr,
+  CG.Fragments,
   Z80.CPU;
 
 type
@@ -10,28 +11,12 @@ type
   TCodeGenProc = procedure(ILItem: PILItem);
   TValidationProc = procedure(RH, RL: Char);
 
-  TPrimFlag = (
-    pfnLoadRPLow,   //Load only the low byte of the (16-bit) parameter
-                    //If the value being loaded is 8-bit it will be zero extended
-                    //(NOT sign extended)
-    pfnLoadRPHigh  //Load only high byte of the (16-bit) parameter
-    );
-
-  TPrimFlagSet = set of TPrimFlag;
-
-  //Where is the parameter value stored (Location)
-  TPrimLoc = (
-    plRegister, //Value will be consumed from/be output in a register
-    //The remaining types are used where a primitive can directly consume/write to
-    //a location other than a CPU register
-    plImmediate,  //The primitive can directly consume an immediate/literal, eg. LD r,n. Not valid as a result.
-    plStaticVar,  //The primitive can read from/write to a static variable, eg. LD a,(nn)
-    plStackVar);  //The primitive can read from/write to a stack variable , eg. INC (IX+d)
 
   PPrimitive = ^TPrimitive;
   TPrimitive = record
     //Fields to use for primitive selection
     Op: TOperator;
+    Fragment: PFragment;  //If the item is a fragment
     ProcName: String;     //Name of the Proc (code), Fragment, or Subroutine used
                           //during code generation
     LType: TVarType;      //Left operand type (base type)
@@ -43,18 +28,11 @@ type
     IfOverflowChecking: TPrimValidation;  //Can this routine be used if overflow checking is on? off? either?
 
     //Fields for primitive use
-    Flags: TPrimFlagSet;  //Flags
+    LLoadType: TLoadParamType;  //Special load type for param1 only
 
-    LLoc: TPrimLoc;       //Where is the left parameter stored.
-    LRegs: TCPURegSet;    //If LLoc is plRegister, what registers can the left parameter accept?
-    RLoc: TPrimLoc;       //Again for right parameter
-    RRegs: TCPURegSet;
-    ResultLoc: TPrimLoc;  //And for result
-    ResultRegs: TCPURegSet;   //What register is the result returned in? (if ResultInLReg is False)
-    ResultInLReg: Boolean;  //If True the result is returned in the same register
-                          //as used for LReg. If False, see DRegs
+    ProcMeta: TCodeProcMeta;  //Data about the code generation proc
 
-    Corrupts: TCPURegSet; //What registers are corrupted by this routine
+    Preserves: TCPURegSet; //What registers are preserved by this routine
                           //(Should this include Result register?)
 
     OverflowCheckProcName: String; //Used when we need to overflow check the result value
@@ -126,8 +104,7 @@ procedure LoadPrimitivesFile(const Filename: String);
 procedure ValidatePrimitives;
 
 implementation
-uses Math, Generics.Collections, Classes, SysUtils,
-  CG.Fragments;
+uses Math, Generics.Collections, Classes, SysUtils;
 
 type TCodeGenProcMap = record
     Name: String;
@@ -203,13 +180,14 @@ end;
 
 //==================NG Primitive matching & type matching
 
-function ParamRegMatch(Prim: PPrimitive;PrimLoc: TPrimLoc;AvailableRegs: TCPURegSet;
+function ParamRegMatch(Prim: PPrimitive;PrimLoc: TCodeProcLoc;AvailableRegs: TCPURegSet;
   Kind: TILParamKind;Storage: TVarStorage): Boolean;
 begin
   if Kind = pkNone then
     EXIT(True);
 
   case PrimLoc of
+    plNone:      Result := False;
     plImmediate: Result := Kind = pkImmediate;
     plStaticVar: Result := Storage = vsStatic;
     plStackVar:  Result := Storage = vsStack;
@@ -263,7 +241,8 @@ begin
     pkVarDest: //We need a result suitable for writing to a variable
     begin
       V := ILItem.Dest.ToVariable;
-      case Prim.ResultLoc of
+      case Prim.ProcMeta.ResultLoc of
+        plNone:      Result := False;
         plRegister:  Result := True;
         plStaticVar: Result := V.Storage = vsStatic;
         plStackVar:  Result := V.Storage = vsStack;
@@ -382,18 +361,18 @@ begin
   begin
     if Swap then
     begin
-      if not ParamRegMatch(Prim, Prim.LLoc, Prim.LRegs, SearchRec.RKind, SearchRec.RStorage) then
+      if not ParamRegMatch(Prim, Prim.ProcMeta.LLoc, Prim.ProcMeta.LRegs, SearchRec.RKind, SearchRec.RStorage) then
         EXIT(-1);
       if (Prim.RType <> vtUnknown) and
-        not ParamRegMatch(Prim, Prim.RLoc, Prim.RRegs, SearchRec.LKind, SearchRec.LStorage) then
+        not ParamRegMatch(Prim, Prim.ProcMeta.RLoc, Prim.ProcMeta.RRegs, SearchRec.LKind, SearchRec.LStorage) then
         EXIT(-1);
     end
     else
     begin
-      if not ParamRegMatch(Prim, Prim.LLoc, Prim.LRegs, SearchRec.LKind, SearchRec.LStorage) then
+      if not ParamRegMatch(Prim, Prim.ProcMeta.LLoc, Prim.ProcMeta.LRegs, SearchRec.LKind, SearchRec.LStorage) then
         EXIT(-1);
       if (Prim.RType <> vtUnknown) and
-        not ParamRegMatch(Prim, Prim.RLoc, Prim.RRegs, SearchRec.RKind, SearchRec.RStorage) then
+        not ParamRegMatch(Prim, Prim.ProcMeta.RLoc, Prim.ProcMeta.RRegs, SearchRec.RKind, SearchRec.RStorage) then
         EXIT(-1);
     end;
 
@@ -636,7 +615,11 @@ begin
   SearchRec.RIsRange := False;
   SearchRec.IsSigned := Operations[ILItem.Op].SignCombine and (IsSignedType(SearchRec.LType) or IsSignedType(SearchRec.RType));
   SearchRec.IsPointer := Operations[ILItem.Op].SignCombine and ((SearchRec.LType = vtPointer) or (SearchRec.RType = vtPointer));
-  SearchRec.MatchResultType := vtUnknown;
+  //Do we need a boolean result in a flag (for a jump) or register (for assigning)?
+  if ILItem.ResultType in [vtBoolean, vtFlag] then
+    SearchRec.MatchResultType := ILItem.ResultType
+  else
+    SearchRec.MatchResultType := vtUnknown;
 
   SearchRec.LKind := ILItem.Param1.Kind;
   if SearchRec.LKind in [pkVarSource, pkVarAddr] then
@@ -712,73 +695,23 @@ begin
 //    raise Exception.Create('ValProc not used by any primitives: ' + Name);
 end;
 
-const lutCharToCPUReg: array['a'..'z'] of TCPUReg = (
-  rA, rB, rC, rD, rE, rFlags, rNone,  //A..G
-  rH, rNone, rNone, rNone, rL, rNone,  //L..M
-  rNone, rNone, rNone, rNone, rNone, rNone, rNone, rNone, //N..U
-  rNone, rNone, rNone, rNone, rNone);   //V..Z
-
-function CharToCPUReg(C: Char;ForCorrupts: Boolean): TCPUReg;
-begin
-  if (C = 'f') and not ForCorrupts then
-    raise Exception.Create('Invalid register: ' + C);
-
-  if CharInSet(C, ['a'..'z']) then
-    Result := lutCharToCPUReg[C]
-  else
-    raise Exception.Create('Invalid register: ' + C);
-  if Result = rNone then
-    raise Exception.Create('Invalid register: ' + C);
-end;
-
-function StrToCPUReg(S: String;ForCorrupts: Boolean): TCPUReg;
-begin
-  if Length(S) = 0 then
-    Result := rNone
-  else if Length(S) = 1 then
-    Result := CharToCPUReg(S.Chars[0], ForCorrupts)
-  else if CompareText(S, 'none') = 0 then
-    Result := rNone
-  else if (S = 'bc') or (S = 'BC') then
-    Result := rBC
-  else if (S = 'de') or (S = 'DE') then
-    Result := rDE
-  else if (S = 'hl') or (S = 'HL') then
-    Result := rHL
-  else if (S = 'ix') or (S = 'IX') then
-    Result := rIX
-  else if (S = 'iy') or (S = 'IY') then
-    Result := rIY
-  else if (S = 'zf') or (S = 'ZF') then
-    Result := rZF
-  else if (S = 'zfa') or (S = 'ZFA') then
-    Result := rZFA
-  else if (S = 'nzf') or (S = 'NZF') then
-    Result := rNZF
-  else if (S = 'nzfa') or (S = 'NZFA') then
-    Result := rNZFA
-  else if (S = 'cf') or (S = 'CF') then
-    Result := rCF
-  else if (S = 'ncf') or (S = 'NCF') then
-    Result := rNCF
-  else if (S = 'cpla') or (S = 'CPLA') then
-    Result := rCPLA
-  else
-    raise Exception.Create('Invalid register: ' + S);
-end;
 
 function StrToCPURegSet(S: String;ForCorrupts: Boolean): TCPURegSet;
 var X: String;
 begin
   Result := [];
   for X in S.Split([';']) do
-    Result := Result + [StrToCPUReg(X, ForCorrupts)];
+    Result := Result + [StrToCPURegAll(X, ForCorrupts)];
 end;
 
-procedure StrToPrimLoc(const S: String;out Loc: TPrimLoc;out Regs: TCPURegSet);
+procedure StrToPrimLoc(const S: String;out Loc: TCodeProcLoc;out Regs: TCPURegSet);
 begin
   Regs := [];
-  if CompareText(S, 'imm') = 0 then
+  if S = '' then
+    Loc := plNone
+  else if CompareText(S, 'none') = 0 then
+    Loc := plNone
+  else if CompareText(S, 'imm') = 0 then
     Loc := plImmediate
   else if CompareText(S, 'static') = 0 then
     Loc := plStaticVar
@@ -791,17 +724,16 @@ begin
   end;
 end;
 
-function StrToPrimFlagSet(S: String): TPrimFlagSet;
-var X: String;
+function StrToLoadParamType(S: String): TLoadParamType;
 begin
-  Result := [];
-  for X in S.Split([';']) do
-    if CompareText(X, 'load_rp_low') = 0 then
-      Result := Result + [pfnLoadRPLow]
-    else if CompareText(X, 'load_rp_high') = 0 then
-      Result := Result + [pfnLoadRPHigh]
-    else
-      raise Exception.Create('Unknown prim flag NG: ' + X);
+  if S = '' then
+    Result := lptNormal
+  else if CompareText(S, 'load_rp_low') = 0 then
+    Result := lptLow
+  else if CompareText(S, 'load_rp_high') = 0 then
+    Result := lptHigh
+  else
+    raise Exception.Create('Unknown LoadParamType: ' + S);
 end;
 
 const
@@ -817,11 +749,13 @@ const
   //library files
   fFlags          = 7;
   fProcName       = 8;
+
   //Empty columns to give half-decent presentation in Excel
-  fLRegs          = 11;
-  fRRegs          = 12;
-  fResultRegs      = 13;
-  fCorrupts       = 14;
+  fLRegs          = 11; //Being deprecated
+  fRRegs          = 12; //Being deprecated
+  fResultRegs      = 13; //Being deprecated
+  fCorrupts       = 14; //Being deprecated
+
   fOverflowCheckProc   = 15;
   fRangeCheckToS8   = 16;
   fRangeCheckToU8   = 17;
@@ -863,6 +797,8 @@ begin
           Operations[Prim.Op].FirstPrimIndex := PrimList.Count-1;
 
         Prim.ProcName := Fields[fProcName];
+        Prim.Fragment := FindFragmentByName(Prim.ProcName);
+
         if CompareText(Fields[fLType], 'none') = 0 then
           Prim.RType := vtUnknown
         else
@@ -894,6 +830,7 @@ begin
           if Prim.ResultType = vtUnknown then
             raise Exception.Create('Unknown ResultType: ' + Fields[fResultType]);
         end;
+        //--END
 
         if Length(Fields[fIfOverFlowChecking]) <> 1 then
           raise Exception.Create('Error in PrimitivesNG.Validation field: ' + Fields[fIfOverflowChecking]);
@@ -907,24 +844,45 @@ begin
 
 
         //Primitive usage data
-        Prim.Flags := StrToPrimFlagSet(Fields[fFlags]);
+        Prim.LLoadType := StrToLoadParamType(Fields[fFlags]);
 
-        StrToPrimLoc(Fields[fLRegs], Prim.LLoc, Prim.LRegs);
-        StrToPrimLoc(Fields[fRRegs], Prim.RLoc, Prim.RRegs);
-
-        Prim.ResultInLReg := CompareText(Fields[fResultRegs], 'param1') = 0;
-        if Prim.ResultInLReg then
+        //If data is specified by the fragment
+        if Assigned(Prim.Fragment) and Prim.Fragment.HaveMeta then
         begin
-          Prim.ResultLoc := Prim.LLoc;
-          Prim.ResultRegs := Prim.LRegs;
+          //TODO: Change ProcMeta to a pointer and just copy the pointer
+          Prim.ProcMeta := Prim.Fragment.ProcMeta;
+
+          if (Fields[fLRegs] <> '') or (Fields[fRRegs] <> '') or
+            (Fields[fCorrupts] <> '') then
+            raise Exception.Create('Register or Corrupts data specified but Fragment (etc) has already specified this data.');
         end
         else
         begin
-          StrToPrimLoc(Fields[fResultRegs], Prim.ResultLoc, Prim.ResultRegs);
-          if Prim.ResultLoc = plImmediate then
-            raise Exception.Create('Invalid ResultLoc: Immediate');
+          Prim.ProcMeta.Init;
+          StrToPrimLoc(Fields[fLRegs], Prim.ProcMeta.LLoc, Prim.ProcMeta.LRegs);
+          StrToPrimLoc(Fields[fRRegs], Prim.ProcMeta.RLoc, Prim.ProcMeta.RRegs);
         end;
-        Prim.Corrupts :=  StrToCPURegSet(Fields[fCorrupts], True);
+
+        //Option to override Results Reg in fragment.
+        //This is used if the fragment or proc returns multiple results (e.g div/mod)
+        //or the result can be interpreted in multiple ways, eg the result of
+        //a comparison might be in ZF or CF depending on the test to be performed
+        if Fields[fResultRegs] <> '' then
+        begin
+          Prim.ProcMeta.ResultInLReg := CompareText(Fields[fResultRegs], 'param1') = 0;
+          if Prim.ProcMeta.ResultInLReg then
+          begin
+            Prim.ProcMeta.ResultLoc := Prim.ProcMeta.LLoc;
+            Prim.ProcMeta.ResultRegs := Prim.ProcMeta.LRegs;
+          end
+          else
+          begin
+            StrToPrimLoc(Fields[fResultRegs], Prim.ProcMeta.ResultLoc, Prim.ProcMeta.ResultRegs);
+            if Prim.ProcMeta.ResultLoc = plImmediate then
+              raise Exception.Create('Invalid ResultLoc: Immediate');
+          end;
+//          Prim.Preserves := [];//TODO not StrToCPURegSet(Fields[fCorrupts], True);
+        end;
 
         Prim.OverflowCheckProcName := Fields[fOverflowCheckProc];
         Prim.RangeCheckToS8 := Fields[fRangeCheckToS8];

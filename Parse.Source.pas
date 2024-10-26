@@ -28,7 +28,7 @@ type TParseCursor = record
 //Line oriented source code reader
 //Can read data from a file or string
 //Most functions won't read past the end of the current line
-type TSourceReader = class
+type TBaseReader = class
   private
     FFilename: String;
     FLineNo: Integer;
@@ -68,8 +68,6 @@ type TSourceReader = class
     //If the next char is the the given char skips it.
     //Returns true if the next char was the given one
     function SkipCharIf(Ch: Char): Boolean;
-    //DEPRECATED
-    function SkipWhiteSpace: Boolean;
     //Get the next char on the current line without moving the current position
     //If no char available (EOF, EOLN) returns #0
     function TestChar: Char;
@@ -86,6 +84,8 @@ type TSourceReader = class
     //Can be used after a test for text or an identifier fails.
     procedure Undo;
 
+    function CursorToString: String;
+
     property FileName: String read FFileName;
     property EOLN: Boolean read GetEOLN;
     property EOF: Boolean read FEOF;
@@ -99,7 +99,23 @@ type TSourceReader = class
     property Source[Index: Integer]: String read GetSource;
   end;
 
-  TQuicheSourceReader= class(TSourceReader)
+  TGenericReader = class(TBaseReader)
+  public
+    //Reads and returns an identifier.
+    //An identifier begins with an alpha or underscore,
+    //and continues while alpha, numeric or underscore
+    function ReadIdentifier: String;
+    //Returns a hex ($ prefix) or decimal number
+    function ReadNumber: String;
+
+    //Skips whitespace but not new lines.
+    //Returns True if we are at the end of the line
+    function SkipWhiteSpace: Boolean;
+    //Reads and returns all chars from cursor to end of line
+    function ReadLine: String;
+  end;
+
+  TQuicheSourceReader= class(TBaseReader)
   private
     function DoSkipWhiteLine: TQuicheError;
 
@@ -156,25 +172,30 @@ begin
   Indent := AIndent;
 end;
 
-{ TSourceReader }
+{ TBaseReader }
 
-destructor TSourceReader.Destroy;
+function TBaseReader.CursorToString: String;
+begin
+  Result := 'Line ' + LineNo.ToString + ', column ' + FColumn.ToString;
+end;
+
+destructor TBaseReader.Destroy;
 begin
   FLines.Free;
   inherited;
 end;
 
-function TSourceReader.GetCursor: TParseCursor;
+function TBaseReader.GetCursor: TParseCursor;
 begin
   Result.Create(FFilename, FLineNo, FColumn, FIndent);
 end;
 
-function TSourceReader.GetEOLN: Boolean;
+function TBaseReader.GetEOLN: Boolean;
 begin
   Result := FEOF or (FColumn >= Length(Line));
 end;
 
-function TSourceReader.GetSource(Index: Integer): String;
+function TBaseReader.GetSource(Index: Integer): String;
 begin
   if Index <= FLines.Count then
     Result := FLines[Index-1]
@@ -182,7 +203,7 @@ begin
     Result := ';<No such line>';
 end;
 
-procedure TSourceReader.LoadFromString(AString: String);
+procedure TBaseReader.LoadFromString(AString: String);
 begin
   if FLines = nil then
     FLines := TStringList.Create;
@@ -191,7 +212,7 @@ begin
   Reset;
 end;
 
-procedure TSourceReader.LoadFromStrings(SL: TStrings);
+procedure TBaseReader.LoadFromStrings(SL: TStrings);
 begin
   if FLines = nil then
     FLines := TStringList.Create;
@@ -200,14 +221,14 @@ begin
   Reset;
 end;
 
-procedure TSourceReader.Mark;
+procedure TBaseReader.Mark;
 begin
   FMarkLineNo := LineNo;
   FMarkPos := Pos;
   FMarkCursor := GetCursor;
 end;
 
-function TSourceReader.NextChar(out Ch: Char): Boolean;
+function TBaseReader.NextChar(out Ch: Char): Boolean;
 begin
   while FColumn >= Length(FLine) do
     if not NextLine then
@@ -216,7 +237,7 @@ begin
   Result := ReadChar(Ch);
 end;
 
-function TSourceReader.NextLine: Boolean;
+function TBaseReader.NextLine: Boolean;
 begin
   if FLines = nil then
     EXIT(False);
@@ -231,7 +252,7 @@ begin
   Result := not FEOF;
 end;
 
-function TSourceReader.OpenFile(AFilename: String): Boolean;
+function TBaseReader.OpenFile(AFilename: String): Boolean;
 begin
   if FLines <> nil then
     raise Exception.Create('File already open');
@@ -243,7 +264,7 @@ begin
   Result := True;
 end;
 
-function TSourceReader.ReadChar(out Ch: Char): Boolean;
+function TBaseReader.ReadChar(out Ch: Char): Boolean;
 begin
   Result := FColumn < Length(FLine);
   if Result then
@@ -261,7 +282,7 @@ begin
   end;
 end;
 
-procedure TSourceReader.Reset;
+procedure TBaseReader.Reset;
 begin
   FEOF := False;
   FColumn := 0;
@@ -279,7 +300,7 @@ begin
   FState := psCode;
 end;
 
-procedure TSourceReader.SetCursor(const Cursor: TParseCursor);
+procedure TBaseReader.SetCursor(const Cursor: TParseCursor);
 begin
   Assert(Filename = Cursor.Filename, 'Can''t set cursor into a different file');
   FLineNo := Cursor.LineNo;
@@ -289,28 +310,21 @@ begin
     FLine := FLines[FLineNo-1];
 end;
 
-function TSourceReader.SkipChar: Boolean;
+function TBaseReader.SkipChar: Boolean;
 begin
   Result :=  FColumn < Length(FLine);
   if Result then
     inc(FColumn);
 end;
 
-function TSourceReader.SkipCharIf(Ch: Char): Boolean;
+function TBaseReader.SkipCharIf(Ch: Char): Boolean;
 begin
   Result := TestChar = Ch;
   if Result then
     SkipChar;
 end;
 
-function TSourceReader.SkipWhiteSpace: Boolean;
-begin
-  while (FColumn < Length(FLine)) and CharInSet(FLine.Chars[FColumn], csWhiteSpace) do
-    inc(FColumn);
-  Result := FColumn >= Length(FLine);
-end;
-
-function TSourceReader.TestChar: Char;
+function TBaseReader.TestChar: Char;
 begin
   if FColumn < Length(FLine) then
     Result := FLine.Chars[FColumn]
@@ -318,7 +332,7 @@ begin
     Result := #0;
 end;
 
-procedure TSourceReader.Undo;
+procedure TBaseReader.Undo;
 begin
   //This shouldn't be able to happen.
   //Wee need nested/stacked Mark points
@@ -330,6 +344,53 @@ begin
   if FLines <> nil then
     FLine := FLines[FLineNo-1];
   FMarkLineNo := -1;
+end;
+
+{ TGenericReader }
+
+function TGenericReader.ReadIdentifier: String;
+var Ch: Char;
+begin
+  Result := '';
+  if not CharInSet(TestChar, ['a'..'z','A'..'Z','_']) then
+    EXIT;
+  repeat
+    ReadChar(Ch);
+    Result := Result + Ch;
+  until not CharInSet(TestChar,['a'..'z','A'..'Z','0'..'9','_']);
+end;
+
+function TGenericReader.ReadLine: String;
+var Ch: Char;
+begin
+  Result := '';
+  while ReadChar(Ch) do
+    Result := Result + Ch;
+end;
+
+function TGenericReader.ReadNumber: String;
+var Chars: set of Char;
+  Ch: Char;
+begin
+  Result := '';
+  if TestChar = '$' then
+  begin
+    Result := '$';
+    Chars := ['0'..'9','a'..'f','A'..'F'];
+  end
+  else
+    Chars := ['0'..'9'];
+
+  while CharInSet(TestChar, Chars) do
+    if ReadChar(Ch) then
+      Result := Result + Ch;
+end;
+
+function TGenericReader.SkipWhiteSpace: Boolean;
+begin
+  while (FColumn < Length(FLine)) and CharInSet(FLine.Chars[FColumn], csWhiteSpace) do
+    inc(FColumn);
+  Result := FColumn >= Length(FLine);
 end;
 
 { TQuicheSourceReader }

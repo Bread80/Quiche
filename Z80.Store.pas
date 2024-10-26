@@ -44,7 +44,7 @@ procedure GenCondBranch(const Param: TILParam);
 implementation
 uses Classes, SysUtils,
   Def.Variables,
-  CodeGen,
+  CodeGen, CG.Fragments,
   Z80.CodeGen, Z80.CPUState;
 
 //Generates the code to convert a boolean value from various sources into a boolean
@@ -55,13 +55,13 @@ begin
   FlagsCorrupt := True; //Assume
   case Reg of
     rA, rAF: FlagsCorrupt := False;
-    rZF:   GenLibraryParamProc('zftoboolean', Param, 'd');
-    rZFA:  GenLibraryParamProc('notatoboolean', Param, 'd');
-    rNZF:  GenLibraryParamProc('nzftoboolean', Param, 'd');
-    rNZFA: GenLibraryParamProc('atoboolean', Param, 'd');
-    rCPLA: GenLibraryParamProc('cpla', Param, 'd');
-    rCF:   GenLibraryParamProc('cftoboolean', Param, 'd');
-    rNCF:  GenLibraryParamProc('ncftoboolean', Param, 'd');
+    rZF:   GenFragmentParamName('zftoboolean', Param, 'd');
+    rZFA:  GenFragmentParamName('notatoboolean', Param, 'd');
+    rNZF:  GenFragmentParamName('nzftoboolean', Param, 'd');
+    rNZFA: GenFragmentParamName('atoboolean', Param, 'd');
+    rCPLA: GenFragmentParamName('cpla', Param, 'd');
+    rCF:   GenFragmentParamName('cftoboolean', Param, 'd');
+    rNCF:  GenFragmentParamName('ncftoboolean', Param, 'd');
   else
     Assert(False);
   end;
@@ -381,7 +381,7 @@ begin
     rA:
     begin
 //      if ILItem.OpType <> rtBoolean then
-        GenLibraryParamProc('atozf', Param, 'd');
+        GenFragmentParamName('atozf', Param, 'd');
       if Reverse then
         F := 'z'
       else
@@ -507,6 +507,10 @@ procedure StoreAfterPrim(ILItem: PILItem;Prim: PPrimitive);
 var RangeCheckProc: TRangeCheckProc;
   VarType: TVarType;
 begin
+  //Update CPU state but ignore kinds which don't have a Variable
+  if (ILItem.Dest.Reg <> rNone) and not (ILItem.Dest.Kind in [pkCondBranch, pkPush, pkPushByte]) then
+    RegStateSetVariable(ILItem.Dest.Reg, ILItem.Dest.Variable, ILItem.Dest.VarVersion, rskVarValue);
+
   //If we have an optimised range check proc for the primitive & type conversion
   //find it and pass to the store routine
   VarType := vtUnknown;

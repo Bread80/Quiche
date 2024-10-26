@@ -13,7 +13,7 @@ type TILParamKind = (
     pkPhiVarDest,   // "
     pkVarSource,    //Read from variable
     pkVarDest,      //Write to variable
-    pkVarAddr,       //Address of a variable
+    pkVarAddr,      //Address of a variable - only valid where Op is OpVarAddr
     pkPop,          //The stack
     pkPopByte,      //Single byte on the stack
     pkPush,
@@ -22,8 +22,14 @@ type TILParamKind = (
     pkCondBranch     //Conditional branch. Only valid as Param3
     );
 
-type TILParamFlags = (cgRangeCheck);
+type
+  TILParamFlags = (cgRangeCheck);
   TILParamFlagSet = set of TILParamFlags;
+
+  TLoadParamType = (
+    lptNormal,
+    lptHigh,  //Load high byte of param, not range checked
+    lptLow);  //Load low byte of param, not range checked
 
 type
   PILParam = ^TILParam;
@@ -35,6 +41,7 @@ type
     //back into the variable (or other location) specified by the other values
     Reg: TCPUReg;
     Flags: TILParamFlagSet;
+    LoadType: TLoadParamType;
 
     procedure Initialise;
 
@@ -528,6 +535,7 @@ begin
   Flags := [];
   if optRangeChecks then
     Flags := Flags + [cgRangeCheck];
+  LoadType := lptNormal;
 end;
 
 function TILParam.ToString: String;
@@ -582,6 +590,13 @@ begin
         Result := Result + '{' + IntToStr(TrueBlockID) + ',' + IntToStr(FalseBlockID) + '} ';
       Result := Result + '/' + CPURegStrings[Reg];
     end;
+  else
+    Assert(False);
+  end;
+  case LoadType of
+    lptNormal: ;
+    lptHigh: Result := Result + '.hi';
+    lptLow: Result := Result + '.lo';
   else
     Assert(False);
   end;

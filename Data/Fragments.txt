@@ -1,7 +1,7 @@
 ;This file contains code fragments which are used by the compiler to
 ;generate primitives and intrinsics
 
-;Data can be inserted into a fragment using substitiions.
+;Data can be inserted into a fragment using substitutions.
 ;Substitutions are placed in angle brackets, e.g.
 ;inc <p1.r8>
 
@@ -37,37 +37,85 @@
 ;of the output code. The exact data to be substituted is dependant on the 
 ;substitutions above but is usually the variable name.
 
-;Validation
+;==========Meta data
+;-p1 <reg-list>|<data-location>   - Register(s) which can contain the first/left parameter
+;-p2 <reg-list>|<data-location>   - Register(s) which can contain the second/right parameter
+;-d  <reg-list>|<data-location>   - Register(s) which can contain the result/return value
+;-corrupts <reg-list> - Registers and flags which are corrupted 
+;                       Any registers and flags not specified are assumed to be preserved
+;                       The Flags item does not include carry and zero flags. If required
+;                       each of these must be explicitly specified
+;                       Valid registers are: A,B,C,D,E,H,L,CF,ZF,F
+;entry <literal-list> - Register literal values which must be satisfied on entry.
+;                       If this is not the current CPU state (or the state is unknown) the 
+;                       code generator will add the relevant code to generate the required state
+
+;  <reg-list> is a list of one or more of the following separated by commas or spaces:
+;  None,A,B,C,D,E,H,L,AF,BC,DE,HL,IX,IY,SP,ZF,ZFA,NZF,NZFA,CF,NCF,CPLA,Flags
+;  (not all register/flag values are valid in all commands).
+;  Where
+;    None  - No value accepted or returned
+;    ZF    - Zero flag set
+;    ZFA   - Zero flag set or clear and sets A register as a boolean
+;    NZF   - Zero flag clear or set (inverted)
+;    NZFA  - Zero flag clear or set (inverted) and set A register as a boolean
+;    CF    - Carry flag set or clear
+;    NCF   - Carry flag clear or set (inverted)
+;    CPLA  - Result is the complement of A (for boolean reasults only)
+;    F     - Flags other than zero and carry (ie Sign and Parity/Overflow - other flags 
+;            are not tracked by the compiler)
+;            For -corrupts and -preserves zero and carry flag must be specified explicitly
+;            if their values are corrupted or preserved.
+;  <data-location> is one of the following:
+;    imm    - An immediate (constant, literal) (not for results!)
+;    static - Fragment can directly read (and/or write) a static variable
+;    stack  - Fragment can directly read (and/or write) a static variable
+;  <literal-list> is
+;    <register-name>[':'|'=']<literal>
+;    Register name can be a register or flag.
+;    Literal can be a decimal or hex value. Hex values are prefixed with '$'.
+
+
+  
+;exit  - register literal values set on exit, eg. A=0, CF=1
+;  Do NOT include registers which contain return/result values
+;preservesall - if all registers are preserved
+;preserves - registers which are preserved (ie. all others are corrupt), eg preserves ABC,CF,ZF
+;  Do NOT include registers which contain result values
+
+  
+;Validation (overflow)
 ;===============================================
 ;Validate the result of an operation, or that a type conversion
 ;will fit into the destination type.
 
 ;Raise overflow if carry flag set
-=c_overflow
+=c_overflow  -exit CF=0
   jp c,raise_overflow
 
 ;Raise overflow if carry flag clear
-=nc_overflow
+=nc_overflow  -exit CF=1
   jp nc,raise_overflow
   
 ;Raise overflow if zero flag clear
-=nz_overflow
+=nz_overflow  -exit ZF=1
   jp nz,raise_overflow
   
 ;Raise overflow if sign flag clear (result is positive, bit 7 clear)
 ;Useful when converting signed to unsigned and vice versa
-=p_overflow
+=p_overflow  -preservesall
   jp p,raise_overflow
   
 ;Raise overflow if sign flag set (result is negative, bit 7 set)
-=m_overflow
+=m_overflow  -preservesall
   jp m,raise_overflow
   
 ;Raise overflow if parity/overflow even (indicating signed overflow)
-=pe_overflow
+=pe_overflow  -preservesall
   jp pe,raise_overflow
 
 =hreg_nz_overflow
+;  -exit A=H ZF=1 CF=0 OtherFlags=?
   ld a,h
   and a
   jp nz,raise_overflow
@@ -75,64 +123,67 @@
 ;Loads  
 ;====================================================
 ;Load data from a constant or variable into a register
+;OBSOLETED - these items are now generated in code
 
-=load_r8_imm
-  ld <p.r8>,<p.immbyte>
+;=load_r8_imm
+;  ld <p.r8>,<p.immbyte>
 
-=load_r16_imm
-  ld <p.r16>,<p.immword>
+;=load_r16_imm
+;  ld <p.r16>,<p.immword>
   
-=load_r16high_zero
-  ld <p.r16high>,$00
+;=load_r16high_zero
+;  ld <p.r16high>,$00
   
   
-=load_r8_abs_a
-  ld a,(<p.varname>)	;$$
+;=load_r8_abs_a
+;  ld a,(<p.varname>)	;$$
 
-=load_r8_abs_via_a
-  ld a,(<p.varname>)	;$$
-  ld <p.r8>,a
+;=load_r8_abs_via_a
+;  ld a,(<p.varname>)	;$$
+;  ld <p.r8>,a
 
-=load_r8_abslow_a
-  ld a,(<p.varname>)	;$$
+;=load_r8_abslow_a
+;  ld a,(<p.varname>)	;$$
   
-=load_r8_abslow_via_a
-  ld a,(<p.varname>)	;$$
-  ld <p.r8>,a
+;=load_r8_abslow_via_a
+;  ld a,(<p.varname>)	;$$
+;  ld <p.r8>,a
 
-=load_r8_abshigh_a
-  ld a,(<p.varname> + 1)	;$$
+;=load_r8_abshigh_a
+;  ld a,(<p.varname> + 1)	;$$
   
 =load_r8_abshigh_via_a
   ld a,(<p.varname> + 1)	;$$
   ld <p.r8>,a
  
-=load_r16_abs
-  ld <p.r16>,(<p.varname>)	;$$
+;=load_r16_abs
+;  ld <p.r16>,(<p.varname>)	;$$
   
-=load_r16low_abslow_a
-  ld a,(<p.varname>)	;$$
+;=load_r16low_abslow_a
+;  ld a,(<p.varname>)	;$$
 
-=load_r16low_abslow_via_a
-  ld a,(<p.varname>)	;$$
-  ld <p.r16low>,a  
+;=load_r16low_abslow_via_a
+;  ld a,(<p.varname>)	;$$
+;  ld <p.r16low>,a  
 
 
-=load_r8_rel
-  ld <p.r8>,(ix<p.offset>)	;$$
+;=load_r8_rel
+;  ld <p.r8>,(ix<p.offset>)	;$$
 
-=load_r8_rellow
-  ld <p.r8>,(ix<p.offsetlow>)	;$$
+;=load_r8_rellow
+;  ld <p.r8>,(ix<p.offsetlow>)	;$$
   
-=load_r8_relhigh
-  ld <p.r8>,(ix<p.offsethigh>)	;$$
+;=load_r8_relhigh
+;  ld <p.r8>,(ix<p.offsethigh>)	;$$
     
-=load_r16_rel
-  ld <p.r16low>,(ix<p.offsetlow>)	;$$  
-  ld <p.r16high>,(ix<p.offsethigh>)
+;=load_r16_rel
+;  ld <p.r16low>,(ix<p.offsetlow>)	;$$  
+;  ld <p.r16high>,(ix<p.offsethigh>)
 
-=load_pr16low_rellow
-  ld <p.r16low>,(ix<p.offsetlow>)	;$$
+;=load_pr16low_rellow
+;  ld <p.r16low>,(ix<p.offsetlow>)	;$$
+
+;======================================ADDR operator @
 
 =load_p1_r16_varaddr
   ld <d.r16>,<p1.varname>
@@ -144,17 +195,18 @@
   add hl,de
 
 ;Untested
-=load_p1_ix_varaddr_to_bc
-  push ix
-  pop hl
-  ld bc,<p1.rawoffset>
-  add hl,bc
-  ld c,l
-  ld b,h
+;=load_p1_ix_varaddr_to_bc
+;  push ix
+;  pop hl
+;  ld bc,<p1.rawoffset>
+;  add hl,bc
+;  ld c,l
+;  ld b,h
   
 ;Assigns
 ;===================================================
 ;Assigns are used to (usually) set varaibles from constant values.
+;OBSOLETED - these items are now generated in code
 
 ;Where an assign can directly use an immediate value it will. If not
 ;the Primitive will specify a register or choice of registers to place
@@ -169,156 +221,157 @@
 ;variables, but may well be needed on a Z80 hosted compiler so worth keeping 
 ;around
 
-=assign_abs8_a
-  ld (<d.varname>),a		;$$
+;=assign_abs8_a
+;  ld (<d.varname>),a		;$$
 
-=assign_abs16_r16
-  ld (<d.varname>),<p1.r16>	;$$  
+;=assign_abs16_r16
+;  ld (<d.varname>),<p1.r16>	;$$  
   
-=assign_abs16_imm8_neg
-  ld a,<p1.immbyte>
-  ld (<d.varname>),a		;$$
-  ld a,$ff
-  ld (<d.varname> + 1),a
+;=assign_abs16_imm8_neg
+;  ld a,<p1.immbyte>
+;  ld (<d.varname>),a		;$$
+;  ld a,$ff
+;  ld (<d.varname> + 1),a
 
-=assign_abs16_imm8
-  ld a,<p1.immbyte>
-  ld (<d.varname>),a		;$$
-  xor a
-  ld (<d.varname> + 1),a
+;=assign_abs16_imm8
+;  ld a,<p1.immbyte>
+;  ld (<d.varname>),a		;$$
+;  xor a
+;  ld (<d.varname> + 1),a
 
-=assign_abs16_imm16
-  ld a,<p1.immwordlow>
-  ld (<d.varname>),a		;$$
-  ld a,<p1.immwordhigh>
-  ld (<d.varname> + 1),a
+;=assign_abs16_imm16
+;  ld a,<p1.immwordlow>
+;  ld (<d.varname>),a		;$$
+;  ld a,<p1.immwordhigh>
+;  ld (<d.varname> + 1),a
  
 
-=assign_rel8_imm8
-  ld (ix<d.offset>),<p1.immbyte>	;$$ 
+;=assign_rel8_imm8
+;  ld (ix<d.offset>),<p1.immbyte>	;$$ 
   
-=assign_rel16_imm8
-  ld (ix<d.offsetlow>),<p1.immbyte>	;$$
-  ld (ix<d.offsethigh>),$00
+;=assign_rel16_imm8
+;  ld (ix<d.offsetlow>),<p1.immbyte>	;$$
+;  ld (ix<d.offsethigh>),$00
 
-=assign_rel16_imm8_neg
-  ld (ix<d.offsetlow>),<p1.immbyte>	;$$
-  ld (ix<d.offsethigh>),$ff
+;=assign_rel16_imm8_neg
+;  ld (ix<d.offsetlow>),<p1.immbyte>	;$$
+;  ld (ix<d.offsethigh>),$ff
 
-=assign_rel16_imm16
-  ld (ix<d.offsetlow>),<p1.immwordlow>	;$$
-  ld (ix<d.offsethigh>),<p1.immwordhigh>
+;=assign_rel16_imm16
+;  ld (ix<d.offsetlow>),<p1.immwordlow>	;$$
+;  ld (ix<d.offsethigh>),<p1.immwordhigh>
 
 
 
-=assign_abs16_r8
+;=assign_abs16_r8
 ;TODO: ONLY FOR A!
-  ld (<d.varname>),<p1.r8>	;$$
-  xor a
-  ld (<d.varname> + 1),a
+;  ld (<d.varname>),<p1.r8>	;$$
+;  xor a
+;  ld (<d.varname> + 1),a
 
-=assign_abs8_r8
+;=assign_abs8_r8
 ;TODO: ONLY FOR A!
-  ld (<d.varname>),<p1.r8> 	;$$ assign_abs8_r8
+;  ld (<d.varname>),<p1.r8> 	;$$ assign_abs8_r8
 
-=assign_abs8_r16low
+;=assign_abs8_r16low
 ;TODO: ONLY FOR A!
-  ld (<d.varname>),<p1.r16low>   ;$$
+;  ld (<d.varname>),<p1.r16low>   ;$$
   
 
-=assign_rel16_r8
-  ld (ix<d.offsetlow>),<p1.r8>	;$$
-  ld (ix<d.offsethigh>),$00
+;=assign_rel16_r8
+;  ld (ix<d.offsetlow>),<p1.r8>	;$$
+;  ld (ix<d.offsethigh>),$00
 
-=assign_rel8_r8
-  ld (ix<d.offset>),<p1.r8> 	;$$
+;=assign_rel8_r8
+;  ld (ix<d.offset>),<p1.r8> 	;$$
 
-=assign_rel8r_16low
-  ld (ix<d.offset>),<p1.r16low>   ;$$
+;=assign_rel8r_16low
+;  ld (ix<d.offset>),<p1.r16low>   ;$$
 
 
 ;Stores
 ;====================================================
 ;A store copies the result of a primitive into a variable
+;OBSOLETED - these items are now generated in code
 
-=store_abs8_a
-  ld (<d.varname>),a		;$$
+;=store_abs8_a
+;  ld (<d.varname>),a		;$$
   
-=store_abs8_r8_a
-  ld (<d.varname>),a		;$$
+;=store_abs8_r8_a
+;  ld (<d.varname>),a		;$$
   
-=store_abs8_r8_via_a
-  ld a,<d.r8>
-  ld (<d.varname>),a	;$$
+;=store_abs8_r8_via_a
+;  ld a,<d.r8>
+;  ld (<d.varname>),a	;$$
 
 
-=store_abs16_r8_a
-  ld (<d.varname>),a
-  xor a
-  ld (<d.varname> + 1),a	;$$
+;=store_abs16_r8_a
+;  ld (<d.varname>),a
+;  xor a
+;  ld (<d.varname> + 1),a	;$$
  
-=store_abs16_r8_via_a
-  xor a
-  ld (<d.varname> + 1),a	;$$
-  ld a,<d.r8>
-  ld (<d.varname>),a
+;=store_abs16_r8_via_a
+;  xor a
+;  ld (<d.varname> + 1),a	;$$
+;  ld a,<d.r8>
+;  ld (<d.varname>),a
   
 ;Store to low byte of absolute variable
 ;For use before a sign extend
-=store_abs16low_r8_a
-  ld (<d.varname>),a	;$$
+;=store_abs16low_r8_a
+;  ld (<d.varname>),a	;$$
 
-=store_abs16low_r8_via_a
-  ld a,<d.r8>
-  ld (<d.varname>),a	;$$
+;=store_abs16low_r8_via_a
+;  ld a,<d.r8>
+;  ld (<d.varname>),a	;$$
   
 ;Store to high byte of absolute variable
 ;For use after a sign extend
-=store_abs16high_a
-  ld (<d.varname> + 1),a		;$$
+;=store_abs16high_a
+;  ld (<d.varname> + 1),a		;$$
 
 ;For use after a sign extend
-=store_abs16high_via_a
-  ld a,<d.r8>
-  ld (<d.varname> + 1),a	;$$
+;=store_abs16high_via_a
+;  ld a,<d.r8>
+;  ld (<d.varname> + 1),a	;$$
 
-=store_abs16_r16
-  ld (<d.varname>),<d.r16>	;$$
+;=store_abs16_r16
+;  ld (<d.varname>),<d.r16>	;$$
 
-=store_abs8_r16low_via_a
-  ld a,<d.r16low>
-  ld (<d.varname>),a	;$$
+;=store_abs8_r16low_via_a
+;  ld a,<d.r16low>
+;  ld (<d.varname>),a	;$$
   
   
-=store_rel8_a
-  ld (ix<d.offset>),a        ;$$  
+;=store_rel8_a
+;  ld (ix<d.offset>),a        ;$$  
   
-=store_rel8_r8
-  ld (ix<d.offset>),<d.r8>	;$$
+;=store_rel8_r8
+;  ld (ix<d.offset>),<d.r8>	;$$
 
-=store_rel8_r16low
-  ld (ix<d.offsetlow>),<d.r16low>	;$$
+;=store_rel8_r16low
+;  ld (ix<d.offsetlow>),<d.r16low>	;$$
     
   
-=store_rel16_r8
-  ld (ix<d.offsethigh>),$00	;$$
-  ld (ix<d.offsetlow>),<d.r8>
+;=store_rel16_r8
+;  ld (ix<d.offsethigh>),$00	;$$
+;  ld (ix<d.offsetlow>),<d.r8>
 
 ;For use before a sign extend
-=store_rel16low_r8
-  ld (ix<d.offsetlow>),<d.r8>	;$$
+;=store_rel16low_r8
+;  ld (ix<d.offsetlow>),<d.r8>	;$$
 
 ;For use after a sign extend
-=store_rel16high_a
-  ld (ix<d.offsethigh>),a		;$$
+;=store_rel16high_a
+;  ld (ix<d.offsethigh>),a		;$$
   
 ;For use after a sign extend
-=store_rel16high_r8
-  ld (ix<d.offsethigh>),<d.r8>	;$$
+;=store_rel16high_r8
+;  ld (ix<d.offsethigh>),<d.r8>	;$$
 
-=store_rel16_r16
-  ld (ix<d.offsetlow>),<d.r16low>	;$$
-  ld (ix<d.offsethigh>),<d.r16high>
+;=store_rel16_r16
+;  ld (ix<d.offsetlow>),<d.r16low>	;$$
+;  ld (ix<d.offsethigh>),<d.r16high>
 
 ;Stack operations
 ;================
@@ -344,187 +397,214 @@
 ;ALU operations
 ;=========================================================
 
-;----Addition
+;=====================ADDITION
 
 ;8 bit add to immediate
-=add8_reg_imm
+=add8_reg_imm  -p1 a  -p2 imm  -d a  -corrupts f,zf,cf
   add a,<p2.immbyte>
 
 ;8 bit add to register
-=add8_reg_reg
+=add8_reg_reg  -p1 a -p2 a,b,c,d,e,h,l -d a -corrupts f,zf,cf
   add a,<p2.r8>
 
 ;16 bit add. Can only test for unsigned overflow due to ADD HL,ss opcode
-=add16_nooverflow
+=add16_nooverflow  -p1 hl -p2 hl,de,bc -d hl -corrupts cf  ;ZF, SF, PVF preserved
   add hl,<p2.r16>	
   
 ;16 bit add. Affects all needed flags for validation and 16 bit conversion
-=add16_overflow
-  or a				;Clear carry
+=add16_overflow  -p1 hl -p2 hl,de,bc -d hl -corrupts cf  ;ZF, SF, PVF preserved
+  -entry cf:0
   adc hl,<p2.r16>
 
-=inc8_reg
+;;============================INC/DEC
+;TODO: INC/DECs are procedurally generated. Procedures don't (currently) handle meta data
+=inc8_reg  -p1 a,b,c,d,e,h,l -d p1 -corrupts f,zf ;Preserves CF
   inc <p1.r8>
 
-=inc16_reg
+=inc16_reg  -p1 hl,de,bc,sp -d p1 -preservesall
   inc <p1.r16>
 
-=dec8_reg
+=dec8_reg  -p1 a,b,c,d,e,h,l -d p1 -corrupts f,zf ;Preserves CF
   dec <p1.r8>
 
-=dec16_reg
+=dec16_reg  -p1 hl,de,bc,sp -d p1 -preservesall
   dec <p1.r16>
   
-;----Subtraction
+;==================SUBTRACTION
 
 ;8 bit immediate subtract
-=sub8_reg_imm
+=sub8_reg_imm  -p1 a -p2 imm -d a corrupts f,zf,cf
   sub a,<p2.immbyte>
 
 ;8 bit register subtract
-=sub8_reg_reg
+=sub8_reg_reg  -p1 a -p2 a,b,c,d,e,h,l -d a -corrupts f,zf,cf
   sub a,<p2.r8>
 
 ;16 bit subtract
-=sub16
-  and a
+=sub16  -p1 hl -p2 hl,de,bc -d hl -corrupts f,zf,cf
+  -entry cf:0
   sbc hl,<p2.r16>	
   
 ;----Negation
 
-=negate_s8
+=negate_s8 -p1 a d a -corrupts f,zf,cf
   neg				;Parity flag set if A was $80
 
-;=negate_u16
-;  ld hl,$0000
-;  and a
-;  sbc hl,de
+;=================COMPARISONS
 
-;----Comparisons
 ;Note: We need to set A for assignments, flags for branches
 
-=compare8_reg_imm
+=compare8_reg_imm  -p1 a  -p2 imm  -corrupts f,zf,cf
+  ;-d zf or cf as specified in Primitives file
   cp <p2.immbyte>
 
 ;Swapped parameter ordering
-=compare8swap_reg_imm
+=compare8swap_reg_imm -p1 imm -p2 a -corrupts f,zf,cf
+  ;-d zf or cf
   cp <p1.immbyte>
 
-=compare8_reg_reg
+=compare8_reg_reg  -p1 a -p2 a,b,c,d,e,h,l  -corrupts f,zf,cf
+  ;-d zf or cf
   cp <p2.r8>
   
 ;Swapped parameter ordering
-=compare8swap_reg_reg
+=compare8swap_reg_reg  -p1 b,c,d,e,h,l  -p2 a  -corrupts f,zf,cf
+  ;-d zf or cf
   cp <p1.r8>  
-  
+ 
+;NOT USED 
 ;Compare and set A to zero if equal
-=equalx16
-  and a				;Clear carry
-  sbc hl,<p2.r16>
-  ld a,h			;Set to zero if result was equal
-  or l
+;=equalx16
+;  -entry cf:0
+;  -a:? f:?
+;  and a				;Clear carry
+;  sbc hl,<p2.r16>
+;  ld a,h			;Set to zero if result was equal
+;  or l
+
+;;===============BOOLEAN COMPARISONS (<bool> <= <bool> etc)
 
 ;p1 < p2 for boolean operands. Equivalent to !p1 AND p2
-=bool_less8_reg_imm
+=bool_less8_reg_imm  -p1 a  -p2 imm  -d a  -corrupts f,cf,zf
+  -exit cf:0
   cpl
   and <p2.immbyte>
   
 ;p1 < p2 for boolean operands. Equivalent to !p1 AND p2
-=bool_less8_reg_reg
+=bool_less8_reg_reg  -p1 a  -p2 a,b,c,d,e,h,l  -d a  -corrupts f,cf,zf
+  -exit cf:0
   cpl
   and <p2.r8>
 
 ;p1 > p2 for boolean operands. Equivalent to p1 AND !p2
 ;NOTE: To generate this we need to reverse the order of the operands!
-=bool_greater8_reg_imm
+=bool_greater8_reg_imm  -p1 imm  -p2 b,c,d,e,h,l  -d a-corrupts f,cf,zf
+  -exit cf:0
   cpl
   and <p1.immbyte>
   
 ;p1 > p2 for boolean operands. Equivalent to p1 AND !p2
 ;NOTE: To generate this we need to reverse the order of the operands!
-=bool_greater8_reg_reg
+=bool_greater8_reg_reg  -p1 b,c,d,e,h,l  -p2 a  -d a  -corrupts f,cf,zf
+  -exit cf:0
   cpl
   and <p1.r8>
 
 ;p1 <= p2 for boolean operands. Equivalent to !p1 OR p2
-=bool_lessequal8_reg_imm
+=bool_lessequal8_reg_imm  -p1 a  -p2 imm  -d a  -corrupts f,cf,zf
+  -exit cf:0
   cpl
   or <p2.immbyte>
   
 ;p1 <= p2 for boolean operands. Equivalent to !p1 OR p2
-=bool_lessequal8_reg_reg
+=bool_lessequal8_reg_reg  -p1 a  -p2 a,b,c,d,e,h,l  -d a  -corrupts f,cf,zf
+  -exit cf:0
   cpl
   or <p2.r8>
   
 ;p1 >= p2 for boolean operands. Equivalent to p1 OR !p2
 ;NOTE: To generate this we need to reverse the order of the operands!
-=bool_greaterequal8_reg_imm
+=bool_greaterequal8_reg_imm  -p1 imm  -p2 b,c,d,e,h,l  -d a -corrupts f,cf,zf
+  -exit cf:0
   cpl
   or <p1.immbyte>
   
 ;p1 >= p2 for boolean operands. Equivalent to p1 OR !p2
 ;NOTE: To generate this we need to reverse the order of the operands!
-=bool_greaterequal8_reg_reg
+=bool_greaterequal8_reg_reg  -p1 b,c,d,e,h,l  -p2 a  -d a  -corrupts f,cf,zf
+  -exit cf:0
   cpl
   or <p1.r8>
   
-=odd8_reg
-  rra
-  sbc a,a
+;==============
   
-=odd8_reg_branch
+=odd8_rra  -p1 a  -d cf  -corrupts a
   rra
+
+;TODO: Compiler can't cope with Corrupts p1
+;=odd8_rr  -p1 b,c,d,e,h,l  -d cf  -corrupts p1
+;  rr <p1.r8>
+
+=odd8_bit  -p1 a,b,c,d,e,h,l  -d zf  -preservesall
+  bit 0,<p1.r8>
   
 ;====Conversions to Boolean
 
+;Not used by Primitives.
+;Used internally by code generator to convert result values
+
 ;If A is non-zero outputs A=$ff, otherwise A=$00 (unchanged)
-=atoboolean
+=atoboolean  -p1 a  -d a  -corrupts f,zf,cf
   neg				;Set carry if A not equal 0
   sbc a,a			;Set A to -1 or 0
   
 ;If A is non-zero, outputs A=$00, otherwise A=$ff
-=notatoboolean
+=notatoboolean  -p1 a  -d a  -corrupts f,zf,cf
   neg				;Set carry if A not equal 0
   sbc a,a			;Set A to -1 or 0
   cpl				;Invert bits of A
   
-=atozf
+=atozf  -p1 a  -d a  -corrupts f,zf
+  -exit cf:0
   and a
   
 ;If Zero flag set, outputs A=$ff, otherwise A=$00
-=zftoboolean
-  ld a,0
+=zftoboolean  -p1 zf  -d a  -corrupts f,zf  ;Preserves CF
+  -entry a:0
   jr nz,$+3
   dec a
 
 ;If zero flag is clear, outputs A=$00, otherwise A=$ff
-=nzftoboolean
-  ld a,0
+=nzftoboolean  -p1 zf  -d a  -corrupts f,zf  ;Preserves CF
+  -entry a:0
   jr z,$+3
   dec a
   
 ;If carry set, outputs A=$ff, otherwise A=$00
-=cftoboolean
+=cftoboolean  -p1 cf  -d a  -corrupts f,zf  ;Preserves CF
   sbc a,a
   
 ;If carry set, outputs A=$ff, otherwise A=$ff
-=ncftoboolean
+=ncftoboolean  -p1 cf  -d a  -corrupts f,zf  ;Preserves CF
   sbc a,a
   cpl
-  
+   
 ;====Logic (and other boolean stuff)
 
 ;Complement the A register (i.e. bitwise invert)
-=cpla
+=cpla  -p1 a  -d a  -preservesall
   cpl
 
-=or8_reg_imm
+=or8_reg_imm  -p1 a  -p2 imm  -d a  -corrupts f,zf
+  -exit cf:0
   or <p2.immbyte>
   
-=or8_reg_reg
+=or8_reg_reg  -p1 a  -p2 a,b,c,d,e,h,l  -d a  -corrupts f,zf
+  -exit cf:0
   or <p2.r8>
   
-=or16_reg_imm
+=or16_reg_imm -p1 hl,de,bc  -p2 imm  -d p1  -corrupts a,f,zf
+  -exit cf:0
   ld a,<p1.r16low>
   or <p2.immwordlow>
   ld <p1.r16low>,a
@@ -532,7 +612,8 @@
   or <p2.immwordhigh>
   ld <p1.r16high>,a
   
-=or16_reg_reg
+=or16_reg_reg -p1 hl,de,bc  -p2 hl,de,bc  -d p1  -corrupts a,f,zf
+  -exit cf:0
   ld a,<p1.r16low>
   or <p2.r16low>
   ld <p1.r16low>,a
@@ -540,13 +621,16 @@
   or <p2.r16high>
   ld <p1.r16high>,a
 
-=and8_reg_imm
+=and8_reg_imm  -p1 a  -p2 imm  -d a  -corrupts f,zf
+  -exit cf:0
   and <p2.immbyte>
   
-=and8_reg_reg
+=and8_reg_reg  -p1 a  -p2 a,b,c,d,e,h,l  -d a  -corrupts f,zf
+  -exit cf:0
   and <p2.r8>
   
-=and16_reg_imm
+=and16_reg_imm -p1 hl,de,bc  -p2 imm  -d p1  -corrupts a,f,zf
+  -exit cf:0 
   ld a,<p1.r16low>
   and <p2.immwordlow>
   ld <p1.r16low>,a
@@ -554,7 +638,8 @@
   and <p2.immwordhigh>
   ld <p1.r16high>,a
   
-=and16_reg_reg
+=and16_reg_reg -p1 hl,de,bc  -p2 hl,de,bc  -d p1  -corrupts a,f,zf
+  -exit cf:0
   ld a,<p1.r16low>
   and <p2.r16low>
   ld <p1.r16low>,a
@@ -562,13 +647,16 @@
   and <p2.r16high>
   ld <p1.r16high>,a
   
-=xor8_reg_imm
+=xor8_reg_imm  -p1 a  -p2 imm  -d a  -corrupts f,zf
+  -exit cf:0
   xor <p2.immbyte>
 
-=xor8_reg_reg
+=xor8_reg_reg  -p1 a  -p2 a,b,c,d,e,h,l  -d a  -corrupts f,zf
+  -exit cf:0
   xor <p2.r8>
   
-=xor16_reg_imm
+=xor16_reg_imm -p1 hl,de,bc  -p2 imm  -d p1  -corrupts a,f,zf
+  -exit cf:0
   ld a,<p1.r16low>
   xor <p2.immwordlow>
   ld <p1.r16low>,a
@@ -576,7 +664,8 @@
   xor <p2.immwordhigh>
   ld <p1.r16high>,a
   
-=xor16_reg_reg
+=xor16_reg_reg -p1 hl,de,bc  -p2 hl,de,bc  -d p1  -corrupts a,f,zf
+  -exit cf:0
   ld a,<p1.r16low>
   xor <p2.r16low>
   ld <p1.r16low>,a
@@ -584,8 +673,10 @@
   xor <p2.r16high>
   ld <p1.r16high>,a
   
+;============MISC
+
 ;16 bit complement
-=cpl16_reg
+=cpl16_reg  -p1 hl,de,bc  -d p1  -corrupts a  ;CPL preserves all meaningful registers
   ld a,<p1.r16low>
   cpl
   ld <p1.r16low>,a
@@ -593,63 +684,76 @@
   cpl
   ld <p1.r16high>,a  
   
-=swap_reg_reg
+;Swap two halves of a register pair
+=swap_reg_reg  -p1 hl,de,bc  -d p1  -corrupts a
   ld a,<p1.r16low>
   ld <p1.r16low>,<p1.r16high>
   ld <p1.r16high>,a
   
 ;=== Hardware
 
-=in_reg_bc
+=in_reg_bc  -p1 bc  -d a,b,c,d,e,h,l  -corrupts f,zf  ;preserves cf
   in <d.r8>,(c)
   
-=in_a_n
-  in a,(<p1.immbyte>)
+;Not currently used (how to select between the two INs?
+;=in_a_n  -p1 imm  -d a  -preservesall
+;  in a,(<p1.immbyte>)
   
-=out_bc_reg
+=out_bc_reg  -p1 bc  -p2 a,b,c,d,e,h,l  -preservesall
   out (c),<p2.r8>
   
-=out_n_a
+=out_n_a  -p1 imm  -p2 a  -preservesall
   out (<p1.immbyte>),a
 
 ;Loads and stores read or write to/from variables whereas peeks and pokes
 ;read or write unmanaged memory
-=peek8_imm
+;The second parameter here is only for the the compiler and specified the 
+;data type (and therefore the size) of the read. We need to include it here 
+;(as an Immediate) for the primitive selector to work.
+=peek8_imm  -p1 imm  -p1 imm  -d a  -preservesall
   ld a,(<p1.immword>)
   
-=peek8_reg16
+;Any pair to A
+=peek8_a_reg16  -p1 hl,de,bc  -p2 imm  -d a  -preservesall
+  ld a,(<p1.r16>)
+  
+;HL to any Reg8
+=peek8_r8_hl  -p1 hl  -d a,b,c,d,e,h,l  -p2 imm  -preservesall
   ld <d.r8>,(hl)
   
-=peek16_imm
-  ld hl,(<p1.immword>)
+=peek16_imm  -p1 imm  -d hl,de,bc -p2 imm  -preservesall
+  ld <d.r16>,(<p1.immword>)
   
-=peek16_reg16
+=peek16_reg16  -p1 hl  -d de  -p2 imm  -corrupts hl
   ld e,(hl)
   inc hl
   ld d,(hl)
   
-=poke_imm_a
+=poke_imm_a  -p1 imm  -p2 a  -preservesall
   ld (<p1.immword>),a
   
-=poke_hl_imm8
+=poke_hl_imm8  -p1 hl  -p2 imm  -preservesall
   ld (hl),<p2.immbyte>
   
-=poke_hl_reg8
+=poke_hl_reg8  -p1 hl  -p2 a,b,c,d,e,h,l  -preservesall
   ld (hl),<p2.r8>
 
-=poke_hl_reg16low
+=poke_r16_a  -p1 hl,de,bc  -p2 a  -preservesall
+  ld (<p1.r16>),a
+  
+=poke_hl_reg16low  -p1 hl  -p2 hl,de,bc  -preservesall
   ld (hl),<p2.r16low>
   
-;!!at pokes, at the moment, are 8 bit
-;=poke_imm_hl
+;!!all pokes, at the moment, are 8 bit
+;=poke_imm_hl  -p1 imm  -p2 hl  -preservesall
 ;  ld (<p1.immword>),hl
   
-;=poke_hl_imm16
+;=poke_hl_imm16  -p1 hl  -p2 imm  -corrupts hl
 ;  ld (hl),<p2.immwordlow>
 ;  inc hl
 ;  ld (hl),<p2.immwordhigh>
   
-;=poke_hl_reg16
+;=poke_hl_reg16  -p1 hl  -p2 hl,de,bc  -corrupts hl
 ;  ld (hl),<p2.r16low>
 ;  inc hl
 ;  ld (hl),<p2.r16high>

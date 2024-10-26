@@ -366,7 +366,18 @@ begin
     case Param.Kind of
       pkNone: ;
       pkPhiVarSource,pkPhiVarDest: ;
-      pkVarDest,pkPop,pkPopByte:
+      pkVarAddr: ;  //Handled by the primitive
+
+      //Loading
+      pkImmediate:
+        if Loading and (Param.Reg <> rNone) then
+          CopyParamToMoveState(Param);
+      pkVarSource,pkPop,pkPopByte:
+        if Loading then
+          CopyParamToMoveState(Param);
+
+      //Storing/After
+      pkVarDest,pkPush,pkPushByte:
         if not Loading then
           CopyParamToMoveState(Param);
 //      pkBranch: ;
@@ -376,9 +387,6 @@ begin
           Assert(MoveAnalysis.CondBranchParam = nil, 'Multiple pkCondBranch in a move');
           MoveAnalysis.CondBranchParam := Param;
         end;
-      pkImmediate, pkVarSource,pkPush,pkPushByte:
-        if Loading then
-          CopyParamToMoveState(Param);
     else
       System.Assert(False);
     end;
@@ -413,6 +421,7 @@ procedure SetFuncMoveState(Func: PFunction;Loading: Boolean);
   begin
     New(MoveState[FuncParam.Reg].Param);
     ILParam := MoveState[FuncParam.Reg].Param;
+    ILParam.Initialise;
     ILParam.Reg := FuncParam.Reg;
     if Loading then
       ILParam.Kind := pkVarSource
@@ -512,14 +521,21 @@ var Reg: TCPUReg;
 begin
   for Reg := low(MoveState) to high(TMoveState) do
     if not MoveState[Reg].Done then
-      EXIT(False);
+      if MoveState[Reg].MoveType in [mtImm, mtImmKeep, mtImmCopy] then
+      begin //Immediate value could be sacrificed to load data. If so check the
+        //value is still there
+        if not RegStateEqualsLiteral(Reg, MoveState[Reg].Param.Imm.ToInteger) then
+          EXIT(False);
+      end
+      else
+        EXIT(False);
   Result := True;
 end;
 
 //Store selected registers into variables if either MoveType or ProcessType applies
 //to that parameter
 procedure GenDataLoadParams(Regs: TCPURegSet;MoveTypes: TMoveTypeSet;
-  ProcessTypes: TProcessTypeSet;PrimFlags: TPrimFlagSet;Options: TMoveOptionSet);
+  ProcessTypes: TProcessTypeSet;Options: TMoveOptionSet);
 var Reg: TCPUReg;
   ToType: TVarType;
 begin
@@ -537,13 +553,12 @@ begin
             else
               ToType := MoveState[Reg].Param.GetVarType;
 
-            GenLoadParam(MoveState[Reg].Param^, ToType, PrimFlags, Options);
+            GenLoadParam(MoveState[Reg].Param^, ToType, Options);
             MoveState[Reg].Done := True;
           end;
 end;
 
 function GenRegLoad(ILIndex: Integer): Integer;
-var PrimFlags: TPrimFlagSet;
 begin
   InitMoveAnalysis;
 
@@ -559,18 +574,16 @@ begin
   //which might get trashed, and whether those registers will get trashed.
   AnalyseMove(True);
 
-  PrimFlags := [];
-
-  if DataMoveDone then
+    if DataMoveDone then
     EXIT;
   //Load any stack address params - these usually require HL, DE and flags
   GenDataLoadParams([rBC, rDE, rHL, rIX, rIY],
-    [mtAddrStack], [], PrimFlags,
+    [mtAddrStack], [],
     []); //<--- Mostly just error checking here
 
   //Load values which will trash A or flags for all registers except A and Flags
   GenDataLoadParams([rB, rC, rD, rE, rH, rL, rBC, rDE, rHL, rIX, rIY],
-    [mtStatic8], [ptSignExtend, ptShrink, ptRangeCheck8, ptRangeCheck16], PrimFlags,
+    [mtStatic8], [ptSignExtend, ptShrink, ptRangeCheck8, ptRangeCheck16],
     [moPreserveHLDE]);  //<-- we'll need more analysis before allowing EX HL,DE
                         //(it might Undo a move we've already done!)
 
@@ -578,14 +591,14 @@ begin
     EXIT;
   //Load all values into registers other than A
   GenDataLoadParams([rB, rC, rD, rE, rH, rL, rBC, rDE, rHL, rIX, rIY],
-    [mtStatic16, mtStack, mtAddrStatic, mtCopy, mtImm, mtImmCopy], [], PrimFlags,
+    [mtStatic16, mtStack, mtAddrStatic, mtCopy, mtImm, mtImmCopy], [],
     [moPreserveHLDE{, moPreserveA, moPreserveCF, moPreserveOtherFlags}]); //<--- Mostly just error checking here
 
   if DataMoveDone then
     EXIT;
   //Load values which will trash A register into A register
   GenDataLoadParams([rA], [mtStatic16, mtStatic8, mtStack, mtCopy, mtImm, mtImmCopy],
-    [ptSignExtend, ptShrink, ptRangeCheck8, ptRangeCheck16], PrimFlags, [moPreserveHLDE]);
+    [ptSignExtend, ptShrink, ptRangeCheck8, ptRangeCheck16], [moPreserveHLDE]);
 
   Assert(DataMoveDone, 'Data Load failed to load everything :(');
 
@@ -711,6 +724,7 @@ begin
 
       //TEMP: Clear register state. Update to depend on functions Corrupt's data
       RegStateInitialise;
+//TODO      RegStatePreserves(ILItem.Func.Preserves);
 
       EXIT;
     end;
@@ -724,7 +738,7 @@ end;
 //Store selected registers into variables if either MoveType or ProcessType applies
 //to that parameter
 procedure GenDataStoreParams(Regs: TCPURegSet;MoveTypes: TMoveTypeSet;
-  ProcessTypes: TProcessTypeSet;PrimFlags: TPrimFlagSet;
+  ProcessTypes: TProcessTypeSet;
   Options: TMoveOptionSet);
 var Reg: TCPUReg;
   FromType: TVarType;
@@ -749,7 +763,6 @@ begin
 end;
 
 function GenRegStore(ILIndex: Integer): Integer;
-var PrimFlags: TPrimFlagSet;
 begin
   InitMoveAnalysis;
 
@@ -764,26 +777,24 @@ begin
   //which might get trashed, and whether those registers will get trashed.
   AnalyseMove(False);
 
-  PrimFlags := [];
-
   //TODO: Store Flag types (values returned in CPU flags)
 
   if not DataMoveDone then
     //Store the A register first - other stores might trash it
     GenDataStoreParams([rA], [mtStatic16, mtStatic8, mtStack],
-      [ptSignExtend, ptShrink, ptRangeCheck8, ptRangeCheck16], PrimFlags, [moPreserveHLDE]);
+      [ptSignExtend, ptShrink, ptRangeCheck8, ptRangeCheck16], [moPreserveHLDE]);
 
   if not DataMoveDone then
     //Store values which will trash A or flags for all registers except A and Flags
     GenDataStoreParams([rB, rC, rD, rE, rH, rL, rBC, rDE, rHL, rIX, rIY],
-      [mtStatic8], [ptSignExtend, ptShrink, ptRangeCheck8, ptRangeCheck16], PrimFlags,
+      [mtStatic8], [ptSignExtend, ptShrink, ptRangeCheck8, ptRangeCheck16],
       [moPreserveHLDE]);  //<-- we'll need more analysis before allowing EX HL,DE
                           //(it might Undo a move we've already done!)
 
   if not DataMoveDone then
     //Store other values
     GenDataStoreParams([rB, rC, rD, rE, rH, rL, rBC, rDE, rHL, rIX, rIY],
-      [mtStatic16, mtStack], [], PrimFlags,
+      [mtStatic16, mtStack], [],
       [moPreserveHLDE, moPreserveA, moPreserveCF, moPreserveOtherFlags]); //<--- Mostly just error checking here
 
   Assert(DataMoveDone, 'Data Store failed to store everything :(');
@@ -810,19 +821,19 @@ begin
   if not DataMoveDone then
     //Store the A register first - other stores might trash it
     GenDataStoreParams([rA], [mtStatic16, mtStatic8, mtStack],
-      [ptSignExtend, ptShrink, ptRangeCheck8, ptRangeCheck16], [], [moPreserveHLDE]);
+      [ptSignExtend, ptShrink, ptRangeCheck8, ptRangeCheck16], [moPreserveHLDE]);
 
   if not DataMoveDone then
     //Store values which will trash A or flags for all registers except A and Flags
     GenDataStoreParams([rB, rC, rD, rE, rH, rL, rBC, rDE, rHL, rIX, rIY],
-      [mtStatic8], [ptSignExtend, ptShrink, ptRangeCheck8, ptRangeCheck16], [],
+      [mtStatic8], [ptSignExtend, ptShrink, ptRangeCheck8, ptRangeCheck16],
       [moPreserveHLDE]);  //<-- we'll need more analysis before allowing EX HL,DE
                           //(it might Undo a move we've already done!)
 
   if not DataMoveDone then
     //Store other values
     GenDataStoreParams([rB, rC, rD, rE, rH, rL, rBC, rDE, rHL, rIX, rIY],
-      [mtStatic16, mtStack], [], [],
+      [mtStatic16, mtStack], [],
       [moPreserveHLDE, moPreserveA, moPreserveCF, moPreserveOtherFlags]); //<--- Mostly just error checking here
 
   Assert(DataMoveDone, 'FuncParamStore failed to store everything :(');
@@ -846,26 +857,26 @@ begin
   if not DataMoveDone then
     //Load any stack relative addresses. These usually require HL, DE and flags
     GenDataLoadParams([rBC, rDE, rHL, rIX, rIY],
-      [mtAddrStack], [ptSignExtend, ptShrink, ptRangeCheck8, ptRangeCheck16], [],
+      [mtAddrStack], [ptSignExtend, ptShrink, ptRangeCheck8, ptRangeCheck16],
       []);  //<-- we'll need more analysis before allowing EX HL,DE
                         //(it might Undo a move we've already done!)
   if not DataMoveDone then
     //Load values which will trash A or flags for all registers except A and Flags
     GenDataLoadParams([rB, rC, rD, rE, rH, rL, rBC, rDE, rHL, rIX, rIY],
-      [mtStatic8], [ptSignExtend, ptShrink, ptRangeCheck8, ptRangeCheck16], [],
+      [mtStatic8], [ptSignExtend, ptShrink, ptRangeCheck8, ptRangeCheck16],
       [moPreserveHLDE]);  //<-- we'll need more analysis before allowing EX HL,DE
                         //(it might Undo a move we've already done!)
 
   if not DataMoveDone then
     //Load all values into registers other than A
     GenDataLoadParams([rB, rC, rD, rE, rH, rL, rBC, rDE, rHL, rIX, rIY],
-      [mtStatic16, mtStack, mtAddrStatic, mtCopy, mtImm, mtImmCopy], [], [],
+      [mtStatic16, mtStack, mtAddrStatic, mtCopy, mtImm, mtImmCopy], [],
       [moPreserveHLDE, moPreserveA, moPreserveCF, moPreserveOtherFlags]); //<--- Mostly just error checking here
 
   if not DataMoveDone then
     //Load values which will trash A register into A register
     GenDataLoadParams([rA], [mtStatic16, mtStatic8, mtStack, mtCopy, mtImm, mtImmCopy],
-      [ptSignExtend, ptShrink, ptRangeCheck8, ptRangeCheck16], [], [moPreserveHLDE]);
+      [ptSignExtend, ptShrink, ptRangeCheck8, ptRangeCheck16], [moPreserveHLDE]);
 
   Assert(DataMoveDone, 'Data Load failed to load everything :(');
 

@@ -7,7 +7,7 @@ uses Def.IL, Def.Primitives, Def.Functions;
 
 //Allocate which registers (if any) parameters need to be loaded (or moved) into
 //before a primitive can be generated
-procedure TEMPRegAllocPrim(var ILItem: PILItem;const Prim: PPrimitive);
+procedure TEMPRegAllocPrim(var ILItem: TILItem;const Prim: PPrimitive);
 
 //Allocate which registers (if any) parameters need to be loaded (or moved) into
 //for an opMove operation
@@ -23,6 +23,7 @@ procedure TEMPRegAllocStackFunc(Func: PFunction);
 implementation
 uses SysUtils, Classes,
   Def.Operators, Def.QTypes, Def.Variables,
+  CG.Fragments,
   Z80.CPU;
 
 //============================== REGISTER ALLOCATION
@@ -32,7 +33,7 @@ uses SysUtils, Classes,
 
 //Allocate which registers (if any) parameters need to be loaded (or moved) into
 //before a primitive can be generated
-procedure TEMPRegAllocPrim(var ILItem: PILItem;const Prim: PPrimitive);
+procedure TEMPRegAllocPrim(var ILItem: TILItem;const Prim: PPrimitive);
 var Reg: TCPUReg;
   Regs: TCPURegSet;
 begin
@@ -44,10 +45,10 @@ begin
 
   if (ILItem.Param1.Reg = rNone) and (ILItem.Param1.Kind <> pkNone) then
     //Prim doesn't use this parameter?
-    if Prim.LLoc = plRegister then
+    if Prim.ProcMeta.LLoc = plRegister then
     begin
       //assign a register for the parameter to be loaded into
-      Regs := Prim.LRegs;
+      Regs := Prim.ProcMeta.LRegs;
       if Regs <> [] then
       begin
         //Find an available register
@@ -59,16 +60,16 @@ begin
             ILItem.Param1.Reg := Reg;
         until (ILItem.Param1.Reg <> rNone) or (Reg = high(TCPUReg));
         if ILItem.Param1.Reg = rNone then
-          raise Exception.Create('TEMNRegAlloc couldn''t find suitable Param1 register');
+          raise Exception.Create('TEMPRegAllocPrim couldn''t find suitable Param1 register');
       end;
     end;
 
   if (ILItem.Param2.Reg = rNone) and (ILItem.Param2.Kind <> pkNone) then
-    if Prim.RLoc = plRegister then
+    if Prim.ProcMeta.RLoc = plRegister then
     begin
       //Get allowable registers
       //TODO: Needs to be more flexible!
-      Regs := Prim.RRegs - [ILItem.Param1.Reg];
+      Regs := Prim.ProcMeta.RRegs - [ILItem.Param1.Reg];
       Reg := Pred(rA);
       repeat
         Reg := Succ(Reg);
@@ -76,16 +77,16 @@ begin
           ILItem.Param2.Reg := Reg;
       until (ILItem.Param2.Reg <> rNone) or (Reg = high(TCPUReg));
       if ILItem.Param2.Reg = rNone then
-        raise Exception.Create('TEMNRegAlloc couldn''t find suitable Param2 register');
+        raise Exception.Create('TEMPRegAllocPrim couldn''t find suitable Param2 register');
     end;
 
   if (ILItem.Dest.Reg = rNone) and (ILItem.Dest.Kind <> pkNone) then
-    if Prim.ResultLoc = plRegister then
+    if Prim.ProcMeta.ResultLoc = plRegister then
     begin
       if not (ILItem.Dest.Kind in [pkCondBranch, pkVarDest, pkPush, pkPushByte]) then
         Assert(False); //Invalid/unknown ParamKind
 
-      if Prim.ResultInLReg then
+      if Prim.ProcMeta.ResultInLReg then
       begin //Use result data from Primitive
         if ILItem.Dest.Kind in [pkPushByte, pkPush] then
           case ILItem.Param1.Reg of
@@ -99,9 +100,9 @@ begin
         else
         ILItem.Dest.Reg := ILItem.Param1.Reg;
       end
-      else
+      else  //TODO: Flags vs A (ZFA etc). Dest not in a register.
       begin //Choose a register
-        Regs := Prim.ResultRegs;
+        Regs := Prim.ProcMeta.ResultRegs;
         Reg := Pred(rA);
         repeat
           Reg := Succ(Reg);
@@ -109,7 +110,7 @@ begin
             ILItem.Dest.Reg := Reg;
         until (ILItem.Dest.Reg <> rNone) or (Reg = high(TCPUReg));
         if ILItem.Dest.Reg = rNone then
-          raise Exception.Create('TEMNRegAlloc couldn''t find suitable Dest register');
+          raise Exception.Create('TEMPRegAllocPrim couldn''t find suitable Dest register');
       end;
     end;
 end;

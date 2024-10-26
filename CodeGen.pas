@@ -5,7 +5,7 @@ unit CodeGen;
 
 interface
 uses Classes,
-  Def.Globals, Def.Scopes;
+  Def.Globals, Def.Scopes, Def.IL;
 
 //------------- UTILITIES
 
@@ -14,7 +14,6 @@ uses Classes,
 function ByteToStr(Value: Integer): String;
 function WordToStr(Value: Integer): String;
 function WordLoToStr(Value: Integer): String;
-function OffsetToStr(Offset: Integer): String;
 
 //Write an entire instruction line
 procedure Instr(S: String);
@@ -31,6 +30,12 @@ procedure Opcode(const Op: String;const P1: String = '';const P2: String = '');
 function GetCodeGenScope: PScope;
 function GetCurrBlockID: Integer;
 function GetCurrProcName: String;
+
+//Insert code from a fragment or a library call
+procedure GenLibraryProc(ProcName: String;ILItem: PILItem);
+
+procedure GenCode(ProcName: String;ILItem: PILItem);
+
 
 procedure InitialiseCodeGen(PlatformFile, QuicheLibrary: String);
 
@@ -59,7 +64,7 @@ var LogPrimitives: Boolean;
 
 implementation
 uses SysUtils,
-  Def.Functions, Def.IL, Def.Operators, Def.Primitives, Def.QTypes, Def.Variables,
+  Def.Functions, Def.Operators, Def.Primitives, Def.QTypes, Def.Variables,
   Parse.Base,
   CG.Fragments,
   Z80.CPU, Z80.Optimise, Z80.CPUState, Z80.CodeGen, Z80.LoadStoreMove, Z80.Load, Z80.Store,
@@ -79,14 +84,6 @@ end;
 function WordLoToStr(Value: Integer): String;
 begin
   Result := '$' + IntToHex(lo(Value) and $ff, 2).ToLower
-end;
-
-function OffsetToStr(Offset: Integer): String;
-begin
-  if Offset < 0 then
-    Result := '-' + ByteToStr(-Offset)
-  else
-    Result := '+' + ByteToStr(Offset);
 end;
 
 //======================================= UTILITIES
@@ -221,6 +218,49 @@ begin
   Line(Name + ':');
 end;
 
+//================================== LIBRARY CODE
+
+
+//Insert code from a fragment or a library call
+procedure GenLibraryProc(ProcName: String;ILItem: PILItem);
+begin
+  if ProcName.Chars[0] = ':' then
+    Instr('call ' + ProcName.SubString(1) + ' ;Call')
+  else
+    CG.Fragments.GenFragmentItemName(ProcName, ILItem, GetCodeGenScope);
+end;
+
+procedure GenCode(ProcName: String;ILItem: PILItem);
+var
+  Prim: PPrimitive;
+  Proc: TCodeGenProc;
+begin
+  if ProcName = 'empty' then
+    EXIT;
+  if ProcName = '' then
+    EXIT;
+
+  if ProcName.Chars[0] = ':' then
+    GenLibraryProc(ProcName, ILItem)
+  else
+  begin
+    Prim := PrimFindByProcName(ProcName);
+    if Assigned(Prim) then
+    begin
+    if IDE.Compiler.Config.CodeGen.PrimitiveNames then
+        Line('                     ;Prim: ' + ProcName);
+      Prim.Proc(ILItem);
+    end
+    else
+    begin
+      Proc := FindCodeGenProc(ProcName);
+      if Assigned(Proc) then
+        Proc(ILItem)
+      else
+        GenLibraryProc(ProcName, ILItem);
+    end;
+  end;
+end;
 
 //If overflow checks are enabled, applies such overflow checks.
 //This routine is called after the primitive has executed.
@@ -232,6 +272,47 @@ begin
     if cgOverflowCheck in ILItem.Flags then
       //Validation for the operation itself
       GenCode(Prim.OverflowCheckProcName, ILItem);
+end;
+
+procedure GenPrimitive(var ILItem: TILItem;ILIndex: Integer);
+var Prim: PPrimitive;
+  SwapParams: Boolean;
+  Options: TMoveOptionSet;
+begin
+  //Find the Prim based on the operation and parameter data type(s)
+  Prim := ILItemToPrimitive(ILItem, SwapParams);
+  if not assigned(Prim) then
+    Error('No primitiveNG found:'#13#10 + ILItem.ToString);
+  if SwapParams then
+    ILItem.SwapParams;
+  if LogPrimitives then
+    PrimitiveLog.Add(Prim.ProcName);
+
+  //Temp
+  TEMPRegAllocPrim(ILItem, Prim);
+
+  //TODO: This should be done at Primitive selection time (or other)
+  Assert(ILItem.Param1.LoadType = lptNormal);
+  ILItem.Param1.LoadType := Prim.LLoadType;
+
+  //Load parameters
+  GenRegLoad(ILIndex);
+//  LoadBeforePrim(ILItem, Prim);
+
+  if Assigned(Prim.Fragment) then
+    GenFragmentItem(Prim.Fragment, @ILItem, GetCurrentScope)
+  else if Assigned(Prim.Proc) then
+    Prim.Proc(@ILItem)
+  else
+    GenLibraryProc(Prim.ProcName, @ILItem);
+
+  if not Prim.ProcMeta.HaveCorrupts then
+    //Fallback default -  clear all state
+    RegStateInitialise;
+
+  OverflowCheckAfterPrim(@ILItem, Prim);
+  //Also generates branches and updates CPU state for Dest
+  StoreAfterPrim(@ILItem, Prim);
 end;
 
 //========================= CODE GENERATOR
@@ -280,7 +361,7 @@ begin
       //When loading: load to type specified in Dest (extend, range check etc).
       //GenOpMove(ILItem);
       TEMPRegAllocMove(ILItem); //(??)
-      GenLoadParam(ILItem.Param1, ILItem.Dest.GetVarType, [], []);
+      GenLoadParam(ILItem.Param1, ILItem.Dest.GetVarType, []);
       //Range checking and extending (if required) is done while loading
       GenDestParam(ILItem.Dest, vtUnknown, False, nil, [])
      end;
@@ -296,30 +377,7 @@ begin
     end;
 
   else    //Operations which do use the parameter load-store mechanism
-    //Find the Prim based on the operation and parameter data type(s)
-    Prim := ILItemToPrimitive(ILItem^, SwapParams);
-    if not assigned(Prim) then
-      Error('No primitiveNG found:'#13#10 + ILItem.ToString);
-    if SwapParams then
-      ILItem.SwapParams;
-    if LogPrimitives then
-      PrimitiveLog.Add(Prim.ProcName);
-
-    //Temp
-    TEMPRegAllocPrim(ILItem, Prim);
-
-    LoadBeforePrim(ILItem, Prim);
-    if Assigned(Prim.Proc) then
-      Prim.Proc(ILItem)
-    else
-      GenLibraryProc(Prim.ProcName, ILItem);
-
-    //TEMP - clear all state
-    RegStateInitialise;
-
-    OverflowCheckAfterPrim(ILItem, Prim);
-    //Also generates branches
-    StoreAfterPrim(ILItem, Prim);
+    GenPrimitive(ILItem^, ILIndex);
   end;
 
   if IDE.Compiler.Config.CodeGen.CPUState then

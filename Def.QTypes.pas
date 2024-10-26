@@ -479,6 +479,8 @@ begin
   else
     if CodeType = PrimType then
       Result := 0
+    else if (CodeType in [vtBoolean, vtFlag]) and (PrimType in [vtBoolean, vtFlag]) then
+      Result := 5
     else
       Result := -1;
 end;

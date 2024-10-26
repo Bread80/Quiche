@@ -591,8 +591,8 @@ begin
   end;
   //Corrupts attribute - TODO
   //Probably better to have a preserves list instead?
-  Func.Corrupts := AttrCorrupts;
-  AttrCorrupts := [];
+  Func.Preserves := [];//TODO Corrupts := AttrCorrupts;
+  AttrPreserves := [];
 
   //Note: If function is Forward then we need to varify this declaration is an
   //exact copy of the original

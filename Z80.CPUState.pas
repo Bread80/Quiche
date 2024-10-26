@@ -9,6 +9,7 @@ type TRegStateKind =
   (rskUnknown,
   rskLiteral,     //A constant value
   rskVarValue,    //The value of a variable
+  rskVarValueInverted,  //An inverted boolean value
   rskVarValueLow,  //Low byte of a 16-bit variable value
   rskVarValueHigh,  //High byte of a 16-bit variable value
   rskVarAddr);    //The address of a variable
@@ -97,6 +98,7 @@ function RegStateEqualsLiteral(Reg: TCPUReg;Value: Integer): Boolean;
 //<sigil><variable-name>#<variable-version>
 //Available sigils are:
 //  '%'   Variable value
+//  '~'   An inverted boolean variable value
 //  '\'   Lo byte of value
 //  '/'   Hi byte of value
 //  '@'   Address of the variable
@@ -129,7 +131,9 @@ type
       rskLiteral: (
         Literal: Integer;
         );
-      rskVarValue, rskVarAddr: (
+      rskVarValue, rskVarValueInverted,
+        rskVarValueHigh, rskVarValueLow,
+        rskVarAddr: (
         Variable: PVariable;
         Version: Integer;
         );
@@ -277,7 +281,7 @@ begin
     EXIT;
   end;
 
-  Assert(AKind in [rskVarValue, rskVarValueLow, rskVarValueHigh, rskVarAddr]);
+  Assert(AKind in [rskVarValue, rskVarValueInverted, rskVarValueLow, rskVarValueHigh, rskVarAddr]);
 
   case Reg of
     rHL, rDE, rBC:
@@ -348,12 +352,30 @@ begin
       CPUState[CPUReg8ToPair[Reg]].Kind := rskUnknown;
       CPUState[CPUReg8ToPair[Reg]].IsModified := True;
     end;
-    rCF, rZF:  //Not sure if this is actually meaninful
+    rCF, rZF, rZFA:  //Not sure if this is actually meaningful
     begin
+      Assert(AKind = rskVarValue);
       CPUState[Reg].Kind := AKind;
       CPUState[Reg].Variable := AVariable;
       CPUState[Reg].Version := AVersion;
       CPUState[Reg].IsModified := True;
+      if Reg = rZFA then
+        RegStateSetVariable(rA, AVariable, AVersion, rskVarValue);
+    end;
+    rNCF, rNZF, rNZFA:
+    begin
+      Assert(AKind = rskVarValue);
+      CPUState[Reg].Kind := rskVarValueInverted;
+      CPUState[Reg].Variable := AVariable;
+      CPUState[Reg].Version := AVersion;
+      CPUState[Reg].IsModified := True;
+      if Reg = rNZFA then
+        RegStateSetVariable(rA, AVariable, AVersion, rskVarValueInverted);
+    end;
+    rCPLA:
+    begin
+      Assert(AKind = rskVarValue);
+      RegStateSetVariable(rA, AVariable, AVersion, rskVarValueInverted);
     end;
     else
     Assert(False);
@@ -373,7 +395,7 @@ begin
       CPUState[ToReg].IsModified := True;
     end;
     rskLiteral: RegStateSetLiteral(ToReg, CPUState[FromReg].Literal);
-    rskVarValue, rskVarValueHigh, rskVarValueLow, rskVarAddr:
+    rskVarValue, rskVarValueInverted, rskVarValueHigh, rskVarValueLow, rskVarAddr:
       RegStateSetVariable(ToReg, CPUState[FromReg].Variable,
         CPUState[FromReg].Version, CPUState[FromReg].Kind);
   else
@@ -430,7 +452,7 @@ function RegStateFindVariable(AVariable: PVariable;AVersion: Integer;AKind: TReg
 var R: TCPUReg;
   State: TRegState;
 begin
-  Assert(AKind in [rskVarValue, rskVarAddr]);
+  Assert(AKind in [rskVarValue, rskVarValueInverted, rskVarAddr]);
 
   for R := low(TCPUReg) to high(TCPUReg) do
   begin
@@ -462,7 +484,7 @@ function RegStateFindVariable8(AVariable: PVariable;AVersion: Integer;AKind: TRe
 var R: TCPUReg;
   State: TRegState;
 begin
-  Assert(AKind in [rskVarValue, rskVarValueLow, rskVarValueHigh]);
+  Assert(AKind in [rskVarValue, rskVarValueInverted, rskVarValueLow, rskVarValueHigh]);
 
   for R := rA to rL do
   begin
@@ -574,6 +596,8 @@ begin
     '?': EXIT(Kind = rskUnknown);
     '%': //Variable value
       EXIT(VarCompare(rskVarValue, State));
+    '~': //Variable value
+      EXIT(VarCompare(rskVarValueInverted, State));
     '\': //Lo byte of var value
       EXIT(VarCompare(rskVarValueLow, State));
     '/': //Hi byte or var value
@@ -632,6 +656,8 @@ begin
     end;
     '%': //Variable value
       FromVariable(rskVarValue, State);
+    '~': //Inverted boolean value
+      FromVariable(rskVarValueInverted, State);
     '\': //Lo byte of var value
       FromVariable(rskVarValueLow, State);
     '/': //Hi byte or var value
@@ -649,6 +675,7 @@ const KindStrings: array[low(TRegStateKind)..high(TRegStateKind)] of String =
   ('?', //Unknown
   '',   //Constant
   '%',  //Variable value
+  '~',  //Inverted boolean value
   '\',  //Lo byte of value
   '/',  //Hi byte of value
   '@'); //Variable address
@@ -665,7 +692,7 @@ begin
         Result := Result + '$' + Literal.ToString
       else
         Result := Result + '<Unknown reg>';
-    rskVarValue, rskVarAddr, rskVarValueHigh, rskVarValueLow:
+    rskVarValue, rskVarValueInverted, rskVarAddr, rskVarValueHigh, rskVarValueLow:
       Result := Result + Variable.GetAsmName + '#' + Version.ToString;
   else
     Assert(False);

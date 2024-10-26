@@ -28,13 +28,18 @@ type
   TCPURegSet = set of TCPUReg;
 
 //All 'registers' which are truly 'registers'
-const CPURegRegs = [rA..rL,rHL..rIY,rZFA,rNZFA,rCPLA];
+const
+  CPURegsAll = [rA..rL,rIX,rIY,rZF,rCF,rFlags]; //Used by Perserves attribute & values
+  CPURegRegs = [rA..rL,rHL..rIY,rZFA,rNZFA,rCPLA];
   CPUReg8Bit = [rA..rL];
   CPUReg16Bit = [rHL..rIY]; //AF does NOT count as a true 16-bit reg...
   CPURegPairs = [rAF, rBC, rDE, rHL]; //...but it is a Pair. (Whereas IX, and IY aren't!)
                                       //(Well they could be using undocumented opcodes,
                                       //but we don't use them that way)
   CPURegFlags = [rZF,rNZF,rCF,rNCF,rCPLA];
+  //Registers and flags which are meaningful for data about which registers are
+  //corruped or preserved
+//  CPURegCorruptable = [rA,rB,rC,rD,rE,rH,rL,rIX,rIY,rCF,rZF,rFlags];
 
 const
   CPURegPairToLow: array[low(TCPUReg)..High(TCPUReg)] of TCPUReg = (
@@ -105,6 +110,14 @@ const CPURegStrings: array[low(TCPUReg)..high(TCPUReg)] of String = (
   'ZF','','','',
   'CF','','','');
 
+const CPURegAllStrings: array[low(TCPUReg)..high(TCPUReg)] of String = (
+  'none',
+  'a','b','c','d','e','h','l',
+  'af',
+  'hl','de','bc','ix','iy',
+  'ZF','ZFA','NZF','NZFA',
+  'CF','NCF','CPLA','Flags');
+
 const CPURegToVarType: array[low(TCPUReg)..high(TCPUReg)] of TVarType = (
   vtUnknown,
   vtByte, vtByte, vtByte, vtByte, vtByte, vtByte, vtByte,
@@ -112,6 +125,9 @@ const CPURegToVarType: array[low(TCPUReg)..high(TCPUReg)] of TVarType = (
   vtWord, vtWord, vtWord, vtWord, vtWord,
   vtBoolean, vtUnknown, vtUnknown, vtUnknown,
   vtBoolean, vtUnknown, vtUnknown, vtUnknown);
+
+function CharToCPUReg(C: Char;ForCorrupts: Boolean): TCPUReg;
+function StrToCPURegAll(S: String;ForCorrupts: Boolean): TCPUReg;
 
 function IdentToCPUReg(Ident: String): TCPUReg;
 
@@ -144,6 +160,8 @@ procedure OpLD(Dest: TCPUReg;Source: String);overload;
 
 procedure OpPUSH(Reg: TCPUReg);
 procedure OpPOP(Reg: TCPUReg);
+
+procedure OpEXHLDE;
 
 procedure OpADD(RAcc, RAdd: TCPUReg);
 procedure OpINC(Reg: TCPUReg);
@@ -181,6 +199,26 @@ implementation
 uses SysUtils, Codegen,
   Z80.CPUState;
 
+
+const lutCharToCPUReg: array['a'..'z'] of TCPUReg = (
+  rA, rB, rC, rD, rE, rFlags, rNone,  //A..G
+  rH, rNone, rNone, rNone, rL, rNone,  //L..M
+  rNone, rNone, rNone, rNone, rNone, rNone, rNone, rNone, //N..U
+  rNone, rNone, rNone, rNone, rNone);   //V..Z
+
+function CharToCPUReg(C: Char;ForCorrupts: Boolean): TCPUReg;
+begin
+  if (C = 'f') and not ForCorrupts then
+    raise Exception.Create('Invalid register: ' + C);
+
+  if CharInSet(C, ['a'..'z']) then
+    Result := lutCharToCPUReg[C]
+  else
+    raise Exception.Create('Invalid register: ' + C);
+  if Result = rNone then
+    raise Exception.Create('Invalid register: ' + C);
+end;
+
 function IdentToCPUReg(Ident: String): TCPUReg;
 begin
   for Result := low(TCPUReg) to high(TCPUReg) do
@@ -189,6 +227,48 @@ begin
 
   Result := rNone;
 end;
+
+function StrToCPURegAll(S: String;ForCorrupts: Boolean): TCPUReg;
+begin
+  if Length(S) = 0 then
+    Result := rNone
+  else if Length(S) = 1 then
+    Result := CharToCPUReg(S.Chars[0], ForCorrupts)
+  else
+    for Result := low(TCPUReg) to high(TCPUReg) do
+      if CompareText(CPURegAllStrings[Result], S) = 0 then
+        EXIT;
+(*
+  Result := rNone;
+  else if CompareText(S, 'none') = 0 then
+    Result := rNone
+  else if (S = 'bc') or (S = 'BC') then
+    Result := rBC
+  else if (S = 'de') or (S = 'DE') then
+    Result := rDE
+  else if (S = 'hl') or (S = 'HL') then
+    Result := rHL
+  else if (S = 'ix') or (S = 'IX') then
+    Result := rIX
+  else if (S = 'iy') or (S = 'IY') then
+    Result := rIY
+  else if (S = 'zf') or (S = 'ZF') then
+    Result := rZF
+  else if (S = 'zfa') or (S = 'ZFA') then
+    Result := rZFA
+  else if (S = 'nzf') or (S = 'NZF') then
+    Result := rNZF
+  else if (S = 'nzfa') or (S = 'NZFA') then
+    Result := rNZFA
+  else if (S = 'cf') or (S = 'CF') then
+    Result := rCF
+  else if (S = 'ncf') or (S = 'NCF') then
+    Result := rNCF
+  else if (S = 'cpla') or (S = 'CPLA') then
+    Result := rCPLA
+  else
+    raise Exception.Create('Invalid register: ' + S);
+*)end;
 
 
 function OffsetToStr(Reg: TCPUReg;Variable: PVariable;ByteIndex: Integer = 0): String;
@@ -313,6 +393,11 @@ procedure OpPOP(Reg: TCPUReg);
 begin
   Assert(Reg in (CPUReg16Bit + [rAF]));
   Opcode('pop',CPURegStrings[Reg]);
+end;
+
+procedure OpEXHLDE;
+begin
+  Instr('ex hl,de');
 end;
 
 procedure OpADD(RAcc, RAdd: TCPUReg);

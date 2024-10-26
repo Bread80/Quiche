@@ -4,14 +4,6 @@ interface
 uses Def.Functions, Def.Globals, Def.IL, Def.Primitives, Def.Scopes, Def.Variables,
   Z80.CPU, Z80.Load;
 
-//Insert code from a fragment or a library call
-procedure GenLibraryProc(ProcName: String;ILItem: PILItem);
-
-//Generate code from a fragment which is specific to a parameter
-procedure GenLibraryParamProc(ProcName: String;const Param: TILParam;const Prefix: String);
-
-procedure GenCode(ProcName: String;ILItem: PILItem);
-
 //Generate the code form the start of a function (ie. generate a stack frame, if needed)
 procedure GenFunctionPreamble(Scope: PScope;BlockType: TBlockType);
 
@@ -29,75 +21,6 @@ uses Classes, SysUtils,
   Z80.CPUState, Z80.LoadStoreMove, Z80.RegAlloc,
   IDE.Compiler; //<-- Included here ONLY to access assembler output meta-data options
 
-//================================== LIBRARY CODE
-
-
-//Insert code from a fragment or a library call
-procedure GenLibraryProc(ProcName: String;ILItem: PILItem);
-var Code: String;
-begin
-  if ProcName.Chars[0] = ':' then
-    Instr('call ' + ProcName.SubString(1) + ' ;Call')
-  else
-  begin
-    Code := CG.Fragments.FragmentSub(ProcName, ILItem, GetCodeGenScope);
-    if Code = '' then
-      raise Exception.Create('Validation library code not found: ' + ProcName);
-    if IDE.Compiler.Config.CodeGen.FragmentNames then
-      Line('                     ;Fragment: ' + ProcName);
-    Lines(Code);
-  end;
-end;
-
-//Generate code from a fragment which is specific to a parameter
-procedure GenLibraryParamProc(ProcName: String;const Param: TILParam;const Prefix: String);
-var Code: String;
-begin
-{  if ProcName.Chars[0] = ':' then
-    Instr('call ' + ProcName.SubString(1) + ' ;Call')
-  else
-}  begin
-    Code := CG.Fragments.FragmentParamSub(ProcName, Param, Prefix);
-    if Code = '' then
-      raise Exception.Create('Validation library code not found: ' + ProcName);
-    if IDE.Compiler.Config.CodeGen.FragmentNames then
-      Line('                     ;Fragment: ' + ProcName);
-    Lines(Code);
-  end;
-end;
-
-procedure GenCode(ProcName: String;ILItem: PILItem);
-var
-  Prim: PPrimitive;
-  Proc: TCodeGenProc;
-begin
-  if ProcName = 'empty' then
-    EXIT;
-  if ProcName = '' then
-    EXIT;
-
-  if ProcName.Chars[0] = ':' then
-    GenLibraryProc(ProcName, ILItem)
-  else
-  begin
-    Prim := PrimFindByProcName(ProcName);
-    if Assigned(Prim) then
-    begin
-    if IDE.Compiler.Config.CodeGen.PrimitiveNames then
-        Line('                     ;Prim: ' + ProcName);
-      Prim.Proc(ILItem);
-    end
-    else
-    begin
-      Proc := FindCodeGenProc(ProcName);
-      if Assigned(Proc) then
-        Proc(ILItem)
-      else
-        GenLibraryProc(ProcName, ILItem);
-    end;
-  end;
-end;
-
 //======================= PROGRAMMATIC CODE GENERATION
 
 //Generate the code form the start of a function (ie. generate a stack frame, if needed)
@@ -106,7 +29,7 @@ begin
   if Scope.Func = nil then
   begin //We're at global scope
     if BlockType = btStack then
-      GenLibraryProc('stacklocal_enter', nil)
+      GenFragmentName('stacklocal_enter')
   end
   else //Scope.Func <> nil - we're generating function code
   begin

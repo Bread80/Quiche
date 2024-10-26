@@ -98,7 +98,7 @@ begin
   Brace := Parser.TestChar = '(';
   if Brace then
     Parser.SkipChar;
-  Parser.SkipWhiteSpace;
+  Parser.SkipWhite;
 
   ArgIndex := 0;
 
@@ -131,7 +131,7 @@ begin
 
 
     //More parameters
-    Parser.SkipWhiteSpace;
+    Parser.SkipWhite;
     Ch := Parser.TestChar;
     if Ch = ',' then
       Parser.SkipChar;
@@ -386,7 +386,7 @@ begin
       //NOTE: We need to pass in two slugs. Second will be ignored because of ParamCount value of 1
       IntrinsicGenerateIL(Func, opWrite, 1, Slug, Slug, DummySlug);
 
-      Parser.SkipWhiteSpace;
+      Parser.SkipWhite;
       Ch := Parser.TestChar;
       if Ch = ',' then
         Parser.SkipChar;

@@ -175,6 +175,8 @@ begin
     ILItem.Dest.SetCondBranch;
     if ILItem.Op in [opUnknown, OpMove, OpStoreImm] then
       ILItem.Op := OpBranch;
+    Assert(ILItem.ResultType = vtBoolean);
+    ILItem.ResultType := vtFlag;  //Required for proper primitive selection
   end
   //ILItem = nil
   else if Slug.Operand.Kind = pkImmediate then
@@ -536,7 +538,6 @@ begin
     Assert(False, 'Invalid Step value');
   end;
   ExitTestItem.ResultType := vtBoolean;
-
   ExitTestItem.Param1.SetVarSource(LoopVar);
   if ToVar = nil then
   begin //TO value is constant
@@ -545,7 +546,6 @@ begin
   end
   else  //To value is variable
     ExitTestItem.Param2.SetVarSource(ToVar);
-
   ExitTestItem.Dest.SetCondBranch;
   ExitTestItem.Dest.TrueBlockID := GetCurrBlockID + 1; //Body BlockID
   //FalseBlock to be fixed up at end of loop

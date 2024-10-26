@@ -59,7 +59,7 @@ type
     Name: String;
     Flags: TFuncFlagSet;    //Meta data about the function
 
-    Corrupts: TCPURegSet;  //Registers which are corrupted (not including OutRegs)
+    Preserves: TCPURegSet;  //Registers which are prserved
 //    InRegs: TUsedRegSet;    //Registers used for inputs (parameters)
 //    OutRegs: TUsedRegSet;   //Registers used for outputs (parameters and return values)
 
@@ -182,7 +182,7 @@ begin
   Result.NameSpace := NameSpace;
   Result.Name := Name;
   Result.Flags := [];
-  Result.Corrupts := [];
+  Result.Preserves := [];
 //  Result.InRegs := [];
 //  Result.OutRegs := [];
   Result.IsExtern := False;

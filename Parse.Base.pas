@@ -99,7 +99,7 @@ function TestForTypeSymbol(out VarType: TVarType): TQuicheError;
 function ParseTypeSpecifier(out VT: TVarType): TQuicheError;
 
 //Attribute data
-var AttrCorrupts: TCPURegSet;
+var AttrPreserves: TCPURegSet;
 
 //To be called /after/ the leading '[' has been consumed
 //Valid attributes:
@@ -428,7 +428,7 @@ const
   strCorruptsAttrError = 'Invalid corrupts attribute: ''%s''. Valid values are A,B,C,D,E,F,H,L,IX,IY,L,X,Y. Whitespace and comma separators are allowed.';
   strXorYRequired = 'X or Y required after I in Corrupts attribute (IX or IY register)';
 begin
-  AttrCorrupts := [];
+  AttrPreserves := CPURegsAll;
   Parser.SkipWhite;  //<--TO BE REMOVED
   IXIYState := xsNone;
   Reg := rNone;
@@ -439,6 +439,7 @@ begin
     begin
       WhiteSpace := False;
       case Upcase(Ch) of
+      //TODO: Carry flag and Zero flag
         #0..#32,',': WhiteSpace := True;  //Whitespace and separators
         ']':
           if IXIYState <> xsNone then
@@ -475,14 +476,14 @@ begin
       if IXIYState = xsWaitingXY then
       begin
         if Reg in [rIX, rIY] then
-          AttrCorrupts := AttrCorrupts + [Reg]
+          AttrPreserves := AttrPreserves - [Reg]
         else
           EXIT(ErrMsg(qeAttributeError, StrXOrYRequired));
         IXIYState := xsNone;
       end
       else
         if (not WhiteSpace) and (IXIYState = xsNone) then
-          AttrCorrupts := AttrCorrupts + [Reg];
+          AttrPreserves := AttrPreserves - [Reg];
 
       if IXIYState = xsIRead then
         IXIYState := xsWaitingXY;

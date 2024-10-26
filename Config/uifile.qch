@@ -1,10 +1,2 @@
-function a:Integer
-var y:Integer=2565
-begin
-  result := peek(@y, Integer)
-end;
-
-var x:Integer
-begin
-  x := a
-end.
+  var a:Int8 = -32
+  var b:=chr(a)

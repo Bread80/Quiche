@@ -31,16 +31,16 @@ uses Def.IL, Def.Primitives, Def.QTypes,
 //Loading an 8-bit static value usually corrupts the A register. (A future version
 //may be able to load static values via the HL register instead, but this is not
 //currently an option).
-procedure GenLoadParam(const Param: TILParam;ToType: TVarType;PrimFlags: TPrimFlagSet;
-  Options: TMoveOptionSet);
+procedure GenLoadParam(const Param: TILParam;ToType: TVarType;Options: TMoveOptionSet);
 
+//RETIRED - Replaced by the generalised GenRegLoad in Z80.LoadStoreMove
 //Loads parameters from memory* into registers as needed.
 //Data is loaded from the locations specified by the ILItem parameters into the
 //registers specified by ILItem.Param1Alloc and ILItem.Param2Alloc, if any registers
 //are specified there.
 //* - can also handle parameters which are already in registers
-procedure LoadBeforePrim(ILItem: PILItem; Prim: PPrimitive);
-
+(*procedure LoadBeforePrim(const ILItem: TILItem; Prim: PPrimitive);
+*)
 implementation
 uses Def.Variables,
   CodeGen,
@@ -70,14 +70,15 @@ uses Def.Variables,
 
 //================================VARIABLES
 
-function PrimFlagsToKind(PrimFlags: TPrimFlagSet): TRegStateKind;
+function LoadTypeToKind(LoadType: TLoadParamType): TRegStateKind;
 begin
-  if pfnLoadRPHigh in PrimFlags then
-    Result := rskVarValueHigh
-  else if pfnLoadRPLow in PrimFlags then
-    Result := rskVarValueLow
+  case LoadType of
+    lptNormal: Result := rskVarValue;
+    lptLow: Result := rskVarValueLow;
+    lptHigh: Result := rskVarValueHigh;
   else
-    Result := rskVarValue;
+    Assert(False);
+  end;
 end;
 
 //Basic load of an 8 bit variable into an 8-bit register
@@ -206,7 +207,7 @@ end;
 //===============================
 
 procedure GenLoadVar8BitToReg8Bit(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
-  PrimFlags: TPrimFlagSet;ToType: TVarType;RangeCheck: Boolean;Options: TMoveOptionSet);
+  LoadType: TLoadParamType;ToType: TVarType;RangeCheck: Boolean;Options: TMoveOptionSet);
 var ChangeSigned: Boolean;
   Kind: TRegStateKind;
   IsTypecast: Boolean;
@@ -216,7 +217,7 @@ begin
   Assert(ToReg in CPUReg8Bit);
   Assert(GetTypeSize(Variable.VarType) = 1);
 
-  Kind := PrimFlagsToKind(PrimFlags);
+  Kind := LoadTypeToKind(LoadType);
   Assert(Kind <> rskVarValueHigh);         //Can't fetch high byte of 8 but value!
 
   IsTypecast := Kind <> rskVarValue;
@@ -254,7 +255,7 @@ begin
 end;
 
 procedure GenLoadVar8BitToReg16Bit(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
-  PrimFlags: TPrimFlagSet;ToType: TVarType;RangeCheck: Boolean;Options: TMoveOptionSet);
+  LoadType: TLoadParamType;ToType: TVarType;RangeCheck: Boolean;Options: TMoveOptionSet);
 var SignedLoss: Boolean;
   Kind: TRegStateKind;
   IsTypecast: Boolean;
@@ -265,7 +266,7 @@ begin
   Assert(ToReg in CPUReg16Bit);
   Assert(GetTypeSize(Variable.VarType) = 1);
 
-  Kind := PrimFlagsToKind(PrimFlags);
+  Kind := LoadTypeToKind(LoadType);
   Assert(Kind <> rskVarValueHigh);  //Can't fetch high byte of 8-bit value!
 
   IsTypecast := Kind <> rskVarValue;
@@ -341,7 +342,7 @@ end;
 
 //Load a 16-bit variable into an 8-bit register
 procedure GenLoadVar16BitToReg8Bit(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
-  PrimFlags: TPrimFlagSet;ToType: TVarType;RangeCheck: Boolean;Options: TMoveOptionSet);
+  LoadType: TLoadParamType;ToType: TVarType;RangeCheck: Boolean;Options: TMoveOptionSet);
 var ChangeSigned: Boolean;
   Kind: TRegStateKind;
   Scavenge: TCPUReg;
@@ -350,7 +351,7 @@ begin
   Assert(ToReg in CPUReg8Bit);
   Assert(GetTypeSize(Variable.VarType) = 2);
 
-  Kind := PrimFlagsToKind(PrimFlags);
+  Kind := LoadTypeToKind(LoadType);
 
   case Kind of
     rskVarValueHigh:
@@ -473,7 +474,7 @@ begin
 end;
 
 procedure GenLoadVar16BitToReg16Bit(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
-  PrimFlags: TPrimFlagSet;ToType: TVarType;RangeCheck: Boolean;Options: TMoveOptionSet);
+  LoadType: TLoadParamType;ToType: TVarType;RangeCheck: Boolean;Options: TMoveOptionSet);
 var ChangeSigned: Boolean;
   Kind: TRegStateKind;
   Scavenge: TCPUReg;
@@ -481,7 +482,7 @@ begin
   Assert(ToReg in CPUReg16Bit);
   Assert(GetTypeSize(Variable.VarType) = 2);
 
-  Kind := PrimFlagsToKind(PrimFlags);
+  Kind := LoadTypeToKind(LoadType);
 
   case Kind of
     rskVarValueHigh:
@@ -562,12 +563,12 @@ end;
 
 //Load a 16 bit value to an index register
 procedure GenLoadVar16BitToXY(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
-  PrimFlags: TPrimFlagSet;ToType: TVarType;RangeCheck: Boolean;Options: TMoveOptionSet);
+  LoadType: TLoadParamType;ToType: TVarType;RangeCheck: Boolean;Options: TMoveOptionSet);
 begin
   Assert(ToReg in [rIX, rIY]);
   Assert(Variable.Storage = vsStatic,'Can''t load stack variables into index register');
   Assert(GetTypeSize(Variable.VarType) = 2, 'Can''t extend 8-bit load into index register');
-  Assert(PrimFlags * [pfnLoadRPHigh, pfnLoadRPLow] = [], 'Can''t load RPHigh, RPLow to index register');
+  Assert(LoadType = lptNormal, 'Can''t load Hi() or Lo() to index register');
 
   OpLD(ToReg, Variable);
   RegStateSetVariable(ToReg, Variable, VarVersion, rskVarValue);
@@ -580,7 +581,7 @@ end;
 
 //Load the value of a variable into the given register
 procedure GenLoadRegVarValue(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
-  PrimFlags: TPrimFlagSet;ToType: TVarType;RangeCheck: Boolean;Options: TMoveOptionSet);
+  LoadType: TLoadParamType;ToType: TVarType;RangeCheck: Boolean;Options: TMoveOptionSet);
 begin
   //Value already in register?
   if RegStateEqualsVariable(ToReg, Variable, VarVersion, rskVarValue) then
@@ -589,20 +590,20 @@ begin
   case ToReg of
     rA..rL:
       case GetTypeSize(Variable.VarType) of
-        1: GenLoadVar8BitToReg8Bit(Variable, VarVersion, ToReg, PrimFlags, ToType, RangeCheck, Options);
-        2: GenLoadVar16BitToReg8Bit(Variable, VarVersion, ToReg, PrimFlags, ToType, RangeCheck, Options);
+        1: GenLoadVar8BitToReg8Bit(Variable, VarVersion, ToReg, LoadType, ToType, RangeCheck, Options);
+        2: GenLoadVar16BitToReg8Bit(Variable, VarVersion, ToReg, LoadType, ToType, RangeCheck, Options);
       else
         Assert(False);
       end;
     rHL..rBC:
       case GetTypeSize(Variable.VarType) of
-        1: GenLoadVar8BitToReg16Bit(Variable, VarVersion, ToReg, PrimFlags, ToType, RangeCheck, Options);
-        2: GenLoadVar16BitToReg16Bit(Variable, VarVersion, ToReg, PrimFlags, ToType, RangeCheck, Options);
+        1: GenLoadVar8BitToReg16Bit(Variable, VarVersion, ToReg, LoadType, ToType, RangeCheck, Options);
+        2: GenLoadVar16BitToReg16Bit(Variable, VarVersion, ToReg, LoadType, ToType, RangeCheck, Options);
       else
         Assert(False);
       end;
     rIX, rIY:
-      GenLoadVar16BitToXY(Variable, VarVersion, ToReg, PrimFlags, ToType, RangeCheck, Options);
+      GenLoadVar16BitToXY(Variable, VarVersion, ToReg, LoadType, ToType, RangeCheck, Options);
   else
     System.Assert(False);
   end;
@@ -697,7 +698,7 @@ end;
 //Param: The parameter to load, including the desired Reg and VarType if a variable
 //ToType: The type of the destination. Used for range checking. If ToType is vtUnknown
 //  no range checking will be performed
-procedure GenLoadParam(const Param: TILParam; ToType: TVarType;PrimFlags: TPrimFlagSet;Options: TMoveOptionSet);
+procedure GenLoadParam(const Param: TILParam; ToType: TVarType;Options: TMoveOptionSet);
 begin
   case Param.Kind of
     pkNone: ; //No param to load
@@ -706,14 +707,14 @@ begin
       if Param.Reg <> rNone then
         GenLoadRegLiteral(Param.Reg, Param.Imm, Options);
     pkVarSource:
-      GenLoadRegVarValue(Param.Variable, Param.VarVersion, Param.Reg, PrimFlags, ToType,
+      GenLoadRegVarValue(Param.Variable, Param.VarVersion, Param.Reg, Param.LoadType, ToType,
         cgRangeCheck in Param.Flags, Options);
     pkVarAddr: ;  //Handled by the primitive
   else
     System.Assert(False, 'Invalid param kind for param load');
   end;
 end;
-
+(*
 //Sub to LoadBeforePrim
 //Loads the Param in the register specified in the Param whilst preserving the value
 //in the register named in Reg. (Reg can either not be touched, or can be moved
@@ -751,7 +752,7 @@ begin
   if PreserveIn <> rNone then
     GenRegMove(PreserveIn, Reg, False, []);
 end;
-
+*)(*
 //Load a parameter whilst also moving FromReg into ToReg.
 //Determines the best strategy based on whether the load will damage any registers
 //and the registers required from FromReg and ToReg
@@ -769,7 +770,7 @@ begin
   if not MoveBefore then
     GenRegMove(FromReg, ToReg, False, []);
 end;
-
+*)(*
 //Load two Parameters. Determines which should be loaded first and which second based
 //whether either will trash a register during loading.
 procedure LoadBoth(ILItem: PILItem; P1Type, P2Type: TVarType; PrimFlags: TPrimFlagSet);
@@ -789,13 +790,31 @@ begin
     GenLoadParam(ILItem.Param2, P2Type, PrimFlags, [moPreserveHLDE]);
   end;
 end;
-
+*)(*
+procedure SwapRegs(ILItem: PILItem;P1Type, P2Type: TVarType; PrimFlags: TPrimFlagSet);
+begin
+  if (ILItem.Param1.Reg in CPUReg16Bit) and (ILItem.Param2.Reg in CPUReg16Bit) then
+  begin
+    if (ILItem.Param1.Reg in [rHL, rDE]) and (ILItem.Param2.Reg in [rHL, rDE]) then
+    begin
+      OpEXHLDE;
+      EXIT;
+    end;
+    OpPUSH(ILItem.Param1.Reg);
+    GenRegMove(ILItem.Param2.Reg, ILItem.Param1.Reg, False, []);
+    OpPOP(ILItem.Param2.Reg);
+  end
+  else
+    //TODO: Temporary bodge by reloading both
+    LoadBoth(ILItem, P1Type, P2Type, PrimFlags);
+end;
+*)(*
 //Loads parameters from memory* into registers as needed.
 //Data is loaded from the locations specified by the ILItem parameters into the
 //registers specified by ILItem.Param1Alloc and ILItem.Param2Alloc, if any registers
 //are specified there.
 //* - can also handle parameters which are already in registers
-procedure LoadBeforePrim(ILItem: PILItem; Prim: PPrimitive);
+procedure LoadBeforePrim(const ILItem: TILItem; Prim: PPrimitive);
 var// Swap: Boolean;
   PrimFlags: TPrimFlagSet;
   P1Reg: TCPUReg; //If P1 is already in a register
@@ -850,7 +869,7 @@ begin
   begin //Load P1 data
     if P2Reg = rNone then
       //Load P2 data
-      LoadBoth(ILItem, P1Type, P2Type, Prim.Flags)
+      LoadBoth(@ILItem, P1Type, P2Type, Prim.Flags)
     else if P2Move then
       //P2 is in a Reg but needs moving
       LoadWithMove(ILItem.Param1, P1Type, P2Reg, ILItem.Param2.Reg, PrimFlags)
@@ -863,8 +882,8 @@ begin
       //Load P2 data
       LoadWithMove(ILItem.Param2, P2Type, P1Reg, ILItem.Param1.Reg, PrimFlags)
     else if P2Move then
-    begin //P2 is in a Reg but needs moving
-      System.Assert(False);
+    begin //P2 is in a Reg but needs moving, as is P1
+      SwapRegs(@ILItem, P1Type, P2Type, Prim.Flags);
     end
     else
     begin //P2 is in the correct Reg
@@ -886,5 +905,5 @@ begin
     end
   end
 end;
-
+*)
 end.
