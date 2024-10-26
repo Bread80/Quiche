@@ -410,9 +410,9 @@
 ;,odd,Integer,none,n,Boolean,x,load_rp_low,odd8_rr,,,,,,***Compiler can't handle '-corrupts p1',,,,,,Any register. Destructive. Result in CF
 ,odd,Integer,none,n,<Flag>,x,load_rp_low,odd8_bit,,,,,,,,,,,,Any register. Non-destructive. Result in ZF
 ,,,,,,,,,,,,,,,,,,,,
-,addrof,Pointer,none,n,Pointer,x,,load_p1_r16_varaddr,,,static,,hl;de;bc;ix;iy,,empty,,,,,Address of static variable
-,addrof,Pointer,none,n,Pointer,x,,load_p1_ix_varaddr_to_hl,,,stack,,hl,hl;de,empty,,,,,Address of stack variable.
-;,addrof,Pointer,none,n,Pointer,x,,load_p1_ix_varaddr_to_bc,,,stack,,bc,hl,empty,,,,,Address of stack variable. Untested
+,addrof,Pointer,none,n,Pointer,x,,addrof_static,,,,,,,empty,,,,,Address of static variable
+,addrof,Pointer,none,n,Pointer,x,,addrof_stack_via_de,,,,,,,empty,,,,,Address of stack variable.
+;,addrof,Pointer,none,n,Pointer,x,,addrof_stack_via_bc,,,,,,,empty,,,,,Address of stack variable. Untested
 ,,,,,,,,,,,,,,,,,,,,
 ,hi,Word,none,n,Byte,x,load_rp_high,empty,,,a;b;c;d;e;h;l,,param1,,empty,,,,,
 ,hi,Integer,none,n,Byte,x,load_rp_high,empty,,,a;b;c;d;e;h;l,,param1,,empty,,,,,

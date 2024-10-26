@@ -114,8 +114,8 @@
 =pe_overflow  -preservesall
   jp pe,raise_overflow
 
-=hreg_nz_overflow
-;  -exit A=H ZF=1 CF=0 OtherFlags=?
+=hreg_nz_overflow  -corrupts f,
+  -exit zf:1  cf:0  ;Also, A:H but can't handle moves (yet)
   ld a,h
   and a
   jp nz,raise_overflow
@@ -183,26 +183,6 @@
 ;=load_pr16low_rellow
 ;  ld <p.r16low>,(ix<p.offsetlow>)	;$$
 
-;======================================ADDR operator @
-
-=load_p1_r16_varaddr
-  ld <d.r16>,<p1.varname>
-
-=load_p1_ix_varaddr_to_hl
-  push ix
-  pop hl
-  ld de,<p1.rawoffset>
-  add hl,de
-
-;Untested
-;=load_p1_ix_varaddr_to_bc
-;  push ix
-;  pop hl
-;  ld bc,<p1.rawoffset>
-;  add hl,bc
-;  ld c,l
-;  ld b,h
-  
 ;Assigns
 ;===================================================
 ;Assigns are used to (usually) set varaibles from constant values.
@@ -376,26 +356,24 @@
 ;Stack operations
 ;================
 
-=stacklocal_enter
+=stacklocal_enter  ;Meta data handled by code generator
   ld hl,-<vars.localsbytesize>
   call stacklocal_enter
-  
-=stacklocal_exit
-;ld de,return_value_if_any
+
+;Return value passed in DE (and output in HL) or A.   
+=stacklocal_exit  ;Meta data handled by code generator
   ld hl,<vars.paramsbytesize> + $0004	;+ Stack frame size (return addr, prev IX)
   jp stacklocal_exit
 
   
 ;Push byte to the stack
-=push_byte_a
-  push af
-  inc sp
+;=push_byte_a
+;  push af
+;  inc sp
   
-=push_word
-  push <d.r16>
+;=push_word
+;  push <d.r16>
     
-;ALU operations
-;=========================================================
 
 ;=====================ADDITION
 
@@ -412,7 +390,7 @@
   add hl,<p2.r16>	
   
 ;16 bit add. Affects all needed flags for validation and 16 bit conversion
-=add16_overflow  -p1 hl -p2 hl,de,bc -d hl -corrupts cf  ;ZF, SF, PVF preserved
+=add16_overflow  -p1 hl -p2 hl,de,bc -d hl -corrupts f,zf,cf
   -entry cf:0
   adc hl,<p2.r16>
 
@@ -757,3 +735,27 @@
 ;  ld (hl),<p2.r16low>
 ;  inc hl
 ;  ld (hl),<p2.r16high>
+
+;======================================ADDR operator @
+
+;Address of static variable
+=addrof_static  -p1 static  -d hl,de,bc,ix,iy  -preservesall
+  ld <d.r16>,<p1.varname>
+
+;Address of stack variable
+=addrof_stack_via_de  -p1 stack  -d hl  -corrupts de,cf
+  ;ADD only affects CF
+  push ix
+  pop hl
+  ld de,<p1.rawoffset>
+  add hl,de
+
+;Untested
+;=addrof_stack_via_bc  -p1 stack  -d hl  -corrupts bc,cf
+  ;ADD only affects CF
+;  push ix
+;  pop hl
+;  ld bc,<p1.rawoffset>
+;  add hl,bc
+;  ld c,l
+;  ld b,h

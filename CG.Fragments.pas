@@ -24,7 +24,9 @@ type TCodeProcLiteral = record
     plStaticVar,  //The primitive can read from/write to a static variable, eg. LD a,(nn)
     plStackVar);  //The primitive can read from/write to a stack variable , eg. INC (IX+d)
 
-
+//Will be copied to the Primitive.
+//Some items may be overwritten as required by the primitive, especially Result info
+//(becuase some operations require different results, especially for comparisons)
 type TCodeProcMeta = record
     //Register literal states which must be satisfied on entry to the procedure.
     //Eg, CF=0 specifies that the carry flag must be clear, eg before an SBC instrcution
@@ -42,11 +44,10 @@ type TCodeProcMeta = record
     ResultInLReg: Boolean;  //If True the result is returned in the same register
                             //as used for LReg. If False, see DRegs
 
-    HaveCorrupts: Boolean;  //If Corrutps contains meaningful data
-    Corrupts: TCPURegSet; //Registers which get corrupted
-//    HavePreserves: Boolean; //If True Preserves contains useable data
-//    Preserves: TCPURegSet;
-    procedure Init;
+    HaveCorrupts: Boolean;  //Does Corrupts contain meaningful data?
+    Corrupts: TCPURegSet;   //Registers/flags which get corrupted
+
+    procedure Init;         //Initialise to safe defaults
   end;
 
 type
@@ -61,16 +62,19 @@ type
 
 procedure InitialiseFragments;
 
-procedure LoadFragmentsFile(Filename: String);
-
 function FindFragmentByName(const AName: String): PFragment;
 
+//Generate a fragment with no substitutions
 procedure GenFragment(Fragment: PFragment);
 procedure GenFragmentName(const AName: String);
+//Generate a fragment with substitiions from an ILItem
 procedure GenFragmentItem(Fragment: PFragment;ILItem: PILItem;Scope: PScope);
 procedure GenFragmentItemName(const AName: String;ILItem: PILItem;Scope: PScope);
+//Generate a fragment with substitutions from an ILParam
 procedure GenFragmentParam(Fragment: PFragment;const Param: TILParam;const Prefix: String);
 procedure GenFragmentParamName(const AName: String;Param: TILParam;const Prefix: String);
+
+procedure LoadFragmentsFile(Filename: String);
 
 
 implementation
@@ -80,6 +84,8 @@ uses Classes, Generics.Collections, SysUtils,
   Parse.Source,
   CodeGen,
   Z80.CPUState;
+
+//=================FRAGMENTS LIST
 
 var  FragList: TList<PFragment>;
 
@@ -102,6 +108,32 @@ begin
     if CompareText(AName, Result.Name) = 0 then
       EXIT;
   Result := nil;
+end;
+
+//============================CODEPROCMETA
+
+
+{ TCodeProcMeta }
+
+procedure TCodeProcMeta.Init;
+var I: Integer;
+begin
+  for I := 0 to CodeMetaLiteralMax do
+  begin
+    OnEntry[I].Reg := rNone;
+    OnExit[I].Reg := rNone;
+//    OnExit[I].FromReg := rNone;
+  end;
+
+  LLoc := plNone;
+  LRegs := [];
+  RLoc := plNone;
+  RRegs := [];
+  ResultLoc := plNone;
+  ResultRegs := [];
+  ResultInLReg := False;
+
+  HaveCorrupts := False;
 end;
 
 //Load any literals required for the fragment
@@ -143,6 +175,268 @@ begin
       RegStateSetLiteral(Meta.OnExit[I].Reg, Meta.OnExit[I].Value);
 end;
 
+//==============================SUBSTITUTIONS
+
+function ImmByte(const Param: TILParam): String;
+begin
+  Result := Param.Imm.ToStringByte;
+end;
+
+function ImmHighByte(const Param: TILParam): String;
+begin
+  Assert(IsIntegerType(Param.Imm.VarType));
+  Result := ByteToStr(hi(Param.Imm.IntValue));
+end;
+
+function ImmWord(const Param: TILParam): String;
+begin
+  Result := WordToStr(Param.Imm.ToInteger);
+end;
+
+function CodeOffset(const Param: TILParam;out Comment: String): String;
+var Variable: PVariable;
+begin
+  Variable := Param.ToVariable;
+  Assert(Variable.Storage = vsStack);
+  Result := OffsetToStr(rIX, Variable);
+  Comment := Variable.Name;
+end;
+
+function CodeOffsetHigh(const Param: TILParam;out Comment: String): String;
+var Variable: PVariable;
+begin
+  Variable := Param.ToVariable;
+  Assert(Variable.Storage = vsStack);
+  Result := OffsetToStr(rIX, Variable, 1);
+  Comment := Variable.Name;
+end;
+
+function CodeRawOffset(const Param: TILParam;out Comment: String): String;
+var Variable: PVariable;
+begin
+  Variable := Param.ToVariable;
+  Assert(Variable.Storage = vsStack);
+  Result := '';
+  if Variable.Offset < 0 then
+    Result := Result + '0-';
+  Result := Result + Variable.GetAsmName;
+  Comment := Variable.Name + ' offset';
+end;
+
+function CodeVarName(const Param: TILParam;out Comment: String): String;
+var Variable: PVariable;
+begin
+  Variable := Param.ToVariable;
+  Assert(Variable.Storage = vsStatic);
+  Result := Variable.GetAsmName;
+  Comment := Variable.Name;
+end;
+
+function DoParamSubs(S: String;const Param: TILParam;const Prefix: String;ThrowErrors: Boolean): String;
+var
+  St: Integer;  //Start of param
+  En: Integer;  //End of param
+  Pfx: Integer;
+  PrefixMatch: String;
+  PName: String;  //Parameter name (to be substituted)
+  Sub: String;  //Substitution string
+  Comment: String;
+begin
+  Result := S;
+  St := 0;
+  while St < Length(Result) do
+  begin
+    Comment := '';
+    while (St < Length(Result)) and (Result.Chars[St] <> '<') do
+      inc(St);
+    if St >= Length(Result) then
+      EXIT;
+    inc(St);
+    En := St;
+    while (En < Length(Result)) and (Result.Chars[En] <> '>') do
+      inc(En);
+    if En < Length(Result) then
+    begin
+      Pfx:= St;
+      while (Pfx < Length(Result)) and (Result.Chars[Pfx] <> '.') do
+        inc(Pfx);
+      if Pfx >= Length(Result) then
+        raise Exception.Create('Invalid substitution in ''' + S + '''');
+      PrefixMatch := Result.SubString(St, Pfx-St);
+      if PrefixMatch.StartsWith(Prefix) then
+      begin
+        Sub := '';
+        PName := Result.Substring(Pfx+1,En-Pfx-1);
+        //Immediate data
+        if CompareText(PName, 'immbyte') = 0 then
+          Sub := ImmByte(Param)
+        else if CompareText(PName, 'immword') = 0 then
+          Sub := ImmWord(Param)
+        else if CompareText(PName, 'immwordlow') = 0 then
+          Sub := ImmByte(Param)
+        else if CompareText(PName, 'immwordhigh') = 0 then
+          Sub := ImmHighByte(Param)
+        //8 bit registers
+        else if CompareText(PName, 'r8') = 0 then
+          Sub := CPUReg8ToChar[Param.Reg]
+        //16 bit registers
+        else if CompareText(PName, 'r16') = 0 then
+          Sub := CPURegPairToString[Param.Reg]
+        else if CompareText(PName, 'r16low') = 0 then
+          Sub := CPURegLowToChar[Param.Reg]
+        else if CompareText(PName, 'r16high') = 0 then
+          Sub := CPURegHighToChar[Param.Reg]
+        //Absolutes (fixed/global variables)
+        else if CompareText(PName, 'varname') = 0 then
+          Sub := CodeVarName(Param, Comment)
+        //Offsets (stack variables)
+        else if CompareText(PName, 'offset') = 0 then
+          Sub := CodeOffset(Param, Comment)
+        else if CompareText(PName, 'offsetlow') = 0 then
+          Sub := CodeOffset(Param, Comment)
+        else if CompareText(PName, 'offsethigh') = 0 then
+          Sub := CodeOffsetHigh(Param, Comment)
+        else if CompareText(PName, 'rawoffset') = 0 then
+          Sub := CodeRawOffset(Param, Comment)        ;
+
+        if Sub = '' then
+        begin
+          if ThrowErrors then
+            raise Exception.Create('Library substitution not found: ' + PName);
+        end
+        else
+          Result := Result.Substring(0,St-1) + Sub + Result.Substring(En+1);
+
+        if Comment <> '' then
+          Result := Result.Replace('$$',Comment);
+      end;
+    end
+    else
+      raise Exception.Create('Unmatched braces in code snippet: ' + S);
+  end;
+end;
+
+function DoScopeSubs(S: String;ILItem: PILItem;Scope: PScope): String;
+var
+  St: Integer;  //Start of param
+  En: Integer;  //End of param
+  PName: String;  //Parameter name (to be substituted)
+  Sub: String;  //Substitution string
+  Comment: String;
+begin
+  Result := S;
+  while True do
+  begin
+    Comment := '';
+    St := Result.IndexOf('<');
+    En := Result.IndexOf('>');
+    Sub := '';
+    if (St = -1) and (En = -1) then
+      EXIT;
+
+    if (St <> -1) and (En <> -1) then
+    begin
+      PName := Result.Substring(St+1,En-St-1);
+
+      if CompareText(PName, 'vars.localsbytesize') = 0 then
+        Sub := WordLoToStr(VarGetLocalsByteSize)
+      else if CompareText(PName, 'vars.paramsbytesize') = 0 then
+        Sub := WordLoToStr(VarGetParamsByteSize)
+        ;
+
+
+      if Sub = '' then
+        raise Exception.Create('Library substitution not found: ' + PName);
+
+      Result := Result.Substring(0,St) + Sub + Result.Substring(En+1);
+      if Comment <> '' then
+        Result := Result.Replace('$$',Comment);
+    end
+    else
+      raise Exception.Create('Unmatched braces in code snippet: ' + S);
+  end;
+end;
+
+//Do before fragment substitutions
+procedure PreSub(Fragment: PFragment);
+begin
+  if IDE.Compiler.Config.CodeGen.FragmentNames then
+    Line('                     ;Fragment: ' + Fragment.Name);
+
+  if Fragment.HaveMeta then
+    LoadEntryLiterals(Fragment.ProcMeta);
+end;
+
+procedure PostSub(Fragment: PFragment);
+begin
+  if Fragment.HaveMeta then
+  begin
+    if Fragment.ProcMeta.HaveCorrupts then
+      RegStateSetUnknowns(Fragment.ProcMeta.Corrupts);
+    UpdateExitState(Fragment.ProcMeta);
+  end;
+end;
+
+procedure GenFragment(Fragment: PFragment);
+begin
+  PreSub(Fragment);
+  Lines(Fragment.Code);
+  PostSub(Fragment);
+end;
+
+procedure GenFragmentName(const AName: String);
+var Frag: PFragment;
+begin
+  Frag := FindFragmentByName(AName);
+  if not Assigned(Frag) then
+    raise Exception.Create('Library fragment not found for: ' + AName);
+
+  GenFragment(Frag);
+end;
+
+procedure GenFragmentItem(Fragment: PFragment;ILItem: PILItem;Scope: PScope);
+var Code: String;
+begin
+  PreSub(Fragment);
+  Code := DoParamSubs(Fragment.Code, ILItem.Param1, 'p1', False);
+  Code := DoParamSubs(Code, ILItem.Param2, 'p2', False);
+  Code := DoParamSubs(Code, ILItem.Dest, 'd', False);
+  Code := DoScopeSubs(Code, ILItem, Scope);
+  Lines(Code);
+  PostSub(Fragment);
+end;
+
+procedure GenFragmentItemName(const AName: String;ILItem: PILItem;Scope: PScope);
+var Frag: PFragment;
+begin
+  Frag := FindFragmentByName(AName);
+  if not Assigned(Frag) then
+    raise Exception.Create('Library fragment not found for: ' + AName);
+
+  GenFragmentItem(Frag, ILItem, Scope);
+end;
+
+procedure GenFragmentParam(Fragment: PFragment;const Param: TILParam;const Prefix: String);
+var Code: String;
+begin
+  PreSub(Fragment);
+  Code := DoParamSubs(Fragment.Code, Param, Prefix, True);
+  Lines(Code);
+  PostSub(Fragment);
+end;
+
+procedure GenFragmentParamName(const AName: String;Param: TILParam;const Prefix: String);
+var Frag: PFragment;
+begin
+  Frag := FindFragmentByName(AName);
+  if not Assigned(Frag) then
+    raise Exception.Create('Library fragment not found for: ' + AName);
+
+  GenFragmentParam(Frag, Param, Prefix);
+end;
+
+//===========================LOAD FRAGMENTS FILE
+
 function AddLiteral(var Data: TCodeProcLiteralArray;Reg: TCPUReg;Value: Integer): String;
 var I: Integer;
 begin
@@ -158,7 +452,6 @@ begin
 
   Result := 'Too many Register literals declared';
 end;
-
 
 function ParseLiteral(Parser: TGenericReader;var Data: TCodeProcLiteralArray): String;
 var RegStr: String;
@@ -414,7 +707,7 @@ begin
           begin
             if Entry.Code <> '' then
               Entry.Code := Entry.Code + #13#10;
-            Entry.Code := Entry.Code + Parser.ReadLine;
+            Entry.Code := Entry.Code + '  ' + Parser.ReadLine;
           end;
         end;
       end;
@@ -424,301 +717,6 @@ begin
   finally
     Parser.Free;
   end;
-end;
-
-function ImmByte(const Param: TILParam): String;
-begin
-  Result := Param.Imm.ToStringByte;
-end;
-
-function ImmHighByte(const Param: TILParam): String;
-begin
-  Assert(IsIntegerType(Param.Imm.VarType));
-  Result := ByteToStr(hi(Param.Imm.IntValue));
-end;
-
-function ImmWord(const Param: TILParam): String;
-begin
-  Result := WordToStr(Param.Imm.ToInteger);
-end;
-
-function CodeOffset(const Param: TILParam;out Comment: String): String;
-var Variable: PVariable;
-begin
-  Variable := Param.ToVariable;
-  Assert(Variable.Storage = vsStack);
-  Result := OffsetToStr(rIX, Variable);
-  Comment := Variable.Name;
-end;
-
-function CodeOffsetHigh(const Param: TILParam;out Comment: String): String;
-var Variable: PVariable;
-begin
-  Variable := Param.ToVariable;
-  Assert(Variable.Storage = vsStack);
-  Result := OffsetToStr(rIX, Variable, 1);
-  Comment := Variable.Name;
-end;
-
-function CodeRawOffset(const Param: TILParam;out Comment: String): String;
-var Variable: PVariable;
-begin
-  Variable := Param.ToVariable;
-  Assert(Variable.Storage = vsStack);
-  Result := '';
-  if Variable.Offset < 0 then
-    Result := Result + '0-';
-  Result := Result + Variable.GetAsmName;
-  Comment := Variable.Name + ' offset';
-end;
-
-function CodeVarName(const Param: TILParam;out Comment: String): String;
-var Variable: PVariable;
-begin
-  Variable := Param.ToVariable;
-  Assert(Variable.Storage = vsStatic);
-  Result := Variable.GetAsmName;
-  Comment := Variable.Name;
-end;
-
-function DoParamSubs(S: String;const Param: TILParam;const Prefix: String;ThrowErrors: Boolean): String;
-var
-  St: Integer;  //Start of param
-  En: Integer;  //End of param
-  Pfx: Integer;
-  PrefixMatch: String;
-  PName: String;  //Parameter name (to be substituted)
-  Sub: String;  //Substitution string
-  Comment: String;
-begin
-  Result := S;
-  St := 0;
-  while St < Length(Result) do
-  begin
-    Comment := '';
-    while (St < Length(Result)) and (Result.Chars[St] <> '<') do
-      inc(St);
-    if St >= Length(Result) then
-      EXIT;
-    inc(St);
-    En := St;
-    while (En < Length(Result)) and (Result.Chars[En] <> '>') do
-      inc(En);
-    if En < Length(Result) then
-    begin
-      Pfx:= St;
-      while (Pfx < Length(Result)) and (Result.Chars[Pfx] <> '.') do
-        inc(Pfx);
-      if Pfx >= Length(Result) then
-        raise Exception.Create('Invalid substitution in ''' + S + '''');
-      PrefixMatch := Result.SubString(St, Pfx-St);
-      if PrefixMatch.StartsWith(Prefix) then
-      begin
-        Sub := '';
-        PName := Result.Substring(Pfx+1,En-Pfx-1);
-        //Immediate data
-        if CompareText(PName, 'immbyte') = 0 then
-          Sub := ImmByte(Param)
-        else if CompareText(PName, 'immword') = 0 then
-          Sub := ImmWord(Param)
-        else if CompareText(PName, 'immwordlow') = 0 then
-          Sub := ImmByte(Param)
-        else if CompareText(PName, 'immwordhigh') = 0 then
-          Sub := ImmHighByte(Param)
-        //8 bit registers
-        else if CompareText(PName, 'r8') = 0 then
-          Sub := CPUReg8ToChar[Param.Reg]
-        //16 bit registers
-        else if CompareText(PName, 'r16') = 0 then
-          Sub := CPURegPairToString[Param.Reg]
-        else if CompareText(PName, 'r16low') = 0 then
-          Sub := CPURegLowToChar[Param.Reg]
-        else if CompareText(PName, 'r16high') = 0 then
-          Sub := CPURegHighToChar[Param.Reg]
-        //Absolutes (fixed/global variables)
-        else if CompareText(PName, 'varname') = 0 then
-          Sub := CodeVarName(Param, Comment)
-        //Offsets (stack variables)
-        else if CompareText(PName, 'offset') = 0 then
-          Sub := CodeOffset(Param, Comment)
-        else if CompareText(PName, 'offsetlow') = 0 then
-          Sub := CodeOffset(Param, Comment)
-        else if CompareText(PName, 'offsethigh') = 0 then
-          Sub := CodeOffsetHigh(Param, Comment)
-        else if CompareText(PName, 'rawoffset') = 0 then
-          Sub := CodeRawOffset(Param, Comment)        ;
-
-        if Sub = '' then
-        begin
-          if ThrowErrors then
-            raise Exception.Create('Library substitution not found: ' + PName);
-        end
-        else
-          Result := Result.Substring(0,St-1) + Sub + Result.Substring(En+1);
-
-        if Comment <> '' then
-          Result := Result.Replace('$$',Comment);
-      end;
-    end
-    else
-      raise Exception.Create('Unmatched braces in code snippet: ' + S);
-  end;
-end;
-
-function DoScopeSubs(S: String;ILItem: PILItem;Scope: PScope): String;
-var
-  St: Integer;  //Start of param
-  En: Integer;  //End of param
-  PName: String;  //Parameter name (to be substituted)
-  Sub: String;  //Substitution string
-  Comment: String;
-begin
-  Result := S;
-  while True do
-  begin
-    Comment := '';
-    St := Result.IndexOf('<');
-    En := Result.IndexOf('>');
-    Sub := '';
-    if (St = -1) and (En = -1) then
-      EXIT;
-
-    if (St <> -1) and (En <> -1) then
-    begin
-      PName := Result.Substring(St+1,En-St-1);
-
-      if CompareText(PName, 'vars.localsbytesize') = 0 then
-        Sub := WordLoToStr(VarGetLocalsByteSize)
-      else if CompareText(PName, 'vars.paramsbytesize') = 0 then
-        Sub := WordLoToStr(VarGetParamsByteSize)
-        ;
-
-
-      if Sub = '' then
-        raise Exception.Create('Library substitution not found: ' + PName);
-
-      Result := Result.Substring(0,St) + Sub + Result.Substring(En+1);
-      if Comment <> '' then
-        Result := Result.Replace('$$',Comment);
-    end
-    else
-      raise Exception.Create('Unmatched braces in code snippet: ' + S);
-  end;
-end;
-
-procedure GenFragment(Fragment: PFragment);
-var Code: String;
-begin
-  if IDE.Compiler.Config.CodeGen.FragmentNames then
-    Line('                     ;Fragment: ' + Fragment.Name);
-
-  if Fragment.HaveMeta then
-    LoadEntryLiterals(Fragment.ProcMeta);
-
-  Lines(Fragment.Code);
-
-  if Fragment.HaveMeta then
-  begin
-    if Fragment.ProcMeta.HaveCorrupts then
-      RegStateSetUnknowns(Fragment.ProcMeta.Corrupts);
-    //TODO: Update reg state with literals & moves
-  end;
-end;
-
-procedure GenFragmentName(const AName: String);
-var Frag: PFragment;
-begin
-  Frag := FindFragmentByName(AName);
-  if not Assigned(Frag) then
-    raise Exception.Create('Library fragment not found for: ' + AName);
-
-  GenFragment(Frag);
-end;
-
-procedure GenFragmentItem(Fragment: PFragment;ILItem: PILItem;Scope: PScope);
-var Code: String;
-begin
-  if IDE.Compiler.Config.CodeGen.FragmentNames then
-    Line('                     ;Fragment: ' + Fragment.Name);
-
-  if Fragment.HaveMeta then
-    LoadEntryLiterals(Fragment.ProcMeta);
-
-  Code := DoParamSubs(Fragment.Code, ILItem.Param1, 'p1', False);
-  Code := DoParamSubs(Code, ILItem.Param2, 'p2', False);
-  Code := DoParamSubs(Code, ILItem.Dest, 'd', False);
-  Code := DoScopeSubs(Code, ILItem, Scope);
-  Lines(Code);
-
-  if Fragment.HaveMeta then
-  begin
-    if Fragment.ProcMeta.HaveCorrupts then
-      RegStateSetUnknowns(Fragment.ProcMeta.Corrupts);
-    UpdateExitState(Fragment.ProcMeta);
-  end;
-end;
-
-procedure GenFragmentItemName(const AName: String;ILItem: PILItem;Scope: PScope);
-var Frag: PFragment;
-begin
-  Frag := FindFragmentByName(AName);
-  if not Assigned(Frag) then
-    raise Exception.Create('Library fragment not found for: ' + AName);
-
-  GenFragmentItem(Frag, ILItem, Scope);
-end;
-
-procedure GenFragmentParam(Fragment: PFragment;const Param: TILParam;const Prefix: String);
-var Code: String;
-begin
-  if IDE.Compiler.Config.CodeGen.FragmentNames then
-    Line('                     ;Fragment: ' + Fragment.Name);
-
-  if Fragment.HaveMeta then
-    LoadEntryLiterals(Fragment.ProcMeta);
-
-  Code := DoParamSubs(Fragment.Code, Param, Prefix, True);
-  Lines(Code);
-
-  if Fragment.HaveMeta then
-  begin
-    if Fragment.ProcMeta.HaveCorrupts then
-      RegStateSetUnknowns(Fragment.ProcMeta.Corrupts);
-    UpdateExitState(Fragment.ProcMeta);
-  end;
-end;
-
-procedure GenFragmentParamName(const AName: String;Param: TILParam;const Prefix: String);
-var Frag: PFragment;
-begin
-  Frag := FindFragmentByName(AName);
-  if not Assigned(Frag) then
-    raise Exception.Create('Library fragment not found for: ' + AName);
-
-  GenFragmentParam(Frag, Param, Prefix);
-end;
-
-{ TCodeProcMeta }
-
-procedure TCodeProcMeta.Init;
-var I: Integer;
-begin
-  for I := 0 to CodeMetaLiteralMax do
-  begin
-    OnEntry[I].Reg := rNone;
-    OnExit[I].Reg := rNone;
-//    OnExit[I].FromReg := rNone;
-  end;
-
-  LLoc := plNone;
-  LRegs := [];
-  RLoc := plNone;
-  RRegs := [];
-  ResultLoc := plNone;
-  ResultRegs := [];
-  ResultInLReg := False;
-
-  HaveCorrupts := False;
 end;
 
 initialization

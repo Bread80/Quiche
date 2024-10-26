@@ -13,7 +13,7 @@ type TILParamKind = (
     pkPhiVarDest,   // "
     pkVarSource,    //Read from variable
     pkVarDest,      //Write to variable
-    pkVarAddr,      //Address of a variable - only valid where Op is OpVarAddr
+    pkVarAddr,      //Address of a variable - only valid where Op is OpAddrOf
     pkPop,          //The stack
     pkPopByte,      //Single byte on the stack
     pkPush,
