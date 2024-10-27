@@ -432,6 +432,7 @@
         </DCCReference>
         <DCCReference Include="Z80.RegAlloc.pas"/>
         <DCCReference Include="Def.Consts.pas"/>
+        <DCCReference Include="Parse.Directives.pas"/>
         <None Include="Tests.txt"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>

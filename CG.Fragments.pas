@@ -26,7 +26,7 @@ type TCodeProcLiteral = record
 
 //Will be copied to the Primitive.
 //Some items may be overwritten as required by the primitive, especially Result info
-//(becuase some operations require different results, especially for comparisons)
+//(because some operations require different results, especially for comparisons)
 type TCodeProcMeta = record
     //Register literal states which must be satisfied on entry to the procedure.
     //Eg, CF=0 specifies that the carry flag must be clear, eg before an SBC instrcution

@@ -25,7 +25,7 @@ var
   //variable. Explicit type declarations are allowed when this option is used.
   //If not type inference will be used. Note that type declarations are ONLY
   //allowed the first time the variable is assigned.
-  optAllowAutoCreation: Boolean;
+  optVarAutoCreate: Boolean;
 
   //If enabled the compiler will generate extra code after certain maths operations
   //the verify the result is within the range for the result type.

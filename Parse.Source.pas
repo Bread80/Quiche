@@ -126,9 +126,9 @@ type TBaseReader = class
     //     with FState as psCurlyComment
     //Returns False if EOF or (EOLN and NewLines is False).
     //Returns True if the comment terminated correctly at a }
-    function SkipCurlyCommentLine: TParseState;
+    function SkipCurlyCommentLine(out State: TParseState): TQuicheError;
     // (* *) commant. Initial ( must have been read. Bonus if the initial * has also been read
-    function SkipBraceCommentLine: TParseState;
+    function SkipBraceCommentLine(out State: TParseState): TQuicheError;
     // // .. EOLN/EOF commment
     //Doesn't NOT read the EOLN characters (I.e. does not advance to the next line, and EOLN
     //or EOF will always be True after calling this.
@@ -159,7 +159,8 @@ type TBaseReader = class
   end;
 
 implementation
-uses SysUtils;
+uses SysUtils,
+  Parse.Directives;
 
 { TParseCursor }
 
@@ -399,13 +400,16 @@ end;
 function TQuicheSourceReader.DoSkipWhiteLine: TQuicheError;
 var Cursor: TParseCursor;
 begin
+  Result := qeNone;
   case FState of
     psCode: ;
-    psCurlyComment: FState := SkipCurlyCommentLine;
-    psBraceComment: FState := SkipBraceCommentLine;
+    psCurlyComment: Result := SkipCurlyCommentLine(FState);
+    psBraceComment: Result := SkipBraceCommentLine(FState);
   else
     Assert(False);
   end;
+  if Result <> qeNone then
+    EXIT;
 
   while not EOLN do
   begin
@@ -414,7 +418,10 @@ begin
       '{': //Curly comment
       begin
         SkipChar;
-        FState := SkipCurlyCommentLine;
+        Result := SkipCurlyCommentLine(FState);
+        if Result <> qeNone then
+          EXIT;
+
         if FState <> psCode then
           if EOF then
             EXIT(Err(qeUnterminatedComment))
@@ -428,7 +435,9 @@ begin
         if TestChar = '*' then
         begin
           SkipChar;
-          FState := SkipBraceCommentLine;
+          Result := SkipBraceCommentLine(FState);
+          if Result <> qeNone then
+            EXIT;
           if FState <> psCode then
             if EOF then
               EXIT(Err(qeUnterminatedComment))
@@ -525,11 +534,16 @@ begin
   end;
 end;
 
-function TQuicheSourceReader.SkipBraceCommentLine: TParseState;
+function TQuicheSourceReader.SkipBraceCommentLine(out State: TParseState): TQuicheError;
 var Ch: Char;
 begin
+  Result := qeNone;
+
   if TestChar = '$' then
-    ;    //Compiler directives here <<--- TODO
+  begin //Compiler directive(s)
+    SkipChar;
+    Result := ParseDirective;
+  end;
 
   while not EOLN do
   begin
@@ -538,25 +552,34 @@ begin
         if TestChar = ')' then
         begin
           SkipChar;
-          EXIT(psCode);
+          State := psCode;
+          EXIT;
         end;
   end;
-  EXIT(psBraceComment);
+  State := psBraceComment;
 end;
 
-function TQuicheSourceReader.SkipCurlyCommentLine: TParseState;
+function TQuicheSourceReader.SkipCurlyCommentLine(out State: TParseState): TQuicheError;
 var Ch: Char;
-begin
+begin //Compiler directive(s)
+  Result := qeNone;
+
   if TestChar = '$' then
-    ;    //Compiler directives here <<--- TODO
+  begin //Compiler directive(s)
+    SkipChar;
+    Result := ParseDirective;
+  end;
 
   while not EOLN do
   begin
     if ReadChar(Ch) then
       if Ch = '}' then
-        EXIT(psCode);
+      begin
+        State := psCode;
+        EXIT;
+      end;
   end;
-  EXIT(psCurlyComment);
+  State := psCurlyComment;
 end;
 
 procedure TQuicheSourceReader.SkipSlashComment;

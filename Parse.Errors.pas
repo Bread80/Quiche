@@ -61,6 +61,11 @@ type TQuicheError = (
   qeIntrinsicCantBeEvaluatedAtCompileTime,  //Used as a signal, not an error
   qeAt,                 //@ operator syntax
 
+  //Directives
+  qeUnknownDirective,
+  qeDirectiveSyntax,    //General error in directive syntax
+  qeInvalidDirectiveValue,  //The value given is not applicable to this directive
+
   //Techie stuff
   qeAttributeError,     //Error in an attribute
   qeAssemblyError,      //Error in code generation
@@ -120,6 +125,10 @@ const Errors : array[TQuicheError] of String = (
   'qeIntrinsicCantBeEvaluatedAtCompileTime',
   '@-able expression expected',
 
+  'Unknown directive',
+  'Error in directive syntax',
+  'Invalid value for directive',
+
   'Invalid attribute',
   'Error in code generation',
 
@@ -178,6 +187,11 @@ const SubErrors : array[TQuicheError] of String = (
   '',
   '',
   '',
+
+  'Unknown directive ''%s''',
+  'Error in directive syntax',
+  'Invalid value for directive ''%s''',
+
   '',
   'Code generation error in: ''%s''',
 

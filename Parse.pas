@@ -229,7 +229,7 @@ begin
       EXIT;
   end;
 
-  if optAllowAutoCreation and not VarRead and AllowVar then
+  if optVarAutoCreate and not VarRead and AllowVar then
   begin
     VarRead := CompareText(VarName, 'var') = 0;
     if VarRead then
@@ -242,7 +242,7 @@ begin
 
   VarType := vtUnknown;
   //Is a there any form of type sepcifier?
-  if optAllowAutoCreation or VarRead then
+  if optVarAutoCreate or VarRead then
   begin
     Keyword := IdentToKeyword(VarName);
     if Keyword <> keyUnknown then

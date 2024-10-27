@@ -48,7 +48,8 @@ uses
   IDE.SelfTest in 'IDE.SelfTest.pas',
   IDE.SelfTestForm in 'IDE.SelfTestForm.pas' {SelfTestF},
   Z80.RegAlloc in 'Z80.RegAlloc.pas',
-  Def.Consts in 'Def.Consts.pas';
+  Def.Consts in 'Def.Consts.pas',
+  Parse.Directives in 'Parse.Directives.pas';
 
 {$R *.res}
 

@@ -208,7 +208,7 @@ end;
 
 procedure DoInitDirectives;
 begin
-  optAllowAutoCreation := Config.AllowAutoCreation;
+  optVarAutoCreate := Config.AllowAutoCreation;
   optOverflowChecks := Config.OverflowChecks;
   optRangeChecks := Config.RangeChecks;
   optDefaultVarStorage := Config.DefaultVarStorage;
