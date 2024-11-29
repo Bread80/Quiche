@@ -41,6 +41,11 @@ var
   //Use th {$R} compiler directive
   optRangeChecks: Boolean;
 
+  //The default implicit type to assign to decimal integers with no sign (+ or -)
+  //specfied. Value must either be vtInteger or vtWord.
+  //Use the {$IMPLICITINTEGERTYPE} directive
+  optImplicitIntegerType: TVarType;
+
   optDefaultVarStorage: TVarStorage;
 
   optDefaultCallingConvention: TCallingConvention;

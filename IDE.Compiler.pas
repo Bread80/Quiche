@@ -114,7 +114,7 @@ procedure SaveObjectCode(Filename: String);
 implementation
 uses SysUtils, IOUtils,
   Def.Functions, Def.IL, Def.Intrinsics, Def.Operators, Def.Primitives, Def.Scopes,
-  Def.Variables, Def.Consts,
+  Def.Variables, Def.Consts, Def.QTypes,
   Parse, Parse.Base,
   CodeGen, CG.Fragments,
   IDE.Emulator, IDE.ILExec, IDE.Shell;
@@ -142,6 +142,7 @@ end;
 //====Config
 
 const
+  ErrorsFilename = 'Data/Errors.txt';
   FragmentsFilename = 'Data/Fragments.txt';
   OperatorsFilename = 'Data/OperatorsNG.csv';
   PrimitivesFilename = 'Data/PrimitivesNG.csv';
@@ -213,6 +214,7 @@ begin
   optRangeChecks := Config.RangeChecks;
   optDefaultVarStorage := Config.DefaultVarStorage;
   optDefaultCallingConvention := Config.DefaultCallingConvention;
+  optImplicitIntegerType := vtWord;
 end;
 
 procedure Initialise(InitDirectives, WarmInit: Boolean);
@@ -230,6 +232,7 @@ begin
 
   if not WarmInit then
   begin
+    LoadErrorData(TPath.Combine(QuicheFolder, ErrorsFilename));
     InitialiseOperators;
     LoadOperatorsFile(TPath.Combine(QuicheFolder, OperatorsFilename));
     InitialiseFragments;
@@ -291,7 +294,7 @@ begin
   end;
   except
     on E:Exception do
-      LastError := ErrMsg(qeBUG, 'BUG (Exception/Assertion):'+#13+E.Message);
+      LastError := ErrBUG('(Exception/Assertion):'+#13+E.Message);
   end;
 
   ParseErrorNo := Integer(LastError);

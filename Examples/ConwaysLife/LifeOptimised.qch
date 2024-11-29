@@ -20,7 +20,9 @@
 //(as in C)
 
 //Default compiler directives
-{$O-,R-,CALLING REGISTER}
+{$O-,R-
+$CALLING REGISTER
+$IMPLICITINTEGERTYPE WORD}
 //(Overflow checking off, Range checking off, Default calling convention)
 
 //Platform specific code

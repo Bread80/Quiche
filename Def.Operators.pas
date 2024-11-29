@@ -64,10 +64,10 @@ type
                   //One parameter (Param1) which must be an pkImmediate and a Dest
     opBranch,     //Unconditional branch
                   //Param1 is a pkBranch (TODO: Move this to Dest for consistency)
-    opCondBranch, //NOTUSED? Conditional branch - use for a Branch with no operation
-                  //(ie. a boolean variable)
-    opConstBranch,//NOTUSED? Conditional branch with constant expression (immediate value)
-                  //(Parser removes dead branches at parse time so this in not required)
+    opBoolVarBranch,   //Conditional branch - use for a Branch where the branch depends
+                  //on the value of a boolean variable. Ie IF BOOLVAR THEN ...
+    opNOTUSED1,    //NOTUSED. Retained here to keep OpStrings (and possibly other)
+                  //constants aligned?
     opPhi,        //Phi function
                   //Currently Param1 and Param2 are pkPhiVarSource and Dest is pkPhiVarDest.
                   //Needs expanding to allow more sources for code where more than two paths
@@ -107,6 +107,8 @@ type
     opOR, opAND, opXOR,
     //Comparisons
     opEqual, opNotEqual, opLess, opGreater, opLessEqual, opGreaterEqual,
+    opIsTrueREDECTED,     //Used for a Branch where the branch depends on the value of a
+                  //boolean variable. Ie IF BOOLVAR THEN ...
     //Misc
     opIn, opSHR, opSHL,
 
@@ -185,7 +187,7 @@ function StringToBoolean(S: String): Boolean;
 const OpStrings : array[low(TOperator)..high(TOperator)] of String = (
   //System operators
   'UNKNOWN','Move','StoreImm',
-  'Branch','CondBranch','ConstBranch','Phi',
+  'Branch','BoolVarBranch','NOTUSED1','Phi',
   'RegLoad','RegLoadEx',
   'RegStore','RegStoreEx',
   'FuncCall','FuncCallEx',
@@ -195,6 +197,7 @@ const OpStrings : array[low(TOperator)..high(TOperator)] of String = (
   'Add', 'Subtract', 'Multiply', 'RealDiv', 'Div', 'Mod',
   'OR', 'AND', 'XOR',
   'Equal', 'NotEqual', 'Less', 'Greater', 'LessEqual', 'GreaterEqual',
+  'IsTrue',
   'In', 'SHR', 'SHL',
 
   //Unary operators

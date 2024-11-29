@@ -21,6 +21,21 @@ type TQuicheError = (
   qeUnterminatedComment,
   qeInvalidEndOfLine,     //End of line not allowed at this point
   qeEndOfStatementExpected,
+  qeNewlineExpected,      //This should probably be overridden by the caller
+                          //to give a more specific error
+
+  //FOR loops
+  qeTOorDOWNTOExpected,
+  qeDOExpected,
+  //IF conditionals
+  qeTHENExpected,
+  //VAR declarations
+  qeColonExpectedInVAR,
+  //CONST declarations
+  qeEqualExpectedInCONST,
+  //Assignment
+  qeAssignmentExpected, // := operator
+  qeEqualExpectedInAssignment,
 
   //Function declarations
   qeFunctionRedeclared,
@@ -28,8 +43,36 @@ type TQuicheError = (
   qeFunctionDeclaration,  //General error in function declaration
   qeFuncDecDoesntMatch,   //Forward declaraed functions
   qeDecTooManyParams,     //Beyond system maximum :(
+  qeParamNameRedeclared,
+  qeRegisterParamRedeclared,
+  qeInvalidRegisterName,
+  qeRegisterParamMismatch,  //Either all parameters must be register parameters, or none
+  qeRegisterParamInvalidAccessType,
+  qeFunctionResultExpected,
+
   qeNestedFuncsNotAllowed,
   qeUnsatisfiedForward, //Forward declared function not defined
+  qeIntegerExpectedForCALLOrRST,  //Integer value expected for code or RST directives
+  qeCallDirectiveOutOfRange,  //Parameter for Call directive is out of range
+  qeRSTDirectiveOutOfRange, //Parameter for RST directive
+  qeCALLOrRSTForwardDeclared,
+  qeMultipleCALLOrRST,
+  qeMultipleCallingConventions,
+  qeFORWARDRedeclared,
+  qeColonExpectedFuncDecl,  //Colon expected in function parameter
+  qeSemicolonOrCloseBraceExpectedFuncDecl,  //After parameter
+
+  //Function calls
+  qeCommaOrCloseParensExpected,
+  qeArgMustBeVariable,        //For VAR or OUT parameters
+  qeReturnedArgTypeMismatch,  //For VAR and OUT parameters
+  qeTooManyArgs,              //Number of arguments being passed his above hard coded limit
+                              //No function can have this many arguments anyway, so you have a problem :)
+  qeIntegerConstantArgExpected, //For some intrinsics such as INC and DEC
+  qeBytePassedToHiLoSwap,
+  qeNotEnoughParameters,
+  qeFuncPrimitiveNotFound,    //Not found with matching arg types
+  qeCantAssignProcedure,      //Try to assign procedure result to a variable or pass as argument
 
   //Identifiers
   qeIdentifierExpected,
@@ -40,6 +83,7 @@ type TQuicheError = (
   qeUnknownType,
   qeConstNameNotValidHere,
 
+  //Types
   qeTypeNameNotValidHere,
   qeTypeMismatch,
 
@@ -51,6 +95,7 @@ type TQuicheError = (
   qeConstantExpressionExpected,
   qeConstantExpressionOverflow,
   qeConstantOutOfRange,
+  qeConstantAssignmentOutOfRange,
   qeDivByZero,
   qeInvalidDecimalNumber,
   qeInvalidHexNumber,
@@ -60,11 +105,22 @@ type TQuicheError = (
   qeUnmatchedBrackets,
   qeIntrinsicCantBeEvaluatedAtCompileTime,  //Used as a signal, not an error
   qeAt,                 //@ operator syntax
+  qeBooleanExpressionExpected,  //For conditionals etc.
+
+  //Ops
+  qeOpIncompatibleTypes,  //Binary operator
+  qeOpIncompatibleType,   //Unary operators
 
   //Directives
   qeUnknownDirective,
   qeDirectiveSyntax,    //General error in directive syntax
   qeInvalidDirectiveValue,  //The value given is not applicable to this directive
+
+  //Attributes
+  qeInvalidAttrName,
+  qeCloseSquareExpectedAttr,
+  qeXOrYExpected,       //In Corrupts/Preserves list
+  qeInvalidCorruptsAttr,
 
   //Techie stuff
   qeAttributeError,     //Error in an attribute
@@ -73,276 +129,228 @@ type TQuicheError = (
   qeBUG,                //Should never happen. Oops!
   qeTODO);              //A compiler feature we have yet to implement
 
-const Errors : array[TQuicheError] of String = (
-  'No error',
-
-  'Syntax error',
-  'Error in function call',
-  'Invalid keyword',
-  'END expected',
-  'END. expected',
-  'Code after END.',
-  'Incorrect code at top-level. Expecting FUNCTION, PROCEDURE, TYPE, CONST, VAR or BEGIN',
-  'Unexpected end of file',
-  'Text after continuation character (\)',
-  'Untermined comment',
-  'End of line not allowed here',
-  'New line or semi-colon expected',
-
-  'Function redeclared',
-  'Function body expected',
-  'Error in function declaration',
-  'Function declaration doesn''t match forward declaration',
-  'Too many parameters - there is a hard coded maximum. Sorry',
-  'Nested/local function declarations are not allowed',
-  'Unsatisfied forward declared function',
-
-  'Identifier expected',
-  'Undefined identifier',
-  'Reserved word',
-  'Variable not found',
-  'Identifier already declared',
-  'Invalid or undeclared type identifier',
-  'Constant name not valid here',
-
-  'Type name not valid here',
-  'Incompatible types',
-
-  'Expression error',
-  'Operand or unary operator expected',
-  'Operator expected',
-  'Unknown operator',
-  'Constant expression expected',
-  'Constant expression overflow',
-  'Constant expression out of range',
-  'Division by zero',
-  'Incorrect decimal number',
-  'Incorrect hex number',
-  'Incorrect binary number',
-  'Unterminated string',
-  'Incorrect character literal',
-  'Unmatched brackets',
-  'qeIntrinsicCantBeEvaluatedAtCompileTime',
-  '@-able expression expected',
-
-  'Unknown directive',
-  'Error in directive syntax',
-  'Invalid value for directive',
-
-  'Invalid attribute',
-  'Error in code generation',
-
-  'Bug. Oops',
-  'Feature not yet implemented');
-
-const SubErrors : array[TQuicheError] of String = (
-  '',
-
-  '',
-  '',
-  'Invalid keyword: ''%s''',
-  '',
-  '',
-  '',
-  '',
-  '',
-  '',
-  '',
-  '',
-  '',
-
-  'Function redeclared: ''%s''',
-  '',
-  '',
-  '',
-  '',
-  '',
-  'Unsatisfied forward declared function: ''%s''',
-
-  'Invalid keyword in this context: ''%s''',
-  'Undeclared identifier: ''%s''',
-  'Reserved word: ''%s''',
-  'Variable not found: ''%s''',
-  'Variable already declared: ''%s''',
-  'Invalid or undeclared type identifier: ''%s''',
-  'Constant name not valid here: ''%s''',
-
-  'Type name not valid here: ''%s''',
-  '',
-  '',
-
-  '',
-  '',
-  '',
-  '',
-
-  '',
-  '',
-  '',
-  '',
-  '',
-  '',
-  '',
-  '',
-  '',
-  '',
-  '',
-
-  'Unknown directive ''%s''',
-  'Error in directive syntax',
-  'Invalid value for directive ''%s''',
-
-  '',
-  'Code generation error in: ''%s''',
-
-  '',
-  '');
-
 //Raise a generic error
 function Err(ErrClass: TQuicheError): TQuicheError;
 
 //Raise a generic error with some meta data to substitute into the error message.
-function ErrSub(ErrClass: TQuicheError;Sub: String): TQuicheError;
+function ErrSub(ErrClass: TQuicheError;const Sub: String): TQuicheError;
+function ErrSub2(ErrClass: TQuicheError;const Sub1, Sub2: String): TQuicheError;
 
-//Raise an error where the entire message is submitted in the Msg parameter
-function ErrMsg(ErrClass: TQuicheError;Msg: String): TQuicheError;
+//Operator errors. Help text will be autogenerated from available Ops
+function ErrOpUsage(ErrClass: TQuicheError;Op: TOperator): TQuicheError;
+function ErrOpUsageSub(ErrClass: TQuicheError;const Sub: String;Op: TOperator): TQuicheError;
+function ErrOpUsageSub2(ErrClass: TQuicheError;const Sub1, Sub2: String;Op: TOperator): TQuicheError;
 
+function ErrFuncCall(ErrClass: TQuicheError;Func: PFunction): TQuicheError;
+function ErrFuncCallSub(ErrClass: TQuicheError;const Sub: String; Func: PFunction): TQuicheError;
+function ErrFuncCallSub2(ErrClass: TQuicheError;const Sub1, Sub2: String;
+  Func: PFunction): TQuicheError;
+function ErrFuncCallSub3(ErrClass: TQuicheError;const Sub1, Sub2, Sub3: String;
+  Func: PFunction): TQuicheError;
 
-type TSyntaxError = (
-  synFOR,
-  synIF,
+//Raise a qeTODO or qeBUG error.
+//qeTODO is for stubs waiting to be built out
+//qeBUG is, basically, for assertion failures
+function ErrTODO(Msg: String): TQuicheError;
+function ErrBUG(Msg: String): TQuicheError;
 
-  synStatementExpected,
-  synParameterList,
-  synVariableDeclaration,
-  synConstDeclaration,
-  synAssignmentExpected,
-
-  synFunctionDeclaration,
-  synFunctionParameterDeclaration,
-
-  synLAST);
-
-
-const SyntaxErrors: array[TSyntaxError] of String = (
-  'FOR loop error',
-  'IF error',
-
-  'Statement expected',
-  'Error in parameter list',
-  'Invalid variable declaration',
-  'Invalid constant declaration',
-  'Assignment expected',
-
-  'Error in function declaration',
-  'Error in function parameter',
-
-  'EndOfList');
-
-const SyntaxHelp: array[TSyntaxError] of String = (
-  'FOR <var-name> := <from-expr> TO|DOWNTO <to-expr> DO'#13#10 +  //FOR loops
-    'FOR VAR <var-name>: <type-name> := <from-expr> TO|DOWNTO <to-expr> DO'#13#10 +
-    'FOR VAR <var-name><type-symbol> := <from-expr> TO|DOWNTO <to-expr> DO'#13#10,
-
-  '',
-  'IF <boolean-expr> THEN <block> [ELSE <block]', //If statements
-
-  '(<item>[,<item>])',    //Parameter list
-
-  'VAR <var-name>: <type-name>'#13#10 +     //Variable declaration
-    'VAR <var-name><type-symbol>'#13#10 +
-    'VAR <var-name>: <type-name> = <expr>'#13#10 +
-    'VAR <var-name><type-symbol> = <expr>'#13#10 +
-    'VAR <var-name> := <expr>',
-
-  'CONST <identifier>[: <type>] = <constant-expr>' +
-     'CONST <identifier><type-symbol> = <constant-expr>',
-
-  '<var-name> := <expr>',
-
-  'FUNCTION <func-name> param-def-list : <result-type> ; [<directives> ;] <function-body>'#13#10 +
-  'PROCEDURE <func-name> param-def-list ; [<directives> ;] <function-body>',
-
-  '<param-def-list> := ( <Param-def> [ ; <Param-def> ] )'#13#10 +
-    '<param-def> := <param-name> [ , <param-name>]: <Param-type>'#13#10,
-
-  'EndOfList');
-
-//Raises a syntax error
-function ErrSyntax(SyntaxError: TSyntaxError): TQuicheError;
-
-function ErrSyntaxMsg(SyntaxError: TSyntaxError;Msg: String): TQuicheError;
-
-function ErrOpUsage(Msg: String;Op: TOperator): TQuicheError;
-
-function ErrFuncCall(Msg: String;Func: PFunction): TQuicheError;
-
-const
-  ermCommaOrCloseParensExpected = ''','' or '')'' expected in parameter list';
-  ermParameterListExpected = 'Parameter list expected';
-  ermIncorrectParameterCount = 'Incorrect parameter count';
-  ermCantAssignProcedure = 'Procedure has no return value and therefore can''t be used in expressions';
+function IsValidCompileError(const AName: String): Boolean;
+function ErrorToName(Err: TQuicheError): String;
 
 var
   LastError: TQuicheError;
   LastErrorMessage: String;
   LastErrorHelp: String;
 
+//Init the error messages/error data
+procedure LoadErrorData(const Filename: String);
+
 implementation
-uses SysUtils;
+uses SysUtils, Classes;
+
+type TErrorData = record
+    Name: String;
+    Text: String;
+    Help: String;
+  end;
+
+var ErrorData: array[TQuicheError] of TErrorData;
+
+function IsValidCompileError(const AName: String): Boolean;
+var Data: TErrorData;
+begin
+  for Data in ErrorData do
+    if CompareText(AName, Data.Name) = 0 then
+      EXIT(True);
+  Result := False;
+end;
+
+function ErrorToName(Err: TQuicheError): String;
+begin
+  Result := ErrorData[Err].Name;
+end;
+
+//HelpEx (if any) will be appended to the Help text in the error data
+function DoErr(ErrClass: TQuicheError;const HelpEx: String): TQuicheError;
+begin
+  LastErrorMessage := ErrorData[ErrClass].Text;
+  LastErrorHelp := ErrorData[ErrClass].Help;
+  if HelpEx <> '' then
+    if LastErrorHelp <> '' then
+      LastErrorHelp := LastErrorHelp + #13 + HelpEx
+    else
+      LastErrorHelp := HelpEx;
+  Result := ErrClass;
+end;
+
+function DoErrSub(ErrClass: TQuicheError;const HelpEx, Sub: String): TQuicheError;
+begin
+  Result := DoErr(ErrClass, HelpEx);
+  LastErrorMessage := Format(LastErrorMessage, [Sub]);
+  if LastErrorMessage = '' then
+    raise Exception.Create('ERROR WHILE REPORTING AN ERROR: Nothing to substitute! (in error message)');
+end;
+
+function DoErrSub2(ErrClass: TQuicheError;const HelpEx, Sub1, Sub2: String): TQuicheError;
+begin
+  Result := DoErr(ErrClass, HelpEx);
+  LastErrorMessage := Format(LastErrorMessage, [Sub1, Sub2]);
+  if LastErrorMessage = '' then
+    raise Exception.Create('ERROR WHILE REPORTING AN ERROR: Nothing to substitute! (in error message)');
+end;
+
+function DoErrSub3(ErrClass: TQuicheError;const HelpEx, Sub1, Sub2, Sub3: String): TQuicheError;
+begin
+  Result := DoErr(ErrClass, HelpEx);
+  LastErrorMessage := Format(LastErrorMessage, [Sub1, Sub2, Sub3]);
+  if LastErrorMessage = '' then
+    raise Exception.Create('ERROR WHILE REPORTING AN ERROR: Nothing to substitute! (in error message)');
+end;
 
 function Err(ErrClass: TQuicheError): TQuicheError;
 begin
-  LastErrorMessage := Errors[ErrClass];
-  LastErrorHelp := '';
-  Result := ErrClass;
+  Result := DoErr(ErrClass, '');
 end;
 
-
-function ErrSub(ErrClass: TQuicheError;Sub: String): TQuicheError;
+function ErrSub(ErrClass: TQuicheError;const Sub: String): TQuicheError;
 begin
-  LastErrorMessage := Format(SubErrors[ErrClass], [Sub]);
-  if LastErrorMessage = '' then
-    raise Exception.Create('ERROR WHILE REPORTING AN ERROR: Nothing to substitute! (in error message)');
-  LastErrorHelp := '';
-  Result := ErrClass;
+  Result := DoErrSub(ErrClass, '', Sub);
 end;
 
-function ErrMsg(ErrClass: TQuicheError;Msg: String): TQuicheError;
+function ErrSub2(ErrClass: TQuicheError;const Sub1, Sub2: String): TQuicheError;
 begin
-  LastErrorMessage := Msg;
-  LastErrorHelp := '';
-  Result := ErrClass;
+  Result := DoErrSub2(ErrClass, '', Sub1, Sub2);
 end;
 
-function ErrSyntax(SyntaxError: TSyntaxError): TQuicheError;
+function ErrOpUsage(ErrClass: TQuicheError;Op: TOperator): TQuicheError;
 begin
-  LastErrorMessage := SyntaxErrors[SyntaxError];
-  LastErrorHelp := SyntaxHelp[SyntaxError];
-  Result := qeSyntax;
+  Result := DoErr(ErrClass, OpToUsage(Op));
 end;
 
-function ErrSyntaxMsg(SyntaxError: TSyntaxError;Msg: String): TQuicheError;
+function ErrOpUsageSub(ErrClass: TQuicheError;const Sub: String;Op: TOperator): TQuicheError;
 begin
-  LastErrorMessage := Msg;
-  LastErrorHelp := SyntaxHelp[SyntaxError];
-  Result := qeSyntax;
+  Result := DoErrSub(ErrClass, OpToUsage(Op), Sub);
 end;
 
-function ErrOpUsage(Msg: String;Op: TOperator): TQuicheError;
+function ErrOpUsageSub2(ErrClass: TQuicheError;const Sub1, Sub2: String;Op: TOperator): TQuicheError;
 begin
-  LastErrorMessage := Msg;
-  LastErrorHelp := OpToUsage(Op);
-  Result := qeSyntax;
+  Result := DoErrSub2(ErrClass, OpToUsage(Op), Sub1, Sub2);
 end;
 
-function ErrFuncCall(Msg: String;Func: PFunction): TQuicheError;
+function FuncToHelpEx(Func: PFunction): String;
 begin
-  LastErrorMessage := Msg;
-  LastErrorHelp := Func.ToString;
+  Result := Func.ToString;
   if Func.Comments <> '' then
-    LastErrorHelp := LastErrorHelp + #13 + Func.Comments;
-  Result := qeFunctionCall;
+    Result := Result + #13 + Func.Comments;
+end;
+
+function ErrFuncCall(ErrClass: TQuicheError;Func: PFunction): TQuicheError;
+begin
+  Result := DoErr(ErrClass, FuncToHelpEx(Func));
+end;
+
+function ErrFuncCallSub(ErrClass: TQuicheError;const Sub: String; Func: PFunction): TQuicheError;
+begin
+  Result := DoErrSub(ErrClass, FuncToHelpEx(Func), Sub);
+end;
+
+function ErrFuncCallSub2(ErrClass: TQuicheError;const Sub1, Sub2: String;
+  Func: PFunction): TQuicheError;
+begin
+  Result := DoErrSub2(ErrClass, FuncToHelpEx(Func), Sub1, Sub2);
+end;
+
+function ErrFuncCallSub3(ErrClass: TQuicheError;const Sub1, Sub2, Sub3: String;
+  Func: PFunction): TQuicheError;
+begin
+  Result := DoErrSub3(ErrClass, FuncToHelpEx(Func), Sub1, Sub2, Sub3);
+end;
+
+function ErrTODO(Msg: String): TQuicheError;
+begin
+  LastErrorMessage := ErrorData[qeTODO].Text;
+  LastErrorHelp := Msg;
+  Result := qeTODO;
+end;
+
+function ErrBUG(Msg: String): TQuicheError;
+begin
+  LastErrorMessage := ErrorData[qeBUG].Text;
+  LastErrorHelp := Msg;
+  Result := qeBUG;
+end;
+
+procedure LoadErrorData(const Filename: String);
+type TLoadState = (lsInit, lsName, lsText, lsItemDone);
+var SL: TStringList;
+  Err: TQuicheError;
+  Line: String;
+  State: TLoadState;
+begin
+  SL := TStringList.Create;
+  try
+    SL.LoadFromFile(Filename);
+    Err := low(TQuicheError);
+    State := lsInit;
+    for Line in SL do
+      if (Line <> '') and (Line.Chars[0] <> ';') then
+      begin
+        if Line.Chars[0] = '=' then
+        begin
+          if State = lsInit then
+            Err := low(TQuicheError)
+          else if Err = high(TQuicheError) then
+            raise Exception.Create('Too many items in Errors listing file (' + Filename + ')')
+          else
+            Err := succ(Err);
+          State := lsName;
+          ErrorData[Err].Name := Line.Substring(1);
+          ErrorData[Err].Text := '';
+          ErrorData[Err].Help := '';
+        end
+        else
+          case State of
+            lsName:
+            begin
+              ErrorData[Err].Text := Line.Trim;
+              State := lsText;
+            end;
+            lsText:
+            begin
+              if ErrorData[Err].Help <> '' then
+                ErrorData[Err].Help := ErrorData[Err].Help + #13;
+              ErrorData[Err].Help := ErrorData[Err].Help + Line.Trim;
+            end;
+          else
+            raise Exception.Create('Error in message file at line:'#13 + Line);
+          end;
+      end;
+
+    if Err <> high(TQuicheError) then
+      raise Exception.Create('Not enough items in Errors listing file (' + Filename + ')');
+  finally
+    SL.Free;
+  end;
 end;
 
 end.

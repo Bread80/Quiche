@@ -579,6 +579,34 @@ begin
     GenRangeCheck(ToReg, Variable.VarType, ToType, nil, Options);
 end;
 
+//Load and convert a boolean variable into a CPU flag (ready for a conditional branch)
+procedure GenLoadBoolVarToFlag(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
+  Options: TMoveOptionSet);
+begin
+  Assert(ToReg in [rNZF]);
+  Assert(not (moPreserveA in Options), 'Can''t load boolean to CPU flag');
+
+  //Load the variable into A register
+  case GetTypeSize(Variable.VarType) of
+    1: GenLoadVar8BitToReg8Bit(Variable, VarVersion, rA, lptNormal, vtBoolean, False, Options);
+    2: GenLoadVar16BitToReg8Bit(Variable, VarVersion, rA, lptLow, vtBoolean, False, Options);
+  else
+    Assert(False);
+  end;
+
+  case ToReg of
+    rNZF:
+    begin
+      OpANDA;
+      RegStateSetUnknown(rFlags);
+      RegStateSetLiteral(rCF, 0);
+    end;
+  else
+    Assert(False);
+  end;
+  RegStateSetVariable(ToReg, Variable, VarVersion, rskVarValue);
+end;
+
 //Load the value of a variable into the given register
 procedure GenLoadRegVarValue(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
   LoadType: TLoadParamType;ToType: TVarType;RangeCheck: Boolean;Options: TMoveOptionSet);
@@ -604,6 +632,8 @@ begin
       end;
     rIX, rIY:
       GenLoadVar16BitToXY(Variable, VarVersion, ToReg, LoadType, ToType, RangeCheck, Options);
+    rNZF:
+      GenLoadBoolVarToFlag(Variable, VarVersion, ToReg, Options);
   else
     System.Assert(False);
   end;

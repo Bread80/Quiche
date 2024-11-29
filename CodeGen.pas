@@ -355,7 +355,6 @@ begin
     opPhi: RegStateInitialise; //Branches merge here. Clear cached data - we don't know what might be there
     opStoreImm: //Store a literal into a variable
       GenStoreImm(ILItem, []);
-    opBranch: GenUncondBranch(ILItem);
     opMove: //Move a single value between variables or to/from the stack etc.
     begin //TODO: Rework this to be neater
       //When loading: load to type specified in Dest (extend, range check etc).
@@ -363,6 +362,15 @@ begin
       TEMPRegAllocMove(ILItem); //(??)
       GenLoadParam(ILItem.Param1, ILItem.Dest.GetVarType, []);
       //Range checking and extending (if required) is done while loading
+      GenDestParam(ILItem.Dest, vtUnknown, False, nil, [])
+     end;
+    opBranch: GenUncondBranch(ILItem);
+    opBoolVarBranch:  //Branch where condition is a boolean variable (which could
+                      //be in a CPU flag)
+    begin //TODO: Rework this to be neater
+      //GenOpMove(ILItem);
+      TEMPRegAllocBoolVarBranch(ILItem); //(??)
+      GenLoadParam(ILItem.Param1, vtFlag, []);
       GenDestParam(ILItem.Dest, vtUnknown, False, nil, [])
      end;
     opRegLoad, opRegLoadExtended: //Load multiple values to registers

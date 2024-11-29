@@ -464,7 +464,7 @@ begin
   Reg := IdentToCPUReg(RegStr);
   if Reg = rNone then
     EXIT('Invalid register or flag');
-  Parser.SkipWhitespace;
+  Parser.SkipWhiteChars;
   if not CharInSet(Parser.TestChar, ['=',':']) then
     EXIT('''='' or '':'' expected');
   Parser.SkipChar;
@@ -484,11 +484,11 @@ begin
     Result := ParseLiteral(Parser, Data);
     if Result <> '' then
       EXIT;
-    Parser.SkipWhiteSpace;
+    Parser.SkipWhiteChars;
     if Parser.TestChar = ',' then
     begin
       Parser.SkipChar;
-      Parser.SkipWhiteSpace
+      Parser.SkipWhiteChars
     end;
   end;
 end;
@@ -501,7 +501,7 @@ begin
   if Ident = '' then
   begin
     S := Parser.ReadIdentifier;
-    Parser.SkipWhiteSpace;
+    Parser.SkipWhiteChars;
   end
   else
     S := Ident;
@@ -519,10 +519,10 @@ begin
     if Parser.TestChar = ',' then
     begin
       Parser.SkipChar;
-      Parser.SkipwhiteSpace;
+      Parser.SkipwhiteChars;
     end;
     S := Parser.ReadIdentifier;
-    Parser.SkipWhiteSpace;
+    Parser.SkipWhiteChars;
   until S = '';
 end;
 
@@ -533,7 +533,7 @@ begin
   S := Parser.ReadIdentifier;
   if S = '' then
     EXIT(False);
-  Parser.SkipWhiteSpace;
+  Parser.SkipWhiteChars;
 
   if CompareText(S, 'none') = 0 then
   begin
@@ -565,7 +565,7 @@ begin
   S := Parser.ReadIdentifier;
   if S = '' then
     EXIT(False);
-  Parser.SkipWhiteSpace;
+  Parser.SkipWhiteChars;
 
   if CompareText(S, 'p1') = 0 then
   begin
@@ -605,7 +605,7 @@ begin
   Assert(Parser.TestChar = '-');
   Parser.SkipChar;
   Command := Parser.ReadIdentifier;
-  Parser.SkipWhiteSpace;
+  Parser.SkipWhiteChars;
 
   if CompareText(Command, 'p1') = 0 then
   begin
@@ -671,7 +671,7 @@ begin
 
     while not Parser.EOF do
     begin
-      if not Parser.SkipWhiteSpace then
+      if not Parser.SkipWhiteChars then
       begin
         case Parser.TestChar of
           ';',#0: Parser.NextLine; //Comment or empty line - ignore line
@@ -687,7 +687,7 @@ begin
             Entry.HaveMeta := False;
             Entry.ProcMeta.Init;
             FragList.Add(Entry);
-            Parser.SkipWhiteSpace;
+            Parser.SkipWhiteChars;
           end;
           '-':  //Command/meta data
           begin

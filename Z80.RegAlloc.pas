@@ -13,6 +13,9 @@ procedure TEMPRegAllocPrim(var ILItem: TILItem;const Prim: PPrimitive);
 //for an opMove operation
 procedure TEMPRegAllocMove(var ILItem: PILItem);
 
+//Allocate registers (flags) for testing a boolean variable
+procedure TEMPRegAllocBoolVarBranch(var ILItem: PILItem);
+
 //Allocate registers for functions using Register calling convention
 procedure TEMPRegAllocRegisterFunc(Func: PFunction);
 
@@ -128,6 +131,25 @@ begin
       ILItem.Param1.Reg := rA
     else
       ILItem.Param1.Reg := rHL;
+
+  if ILItem.Dest.Reg = rNone then
+    ILItem.Dest.Reg := ILItem.Param1.Reg;
+end;
+
+procedure TEMPRegAllocBoolVarBranch(var ILItem: PILItem);
+begin
+  Assert(ILItem.Op = opBoolVarBranch);
+  Assert(ILItem.Param1.Kind in [pkImmediate, pkVarSource, pkPop, pkPopByte]);
+  Assert(ILItem.Param2.Kind = pkNone);
+  Assert(ILItem.Param3.Kind = pkCondBranch);
+
+  Assert(ILItem.Param1.GetVarType = vtBoolean, 'TODO: Add code for Flag type variables');
+
+  if ILItem.Param1.Reg = rNone then
+    //For now we'll assume we want this in the zero flag. Full featured reg allocator
+    //will take account of whether the value is already in a CPU flag
+    //TODO: If the Param is a Flag type variable
+    ILItem.Param1.Reg := rNZF;
 
   if ILItem.Dest.Reg = rNone then
     ILItem.Dest.Reg := ILItem.Param1.Reg;

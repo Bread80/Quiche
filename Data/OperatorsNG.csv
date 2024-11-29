@@ -24,6 +24,7 @@
 ,greaterequal,1,n,,,,,,,,,,,,,,,
 ,greater,1,n,,,,,,,,,,,,,,,
 ,lessequal,1,n,,,,,,,,,,,,,,,
+,istrue,1,n,,,Boolean variable (for conditional test),,,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,
 ,or,2,n,,,,,,,,,,,,,,,
 ,xor,2,n,,,,,,,,,,,,,,,

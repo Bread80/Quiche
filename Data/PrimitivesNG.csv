@@ -246,6 +246,8 @@
 ,lessequal,Char,Char,n,Boolean,x,,compare8swap_reg_imm,,,,,ncf,,empty,,,,,
 ,lessequal,Char,Char,n,Boolean,x,,compare8swap_reg_reg,,,,,ncf,,empty,,,,,"Operands reversed. A should be an option for param1, but allocator is greedy and would choose A for param1 and fail on param2"
 ,,,,,,,,,,,,,,,,,,,,
+,istrue,Boolean,none,n,<Flag>,x,,cpla,,,,,nzf,,empty,,,,,"Tests if boolean varaiable is True, result in zero flag"
+,,,,,,,,,,,,,,,,,,,,
 ,,,,,,,,(Empty columns for formatting),,,,,,,,,,,,
 ;,,----Primitive Selection----,,,,----Primitive Data----,,,,,,,,,,Optimised range checks for type conversions,,,,
 ;,Operation,Ltype,Rtype,Commutative,ResultType,Validation,Flags,Proc/Fragment/Subroutine,,,Lregs,Rregs,ResultRegs,Corrupts,OverflowCheck,Int8,Byte,Integer,Word,Notes

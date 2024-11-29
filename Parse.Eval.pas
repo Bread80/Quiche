@@ -224,8 +224,7 @@ begin
     Result := qeNone;
 
   if Error then
-    EXIT(ErrOpUsage('Incompatible types ' +
-      VarTypeToName(Param1.Imm.VarType) + ' and ' +
+    EXIT(ErrOpUsageSub2(qeOpIncompatibleTypes, VarTypeToName(Param1.Imm.VarType),
       VarTypeToName(Param2.Imm.VarType), Op));
 end;
 
@@ -266,7 +265,7 @@ begin
       raise Exception.Create('Unknown operation in Evaluate');
   end
   else
-    EXIT(ErrOpUsage('Operand type incompatible with operator ' +
+    EXIT(ErrOpUsageSub(qeOpIncompatibleType,
       VarTypeToName(Param.Imm.VarType), Op));
 
 
@@ -501,8 +500,7 @@ begin
       Result := qeNone;
 
   if Error then
-    EXIT(ErrOpUsage('Parameter type incompatible with function ' +
-      VarTypeToName(P.VarType), Op));
+    EXIT(ErrOpUsageSub(qeOpIncompatibleType, VarTypeToName(P.VarType), Op));
 end;
 
 //Evaulate an instrinsic with two parameters
@@ -566,8 +564,7 @@ begin
     Result := qeNone;
 
   if Error then
-    EXIT(ErrOpUsage('Incompatible parameter types ' +
-      VarTypeToName(Param1.Imm.VarType) + ' and ' +
+    EXIT(ErrOpUsageSub2(qeOpIncompatibleTypes, VarTypeToName(Param1.Imm.VarType),
       VarTypeToName(Param2.Imm.VarType), Op));
 end;
 

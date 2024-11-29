@@ -154,7 +154,7 @@ begin
         if Value > GetMaxValue(vtWord) then
           EXIT(Err(qeInvalidDecimalNumber));
       end;
-      '.','e','E': EXIT(ErrMsg(qeTODO, 'Floating point numbers are not yet supported :('));
+      '.','e','E': EXIT(ErrTODO('Floating point numbers are not yet supported :('));
       '_': ; //Ignore
     else
       if Value < 256 then
@@ -362,7 +362,7 @@ begin
         EXIT(qeNone);
       end
       else
-        EXIT(ErrMsg(qeTODO, 'Strings are not yet supported :('));
+        EXIT(ErrTODO('Strings are not yet supported :('));
   end;
 end;
 
@@ -429,9 +429,9 @@ begin
         if Result <> qeNone then
           EXIT;
       end;
-      itType: EXIT(ErrMsg(qeTODO, 'Typecasts for user types not yet implemented. Type names not allowed in expressions'));
+      itType: EXIT(ErrTODO('Typecasts for user types not yet implemented. Type names not allowed in expressions'));
     else
-      EXIT(ErrMsg(qeBUG, 'Invalid/unknown IdentType in ParseOperandIentifier'));
+      EXIT(ErrBUG('Invalid/unknown IdentType in ParseOperandIentifier'));
     end;
   end
   else
@@ -448,7 +448,7 @@ begin
 
   ResultType := vtUnknown;
   if not PrimFindParseUnary(Slug.Op, Slug, VType, ResultType) then
-    EXIT(ErrOpUsage('Incorrect parameter type: ' + VarTypeToName(Slug.ImplicitType), Slug.Op));
+    EXIT(ErrOpUsageSub(qeOpIncompatibleType, VarTypeToName(Slug.ImplicitType), Slug.Op));
 
   if (Slug.ILItem = nil) and (Slug.Operand.Kind = pkImmediate) then
   begin
@@ -551,7 +551,7 @@ begin
           opNegate: Result := ParseOperand(Slug, opComplement);
           opComplement: Result := ParseOperand(Slug, opUnknown);
         else
-          EXIT(ErrMsg(qeBUG, 'Unknown/invalid unary operator'));
+          EXIT(ErrBUG('Unknown/invalid unary operator'));
         end;
         if UnaryOp = opComplement then
           UnaryOp := opUnknown;
@@ -576,7 +576,7 @@ begin
     '%': //Binary constant
       Result := ParseBinary(Slug);
     '.': //Real constant
-      EXIT(ErrMsg(qeTODO, 'Floating point numbers not yet supported'));
+      EXIT(ErrTODO('Floating point numbers not yet supported'));
     '''','#': //Char or string
       Result := ParseStringOrChar(Slug);
     '@': //Address prefix
@@ -594,7 +594,7 @@ begin
         opNegate: Result := ParseOperand(Slug, opUnknown);
         opComplement: Result := ParseOperand(Slug, opNegate);
       else
-        EXIT(errMsg(qeBUG, 'Unknown/invalid unary operator'));
+        EXIT(errBUG('Unknown/invalid unary operator'));
       end;
       if Result <> qeNone then
         EXIT;
@@ -687,8 +687,8 @@ begin
       else
         Valid := ValidateAssignmentType(ExprType, Slug.ResultType);
       if not Valid then
-        EXIT(ErrMsg(qeConstantOutOfRange, 'Constant expresion out of range. Can''t assign value ' +
-          Slug.Operand.ImmValueToString + ' to variable of type ' + VarTypeToName(ExprType)));
+        EXIT(ErrSub2(qeConstantAssignmentOutOfRange, Slug.Operand.ImmValueToString,
+          VarTypeToName(ExprType)));
     end
     else
       Valid := ValidateAssignmentType(ExprType, Slug.ResultType);
@@ -698,8 +698,8 @@ begin
     Valid := ValidateAssignmentType(ExprType, Slug.ResultType);
 
   if not Valid then
-    Result := ErrMsg(qeTypeMismatch, 'Incompatible types: ' + VarTypeToName(Slug.ResultType) +
-      ' and ' + VarTypeToName(ExprType))
+    Result := ErrSub2(qeTypeMismatch, VarTypeToName(Slug.ResultType),
+      VarTypeToName(ExprType))
   else
     Result := qeNone;
 end;
@@ -768,8 +768,8 @@ begin
         EXIT;
 
       if not AssignSlugTypes(Left, Right) then
-        EXIT(ErrOpUsage('No primitive available for operand types ' +
-          VarTypeToName(Left.Operand.GetVarType) + ' and ' +
+        EXIT(ErrOpUsageSub2(qeOpIncompatibleTypes,
+          VarTypeToName(Left.Operand.GetVarType),
           VarTypeToName(Right.Operand.GetVarType), Left.Op));
 
       if ILItem <> nil then
@@ -805,8 +805,8 @@ begin
     begin
       //Modifies operand types and result type based on available primitives
       if not AssignSlugTypes(Left, Right) then
-        EXIT(ErrOpUsage('No operator available for operand types ' +
-          VarTypeToName(Left.Operand.GetVarType) + ' and ' +
+        EXIT(ErrOpUsageSub2(qeOpIncompatibleTypes,
+          VarTypeToName(Left.Operand.GetVarType),
           VarTypeToName(Right.Operand.GetVarType), Left.Op));
 
       //Add current operation to list.

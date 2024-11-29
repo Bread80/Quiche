@@ -8,12 +8,20 @@ $VARAUTOCREATE ;(boolean) Assignments to unknown variables auto-created the
                ;variable. (Ie. No need to use VAR). Indended for use in interactive
                ;mode. Not recommended for file-based compilations.
 
-$CALLING       ;Set the default calling convention for functions. Can be overridden
-               ;on a per function basis with appropriate directives.
-               ;Valid values: REGISTER, STACK
+$IMPLICITINTEGERTYPE WORD | INTEGER
+  ;Implicit types are used when defining variables if the type is not explicitly
+  ;specified, and in some other areas such as when passing literal values as
+  ;function parameters. If the literal is a positive decimal integer this option
+  ;specifies whether that integer will be interpreted as a signed (Integer type)
+  ;or unsigned (Word type) value.
+
+$CALLING REGISTER | STACK
+  ;Set the default calling convention for functions. Can be overridden on a per
+  ;function basis with appropriate directives.
 
 Not yet implemented:
-$PLATFORM     ;Specify the target platform - Only valid before the first line of code
+$PLATFORM
+  ;Specify the target platform - Only valid before the first line of code
 *)
 
 interface
@@ -24,7 +32,7 @@ function ParseDirective: TQuicheError;
 
 implementation
 uses SysUtils,
-  Def.Globals, Def.Functions;
+  Def.Globals, Def.Functions, Def.QTypes;
 
 function ParseBoolean(out Value: Boolean): TQuicheError;
 var Ch: Char;
@@ -51,10 +59,7 @@ var Ident: String;
   Directive: TFuncDirective;
   Value: TCallingConvention;
 begin
-  Result := Parser.SkipWhite;
-  if Result <> qeNone then
-    EXIT;
-
+  Parser.SkipWhiteChars;
   Result := ParseIdentifier(#0, Ident);
   if Result <> qeNone then
     EXIT;
@@ -66,6 +71,26 @@ begin
   else
     Result := ErrSub(qeInvalidDirectiveValue, Ident);
   end;
+end;
+
+function ParseImplicitIntegerType: TQuicheError;
+var Ident: String;
+  VarType: TVarType;
+  Directive: TFuncDirective;
+  Value: TCallingConvention;
+begin
+  Parser.SkipWhiteChars;
+  Result := ParseIdentifier(#0, Ident);
+  if Result <> qeNone then
+    EXIT;
+
+  VarType := StringToVarType(Ident);
+  if VarType in [vtInteger, vtWord] then
+    optImplicitIntegerType := VarType
+  else
+    EXIT(ErrSub(qeInvalidDirectiveValue, Ident));
+
+  Result := qeNone;
 end;
 
 function ParseDirective: TQuicheError;
@@ -91,18 +116,18 @@ begin
     else if CompareText(Ident, 'VARAUTOCREATE') = 0 then
       Result := ParseBoolean(optVarAutoCreate)
 
+    //Parameter directives - Syntax
+    else if CompareText(Ident, 'IMPLICITINTEGERTYPE') = 0 then
+      Result := ParseImplicitIntegerType
     else
       Result := ErrSub(qeUnknownDirective, Ident);
 
-    Result := Parser.SkipWhite;
-    if Result <> qeNone then
-      EXIT;
+    Parser.SkipWhiteChars;
+    //Do we have another on the same line?
     if Parser.TestChar <> ',' then
       EXIT;
     Parser.SkipChar;
-    Result := Parser.SkipWhite;
-    if Result <> qeNone then
-      EXIT;
+    Parser.SkipWhiteChars;
   end;
 end;
 

@@ -162,11 +162,12 @@ var ExprType: TVarType;
 begin
   Slug.Initialise;
 
-  ExprType := vtBoolean;
+  ExprType := vtUnknown;
   Result := ParseExpressionToSlug(Slug, ExprType);
   if Result <> qeNone then
     EXIT;
-  Assert(ExprType = vtBoolean);
+  if ExprType <> vtBoolean then
+    EXIT(Err(qeBooleanExpressionExpected));
 
   if Slug.ILItem <> nil then
   begin //Expression
@@ -187,7 +188,7 @@ begin
   end
   else  //Variable
   begin //ILItem = nil and OpIndex <> None
-    ILItem := ILAppend(OpCondBranch);
+    ILItem := ILAppend(OpBoolVarBranch);
     ILItem.Param1 := Slug.Operand;
     ILItem.Param2.Kind := pkNone;
     ILItem.ResultType := vtBoolean; //(Not technically needed)
@@ -205,7 +206,7 @@ end;
 //VarIndex returns the Index in the variable list of Variable
 //Also inspects the optAllowAutoCreation option to determine if a declaration
 //requires an explicit 'var' or can be implied by the first assignment to a variable
-function ParseAssignment(VarRead, AllowVar: Boolean;const Ident: String;
+function ParseAssignment(VarRead, AllowVar, AssignRequired: Boolean;const Ident: String;
   out Variable: PVariable;Storage: TVarStorage): TQuicheError;
 var Ch: Char;
   VarName: String;
@@ -253,8 +254,11 @@ begin
       EXIT;
 
     if VarType <> vtUnknown then
-    //<type-symbol> form
-      DoAssign := TestAssignment
+    begin //<type-symbol> form
+      DoAssign := TestAssignment;
+      if AssignRequired and not DoAssign then
+        EXIT(Err(qeAssignmentExpected));
+    end
     else if TestAssignment then
       //Type inference form - nothing to do here
       DoAssign := True
@@ -266,7 +270,7 @@ begin
 
       Ch := Parser.TestChar;
       if Ch <> ':' then
-        EXIT(ErrSyntax(synVariableDeclaration));
+        EXIT(Err(qeColonExpectedInVAR));
       Parser.NextChar(Ch);
       Result := Parser.SkipWhiteNL;
       if Result <> qeNone then
@@ -278,7 +282,7 @@ begin
       if VarType = vtUnknown then
         EXIT(Err(qeUnknownType));
       if VarType in [vtReal, vtString] then
-        EXIT(ErrMsg(qeTODO, 'Type not yet supported: ' + VarTypeToName(VarType)));
+        EXIT(ErrTODO('Type not yet supported: ' + VarTypeToName(VarType)));
 
       Result := Parser.SkipWhite;
       if Result <> qeNone then
@@ -286,6 +290,9 @@ begin
 
       Ch := Parser.TestChar;
       DoAssign := Parser.TestChar = '=';
+      if AssignRequired and not DoAssign then
+        EXIT(Err(qeEqualExpectedInAssignment));
+
       if DoAssign then
         Parser.SkipChar;
     end;
@@ -303,7 +310,7 @@ begin
   begin
     DoAssign := TestAssignment;
     if not DoAssign then
-      EXIT(ErrSyntax(synAssignmentExpected));
+      EXIT(Err(qeAssignmentExpected));
     Variable := VarFindByNameAllScopes(VarName);
     if Variable = nil then
       EXIT(ErrSub(qeVariableNotFound, VarName));
@@ -357,7 +364,7 @@ end;
 function DoVAR(const Ident: String;Storage: TVarStorage): TQuicheError;
 var Variable: PVariable;
 begin
-  Result := ParseAssignment(True, False, Ident, Variable, Storage);
+  Result := ParseAssignment(True, False, False, Ident, Variable, Storage);
 end;
 
 // <constant-declaration> := CONST <identifier>[: <type>] = <expr>
@@ -387,7 +394,7 @@ begin
   if Result <> qeNone then
     EXIT;
   if Parser.TestChar <> '=' then
-    EXIT(ErrSyntax(synConstDeclaration));
+    EXIT(Err(qeEqualExpectedInCONST));
   Parser.SkipChar;
 
   //Value
@@ -478,7 +485,7 @@ begin
     //
 
   //(Create and) assign the loop variable
-  Result := ParseAssignment(VarRead, false, LoopVarName, LoopVar, Storage);
+  Result := ParseAssignment(VarRead, false, True, LoopVarName, LoopVar, Storage);
   if Result <> qeNone then
     EXIT;
 
@@ -487,7 +494,7 @@ begin
   else if TestForIdent('downto') then
     Step := -1
   else
-    EXIT(ErrSyntaxMsg(synFOR, 'TO expected'));
+    EXIT(Err(qeTOorDOWNTOExpected));
 
   //TO value
   ExprType := LoopVar.VarType;
@@ -506,7 +513,7 @@ begin
   //Test for DO - optional if there's a new line before code
   if not TestForIdent('do') then
     if Parser.SkipToNextLine <> qeNone then
-      EXIT(ErrSyntaxMsg(synFOR, 'DO expected'));
+      EXIT(Err(qeDOExpected));
 
   //TODO: Test if we should do loop inversion
 
@@ -655,8 +662,13 @@ begin
 
   //Test for THEN - optional if there's a new line before code
   if not TestForIdent('then') then
-    if Parser.SkipToNextLine <> qeNone then
-      EXIT(ErrSyntaxMsg(synIF, 'THEN expected'));
+  begin
+    Result := Parser.SkipToNextLine;
+    if Result = qeNewlineExpected then
+      EXIT(Err(qeTHENExpected));
+    if Result <> qeNone then
+      EXIT;
+  end;
 
   if Branch <> nil then
   begin
@@ -808,7 +820,7 @@ begin
     case IdentType of
       itVar:
       begin
-        Result := ParseAssignment(false, false, Ident, PVariable(Item), Storage);
+        Result := ParseAssignment(false, false, False, Ident, PVariable(Item), Storage);
         if Result <> qeNone then
           EXIT;
       end;
@@ -821,7 +833,7 @@ begin
       itConst: EXIT(ErrSub(qeConstNameNotValidHere, Ident));
       itType: EXIT(ErrSub(qeTypeNameNotValidHere, Ident));
     else
-      EXIT(ErrMsg(qeBug, 'Invalid/unknown IdentType'));
+      EXIT(ErrBUG('Invalid/unknown IdentType'));
     end;
   end
   else

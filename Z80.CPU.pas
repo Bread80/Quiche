@@ -167,6 +167,8 @@ procedure OpADD(RAcc, RAdd: TCPUReg);
 procedure OpINC(Reg: TCPUReg);
 procedure OpDEC(Reg: TCPUReg);
 
+procedure OpANDA;
+
 //Used to specify limitations when loading, storing, converting, validating, etc. parameters etc.
 type TMoveOptions = (
   moPreserveA,    //Preserve the A register
@@ -413,6 +415,11 @@ end;
 procedure OpDEC(Reg: TCPUReg);
 begin
   Opcode('dec',CPURegStrings[Reg]);
+end;
+
+procedure OpANDA;
+begin
+  Opcode('and','a');
 end;
 
 //Sign extends an 8-bit value in RIn to a 16-bit value in ROutRIn

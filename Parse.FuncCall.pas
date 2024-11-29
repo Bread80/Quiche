@@ -46,18 +46,16 @@ begin
     vaVar:
     begin //Argument needs to be a variable reference.
       if (Slug.ILItem <> nil) or (Slug.Operand.Kind <> pkVarSource) then
-        EXIT(ErrFuncCall('Argument ''' + Arg.Name +
-          ''' must be a variable', Func));
+        EXIT(ErrFuncCallSub(qeArgMustBeVariable, Arg.Name, Func));
     end;
     vaOut:
     begin //Argument needs to be a variable reference.
       if (Slug.ILItem <> nil) or (Slug.Operand.Kind <> pkVarSource) then
-        EXIT(ErrFuncCall('Argument ''' + Arg.Name +
-          ''' must be a variable', Func));
-      if (Slug.Operand.Variable.VarType <> Arg.VarType) then
-        EXIT(ErrFuncCall('Argument type mismatch on ''' + Arg.Name + ''' (' +
-          VarTypeToName(Slug.Operand.Variable.VarType) + ', ' + VarTypeToName(Arg.VarType) +
-        '. Returned argument type must exactly match variable type.', Func));
+        EXIT(ErrFuncCallSub(qeArgMustBeVariable, Arg.Name, Func));
+      if Slug.Operand.Variable.VarType <> Arg.VarType then
+        EXIT(ErrFuncCallSub3(qeReturnedArgTypeMismatch, Arg.Name,
+          VarTypeToName(Slug.Operand.Variable.VarType), VarTypeToName(Arg.VarType),
+          Func));
       //Output parameter so we need to write it to the variable
       Slug.Operand.Kind := pkVarDest;
     end;
@@ -108,7 +106,7 @@ begin
     (Brace and (Ch <> ')')) then      //Bace and ')' -> no arguments
   repeat
     if ArgIndex >= Func.ParamCount then
-      EXIT(ErrFuncCall('Too many parameters', Func));
+      EXIT(ErrFuncCall(qeTooManyArgs, Func));
 
     Result := ParseArgument(Func.Params[ArgIndex], Slugs[ArgIndex]);
     if Result <> qeNone then
@@ -122,12 +120,12 @@ begin
       if (ArgIndex = 1) then
         //First arg must be an integer constant
         if (Slugs[ArgIndex].ILItem <> nil) or (Slugs[ArgIndex].Operand.Kind <> pkImmediate) then
-          EXIT(errFuncCall('Argument ''' + Func.Params[1].Name + ''' must be an integer constant expression', Func));
+          EXIT(errFuncCallSub(qeIntegerConstantArgExpected, Func.Params[1].Name, Func));
     if Func.Op in [opHi, opLo, opSwap] then
       //Arg must be > 8 bits wide
       if (Slugs[ArgIndex].ILItem <> nil) or (Slugs[ArgIndex].Operand.Kind <> pkImmediate) then
         if GetTypeSize(Slugs[ArgIndex].ResultType) = 1 then
-          EXIT(errFuncCall('Argument must be larger than one byte', Func));
+          EXIT(errFuncCall(qeBytePassedToHiLoSwap, Func));
 
 
     //More parameters
@@ -142,7 +140,7 @@ begin
     if Ch = ')' then
       Parser.SkipChar
     else
-      EXIT(ErrMsg(qeSyntax, ermCommaOrCloseParensExpected));
+      EXIT(Err(qeCommaOrCloseParensExpected));
 
   //Set any default parameter values
   while (ArgIndex < Func.ParamCount) and Func.Params[ArgIndex].HasDefaultValue do
@@ -167,8 +165,8 @@ begin
 
   //Validate number of arguments
   if ArgIndex <> Func.ParamCount then
-    EXIT(ErrFuncCall('Not enough parameters (found '+ ArgIndex.ToString +
-      ', wanted '+ Func.ParamCount.ToString +')', Func));
+    EXIT(ErrFuncCallSub2(qeNotEnoughParameters, ArgIndex.ToString, Func.ParamCount.ToString,
+      Func));
 
   Result := qeNone;
 end;
@@ -296,7 +294,7 @@ begin
     if ResultTypeDebug <> vtUnknown then
       Msg := Msg + ': ' + VarTypeToName(ResultTypeDebug);
 
-    EXIT(errFuncCall('Couldn''t find a primitive with matching argument types: ''' + Func.Name + Msg + '''', Func));
+    EXIT(errFuncCallSub(qeFuncPrimitivenotFound, Func.Name + Msg, Func));
   end;
 
   //Evaluate at compile time (if possible)
@@ -380,7 +378,7 @@ begin
       //Verify the argument is a type we can handle
       if not (Slug.ResultType in [vtInt8, vtInteger, vtByte, vtWord, vtPointer,
         vtBoolean, vtChar]) then
-        EXIT(ErrMsg(qeTodo, 'Unhandled parameter type for Write/ln: ' + VarTypeToName(Slug.ResultType)));
+        EXIT(ErrTODO('Unhandled parameter type for Write/ln: ' + VarTypeToName(Slug.ResultType)));
 
       //Generate the code.
       //NOTE: We need to pass in two slugs. Second will be ignored because of ParamCount value of 1
@@ -396,7 +394,7 @@ begin
       if Ch = ')' then
         Parser.SkipChar
       else
-        EXIT(ErrMsg(qeSyntax, ermCommaOrCloseParensExpected));
+        EXIT(Err(qeCommaOrCloseParensExpected));
   end;
 
   if NewLine then
@@ -461,9 +459,6 @@ begin
       end;
     end;
 
-  //Add the function call
-  ILAppendFuncCall(ILItem, Func);
-
   //Store any output parameters
   for ArgIndex := 0 to Func.ParamCount-1 do
     if Func.Params[ArgIndex].Access = vaOut then
@@ -485,6 +480,9 @@ begin
         raise Exception.Create('Unknown access specifier (out)');
       end;
     end;
+
+  //Add the function call
+  ILAppendFuncCall(ILItem, Func);
 
   //Return value has to be the very last one we do - it will be assigned by caller
   if Func.ResultCount > 0 then
@@ -570,7 +568,7 @@ var Slugs: TSlugArray;
   Param: PParameter;
 begin
   if Func.ResultCount = 0 then
-    EXIT(ErrFuncCall(ermCantAssignProcedure, Func));
+    EXIT(ErrFuncCall(qeCantAssignProcedure, Func));
 
   //Parse and validate arguments
   Result := ParseArgList(Func, Slugs);

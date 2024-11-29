@@ -71,7 +71,7 @@ begin
   //Have we already read a parameter with that name?
   if ParamIndex > 0 then
     if Func.FindParam(Ident, ParamIndex-1) <> nil then
-      EXIT(ErrMsg(qeFunctionDeclaration, 'Parameter name redeclared: ' + Ident));
+      EXIT(ErrSub(qeParamNameRedeclared, Ident));
 
   //Does current match any forward declaration?
   if ffForward in Func.Flags then
@@ -89,21 +89,21 @@ end;
 //  Reg params must be Value, Out or Result
 //  Registers must be unique within a declaration, unless one usage is an input
 //  (value) parameter, and the other is an output (out, result) parameter.
-function ValidateRegParam(Func: PFunction;ParamIndex: Integer;Reg: TCPUReg): Boolean;
+function ValidateRegParam(Func: PFunction;ParamIndex: Integer;Reg: TCPUReg): TQuicheError;
 var Access: TVarAccess;
   IsOutput: Boolean;
   P: Integer;
 begin
   Access := Func.Params[ParamIndex].Access;
   if not (Access in [vaVal, vaOut, vaResult]) then
-    EXIT(False);
+    EXIT(qeRegisterParamInvalidAccessType);
   if ParamIndex = 0 then
-    EXIT(True);
+    EXIT(qeNone);
   IsOutput := Access in [vaOut, vaResult];
   for P := 0 to ParamIndex-1 do
     if (Func.Params[P].Reg = Reg) and (IsOutput = (Func.Params[P].Access in [vaOut, vaResult])) then
-      EXIT(False);
-  Result := True;
+      EXIT(ErrSub(qeRegisterParamRedeclared, CPURegStrings[Reg]));
+  Result := qeNone;
 end;
 
 //Parse the type part of a parameter declaration and add it to the function declaration
@@ -153,12 +153,18 @@ begin
   begin
     //Registers have to be unique. So list parameters are an error
     if FirstParam <> ParamIndex then
-      EXIT(ErrMsg(qeFunctionDeclaration, 'Register parameter redeclared: ' + Ident));
-    if not ValidateRegParam(Func, ParamIndex, Reg) then
-      EXIT(ErrMsg(qeFunctionDeclaration, 'Invalid register parameter name'));
+      EXIT(ErrSub(qeRegisterParamRedeclared, Ident));
+    Result := ValidateRegParam(Func, ParamIndex, Reg);
+    if Result <> qeNone then
+      EXIT;
     //TODO: Validate all params are reg params ?At end of definition?
+
     if TestForIdent('as') then
     begin //Type specified
+      Result := Parser.SkipWhite;
+      if Result <> qeNone then
+        EXIT;
+
       Result := ParseVarTypeName(VarType);
       if Result <> qeNone then
         EXIT;
@@ -264,7 +270,7 @@ begin
 
     //Type definition marker
     if Ch <> ':' then
-      EXIT(ErrSyntaxMsg(synFunctionParameterDeclaration, ': expected after parameter name'));
+      EXIT(Err(qeColonExpectedFuncDecl));
 
     //Parse and process the type definition, and apply it to the list of parameters
     //we've just read.
@@ -280,7 +286,7 @@ begin
     Ch := Parser.TestChar;
     Parser.SkipChar;
     if not CharInSet(Ch, [';',')']) then
-      EXIT(ErrSyntaxMsg(synFunctionParameterDeclaration, ''';'' or '')'' expected'));
+      EXIT(Err(qeSemicolonOrCloseBraceExpectedFuncDecl));
     inc (ParamIndex);
   until Ch = ')';
 
@@ -311,7 +317,7 @@ begin
     IsReg := Func.Params[0].Reg <> rNone;
     for P := 1 to Func.ParamCount + Func.ResultCount-1 do
       if IsReg <> (Func.Params[P].Reg <> rNone) then
-        EXIT(ErrMsg(qeFunctionDeclaration, 'Either all parameters must be register parameters, or none'));
+        EXIT(Err(qeRegisterParamMismatch));
   end;
 
   ExprType := vtPointer;
@@ -321,14 +327,14 @@ begin
   if (Slug.ILItem <> nil) or (Slug.Operand.Kind <> pkImmediate) then
     EXIT(Err(qeConstantExpressionExpected));
   if not IsIntegerType(Slug.Operand.Imm.VarType) then
-    EXIT(errSyntaxMsg(synFunctionDeclaration, 'Value for Code and RST directives must be an integer type'));
+    EXIT(err(qeIntegerExpectedForCALLOrRST));
   case Func.CallingConvention of
     ccCall:
       if (Slug.Operand.Imm.IntValue < 0) or (Slug.Operand.Imm.IntValue > $ffff) then
-        EXIT(errSyntaxMsg(synFunctionDeclaration, 'Invalid value for Code directive'));
+        EXIT(err(qeCALLDirectiveOutOfRange));
     ccRST:
       if not Slug.Operand.Imm.IntValue in [0..8,$10,$18,$20,$28,$30,$38] then
-        EXIT(errSyntaxMsg(synFunctionDeclaration, 'Invalid value for RST directive'));
+        EXIT(err(qeRSTDirectiveOutOfRange));
   else
     Assert(False);
   end;
@@ -387,18 +393,18 @@ begin
       begin
         if IsForward or Func.IsExtern then
           //Extern and forward are incompatible
-          EXIT(ErrMsg(qeFunctionDeclaration, 'Call and RST functions can''t be forward declared'));
+          EXIT(Err(qeCALLOrRSTForwardDeclared));
         NoCode := True;
         IsForward := True;
         if ffForward in Func.Flags then
-          EXIT(ErrMsg(qeFunctionDeclaration, 'Function has already been declared as FORWARD'));
+          EXIT(Err(qeFORWARDRedeclared));
       end;
       dirCALL, dirRST:
       begin
         if IsForward then //Extern and forward are incompatible
-          EXIT(ErrMsg(qeFunctionDeclaration, 'Call and RST functions can''t be forward declared'));
+          EXIT(Err(qeCALLOrRSTForwardDeclared));
         if Func.IsExtern then //Extern and forward are incompatible
-          EXIT(ErrMsg(qeFunctionDeclaration, 'Multiple Call or RST directives not allowed'));
+          EXIT(Err(qeMultipleCALLOrRST));
         NoCode := True;
         Func.IsExtern := True;
         case NextDirective of
@@ -413,12 +419,12 @@ begin
       end;
       dirSTACK:
         if Func.CallingConvention <> ccUnknown then
-          EXIT(ErrMsg(qeFunctionDeclaration, 'Multiple calling convention directives given'))
+          EXIT(Err(qeMultipleCallingConventions))
         else
           Convention := ccStack;
       dirREGISTER:
         if Func.CallingConvention <> ccUnknown then
-          EXIT(ErrMsg(qeFunctionDeclaration, 'Multiple calling convention directives given'))
+          EXIT(Err(qeMultipleCallingConventions))
         else
           Convention := ccRegister;
       //To add extra calling conventions:
@@ -452,7 +458,7 @@ begin
       end
       else if Func.CallingConvention <> ccUnknown then
         //Can't have muliple calling conventions
-        EXIT(ErrMsg(qeFunctionDeclaration, 'Only one calling conventioned allowed'))
+        EXIT(Err(qeMultipleCallingConventions))
       else
         Func.CallingConvention := Convention;
   end;
@@ -627,7 +633,7 @@ begin
       Func.ResultCount := 1;
     end
     else
-      EXIT(ErrMsg(qeFunctionDeclaration, 'Function must have a result'));
+      EXIT(Err(qeFunctionResultExpected));
 
   Result := ParseDirectives(Func, NoCode);
   if Result <> qeNone then

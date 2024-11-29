@@ -72,6 +72,11 @@ type TBaseReader = class
     //If no char available (EOF, EOLN) returns #0
     function TestChar: Char;
 
+    //Skips whitespace but not new lines.
+    //Returns True if we are at the end of the line
+    function SkipWhiteChars: Boolean;
+
+
     function GetCursor: TParseCursor;
     //Restore the cursor to a previous position
     procedure SetCursor(const Cursor: TParseCursor);
@@ -108,9 +113,6 @@ type TBaseReader = class
     //Returns a hex ($ prefix) or decimal number
     function ReadNumber: String;
 
-    //Skips whitespace but not new lines.
-    //Returns True if we are at the end of the line
-    function SkipWhiteSpace: Boolean;
     //Reads and returns all chars from cursor to end of line
     function ReadLine: String;
   end;
@@ -325,6 +327,13 @@ begin
     SkipChar;
 end;
 
+function TBaseReader.SkipWhiteChars: Boolean;
+begin
+  while (FColumn < Length(FLine)) and CharInSet(FLine.Chars[FColumn], csWhiteSpace) do
+    inc(FColumn);
+  Result := FColumn >= Length(FLine);
+end;
+
 function TBaseReader.TestChar: Char;
 begin
   if FColumn < Length(FLine) then
@@ -385,13 +394,6 @@ begin
   while CharInSet(TestChar, Chars) do
     if ReadChar(Ch) then
       Result := Result + Ch;
-end;
-
-function TGenericReader.SkipWhiteSpace: Boolean;
-begin
-  while (FColumn < Length(FLine)) and CharInSet(FLine.Chars[FColumn], csWhiteSpace) do
-    inc(FColumn);
-  Result := FColumn >= Length(FLine);
 end;
 
 { TQuicheSourceReader }
@@ -592,15 +594,23 @@ begin
 end;
 
 function TQuicheSourceReader.SkipToNextLine: TQuicheError;
+var NewLine: Boolean;
 begin
+  NewLine := False;
   repeat
     Result := DoSkipWhiteLine;
     if Result <> qeNone then
       EXIT;
     if EOLN then
+    begin
       NextLine;
+      NewLine := True;
+    end;
   until FState = psCode;
-  Result := qeNone;
+  if NewLine then
+    Result := qeNone
+  else
+    Result := qeNewlineExpected
 end;
 
 function TQuicheSourceReader.SkipWhite: TQuicheError;

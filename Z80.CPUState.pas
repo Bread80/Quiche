@@ -274,6 +274,7 @@ end;
 
 procedure RegStateSetVariable(Reg: TCPUReg;AVariable: PVariable;AVersion: Integer;AKind: TRegStateKind);
 var R: TCPUReg;
+  Flag: TCPUReg;
 begin
   if AKind = rskUnknown then
   begin
@@ -355,20 +356,30 @@ begin
     rCF, rZF, rZFA:  //Not sure if this is actually meaningful
     begin
       Assert(AKind = rskVarValue);
-      CPUState[Reg].Kind := AKind;
-      CPUState[Reg].Variable := AVariable;
-      CPUState[Reg].Version := AVersion;
-      CPUState[Reg].IsModified := True;
+      if Reg = rZFA then
+        Flag := rZF
+      else
+        Flag := Reg;
+      CPUState[Flag].Kind := AKind;
+      CPUState[Flag].Variable := AVariable;
+      CPUState[Flag].Version := AVersion;
+      CPUState[Flag].IsModified := True;
       if Reg = rZFA then
         RegStateSetVariable(rA, AVariable, AVersion, rskVarValue);
     end;
     rNCF, rNZF, rNZFA:
     begin
       Assert(AKind = rskVarValue);
-      CPUState[Reg].Kind := rskVarValueInverted;
-      CPUState[Reg].Variable := AVariable;
-      CPUState[Reg].Version := AVersion;
-      CPUState[Reg].IsModified := True;
+      case Reg of
+        rNCF: Flag := rCF;
+        rNZF, rNZFA: Flag := rZF;
+      else
+        Flag := Reg;
+      end;
+      CPUState[Flag].Kind := rskVarValueInverted;
+      CPUState[Flag].Variable := AVariable;
+      CPUState[Flag].Version := AVersion;
+      CPUState[Flag].IsModified := True;
       if Reg = rNZFA then
         RegStateSetVariable(rA, AVariable, AVersion, rskVarValueInverted);
     end;
@@ -499,6 +510,23 @@ end;
 function RegStateEqualsVariable(Reg: TCPUReg;AVariable: PVariable;AVersion: Integer;
   AKind: TRegStateKind): Boolean;
 begin
+  if Reg in [rNZF, rNCF] then
+  begin
+    case AKind of
+      rskVarValue: AKind := rskVarValueInverted;
+      rskVarValueInverted: AKind := rskVarValue;
+    else
+      Assert(False);
+    end;
+
+    case Reg of
+      rNZF: Reg := rZF;
+      rNCF: Reg := rCF;
+    else
+      Assert(False);
+    end;
+  end;
+
   Result := (CPUState[Reg].Kind = AKind) and (CPUState[Reg].Variable = AVariable) and
     (CPUState[Reg].Version = AVersion);
 end;

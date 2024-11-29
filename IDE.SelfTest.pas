@@ -269,7 +269,8 @@ var TestGroups: TTestGroups;
 procedure LoadSelfTests;
 
 implementation
-uses Classes, IOUtils;
+uses Classes, IOUtils,
+  Parse.Errors;
 
 const TestActionStrings: array[low(TTestAction)..high(TTestAction)] of String = (
   'VarType', 'Compile', 'UsesPrimitive', 'VarValue', 'Runtime');
@@ -286,6 +287,7 @@ const
   errExpectedThreeFields = 'Expected three fields';
 //  errExpectedTwoOrThreeFields = 'Expected two or three fields';
   errInvalidField = 'Invalid field: ';
+  errUnknownCompileError = 'Unknown compile error: ';
 
   { TTestOptions }
 
@@ -325,8 +327,10 @@ begin
   Step.Name := Fields[1];
   FWantCompileError := CompareText(Step.Name, 'noerror') <> 0;
 
-  //TODO: Decode error identifier
-end;
+(*  if FWantCompileError then
+    if not IsValidCompileError(Step.Name) then
+      EXIT(errUnknownCompileError + Step.Name);
+*)end;
 
 function TTest.AddRuntimeError(Fields: TArray<String>): String;
 var Step: PTestStep;
@@ -613,13 +617,20 @@ begin
 end;
 
 procedure TTest.TestCompileError(Step: PTestStep);
+var Err: String;
 begin
   if CompareText(Step.Name, 'noerror') = 0 then
     EXIT;
 
-  //TODO: check for the exact error. (For now we can just test for the presence of
-  //an error
-  Check(ParseErrorNo <> 0, Step, 'Parse error NOT generated. Expected ''' + Step.Name + ''''#13);
+  Check(Step.Name <> '', Step, 'COMPILE ERROR EXPECTED BUT NO ERROR SPECIFIED');
+  Check(Step.Name <> 'noerror', Step, 'COMPILE ERROR EXPECTED BUT NO ERROR SPECIFIED');
+
+  Err := ErrorToName(LastError);
+  if LastError = qeNone then
+    Check(False, Step, 'Parse error NOT generated. Expected ''' + Step.Name + ''''#13)
+  else
+    Check(CompareText(Err, Step.Name) = 0, Step, 'Incorrect parse error generated. Expected: ' +
+      Step.Name + ' got ' + Err + #13);
 end;
 
 procedure TTest.TestRunTimeError(Step: PTestStep);

@@ -271,7 +271,6 @@ begin
     Ident := First
   else
   begin
-    Parser.SkipWhite; //<--TO BE REMOVED
     Parser.Mark;
 
     if not Parser.ReadChar(Ch) then
@@ -381,7 +380,7 @@ begin
     end;
 
     if VarType in [vtReal, vtString] then
-      EXIT(ErrMsg(qeTodo, 'Type not yet supported: ' + VarTypeToName(VarType)));
+      EXIT(ErrTODO('Type not yet supported: ' + VarTypeToName(VarType)));
   end;
 
   if VarType = vtUnknown then
@@ -424,9 +423,6 @@ var
   IXIYState: TIXIYState;
   WhiteSpace: Boolean;
   Reg: TCPUReg;
-const
-  strCorruptsAttrError = 'Invalid corrupts attribute: ''%s''. Valid values are A,B,C,D,E,F,H,L,IX,IY,L,X,Y. Whitespace and comma separators are allowed.';
-  strXorYRequired = 'X or Y required after I in Corrupts attribute (IX or IY register)';
 begin
   AttrPreserves := CPURegsAll;
   Parser.SkipWhite;  //<--TO BE REMOVED
@@ -443,7 +439,7 @@ begin
         #0..#32,',': WhiteSpace := True;  //Whitespace and separators
         ']':
           if IXIYState <> xsNone then
-            EXIT(ErrMsg(qeAttributeError, StrXOrYRequired))
+            EXIT(Err(qeXOrYExpected))
           else
             EXIT(qeNone);
         'A': Reg := rA;
@@ -455,7 +451,7 @@ begin
         'H': Reg := rH;
         'I':
           if IXIYState <> xsNone then
-            EXIT(ErrMsg(qeAttributeError, StrXOrYRequired))
+            EXIT(Err(qeXOrYExpected))
           else
             IXIYState := xsIRead;
         'L': Reg := rL;
@@ -463,14 +459,14 @@ begin
           if IXIYState = xsWaitingXY then
             Reg := rIX
           else
-            EXIT(ErrMsg(qeAttributeError, StrXOrYRequired));
+            EXIT(Err(qeXOrYExpected));
         'Y':
           if IXIYState = xsWaitingXY then
             Reg := rIY
           else
-            EXIT(ErrMsg(qeAttributeError, StrXOrYRequired));
+            EXIT(Err(qeXOrYExpected));
       else
-        EXIT(ErrMsg(qeAttributeError, Format(strCorruptsAttrError, [Ch])));
+        EXIT(ErrSub(qeInvalidCorruptsAttr, Ch));
       end;
 
       if IXIYState = xsWaitingXY then
@@ -478,7 +474,7 @@ begin
         if Reg in [rIX, rIY] then
           AttrPreserves := AttrPreserves - [Reg]
         else
-          EXIT(ErrMsg(qeAttributeError, StrXOrYRequired));
+          EXIT(Err(qeXOrYExpected));
         IXIYState := xsNone;
       end
       else
@@ -489,7 +485,7 @@ begin
         IXIYState := xsWaitingXY;
     end
     else
-      EXIT(ErrMsg(qeAttributeError, Format(strCorruptsAttrError, [Ch])))
+      EXIT(ErrSub(qeInvalidCorruptsAttr, Ch));
   end;
 end;
 
@@ -499,7 +495,7 @@ var Ident: String;
 begin
   Result := ParseIdentifier(#0, Ident);
   if Result <> qeNone then
-    EXIT(ErrMsg(qeAttributeError, 'Attribute name expected'));
+    EXIT(ErrSub(qeInvalidAttrName, Ident));
 
   if CompareText(Ident, 'corrupts') = 0 then
     EXIT(ParseCorruptsAttribute)
@@ -511,11 +507,11 @@ begin
       EXIT;
 }    Parser.SkipWhite;
     if Parser.TestChar <> ']' then
-      EXIT(ErrMsg(qeAttributeError, '''['' expected at end of attribute'));
+      EXIT(Err(qeCloseSquareExpectedAttr));
     Parser.SkipChar;
   end
   else
-    EXIT(ErrMsg(qeAttributeError, 'Unknown attribute: ' + Ident));
+    EXIT(ErrSub(qeInvalidAttrName, Ident));
 end;
 
 var CurrSkipMode: Boolean;

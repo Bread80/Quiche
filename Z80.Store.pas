@@ -51,8 +51,12 @@ uses Classes, SysUtils,
 //value in A
 procedure GenToBoolean(Reg: TCPUReg;const Param: TILParam;Options: TMoveOptionSet);
 var FlagsCorrupt: Boolean;
+  Unknowns: TCPURegSet;
+  OptionTests: TMoveOptionSet;
 begin
   FlagsCorrupt := True; //Assume
+  OptionTests := [moPreserveCF, moPreserveOtherFlags, moPreserveA];
+  Unknowns := [rCF, rZF, rFlags];
   case Reg of
     rA, rAF: FlagsCorrupt := False;
     rZF:   GenFragmentParamName('zftoboolean', Param, 'd');
@@ -60,16 +64,22 @@ begin
     rNZF:  GenFragmentParamName('nzftoboolean', Param, 'd');
     rNZFA: GenFragmentParamName('atoboolean', Param, 'd');
     rCPLA: GenFragmentParamName('cpla', Param, 'd');
-    rCF:   GenFragmentParamName('cftoboolean', Param, 'd');
+    rCF:
+    begin
+      GenFragmentParamName('cftoboolean', Param, 'd');
+      RegStateSetUnknown(rFlags);
+      RegStateSetVariable(rNZF, Param.Variable, Param.VarVersion, rskVarValue);
+      Unknowns := [];
+    end;
     rNCF:  GenFragmentParamName('ncftoboolean', Param, 'd');
   else
     Assert(False);
   end;
   if FlagsCorrupt then
   begin
-    Assert(Options * [moPreserveCF, moPreserveOtherFlags, moPreserveA] = [],
+    Assert(Options * OptionTests = [],
       'I can''t perform this action whilst preserving A or Flags');
-    RegStateSetUnknowns([rCF, rZF, rFlags]);
+    RegStateSetUnknowns(Unknowns);
   end;
   if Param.Kind = pkVarDest then
     RegStateSetVariable(rA, Param.Variable, Param.VarVersion, rskVarValue);
