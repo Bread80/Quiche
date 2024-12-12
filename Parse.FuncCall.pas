@@ -17,10 +17,6 @@ uses SysUtils,
   Parse.Base, Parse.Eval,
   Z80.CPU;
 
-{const ParamRegToAllocLoc: array[low(TParamReg)..high(TParamReg)] of TCPUReg =
-  (rNone, rA, rB, rC, rD, rE, rH, rL, rBC, rDE, rHL, rCF, rZF);
-}
-
 type TSlugArray= array[0..MaxFunctionParams] of TExprSlug;
 
 //Read an argument from the source code, and return it in a Slug
@@ -30,8 +26,25 @@ begin
   Slug.Initialise;
 
   //Parse argument - and validate type compatibility
-  VType := Arg.VarType;
+  if Arg.VarType = vtTypeDef then
+    //Special handling for TypeDefs - Passing vtTypeDef to ParseExpressionToSlug
+    //will give errors if the arg doesn't reult in a type name...
+    VType := vtUnknown
+  else
+    VType := Arg.VarType;
+
   Result := ParseExpressionToSlug(Slug, VType);
+
+  //...and if it does we need to convert that result here
+  if (Arg.VarType = vtTypeDef) and (VType <> vtTypeDef) then
+    //If caller wants a TypeDef can we get TypeDef of value?
+    //Can't do this for expressions (at least, not yet! - TODO)
+    if Slug.ILItem = nil then
+    begin
+      Slug.Operand.Imm.CreateTypeDef(Slug.ResultType);
+      Slug.Operand.Kind := pkImmediate;
+      Slug.ResultType := vtTypeDef;
+    end;
 end;
 
 //Validate an argument and process as necessary, depending on the calling
@@ -116,17 +129,29 @@ begin
       EXIT;
 
     //Manual validation of some intrinsic properties
-    if Func.Op in [Def.Operators.opInc, Def.Operators.opDec] then
-      if (ArgIndex = 1) then
-        //First arg must be an integer constant
+    case Func.Op of
+      Def.Operators.OpInc, Def.Operators.OpDec:
+        if ArgIndex = 1 then
+          //Second arg must be an integer constant
+          if (Slugs[ArgIndex].ILItem <> nil) or (Slugs[ArgIndex].Operand.Kind <> pkImmediate) then
+            EXIT(errFuncCallSub(qeIntegerConstantArgExpected, Func.Params[1].Name, Func));
+      OpHi, OpLo, OpSwap:
+        //Arg must be > 8 bits wide
         if (Slugs[ArgIndex].ILItem <> nil) or (Slugs[ArgIndex].Operand.Kind <> pkImmediate) then
-          EXIT(errFuncCallSub(qeIntegerConstantArgExpected, Func.Params[1].Name, Func));
-    if Func.Op in [opHi, opLo, opSwap] then
-      //Arg must be > 8 bits wide
-      if (Slugs[ArgIndex].ILItem <> nil) or (Slugs[ArgIndex].Operand.Kind <> pkImmediate) then
-        if GetTypeSize(Slugs[ArgIndex].ResultType) = 1 then
-          EXIT(errFuncCall(qeBytePassedToHiLoSwap, Func));
-
+          if GetTypeSize(Slugs[ArgIndex].ResultType) = 1 then
+            EXIT(errFuncCall(qeBytePassedToHiLoSwap, Func));
+      OpPoke:
+        //Second arg must be a valid byte value (if Range Check is on)
+        if ArgIndex = 1 then
+          if (Slugs[ArgIndex].ILItem = nil) and (Slugs[ArgIndex].Operand.Kind = pkImmediate) then
+            if IsIntegerType(Slugs[ArgIndex].Operand.Imm.VarType) then
+            begin
+              if ValidateExprType(vtByte, Slugs[ArgIndex]) <> qeNone then
+                EXIT(errFuncCall(qeConstantOutOfRange, Func));
+              if Result <> qeNone then
+                EXIT;
+            end;
+    end;
 
     //More parameters
     Parser.SkipWhite;
@@ -148,13 +173,16 @@ begin
     Slugs[ArgIndex].Initialise;
     Slugs[ArgIndex].Operand.Kind := pkImmediate;
     if Func.Params[ArgIndex].VarType <> vtUnknown then
-      Slugs[ArgIndex].Operand.Imm.VarType := Func.Params[ArgIndex].VarType
+      Slugs[ArgIndex].Operand.Imm := Func.Params[ArgIndex].DefaultValue
     else  //SuperTypes - we have an Intrinsic!
       if Func.Params[ArgIndex].SuperType in [stAnyInteger, stOrdinal] then
         //TODO: This should give a better analysis of the type
-        Slugs[ArgIndex].Operand.Imm.VarType := vtInteger;//ValueToVarType(Func.Params[ArgIndex].DefaultValueInt);
+        Slugs[ArgIndex].Operand.Imm := Func.Params[ArgIndex].DefaultValue
+//
+//        Slugs[ArgIndex].Operand.Imm := .CreateInteger(vtInteger, TVarType(Func.Params[ArgIndex].DefaultValue.IntValue))
+      else
+        Assert(False, 'Type or Supertype required');
 
-    Slugs[ArgIndex].Operand.Imm := Func.Params[ArgIndex].DefaultValue;
     Slugs[ArgIndex].ResultType := Slugs[ArgIndex].Operand.Imm.VarType;
     Slugs[ArgIndex].ImplicitType := Slugs[ArgIndex].Operand.Imm.VarType;
     Result := ProcessArgument(Func, Func.CallingConvention, Func.Params[ArgIndex], Slugs[ArgIndex]);
@@ -227,8 +255,8 @@ begin
   if Func.Params[0].Access = vaVar then
   begin //Var parameter - result is written back to Param1
     V := Slug.ILItem.Param1.Variable;
-    V.IncWriteCount;
-    Slug.ILItem.Dest.SetVarDestAndVersion(V, V.WriteCount);
+    V.IncVersion;
+    Slug.ILItem.Dest.SetVarDestAndVersion(V, V.Version);
     Slug.ILItem.ResultType := V.VarType;
   end
   else
@@ -262,15 +290,14 @@ begin
         begin
           Assert((Slugs[I].ILItem = nil) and (Slugs[I].Operand.Kind = pkImmediate));
           //Update the Result Type of the slug
-          ResultType := Slugs[I].Operand.Imm.TypeValue;
+          ResultType := Slugs[I].Operand.Imm.TypeDefValue;
           Slugs[I].ResultType := ResultType;
           //Convert the TypeDef value to be the type. The actual value is ignored and irrelevent
-          Slugs[I].Operand.Imm.VarType := ResultType;
           //Prim search plays havoc with constants. Here we force the Range value
           if IsSignedType(ResultType) then
-            SetMinValue(Slugs[I].Operand.Imm)
+            Slugs[I].Operand.Imm.CreateTyped(ResultType, GetMinValue(ResultType))
           else
-            SetMaxValue(Slugs[I].Operand.Imm);
+            Slugs[I].Operand.Imm.CreateTyped(ResultType, GetMaxValue(ResultType));
         end;
   end;
   ResultTypeDebug := ResultType;
@@ -377,7 +404,7 @@ begin
 
       //Verify the argument is a type we can handle
       if not (Slug.ResultType in [vtInt8, vtInteger, vtByte, vtWord, vtPointer,
-        vtBoolean, vtChar]) then
+        vtBoolean, vtChar, vtString]) then
         EXIT(ErrTODO('Unhandled parameter type for Write/ln: ' + VarTypeToName(Slug.ResultType)));
 
       //Generate the code.
@@ -475,6 +502,8 @@ begin
           Param^ := Slugs[ArgIndex].Operand; //???
           Assert(Param.Kind = pkVarDest);
           Param.Reg := Func.Params[ArgIndex].Reg;
+          Param.Variable.IncVersion;
+          Param.VarVersion := Param.Variable.Version;
         end;
       else
         raise Exception.Create('Unknown access specifier (out)');

@@ -1008,3 +1008,26 @@ downcase_char:
   ret  
   
   
+;Writes a Pascal style short string to the default output
+;Entry: HL=address of the string data. 
+;       The data consists of a length byte followed by the ASCII data
+;Exit: All flags and registers preserved
+__q_writestring:
+  push hl
+  push bc
+  push af
+  
+  ld b,(hl)				;Get length byte
+  inc b					;Enable test for null string
+  jr .loop_end
+.loop
+  inc hl				;Next char
+  ld a,(hl)				;Get char
+  call s_writechar		;Output char
+.loop_end
+  djnz .loop				;Loop if more
+  
+  pop af
+  pop bc
+  pop hl
+  ret

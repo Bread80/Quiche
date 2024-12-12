@@ -30,6 +30,7 @@ s_newline:
 	ld a,10
 	call TXT_OUTPUT
 	pop af
+	ret
   
 ;;===============================================
 

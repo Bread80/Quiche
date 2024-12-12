@@ -2,13 +2,15 @@ unit Def.IL;
 
 interface
 uses Generics.Collections, Classes,
-  Def.Functions, Def.Operators, Def.QTypes, Def.Variables,
+  Def.Functions, Def.Operators, Def.QTypes, Def.Consts, Def.Variables,
   Z80.CPU;
 
 //Locations where an operation will find and store it's data
 type TILParamKind = (
     pkNone,         //No parameter
-    pkImmediate,    //Immediate data (constant)
+    pkImmediate,    //Immediate data (literal or result of a constant expression)
+                    //For types which are referenced by pointers (strings ...)
+                    //The immediate data is the /address/ of the data in the data area
     pkPhiVarSource, //Parameter for a phi function for a variable
     pkPhiVarDest,   // "
     pkVarSource,    //Read from variable
@@ -47,7 +49,6 @@ type
 
     //These routines set the Kind and (usually) the payload. They also perform
     //validation where possible
-    procedure SetImmediate(AImmType: TVarType);
     procedure SetPhiVarSource(ABlockID: Integer; AVarVersion: Integer);
     procedure SetPhiVarDest(AVar: PVariable;AVersion: Integer);
     procedure SetVarSourceAndVersion(AVariable: PVariable; AVersion: Integer);
@@ -168,6 +169,9 @@ function GetNextBlockID: Integer;
 //Allocates a new IL item and appends it to the list
 function ILAppend(AnOp: TOperator): PILItem;
 //Allocates a new IL item and inserts it into the IL list at the given Index
+//The new ILItem will be a part of the same block as the existing ILItem at that index
+//(Ie. if the existing item is the start of a block it's BlockID will be moved to the
+//new item
 function ILInsert(Index: Integer;AnOp: TOperator): PILItem;
 
 //Append an ILItem for an unconditional branch
@@ -335,10 +339,18 @@ begin
 end;
 
 function ILInsert(Index: Integer;AnOp: TOperator): PILItem;
+var After: PILItem;
 begin
+  After := ILIndexToData(Index);
+
   Result := ILCreate;
   Result.Op := AnOp;
   ILList.Insert(Index, Result);
+  if After.BlockID <> -1 then
+  begin
+    Result.BlockID := After.BlockID;
+    After.BlockID := -1;
+  end;
 end;
 
 function ILAppendBranch(BranchID: Integer): PILItem;
@@ -444,13 +456,6 @@ begin
   BranchInvert := False;
 end;
 
-procedure TILParam.SetImmediate(AImmType: TVarType);
-begin
-  //Assert(Kind in [pkNone, pkImmediate]);
-  Kind := pkImmediate;
-  Imm.VarType := AImmType;
-end;
-
 procedure TILParam.SetPhiVarDest(AVar: PVariable; AVersion: Integer);
 begin
   Assert(Kind = pkNone);
@@ -486,18 +491,8 @@ end;
 
 procedure TILParam.SetVarSource(AVariable: PVariable);
 begin
-   SetVarSourceAndVersion(AVariable, AVariable.WriteCount);
+   SetVarSourceAndVersion(AVariable, AVariable.Version);
 end;
-
-(*function TILParam.ImmToInteger: Integer;
-begin
-  Assert(Kind = pkImmediate);
-
-  Result := ImmValueInt;
-//  if IsSignedType(ImmType) and (Result >= $8000) then
-//    Result := Result or (-1 xor $ffff);
-end;
-*)
 
 function TILParam.GetVarType: TVarType;
 begin
@@ -619,7 +614,7 @@ end;
 function TILItem.AssignToHiddenVar(VarType: TVarType): PVariable;
 begin
   Result := VarCreateHidden(VarType);
-  Dest.SetVarDestAndVersion(Result, Result.WriteCount);
+  Dest.SetVarDestAndVersion(Result, Result.Version);
 end;
 
 function TILItem.GetBranchBlockID: Integer;

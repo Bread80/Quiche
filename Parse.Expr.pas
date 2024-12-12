@@ -1,7 +1,7 @@
 unit Parse.Expr;
 
 interface
-uses Def.IL, Def.Operators, Def.QTypes,
+uses Def.IL, Def.Operators, Def.QTypes, Def.Consts, Def.Variables,
   Parse.Errors;
 
 //Unary prefix operators
@@ -19,7 +19,6 @@ type
 //The expression parser breaks the input stream down into chunks of an operand and an
 //operation. A 'slug' (for want of a better term) is one of those chunks.
 type
-//  PExprSlug = ^TExprSlug;
   TExprSlug = record
     //NOTE: If ILItem is non-nil then Operand will be ignored
     ILItem: PILItem;  //Returns the ILItem of a sub-expression or unary operators
@@ -33,7 +32,6 @@ type
 
     Op: TOperator;    //Index into Operators list
 
-//    OpType: TOpType;    //Type for the operator
     ResultType: TVarType; //Type for the result
     ImplicitType: TVarType;//?? Type for type inference
 
@@ -53,6 +51,18 @@ type
     function OpData: POpData;
   end;
 
+//Creates IL to assign the slug to a variable.
+//If Variable is nil it will be created.
+//If VType is nil:
+//  If the variable is being created it will be assigned the implicit type of the expression
+//  Otherwise the variable will be checked for compatibility with the expressions result type
+procedure AssignSlugToVariable(const Slug: TExprSlug;var Variable: PVariable;
+  VType: TVarType);
+
+//Tests whether the expression returned by Slug is compatible with the type
+//given in ExprType. If it is returns errNone, otherwise returns a suitable error code
+function ValidateExprType(ExprType: TVarType;const Slug: TExprSlug): TQuicheError;
+
 function ParseExpressionToSlug(var Slug: TExprSlug;var ExprType: TVarType): TQuicheError;
 
 //Parses an expression to an ILItem with a single parameter and no operation
@@ -65,6 +75,19 @@ function ParseExprToILItem(out ILItem: PILItem;out VType: TVarType): TQuicheErro
 //On entry a value of vtUnknown may be passed for ExprType. If so ExprType will
 //return the type of the expression parsed
 function ParseConstantExpression(out Value: TImmValue;var ExprType: TVarType): TQuicheError;
+
+//Parses an expression (After the <varname> := has been parsed) and creates IL
+//to assign it to the Variable which has been passed in. VarIndex is the index of
+//the Variable
+//If Variable is nil and VarIndex is -1, creates a new variable, assigning it a
+//type based on the result of the expression. The caller will then need to fill
+//in the variables Name, and any other necessary details.
+//WARNING: When creating and initialising a variable the variable MUST be created
+//*after* the expression has been evaluated. If the variable is created before
+//then it will be possible to reference the variable within the expression which
+//would, of course, be an bug.
+function ParseAssignmentExpr(var Variable: PVariable;VType: TVarType): TQuicheError;
+
 
 
 (*
@@ -85,7 +108,7 @@ function ParseConstantExpression(out Value: TImmValue;var ExprType: TVarType): T
 *)
 implementation
 uses SysUtils,
-  Def.Globals, Def.Functions, Def.Primitives, Def.Scopes, Def.Variables, Def.Consts,
+  Def.Globals, Def.Functions, Def.Primitives, Def.Scopes,
   Parse.Base, Parse.Eval, Parse.FuncCall, Parse.Source;
 
 //===================================== Slugs
@@ -115,7 +138,7 @@ end;
 procedure TExprSlug.SetImmediate(AImmType: TVarType);
 begin
   Assert(ILItem = nil);
-  Operand.SetImmediate(AImmType);
+  Operand.Kind := pkImmediate;
   ResultType := AImmType;
 end;
 
@@ -134,10 +157,111 @@ begin
   end;
 end;
 
+procedure AssignSlugToVariable(const Slug: TExprSlug;var Variable: PVariable;
+  VType: TVarType);
+var VarVersion: Integer;
+  ILItem: PILItem;
+begin
+  if Variable = nil then
+  begin
+    if VType = vtUnknown then
+      Variable := VarCreateUnknown(Slug.ImplicitType)
+    else
+      Variable := VarCreateUnknown(VType);
+  end;
+
+  VarVersion := Variable.IncVersion;
+
+  if Slug.ILItem <> nil then
+  begin
+    ILItem := Slug.ILItem;
+    if ILItem.Op = OpUnknown then
+      if (ILItem.Param1.Kind = pkImmediate) and (ILItem.Param2.Kind = pkNone) then
+        ILItem.Op := OpStoreImm
+      else
+        ILItem.Op := OpMove;
+  end
+  else
+  begin
+    if Slug.Operand.Kind = pkImmediate then
+      ILItem := ILAppend(OpStoreImm)
+    else
+      ILItem := ILAppend(OpMove);
+    ILItem.Param1 := Slug.Operand;
+    ILItem.Param2.Kind := pkNone;
+    ILItem.ResultType := Slug.ResultType;
+  end;
+
+  ILItem.Dest.SetVarDestAndVersion(Variable, VarVersion);
+
+  //Overflows for an immediate assignment must be validated by the parser
+  if ILItem.Op = OpStoreImm then
+    ILItem.Flags := ILItem.Flags - [cgOverflowCheck];
+end;
+
 //======================================Parsing literals
 
+//Where the sign symbol is part of the number - ie. where there is no whitespace
+//between it and the first digit
+type TSign = (sgnNone, sgnMinus, sgnPlus);
+
+function ParseDecimal(var Slug: TExprSlug;Sign: TSign): TQuicheError;
+var S: String;
+  Value: Integer;
+  Ch: Char;
+  Large: Boolean; //If first digit is '0' expand type to vInteger/vtWord
+begin
+  if Sign = sgnMinus then
+    S := '-'
+  else
+    S := '';
+  Large := Parser.TestChar = '0';
+  while True do
+  begin
+    Ch := Parser.TestChar;
+    case Ch of
+      '0'..'9': S := S + Ch;
+      '.','e','E':  EXIT(ErrTODO('Floating point numbers are not yet supported :('));
+      '_': ;  //Ignore
+    else
+      if not TryStrToInt(S, Value) then
+        EXIT(Err(qeInvalidDecimalNumber));
+      if (Sign <> sgnNone) or Large then
+        Slug.ParamOrigin := poExplicit
+      else
+        Slug.ParamOrigin := poImplicit;
+
+      if (Sign <> sgnNone) or optDefaultSignedInteger then
+      begin
+        if optDefaultSmallestInteger and not Large and (Value >= -128) and (Value <= 127) then
+          Slug.ImplicitType := vtInt8
+        else
+          Slug.ImplicitType := vtInteger;
+      end
+      else
+      begin
+        if optDefaultSmallestInteger and not Large and (Value <= 255) then
+          Slug.ImplicitType := vtByte
+        else
+          Slug.ImplicitType := vtWord;
+      end;
+      Slug.Operand.Kind := pkImmediate;
+      Slug.Operand.Imm.CreateTyped(Slug.ImplicitType, Value);
+      Slug.ResultType := Slug.ImplicitType;
+      EXIT(qeNone);
+    end;
+
+    Parser.SkipChar;
+  end;
+end;
+
+
+
+//OLD VERSION - retained as it will be useful for on device parsing
+//Will require updating for sign prefixes and implicit types
+
 //Parses and returns an integer literal
-function ParseDecimal(var Slug: TExprSlug): TQuicheError;
+(*function ParseDecimal(var Slug: TExprSlug): TQuicheError;
 var
   Ch: Char;
   Value: Integer;
@@ -173,20 +297,23 @@ begin
     Parser.SkipChar;
   end;
 end;
+*)
 
-//Where the '-' sign has already been parsed
+//Where the '-' sign has already been parsed AND there is whitespace between
+//the sign and the digits
 function ParseNegativeDecimal(var Slug: TExprSlug): TQuicheError;
 begin
-  Result := ParseDecimal(Slug);
+  Result := ParseDecimal(Slug, sgnNone);
   if Result <> qeNone then
     EXIT;
 
   if Slug.Operand.Imm.IntValue <= -(GetMinValue(vtInteger)) then
   begin
-    Slug.SetImmediate(vtInteger);
-    Slug.Operand.Imm.IntValue := -Slug.Operand.Imm.IntValue;
+    Slug.Operand.Kind := pkImmediate;
+    Slug.Operand.Imm.CreateTyped(vtInteger, -Slug.Operand.Imm.IntValue);
     Slug.ParamOrigin := poImplicit;
     Slug.ImplicitType := vtInteger;
+    Slug.ResultType := vtInteger;
   end
   else
     EXIT(Err(qeInvalidDecimalNumber));
@@ -221,13 +348,14 @@ begin
       'a'..'f': Digit := ord(Ch) - ord('a') + 10;
       'A'..'F': Digit := ord(Ch) - ord('A') + 10;
       else
+        Slug.Operand.Kind := pkImmediate;
         if Digits <= 2 then
-          Slug.SetImmediate(vtByte)
+          Slug.Operand.Imm.CreateTyped(vtByte, Value)
         else
-          Slug.SetImmediate(vtPointer);
-        Slug.Operand.Imm.IntValue := Value;
+          Slug.Operand.Imm.CreateTyped(vtPointer, Value);
         Slug.ParamOrigin := poExplicit;
         Slug.ImplicitType := Slug.Operand.Imm.VarType;
+        Slug.ResultType := Slug.ImplicitType;
         EXIT(qeNone);
       end;
 
@@ -269,13 +397,14 @@ begin
     end
     else if Ch <> '_' then
     begin
+      Slug.Operand.Kind := pkImmediate;
       if Digits <= 8 then
-        Slug.SetImmediate(vtByte)
+        Slug.Operand.Imm.CreateTyped(vtByte, Value)
       else
-        Slug.SetImmediate(vtWord);
-      Slug.Operand.Imm.IntValue := Value;
+        Slug.Operand.Imm.CreateTyped(vtWord, Value);
       Slug.ParamOrigin := poExplicit;
       Slug.ImplicitType := Slug.Operand.Imm.VarType;
+      Slug.ResultType := Slug.ImplicitType;
       EXIT(qeNone);
     end;
 
@@ -325,6 +454,7 @@ function ParseStringOrChar(var Slug: TExprSlug): TQuicheError;
 var
   S: String;
   Ch: Char;
+  VarType: TVarType;
 begin
   Parser.Mark;
   S := '';
@@ -339,7 +469,7 @@ begin
 
       Ch := Parser.TestChar;
       case Ch of
-        '0'..'9': Result := ParseDecimal(Slug);
+        '0'..'9': Result := ParseDecimal(Slug, sgnNone);
         '$': Result := ParseHex(Slug);
         '%': Result := ParseBinary(Slug);
       else
@@ -352,17 +482,22 @@ begin
         S := S + chr(Slug.Operand.Imm.IntValue);
     end
     else  //End of string data
+    begin
       if Length(S) = 1 then
-      begin
-        Slug.SetImmediate(vtChar);
-        Slug.Operand.Imm.CharValue := S.Chars[0];
-        Slug.ParamOrigin := poExplicit;
-        Slug.ImplicitType := vtChar;
-        Slug.ResultType := vtChar;
-        EXIT(qeNone);
-      end
+        VarType := vtChar
       else
-        EXIT(ErrTODO('Strings are not yet supported :('));
+        VarType := vtString;
+
+      Slug.Operand.Kind := pkImmediate;
+      if VarType = vtChar then
+        Slug.Operand.Imm.CreateChar(S.Chars[0])
+      else
+        Slug.Operand.Imm.CreateString(S);
+      Slug.ParamOrigin := poExplicit;
+      Slug.ImplicitType := VarType;
+      Slug.ResultType := VarType;
+      EXIT(qeNone);
+    end;
   end;
 end;
 
@@ -390,10 +525,11 @@ begin
   begin
     if Parser.TestChar <> '(' then
     begin //Not a typecast
-      Slug.SetImmediate(vtTypeDef);
-      Slug.Operand.Imm.TypeValue := VarType;
+      Slug.Operand.Kind := pkImmediate;
+      Slug.Operand.Imm.CreateTypeDef(VarType);
       Slug.ParamOrigin := poExplicit;
       Slug.ImplicitType := vtTypeDef;
+      Slug.ResultType := vtTypeDef;
       EXIT(qeNone);
     end;
   end;
@@ -407,7 +543,7 @@ begin
       itConst:
       begin
         C := PConst(Item);
-        Slug.Operand.SetImmediate(C.VarType);
+        Slug.SetImmediate(C.VarType);
         Slug.Operand.Imm := C.Value;
         Slug.ParamOrigin := poExplicit;
         Slug.ResultType := C.VarType;
@@ -570,7 +706,7 @@ begin
         UnaryOp := opUnknown;
       end
       else
-        Result := ParseDecimal(Slug);
+        Result := ParseDecimal(Slug, sgnNone);
     '$': //Hex constant
       Result := ParseHex(Slug);
     '%': //Binary constant
@@ -584,22 +720,30 @@ begin
     '+': //Unary plus
     begin
       Parser.SkipChar;
-      EXIT(ParseOperand(Slug, UnaryOp));
+      if CharInSet(Parser.TestChar, ['0'..'9']) then
+        Result := ParseDecimal(Slug, sgnPlus)
+      else
+        EXIT(ParseOperand(Slug, UnaryOp));
     end;
     '-': //Unary subtract/negative
     begin
       Parser.SkipChar;
-      case UnaryOp of
-        opUnknown: Result := ParseOperand(Slug, opNegate);
-        opNegate: Result := ParseOperand(Slug, opUnknown);
-        opComplement: Result := ParseOperand(Slug, opNegate);
+      if CharInSet(Parser.TestChar, ['0'..'9']) then
+        Result := ParseDecimal(Slug, sgnMinus)
       else
-        EXIT(errBUG('Unknown/invalid unary operator'));
+      begin
+        case UnaryOp of
+          opUnknown: Result := ParseOperand(Slug, opNegate);
+          opNegate: Result := ParseOperand(Slug, opUnknown);
+          opComplement: Result := ParseOperand(Slug, opNegate);
+        else
+          EXIT(errBUG('Unknown/invalid unary operator'));
+        end;
+        if Result <> qeNone then
+          EXIT;
+        if UnaryOp = opNegate then
+          UnaryOp := opUnknown;
       end;
-      if Result <> qeNone then
-        EXIT;
-      if UnaryOp = opNegate then
-        UnaryOp := opUnknown;
     end;
   else
     EXIT(Err(qeOperandExpected));
@@ -668,9 +812,7 @@ begin
 end;
 
 
-
 //==============================Expressions
-
 
 //Tests whether the expression returned by Slug is compatible with the type
 //given in ExprType. If it is returns errNone, otherwise returns a suitable error code
@@ -681,14 +823,21 @@ begin
   begin //Single value, no expression
     if Slug.Operand.Kind = pkImmediate then
     begin
-      if IsIntegerType(ExprType) then
+      if IsIntegerType(ExprType) and IsIntegerType(Slug.Operand.Imm.VarType) then
+      begin //Integer value in range
         Valid := (Slug.Operand.Imm.IntValue >= GetMinValue(ExprType)) and
-          (Slug.Operand.Imm.IntValue <= GetMaxValue(ExprType))
-      else
+          (Slug.Operand.Imm.IntValue <= GetMaxValue(ExprType));
+        if not Valid then
+          EXIT(ErrSub2(qeConstantAssignmentOutOfRange, Slug.Operand.ImmValueToString,
+            VarTypeToName(ExprType)));
+      end
+      else  //One or both are not integer types
+      begin
         Valid := ValidateAssignmentType(ExprType, Slug.ResultType);
-      if not Valid then
-        EXIT(ErrSub2(qeConstantAssignmentOutOfRange, Slug.Operand.ImmValueToString,
-          VarTypeToName(ExprType)));
+        if not Valid then
+          EXIT(ErrSub2(qeTypeMismatch, VarTypeToName(Slug.ResultType),
+            VarTypeToName(ExprType)));
+      end
     end
     else
       Valid := ValidateAssignmentType(ExprType, Slug.ResultType);
@@ -723,9 +872,9 @@ begin
 
   //Update types for constants
   if (Left.ILItem = nil) and (Left.Operand.Kind = pkImmediate) then
-    Left.Operand.Imm.VarType := LType;
+    Left.Operand.Imm.UpdateVarType(LType);
   if (Right.ILItem = nil) and (Right.Operand.Kind = pkImmediate) then
-    Right.Operand.Imm.VarType := RType;
+    Right.Operand.Imm.UpdateVarType(RType);
 
   Left.ResultType := ResultType;
   Left.ImplicitType := ResultType;
@@ -791,6 +940,7 @@ begin
       begin
         Left.SetImmediate(EvalResult, EvalType);
 *)        Left.ImplicitType := Left.Operand.Imm.VarType;
+        Left.ResultType := Left.ImplicitType;
         Left.Op := Right.Op;
         if Right.Op = OpUnknown then
         begin
@@ -847,16 +997,6 @@ function FixupSlugNoOperation(var Slug: TExprSlug;var ExprType: TVarType): TQuic
 begin
   if Slug.ResultType = vtUnknown then
     Slug.ResultType := Slug.Operand.GetVarType;
-
-  if (ExprType = vtTypeDef) and (Slug.ResultType <> vtTypeDef) then
-    //If caller wants a TypeDef can we get TypeDef of value
-    //Can't do this for expressions (at least, not yet! - TODO)
-    if Slug.ILItem = nil then
-    begin
-      Slug.Operand.Imm.TypeValue := Slug.Operand.GetVarType;
-      Slug.Operand.SetImmediate(vtTypeDef);
-      Slug.ResultType := vtTypeDef;
-    end;
 
   if ExprType <> vtUnknown then
   begin
@@ -964,6 +1104,34 @@ begin
     EXIT(Err(qeConstantExpressionExpected));
 
   Value := Slug.Operand.Imm;
+end;
+
+function ParseAssignmentExpr(var Variable: PVariable;VType: TVarType): TQuicheError;
+var
+  ExprType: TVarType;
+  Slug: TExprSlug;
+begin
+  ExprType := VType;
+  Result := ParseExpressionToSlug(Slug, ExprType);
+  if Result <> qeNone then
+    EXIT;
+
+  if ExprType = vtString then
+    //TODO: If we are assigning a string literal to a variable (or passing as a var
+    //parameter) then we need to get the code generator to generate /modifable/
+    //string data (and to make sure that data is stored in RAM).
+    EXIT(ErrTODO('Strings variables are not currently supported.'));
+
+  //Verify assignment is in range. Only really required for integers due to
+  //implicit typing rules
+  if VType = vtUnknown then
+  begin
+    Result := ValidateExprType(ExprType, Slug);
+    if Result <> qeNone then
+      EXIT;
+  end;
+
+  AssignSlugToVariable(Slug, Variable, VType);
 end;
 
 end.

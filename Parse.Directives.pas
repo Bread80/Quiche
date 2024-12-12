@@ -57,7 +57,6 @@ end;
 function ParseCallingConvention: TQuicheError;
 var Ident: String;
   Directive: TFuncDirective;
-  Value: TCallingConvention;
 begin
   Parser.SkipWhiteChars;
   Result := ParseIdentifier(#0, Ident);
@@ -71,26 +70,6 @@ begin
   else
     Result := ErrSub(qeInvalidDirectiveValue, Ident);
   end;
-end;
-
-function ParseImplicitIntegerType: TQuicheError;
-var Ident: String;
-  VarType: TVarType;
-  Directive: TFuncDirective;
-  Value: TCallingConvention;
-begin
-  Parser.SkipWhiteChars;
-  Result := ParseIdentifier(#0, Ident);
-  if Result <> qeNone then
-    EXIT;
-
-  VarType := StringToVarType(Ident);
-  if VarType in [vtInteger, vtWord] then
-    optImplicitIntegerType := VarType
-  else
-    EXIT(ErrSub(qeInvalidDirectiveValue, Ident));
-
-  Result := qeNone;
 end;
 
 function ParseDirective: TQuicheError;
@@ -116,9 +95,13 @@ begin
     else if CompareText(Ident, 'VARAUTOCREATE') = 0 then
       Result := ParseBoolean(optVarAutoCreate)
 
+    else if CompareText(Ident, 'DEFAULTSIGNEDINTEGER') = 0 then
+      Result := ParseBoolean(optDefaultSignedInteger)
+    else if CompareText(Ident, 'DEFAULTSMALLESTINTEGER') = 0 then
+      Result := ParseBoolean(optDefaultSmallestInteger)
+
     //Parameter directives - Syntax
-    else if CompareText(Ident, 'IMPLICITINTEGERTYPE') = 0 then
-      Result := ParseImplicitIntegerType
+
     else
       Result := ErrSub(qeUnknownDirective, Ident);
 

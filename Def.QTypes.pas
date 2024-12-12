@@ -77,6 +77,10 @@ function StringToVarType(VarTypeName: String): TVarType;
 //returns the size of the pointer data, not the stored data.
 function GetTypeSize(VarType: TVarType): Integer;
 
+//Is this a type which is referenced by a pointer (as opposed to a type where the
+//value is directly stored in the register)
+function IsPointeredType(VarType: TVarType): Boolean;
+
 //Any numeric type. Not typed pointers - these can't be used in expressions
 function IsNumericType(VarType: TVarType): Boolean;
 
@@ -100,6 +104,7 @@ function IsLogicalType(VarType: TVarType): Boolean;
 function IsEnumerable(VarType: TVarType): Boolean;
 
 
+//For Integer and enumerated types only: Returns True if Value is in range for type VarType
 function TryIntegerToVarType(Value: Integer;out VarType: TVarType): Boolean;
 
 //===================Type fitness
@@ -156,46 +161,10 @@ function GetFitnessTypeRange(CodeRange: TNumberRange; PrimType: TVarType;Signed:
 
 function GetImmSignCombineType(Value: Integer;LType, RType: TVarType): TVarType;
 
-//===============TImmValue
-
-//Record to store a typed constant value. Used within ILParams and as default
-//parameters within function definitions
-type TImmValue = record
-  constructor CreateInteger(AValue: Integer);
-  constructor CreateChar(AValue: Char);
-  constructor CreateBoolean(AVAlue: Boolean);
-
-  //For (mostly) code generation
-  //Only applicable to enumerated types
-  function ToInteger: Integer;
-
-  //Returns a string suitable for passing to the assembler.
-  //Value returned must be a single byte. Value will be masked (with $ff) if necessary
-  //This routine can return chars as string literals and makae code easier to read
-  //than using numeric literals
-  function ToStringByte: String;
-  //Returns a 16-bit value masked with $ffff
-  function ToStringWord: String;
-
-  //For debugging. Sometimes for code generation
-  function ToString: String;
-
-  case VarType: TVarType of
-    vtInt8, vtInteger, vtByte, vtWord, vtPointer:
-      (IntValue: Integer);
-    vtReal: (); //TODO
-    vtBoolean, vtFlag: (BoolValue: Boolean);
-    vtChar: (CharValue: Char);
-    vtTypeDef: (TypeValue: TVarType);
-    vtString: (); //TODO
-  end;
-
 //Get maximum/minimum value for a types range. Result only has meaning for enumarable types
 //For non-numeric types the result is the integer representation of the value
 function GetMaxValue(VarType: TVarType): Integer;
 function GetMinValue(VarType: TVarType): Integer;
-procedure SetMaxValue(var Value: TImmValue);
-procedure SetMinValue(var Value: TImmValue);
 
 //Validates whether the ExprType can be assigned to the variable (etc)
 //with type of AssignType
@@ -257,19 +226,25 @@ end;
 
 
 const VarTypeSizes: array[low(TVarType)..high(TVarType)] of Integer = (
-  1,2,1,2,2,iRealSize,
-  1,1,
-  1,1,
-  {-1, -1, -1,}
-  -1, {-1,}
-  {-1,}
-  0);
+  1,2,1,2,2,  //Integers
+  iRealSize,  //Reals
+  1,1,        //Boolean,<Flag>
+  1,1,        //Char, TypeDef
+  {-1, -1, -1,} //Enumeration, Range, Set
+  2, {-1,}   //String, Array
+  {-1,}       //Record
+  -1);         //Unknown
 function GetTypeSize(VarType: TVarType): Integer;
 begin
   Result := VarTypeSizes[VarType];
 
   //Add code for complex types here
   Assert(Result <> -1);
+end;
+
+function IsPointeredType(VarType: TVarType): Boolean;
+begin
+  Result := VarType in [vtString];
 end;
 
 function IsNumericType(VarType: TVarType): Boolean;
@@ -314,24 +289,11 @@ begin
     vtByte, vtChar: Result := 255;
     vtInteger: Result := 32767;
     vtWord, vtPointer: Result := 65535;
+    vtBoolean: Result := valueTrue;
+    vtTypeDef: Result := Integer(high(TVarType));
   else
     Assert(False);
     Result := 0;
-  end;
-end;
-
-procedure SetMaxValue(var Value: TImmValue);
-begin
-  case Value.VarType of
-    vtInt8: Value.IntValue := 127;
-    vtByte: Value.IntValue := 255;
-    vtInteger: Value.IntValue := 32767;
-    vtWord, vtPointer: Value.IntValue := 65535;
-    vtBoolean: Value.BoolValue := True;
-    vtChar: Value.CharValue := #255;
-    vtTypeDef: Value.TypeValue := high(TVarType);
-  else
-    Assert(False);
   end;
 end;
 
@@ -339,25 +301,12 @@ function GetMinValue(VarType: TVarType): Integer;
 begin
   case VarType of
     vtInt8: Result := -128;
-    vtByte, vtChar, vtWord, vtPointer: Result := 0;
+    vtByte, vtChar, vtWord, vtPointer, vtTypeDef: Result := 0;
     vtInteger: Result := -32768;
+    vtBoolean: Result := valueFalse;
   else
     Assert(False);
     Result := 0;
-  end;
-end;
-
-procedure SetMinValue(var Value: TImmValue);
-begin
-  case Value.VarType of
-    vtInt8: Value.IntValue := -128;
-    vtByte, vtWord, vtPointer: Value.IntValue := 0;
-    vtInteger: Value.IntValue := -32768;
-    vtBoolean: Value.BoolValue := False;
-    vtChar: Value.CharValue := #0;
-    vtTypeDef: Value.TypeValue := low(TVarType);
-  else
-    Assert(False);
   end;
 end;
 
@@ -381,20 +330,15 @@ end;
 
 function TryIntegerToVarType(Value: Integer;out VarType: TVarType): Boolean;
 begin
-  if Value < -32768 then
-    EXIT(False)
-  else if Value < -128 then
-    VarType := vtInteger
-  else if Value < 0 then
-    VarType := vtInt8
-  else if Value < 256 then
-    VarType := vtByte
-  else if Value <= 65535 then
-    VarType := vtWord
+  case VarType of
+    vtInteger: EXIT((Value >= -32768) and (Value <= 32767));
+    vtInt8: EXIT((Value >= -128) and (Value <= 127));
+    vtByte, vtChar: EXIT((Value >= 0) and (Value <= 255));
+    vtWord, vtPointer: EXIT((Value >= 0) and (Value <= 65535));
+    vtBoolean: EXIT((Value = -1) or (Value = 0));
   else
-    EXIT(False);
-
-  Result := True;
+    Assert(False);
+  end;
 end;
 
 //----------------------Fitness
@@ -526,85 +470,6 @@ begin
     EXIT(vtWord);
 
   Result := vtInteger;
-end;
-
-//----------------------TImmValue
-
-constructor TImmValue.CreateBoolean(AValue: Boolean);
-begin
-  VarType := vtBoolean;
-  BoolValue := AValue;
-end;
-
-constructor TImmValue.CreateChar(AValue: Char);
-begin
-  VarType := vtChar;
-  CharValue := AValue;
-end;
-
-constructor TImmValue.CreateInteger(AValue: Integer);
-begin
-  VarType := vtInteger;
-  IntValue := AValue;
-end;
-
-function TImmValue.ToInteger: Integer;
-begin
-  case VarType of
-    vtInt8, vtInteger, vtByte, vtWord, vtPointer : Result := IntValue;
-    vtBoolean:
-      if BoolValue then
-        Result := valueTrue
-      else
-        Result := valueFalse;
-    vtChar: Result := ord(CharValue);
-    vtTypeDef: Result := ord(TypeValue);
-  else
-    Assert(False);
-    Result := 0;
-  end;
-end;
-
-function TImmValue.ToString: String;
-begin
-  case VarType of
-    vtByte: Result := '$' + IntToHex(IntValue, 2);
-    vtWord, vtPointer: Result := '$' + IntToHex(IntValue, 4);
-    vtInt8, vtInteger: Result := IntValue.ToString;
-    vtBoolean:
-      if BoolValue then
-        Result := 'True'
-      else
-        Result := 'False';
-    vtChar:
-      if CharInSet(CharValue, [#32..#126]) then
-        Result := ''''+CharValue+''''
-      else
-        Result := '#' + ord(CharValue).ToString;
-    vtTypeDef:
-      Result := VarTypeToName(TypeValue);
-  else
-    Assert(False);
-  end;
-end;
-
-function TImmValue.ToStringByte: String;
-begin
-  case VarType of
-    vtBoolean: Result := ByteToStr(ToInteger);
-    vtChar:
-      if CharInSet(CharValue, [#32..#127]) then
-        Result := '''' + CharValue + ''''
-      else
-        Result := ByteToStr(ToInteger);
-  else
-    Result := ByteToStr(ToInteger);
-  end;
-end;
-
-function TImmValue.ToStringWord: String;
-begin
-  Result := WordToStr(ToInteger);
 end;
 
 end.

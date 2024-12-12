@@ -693,7 +693,7 @@ begin
       Check(V.Value.ToInteger = valueFalse and $ff, Step, 'VarValue mismatch on ' + V.Name +
         ', wanted ' + Step.Value + ' got ' + V.Value.ToString + #13)
       else if CompareText(Step.Value, 'true') = 0 then
-        Check(V.Value.ToInteger = valueTrue and $ff, Step, 'VarValue mismatch on ' + V.Name +
+        Check((V.Value.ToInteger and $ff) = (valueTrue and $ff), Step, 'VarValue mismatch on ' + V.Name +
           ', wanted ' + Step.Value + ' got ' + V.Value.ToString + #13)
       else
         Error(Step, 'Invalid boolean value: ''' + Step.Value + ''''#13);

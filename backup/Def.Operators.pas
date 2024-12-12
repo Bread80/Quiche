@@ -218,9 +218,9 @@ uses Generics.Collections, Classes, SysUtils;
 
 const
   //Mapping between ASCII and symbolic operators
-  SymbolOps: array of TOperator = [opAdd, opSubtract, opMultiply, opRealDiv,
-    opEqual,opNotEqual,opLess,opGreater,opLessEqual,opGreaterEqual];
-  SymbolStrings: array of String = ['+','-','*','/','=','<>','<','>','<=','>='];
+  SymbolOps: array[0..9] of TOperator = (opAdd, opSubtract, opMultiply, opRealDiv,
+    opEqual,opNotEqual,opLess,opGreater,opLessEqual,opGreaterEqual);
+  SymbolStrings: array[0..9] of String = ('+','-','*','/','=','<>','<','>','<=','>=');
 
 procedure ClearOpList;
 var Op: TOperator;

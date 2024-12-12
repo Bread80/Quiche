@@ -14,10 +14,11 @@ function TryReadWord(const Symbol: String;out Data: Word): Boolean;
 procedure GetVarData(IXOffsetHack: Integer);
 
 implementation
-uses mHardware,
-  //Inlcude hardware so it is registered
+uses SysUtils,
+  mHardware,
+  //Include hardware so it is registered
   mMemory,
-  Def.QTypes, Def.Variables;
+  Def.QTypes, Def.Consts, Def.Variables;
 
 var CurrConfigFile: String;
 
@@ -107,6 +108,50 @@ begin
     Result := W;
 end;
 
+//Addr is the address of the string data (not the variable)
+function ReadMemoryString(Addr: Word): String;
+var InString: Boolean;
+  Len: Integer;
+  I: Integer;
+  Ch: Byte;
+begin
+  //Variable value -> string address
+  Result := '$' + IntToHex(Addr,4).ToLower + ' (';
+  if Addr = 0 then
+    Result := Result + ''
+  else
+  begin
+    InString := False;
+    Len := Hardware.ReadMemoryByte(Addr);
+    if Len > 0 then
+    for I := 1 to Len do
+    begin
+      Ch := Hardware.ReadMemoryByte(Addr + I);
+      if (Ch >= 32) and (Ch < 128) then
+      begin
+        if not InString then
+        begin
+          Result := Result + '''';
+          InString := True;
+        end;
+        Result := Result + Chr(Ch);
+      end
+      else
+      begin
+        if InString then
+        begin
+          Result := Result + '''';
+          InString := False;
+        end;
+        Result := Result + '#' + Ch.ToString;
+      end;
+    end;
+    if InString then
+      Result := Result + '''';
+  end;
+  Result := Result + ')';
+end;
+
 procedure GetVarData(IXOffsetHack: Integer);
 var I: Integer;
   V: PVariable;
@@ -121,11 +166,12 @@ begin
     case V.Storage of
       vsStatic:
         case V.VarType of
-          vtByte, vtChar, vtBoolean: V.Value := TImmValue.CreateInteger(ReadByte(V.GetAsmName));
-          vtWord, vtPointer: V.Value := TImmValue.CreateInteger(ReadWord(V.GetAsmName));
-          vtInt8: V.Value := TImmValue.CreateInteger(ReadInt8(V.GetAsmName));
-          vtInteger: V.Value := TImmValue.CreateInteger(ReadInteger(V.GetAsmName));
-          vtReal, vtFlag, vtTypeDef, vtString, vtUnknown: ;//TODO?
+          vtByte, vtChar, vtBoolean: V.Value := TImmValue.CreateTyped(V.VarType, ReadByte(V.GetAsmName));
+          vtWord, vtPointer: V.Value := TImmValue.CreateTyped(V.VarType, ReadWord(V.GetAsmName));
+          vtInt8: V.Value := TImmValue.CreateTyped(vtInt8, ReadInt8(V.GetAsmName));
+          vtInteger: V.Value := TImmValue.CreateTyped(vtInteger, ReadInteger(V.GetAsmName));
+          vtString: V.Value := TImmValue.CreateString(ReadMemoryString(ReadWord(V.GetAsmName)));
+          vtReal, vtFlag, vtTypeDef, vtUnknown: ;//TODO?
         else
           Assert(False);
         end;
@@ -133,11 +179,12 @@ begin
       begin
         Addr := (IX + V.Offset) and $ffff;
         case V.VarType of
-          vtByte, vtChar, vtBoolean: V.Value := TImmValue.CreateInteger(Hardware.ReadMemoryByte(Addr));
-          vtWord, vtPointer: V.Value := TImmValue.CreateInteger(Hardware.ReadMemoryWord(Addr));
-          vtInt8: V.Value := TImmValue.CreateInteger(ReadMemoryInt8(Addr));
-          vtInteger: V.Value := TImmValue.CreateInteger(ReadMemoryInteger(Addr));
-          vtReal, vtFlag, vtTypeDef, vtString, vtUnknown: ;//TODO?
+          vtByte, vtChar, vtBoolean: V.Value := TImmValue.CreateTyped(V.VarType, Hardware.ReadMemoryByte(Addr));
+          vtWord, vtPointer: V.Value := TImmValue.CreateTyped(V.VarType, Hardware.ReadMemoryWord(Addr));
+          vtInt8: V.Value := TImmValue.CreateTyped(vtInt8, ReadMemoryInt8(Addr));
+          vtInteger: V.Value := TImmValue.CreateTyped(vtInteger, ReadMemoryInteger(Addr));
+          vtString: V.Value := TImmValue.CreateString(ReadMemoryString(Hardware.ReadMemoryWord(Addr)));
+          vtReal, vtFlag, vtTypeDef, vtUnknown: ;//TODO?
         end;
       end;
     else

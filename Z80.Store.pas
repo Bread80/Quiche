@@ -43,7 +43,7 @@ procedure GenCondBranch(const Param: TILParam);
 
 implementation
 uses Classes, SysUtils,
-  Def.Variables,
+  Def.Consts, Def.Variables,
   CodeGen, CG.Fragments,
   Z80.CodeGen, Z80.CPUState;
 
@@ -58,6 +58,9 @@ begin
   OptionTests := [moPreserveCF, moPreserveOtherFlags, moPreserveA];
   Unknowns := [rCF, rZF, rFlags];
   case Reg of
+(*
+TODO: Upgrade RegState handling for all these items, as has been done for rCF
+*)
     rA, rAF: FlagsCorrupt := False;
     rZF:   GenFragmentParamName('zftoboolean', Param, 'd');
     rZFA:  GenFragmentParamName('notatoboolean', Param, 'd');
@@ -254,6 +257,33 @@ begin
   end;
 end;
 
+//Store a pointer to a literal value in a register
+procedure GenStoreLiteralPointerToVariable(Variable: PVariable;const Value: TImmValue;
+  Options: TMoveOptionSet);
+var Reg: TCPUReg;
+  Lab: String;
+begin
+  Lab := Value.ToLabel;
+  Reg := rHL; //The only reg we can use :sigh:
+
+  //Is the value already in a register?
+  if not RegStateEqualsLabel(Reg, Lab) then
+  begin
+    Assert(not (moPreserveHL in Options));
+
+    OpLD(Reg, Lab);
+    RegStateSetLabel(Reg, Lab);
+  end;
+
+  case Variable.Storage of
+    vsStack: OpLD(rIX, Variable, Reg);
+    vsStatic: OpLD(Variable, Reg);
+  else
+    Assert(False);
+  end;
+end;
+
+
 procedure GenStoreImm(ILItem: PILItem;Options: TMoveOptionSet);
 var V: PVariable;
 begin
@@ -263,7 +293,12 @@ begin
   V := ILItem.Dest.Variable;
   Assert(Assigned(V));
 
-  GenStoreLiteralToVariable(V, ILItem.Param1.Imm, Options);
+  if IsPointeredType(ILItem.Param1.Imm.VarType) then
+    //Where the type is always referenced by a pointer, 'Immediate' means load
+    //the address of the data in the data segment
+    GenStoreLiteralPointerToVariable(V, ILItem.Param1.Imm, Options)
+  else
+    GenStoreLiteralToVariable(V, ILItem.Param1.Imm, Options);
 end;
 
 //=================================================== VALIDATE AND STORE RESULTS
@@ -417,7 +452,7 @@ begin
         F := 'c'
       else
         F := 'nc';
-    else
+  else
     raise Exception.Create('TODO Flags');
   end;
 
@@ -430,7 +465,10 @@ end;
 procedure GenUncondJump(BlockID: Integer);
 begin
   if GetCurrBlockID <> BlockID - 1 then
-    Opcode('jp', GetCurrProcName + IntToStr(BlockID),'');
+    if BlockID = 0 then
+      Opcode('jp', GetCurrProcName, '')
+    else
+      Opcode('jp', GetCurrProcName + IntToStr(BlockID),'');
 end;
 
 //Generate code for an ILItem which is an unconditional jump
@@ -443,16 +481,20 @@ end;
 //Generate a branch after the
 procedure GenCondBranch(const Param: TILParam);
 begin
-  //If True block is following block then generate conditional jump for False
+  //If True block is following block then we only need generate conditional jump for False
   if Param.TrueBlockID = GetCurrBlockID + 1 then
     GenCondJump(Param, True, Param.FalseBlockID)
   else
-  begin //Otherwise generate condition jump for True...
-    GenCondJump(Param, False, Param.TrueBlockID);
-    //...and False doesn't 'fall though' then an unconditional jump for it.
-    if Param.FalseBlockID <> GetCurrBlockID + 1 then
-      GenUncondJump(Param.FalseBlockID);
-  end;
+    //If False block is following block then we only need generate conditional jump for True
+    if Param.FalseBlockID = GetCurrBlockID + 1 then
+      GenCondJump(Param, False, Param.TrueBlockID)
+    else
+    begin //Otherwise generate both. Condition jump for True...
+      GenCondJump(Param, False, Param.TrueBlockID);
+      //...and False doesn't 'fall though' so an unconditional jump for it.
+      if Param.FalseBlockID <> GetCurrBlockID + 1 then
+        GenUncondJump(Param.FalseBlockID);
+    end;
 end;
 
 //========================================================PROCESSING DEST PARAMS

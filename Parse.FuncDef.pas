@@ -538,7 +538,7 @@ begin
         Variable := VarFindResult;
         Assert(Variable <> nil);
         Param.Variable := Variable;
-        Param.VarVersion := Variable.WriteCount;
+        Param.VarVersion := Variable.Version;
         case GetTypeSize(Variable.VarType) of
           1: Param.Reg := rA;
           2: Param.Reg := rDE;

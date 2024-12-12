@@ -44,7 +44,28 @@ var
   //The default implicit type to assign to decimal integers with no sign (+ or -)
   //specfied. Value must either be vtInteger or vtWord.
   //Use the {$IMPLICITINTEGERTYPE} directive
-  optImplicitIntegerType: TVarType;
+//  optImplicitIntegerType: TVarType;
+
+  //Should decimal integer literals be parsed as signed or unsigned?
+  //This options affects the 'implicit types' functionality of the parser.
+  //If an integer literal has a sign prefix (+123 or -123) the value will always
+  //be parsed as a signed integer (vtInt8 or vtInteger).
+  //This setting affects when the literal does /not/ have a sign prefix.
+  //If this setting is on such literals will be parsed as signed,
+  //if this setting is off such literals will be parsed as unsigned.
+  //The generated code is usually more efficient when using unsigned values and,
+  //therefore, unsigned values are recommended unless signing is explicitly needed.
+  //This setting does not affect hexadecimal or binary literals
+  optDefaultSignedInteger: Boolean;
+
+  //If this setting is on decimal integers will be parsed into the smallest type
+  //which can contain the value the value. Thus, a literal value '10' will be
+  //parsed as a vtInt or vtByte (depending on optDefaultSignedInteger). If this
+  //setting is off the value will be parsed as a vtInteger or vtWord.
+  //The generated code is usually more efficient when using 8-bit data,
+  //therefore, 8-bit values should be used where possible.
+  //This setting does not affect hexadecimal or binary literals
+  optDefaultSmallestInteger: Boolean;
 
   optDefaultVarStorage: TVarStorage;
 

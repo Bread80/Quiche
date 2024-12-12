@@ -29,6 +29,7 @@ type TKeyword = (keyUNKNOWN,
   keyMOD, keyNOT, keyOR, keyPROCEDURE,
   keySHL, keySHR,
   keyTHEN, keyTO, keyVAR, keyXOR,
+  keyWHILE,
   keyFALSE, keyTRUE, keyMAXINT, keyMININT //These are Consts and shouldn't be here!
   );
 
@@ -175,6 +176,7 @@ const KeywordStrings: array[low(TKeyword)..high(TKeyword)] of String = (
   'mod', 'not', 'or', 'procedure',
   'shl', 'shr',
   'then', 'to', 'var', 'xor',
+  'while',
   'false','true','maxint','minint');
 begin
   for Result := low(TKeyword) to high(TKeyword) do

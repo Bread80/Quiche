@@ -12,7 +12,8 @@ type TRegStateKind =
   rskVarValueInverted,  //An inverted boolean value
   rskVarValueLow,  //Low byte of a 16-bit variable value
   rskVarValueHigh,  //High byte of a 16-bit variable value
-  rskVarAddr);    //The address of a variable
+  rskVarAddr,     //The address of a variable
+  rskLabel);      //A label (for static data etc)
 
 //Sets all registers to rskUnknown and IsModified to False
 procedure RegStateInitialise;
@@ -38,6 +39,9 @@ procedure RegStateSetLiteral(Reg: TCPUReg;AValue: Integer);
 //AKind must be VarValue or VarAddr
 //Can also be called with AKind of rskUnknown, which makes some routines easier to code.
 procedure RegStateSetVariable(Reg: TCPUReg;AVariable: PVariable;AVersion: Integer;AKind: TRegStateKind);
+
+//Reg must be 16-bit. Separate registers (if appropriate) will be set to unknown
+procedure RegStateSetLabel(Reg: TCPUReg;const ALabel: String);
 
 //Copy the value in FromReg to ToReg
 procedure RegStateCopy(ToReg, FromReg: TCPUReg);
@@ -77,6 +81,10 @@ function RegStateGetLiteral(Reg: TCPUReg): Integer;
 //Does the given register contain the given literal value?
 function RegStateEqualsLiteral(Reg: TCPUReg;Value: Integer): Boolean;
 
+//Does the register contain the value of the given label?
+//Reg must be 16-bit
+function RegStateEqualsLabel(Reg: TCPUReg;const ALabel: String): Boolean;
+
 
 
 //For testing
@@ -102,6 +110,7 @@ function RegStateEqualsLiteral(Reg: TCPUReg;Value: Integer): Boolean;
 //  '\'   Lo byte of value
 //  '/'   Hi byte of value
 //  '@'   Address of the variable
+//  '*'   A label
 //The variable name must be fully qualified
 
 //NOTE: State strings passed as input are currently intollerant of surrounding whitespace.
@@ -122,6 +131,7 @@ implementation
 type
   TRegState = record
     IsModified: Boolean;
+    StrData: String;  //For rskLabel
     procedure FromString(Reg: TCPUReg;State: String);
     function Compare(Reg: TCPUReg;State:String): Boolean;
     function ToString(Reg: TCPUReg): String;
@@ -137,6 +147,7 @@ type
         Variable: PVariable;
         Version: Integer;
         );
+      rskLabel: ();  //Data stored in StrData
   end;
 
 //Note that not all entries here are used
@@ -393,6 +404,22 @@ begin
   end;
 end;
 
+procedure RegStateSetLabel(Reg: TCPUReg;const ALabel: String);
+begin
+  Assert(Reg in CPUReg16Bit);
+  if Reg in CPURegPairs then
+  begin
+    CPUState[CPURegPairToHigh[Reg]].Kind := rskUnknown;
+    CPUState[CPURegPairToHigh[Reg]].IsModified := True;
+    CPUState[CPURegPairToLow[Reg]].Kind := rskUnknown;
+    CPUState[CPURegPairToLow[Reg]].IsModified := True;
+  end;
+
+  CPUState[Reg].Kind := rskLabel;
+  CPUState[Reg].StrData := ALabel;
+  CPUState[Reg].IsModified := True;
+end;
+
 procedure RegStateCopy(ToReg, FromReg: TCPUReg);
 begin
   Assert((ToReg in CPUReg8Bit) = (FromReg in CPUReg8Bit), 'Can''t copy to reg of diffent size');
@@ -409,6 +436,7 @@ begin
     rskVarValue, rskVarValueInverted, rskVarValueHigh, rskVarValueLow, rskVarAddr:
       RegStateSetVariable(ToReg, CPUState[FromReg].Variable,
         CPUState[FromReg].Version, CPUState[FromReg].Kind);
+    rskLabel: RegStateSetLabel(ToReg, CPUState[FromReg].StrData);
   else
     Assert(False);
   end;
@@ -580,6 +608,12 @@ begin
     Result := (CPUState[Reg].Kind = rskLiteral) and (CPUState[Reg].Literal = Value);
 end;
 
+function RegStateEqualsLabel(Reg: TCPUReg;const ALabel: String): Boolean;
+begin
+  Assert(Reg in CPUReg16Bit);
+
+  Result := (CPUState[Reg].Kind = rskLabel) and (CPUState[Reg].StrData = ALabel);
+end;
 { TRegState }
 
 function TRegState.Compare(Reg: TCPUReg;State: String): Boolean;
@@ -632,6 +666,8 @@ begin
       EXIT(VarCompare(rskVarValueHigh, State));
     '@': //Var address
       EXIT(VarCompare(rskVarAddr, State));
+    '*':  //Label name
+      EXIT((Kind = rskLabel) and (StrData = State));
   else  //Literal value
     if Kind <> rskLiteral then
       EXIT(False);
@@ -692,6 +728,8 @@ begin
       FromVariable(rskVarValueHigh, State);
     '@': //Var address
       FromVariable(rskVarAddr, State);
+    '*':  //Label
+      RegStateSetLabel(Reg, State);
   else  //Literal value
     Assert(TryStrToInt(State, Value));
     RegStateSetLiteral(Reg, Value);
@@ -706,7 +744,8 @@ const KindStrings: array[low(TRegStateKind)..high(TRegStateKind)] of String =
   '~',  //Inverted boolean value
   '\',  //Lo byte of value
   '/',  //Hi byte of value
-  '@'); //Variable address
+  '@',  //Variable address
+  '*'); //Label
 begin
   Result := KindStrings[Kind];
   case Kind of
@@ -722,6 +761,7 @@ begin
         Result := Result + '<Unknown reg>';
     rskVarValue, rskVarValueInverted, rskVarAddr, rskVarValueHigh, rskVarValueLow:
       Result := Result + Variable.GetAsmName + '#' + Version.ToString;
+    rskLabel: Result := Result + '*' + StrData;
   else
     Assert(False);
   end;

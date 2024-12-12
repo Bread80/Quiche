@@ -210,7 +210,10 @@ begin
   Assert(Options * [moPreserveOtherFlags, moPreserveCF] = []);
 
   if Reg <> rA then
+  begin
+    Assert(Options * [moPreserveA] = []);
     OpLD(rA, Reg);
+  end;
   Instr('and a');
   Instr('jp nz,raise_range');
 
@@ -219,7 +222,37 @@ begin
   RegStateSetLiteral(rCF, 0); //AND clears CF
   RegStateSetliteral(rZF, 1);
 end;
+(*
+Originally for testing Negate when overflow checking was off, but that proved
+difficult so these reoutines have been redacted
 
+//Test if a 16-bit value is non zero. If so raises a range check error
+procedure Gen16BitNZRangeCheck(Reg: TCPUReg;Options: TMoveOptionSet);
+begin
+  Assert(Reg in CPURegPairs);
+  Assert(Options * [moPreserveOtherFlags, moPreserveCF, moPreserveA] = []);
+
+  OpLD(rA, CPURegPairToLow[Reg]);
+  OpcodeOR(CPURegPairToHigh[Reg]);
+  Instr('jp nz,raise_range');
+
+  RegStateSetUnknown(rFlags);
+  RegStateSetLiteral(rA, 0);  //A must be zero because we errored if it wasn't
+  RegStateSetLiteral(rCF, 0); //OR clears CF
+  RegStateSetliteral(rZF, 1);
+end;
+
+//Test whether 16-bit value is a non-zero positive value. If so raises a range check error
+procedure Gen16BitPositiveNZRangeCheck(Reg: TCPUReg;Options: TMoveOptionSet);
+begin
+  Assert(Reg in CPURegPairs);
+  Assert(Options * [moPreserveOtherFlags, moPreserveCF, moPreserveA] = []);
+
+  //If bit 15 is set, no error
+  //Otherwise all bits must be zero
+  Assert(False);
+end;
+*)
 function RangeCheckStrToProc(const Name: String): TRangeCheckProc;
 begin
   Result := nil;
@@ -244,6 +277,12 @@ begin
     Result := GenHigh9NZRangeCheck
   else if Name = 'high_nz_range' then
     Result := GenHighNZRangeCheck
+(*
+  else if Name = '16bit_nz_range' then
+    Result := Gen16BitNZRangeCheck
+  else if Name = '16bit_positive_nz_range' then
+    Result := Gen16BitPositiveNZRangeCheck
+*)
   else
     Assert(False, 'Unknown Range Check proc name')
 end;

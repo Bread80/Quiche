@@ -42,6 +42,7 @@ var Data: TStringList;
   I: Integer;
   Intrinsic: PFunction;
   VT: TVarType;
+  IntValue: Integer;
 begin
   Data := TStringlist.Create;
   try
@@ -113,17 +114,18 @@ begin
                   raise Exception.Create('Unable to parse TypeDef default value: ' + Fields[fP2DefaultValue])
                 else
                 begin
-                  Intrinsic.Params[1].DefaultValue.VarType := vtTypeDef;
-                  Intrinsic.Params[1].DefaultValue.TypeValue := VT;
+                  Intrinsic.Params[1].DefaultValue.CreateTypeDef(VT);
                 end
               end
               else
               begin
                 //TODO: Set type based on value
-                Intrinsic.Params[1].DefaultValue.VarType := vtInteger;
-                if not TryStrToInt(Fields[fP2DefaultValue], Intrinsic.Params[1].DefaultValue.IntValue) then
+                if not TryStrToInt(Fields[fP2DefaultValue], IntValue) then
                   //Test for other valid value types
                   raise Exception.Create('Unable to parse default value: ' + Fields[fP2DefaultValue]);
+
+                Intrinsic.Params[1].DefaultValue.CreateTyped(vtInteger, IntValue);
+
               end;
               Intrinsic.Params[1].HasDefaultValue := True;
             end;

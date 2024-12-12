@@ -399,19 +399,19 @@
 =inc8_reg  -p1 a,b,c,d,e,h,l -d p1 -corrupts f,zf ;Preserves CF
   inc <p1.r8>
 
-=inc16_reg  -p1 hl,de,bc,sp -d p1 -preservesall
+=inc16_reg  -p1 hl,de,bc -d p1 -preservesall
   inc <p1.r16>
 
 =dec8_reg  -p1 a,b,c,d,e,h,l -d p1 -corrupts f,zf ;Preserves CF
   dec <p1.r8>
 
-=dec16_reg  -p1 hl,de,bc,sp -d p1 -preservesall
+=dec16_reg  -p1 hl,de,bc -d p1 -preservesall
   dec <p1.r16>
   
 ;==================SUBTRACTION
 
 ;8 bit immediate subtract
-=sub8_reg_imm  -p1 a -p2 imm -d a corrupts f,zf,cf
+=sub8_reg_imm  -p1 a -p2 imm -d a -corrupts f,zf,cf
   sub a,<p2.immbyte>
 
 ;8 bit register subtract

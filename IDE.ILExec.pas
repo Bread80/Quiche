@@ -10,7 +10,7 @@ var ExecOutput: TStringList;
 
 implementation
 uses Generics.Collections, SysUtils,
-  Def.Globals, Def.Operators, Def.QTypes;
+  Def.Globals, Def.Operators, Def.QTypes, Def.Consts;
 
 const
   ValueToBool: array[valueTrue..valueFalse] of Boolean = (True, False);
@@ -64,14 +64,14 @@ begin
     begin
       New(Result);
       TempVars.Add(Result);
-      Result.Value := TImmValue.CreateInteger(0);
+      Result.Value := TImmValue.CreateTyped(vtInteger, 0);
       Result.VarType := vtUnknown;
-      Result.WriteCount := -1;
+      Result.Version := -1;
     end
   else
   begin
     Result := TempVars[Index];
-    Result.Value := TImmValue.CreateInteger(0);
+    Result.Value := TImmValue.CreateTyped(vtInteger, 0);
     Result.VarType := vtUnknown;
   end;
 end;
@@ -88,7 +88,7 @@ begin
 //      ExecTest(Variable.Sub = Sub, 'Variable Sub doesn''t match param Sub version (Phi node)');
       Result := Variable.Value.ToInteger;
       ValueType := Variable.VarType;
-      SubMismatch := Variable.WriteCount <> Param.VarVersion;
+      SubMismatch := Variable.Version <> Param.VarVersion;
     end;
     pkImmediate:
     begin
@@ -98,7 +98,7 @@ begin
     pkVarSource:
     begin
       Variable := Param.Variable;
-      ExecTest(Variable.WriteCount = Param.VarVersion, 'Variable Sub doesn''t match param Sub version (normal node)');
+      ExecTest(Variable.Version = Param.VarVersion, 'Variable Sub doesn''t match param Sub version (normal node)');
       Result := Variable.Value.ToInteger;
       ValueType := Variable.VarType;
     end;

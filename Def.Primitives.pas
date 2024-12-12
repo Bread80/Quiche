@@ -800,7 +800,7 @@ begin
         Prim.Fragment := FindFragmentByName(Prim.ProcName);
 
         if CompareText(Fields[fLType], 'none') = 0 then
-          Prim.RType := vtUnknown
+          Prim.LType := vtUnknown
         else
         begin
           Prim.LType := StringToVarType(Fields[fLType]);
@@ -833,7 +833,7 @@ begin
         //--END
 
         if Length(Fields[fIfOverFlowChecking]) <> 1 then
-          raise Exception.Create('Error in PrimitivesNG.Validation field: ' + Fields[fIfOverflowChecking]);
+          raise Exception.Create('Error in PrimitivesNG.OverflowChecking field: ' + Fields[fIfOverflowChecking]);
         case Fields[fIfOverflowChecking].Chars[0] of
           'y','Y': Prim.IfOverflowChecking := pvYes;
           'n','N': Prim.IfOverflowChecking := pvNo;

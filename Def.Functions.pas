@@ -2,7 +2,7 @@ unit Def.Functions;
 
 interface
 uses Classes, Generics.Collections,
-  Def.Operators, Def.QTypes, Def.Variables,
+  Def.Operators, Def.QTypes, Def.Consts, Def.Variables,
   Z80.CPU;
 
 //Maximum number of parameters which can be specified for a routine, including results

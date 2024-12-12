@@ -1,3 +1,8 @@
+(*
+
+[Corrupts F]function KM_READ_CHAR(out Character: A as Char): CF; call $bb09;[PreservesAll]procedure TXT_OUTPUT(Character: A as Char); call $bb5a;begin  var Ch: Char  while true  begin    if KM_READ_CHAR(Ch)      TXT_OUTPUT(Ch)    else      write('.')  endend.
+*)
+
 {
 Directory structure:
 
@@ -110,6 +115,9 @@ type
     acSave: TAction;
     acNew: TAction;
     acSaveAs: TAction;
+    acRun: TAction;
+    MenuItem1: TMenuItem;
+    MenuItem5: TMenuItem;
     procedure btnInterpretClick(Sender: TObject);
     procedure btnEmulateClick(Sender: TObject);
     procedure acRunExecute(Sender: TObject);
@@ -139,6 +147,7 @@ type
     procedure UpdateCaption;
     procedure OpenProject(const Filename: String);
     procedure SaveConfigFile;
+    function SaveProjectAs: Boolean;
     //Returns False if the project couldn't be saved for any reason
     function SaveProject: Boolean;
     procedure DelayedSetFocus(Control: TControl);
@@ -195,7 +204,8 @@ end;
 procedure TForm1.acRunExecute(Sender: TObject);
 var Good: Boolean;
 begin
-  SaveState;
+  if not SaveProject then
+    EXIT;
   Good := IDE.Compiler.CompileString(tdSource.Text.AsString, GetBlockType, GetParseType,
     True, False);
 
@@ -242,26 +252,12 @@ end;
 
 procedure TForm1.acSaveAsExecute(Sender: TObject);
 begin
-  if FileSaveDialog.Execute then
-  begin
-    IDE.Compiler.Config.IDESettings.ProjectFile := FileSaveDialog.Filename;
-    tdSource.Text.Filename := FileSaveDialog.Filename;
-    SaveProject;
-    SaveState;
-
-    UpdateCaption;
-  end;
+  SaveProjectAs
 end;
 
 procedure TForm1.acSaveExecute(Sender: TObject);
 begin
-  if IDE.Compiler.Config.IDESettings.ProjectFile = '' then
-    acSaveAsExecute(nil)
-  else
-  begin
-    SaveProject;
-    SaveState;
-  end;
+  SaveProject;
 end;
 
 procedure TForm1.acSelfTestFormExecute(Sender: TObject);
@@ -283,16 +279,28 @@ begin
   try
     if IDE.Compiler.Config.IDESettings.ProjectFile = '' then
     begin
-      acSaveAsExecute(nil);
-      if IDE.Compiler.Config.IDESettings.ProjectFile = '' then
-        EXIT(False);
+      if not SaveProjectAs then
+        EXIT(False)
     end
     else
       tdSource.Text.SaveToFile;
+    SaveConfigFile;
     Result := True;
   except
     on e:Exception do
       ShowMessage('Error saving project: ' + e.Message);
+  end;
+end;
+
+function TForm1.SaveProjectAs: Boolean;
+begin
+  Result := FileSaveDialog.Execute;
+  if Result then
+  begin
+    IDE.Compiler.Config.IDESettings.ProjectFile := FileSaveDialog.Filename;
+    tdSource.Text.Filename := FileSaveDialog.Filename;
+    Result := SaveProject;
+    UpdateCaption;
   end;
 end;
 
@@ -398,8 +406,6 @@ end;
 procedure TForm1.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 var LCanClose: Boolean;
 begin
-  SaveState;
-
   if not SaveProject then
   begin
     with TDialogService do

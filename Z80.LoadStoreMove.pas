@@ -27,7 +27,7 @@ uses Def.Functions, Def.IL, Def.Primitives, Def.QTypes,
 //Load any parameters given in the Index'th ILItem.
 //Returns the ILIndex of the last ILItem which contains loaded items.
 //(I.e if the Op is DataMoveExtended)
-function GenRegLoad(ILIndex: Integer): Integer;
+function GenRegLoad(ILIndex: Integer;Prim: PPrimitive): Integer;
 
 //Stores data after a function call, or in a data move
 function GenRegStore(ILIndex: Integer): Integer;
@@ -71,7 +71,8 @@ type
     mtCopy,     //Value is already in a register and just needs moving
     mtImm,      //Literal value. No side effects
     mtImmKeep,  //LiteralValue already in register
-    mtImmCopy); //Literal value already in a(nother) register
+    mtImmCopy, //Literal value already in a(nother) register
+    mtLabel);   //A label (to static data)
   TMoveTypeSet = set of TMoveType;
 
   TProcessType = (
@@ -86,9 +87,6 @@ type
     Done: Boolean;  //Set to True once param has been loaded/stored
     //Parameter data
     Param: PILParam;
-    //If the call is to a function, this is the parameter we are processing
-    //(either to call, or the return value)
-    FuncParam: PParameter;
     CheckType: TVarType;  //Set if we need to range check or overflow check the
                           //move (otherwise vtUnknown).
                           //For a load this is the target type (parameter, operand)
@@ -134,7 +132,6 @@ begin
   begin
     MoveState[R].Done := True;
     MoveState[R].Param := nil;
-    MoveState[R].FuncParam := nil;
     MoveState[R].CheckType := vtUnknown;
     MoveState[R].MoveType := mtUnused;
     MoveState[R].ProcessType := ptNone;
@@ -170,23 +167,37 @@ begin
   case Param.Kind of
     pkImmediate:
     begin
-      Result := mtImm;  //Default
-
-      //Is the value already in the reg?
-      if RegStateEqualsLiteral(R, Param.Imm.ToInteger) then
+      if IsPointeredType(Param.Imm.VarType) then
       begin
-        Result := mtImmKeep;
-        inc(MoveAnalysis.ToKeepCount);
+        //TODO - Is the label already in the register?
+        if RegStateEqualsLabel(R, Param.Imm.ToLabel) then
+          Result := mtImmKeep
+        else
+        begin
+          Result := mtLabel;
+          inc(MoveAnalysis.ToMoveCount);
+        end
       end
-
-      //Is it in another reg?
       else
       begin
-        inc(MoveAnalysis.ToMoveCount);
-        if R in CPUReg8Bit then
-          if RegStateFindLiteral8(Param.Imm.ToInteger) <> rNone then
-            Result := mtImmCopy;
-        //(We could do this again for 16-bit values but that's too much heavy lifting. <sigh>
+        Result := mtImm;  //Default
+
+        //Is the value already in the reg?
+        if RegStateEqualsLiteral(R, Param.Imm.ToInteger) then
+        begin
+          Result := mtImmKeep;
+          inc(MoveAnalysis.ToKeepCount);
+        end
+
+        //Is it in another reg?
+        else
+        begin
+          inc(MoveAnalysis.ToMoveCount);
+          if R in CPUReg8Bit then
+            if RegStateFindLiteral8(Param.Imm.ToInteger) <> rNone then
+              Result := mtImmCopy;
+          //(We could do this again for 16-bit values but that's too much heavy lifting. <sigh>
+        end;
       end;
     end;
     pkVarSource, pkVarDest:
@@ -272,7 +283,7 @@ end;
 
 //======================================LOAD DATA
 
-procedure CopyParamToMoveState(Param: PILParam);
+procedure CopyParamToMoveState(Param: PILParam;CheckType: TVarType);
 begin
   //Verify we're not double-loading any registers.
   //(If the reg isnn't part of a pair etc the lookup will return rNone,
@@ -286,6 +297,7 @@ begin
 
   MoveState[Param.Reg].Done := False;
   MoveState[Param.Reg].Param := Param;
+  MoveState[Param.Reg].CheckType := CheckType;
   //TODO: Set CheckType if cgRangeCheck, cgOverflowCheck in CodeGenFlags
 
   MoveState[Param.Reg].MoveType := AssessMoveType(Param);
@@ -294,7 +306,7 @@ begin
   MoveState[Param.Reg].ProcessType := AssessProcessType(Param);
 end;
 
-//Sets the FuncParam fields in MoveState.
+//Sets the CheckType field in MoveState from the Function parameter
 //For each parameter in Func, copies that Parameter to the relevant record in
 //MoveState (ie the state for the register to be loaded or stored)
 procedure SetFuncDataInMoveState(Func: PFunction;Loading: Boolean);
@@ -308,18 +320,18 @@ begin
       Param := @Func.Params[I];
       case Param.Access of
         vaVar:  //Input and output
-          MoveState[Param.Reg].FuncParam := Param;
+          MoveState[Param.Reg].CheckType := Param.VarType;
         vaVal, vaConst:  //Send access types
           if Loading then
           begin
             Assert(Assigned(MoveState[Param.Reg].Param),
               'Function parameter specifies a register not included in Load ILItem');
-            MoveState[Param.Reg].FuncParam := Param;
+            MoveState[Param.Reg].CheckType := Param.VarType;
           end;
         vaOut, vaResult: //Return access types
           if not Loading then
             //(Might not be an error if we're not saving the value)
-            MoveState[Param.Reg].FuncParam := Param;
+            MoveState[Param.Reg].CheckType := Param.VarType;
       else
         Assert(False, 'Unknown Function parameter VarAccess type');
       end;
@@ -329,10 +341,12 @@ end;
 //Copies any relevant Params into EndState. If we're Loading copies any
 //params which load data. If storing, (ie. not Loading copies any params
 //which store data)
-function SetMoveState(ILIndex: Integer;Loading: Boolean): Integer;
+//Prim should be set it we're loading a primitive, otherwise it must be nil
+function SetMoveState(ILIndex: Integer;Prim: PPrimitive;Loading: Boolean): Integer;
 var
   ParamIndex: Integer;
   Param: PILParam;
+  CheckType: TVarType;
   ILItem: PILItem;
   Func: PFunction;  //If this is a function call. Otherwise nil
 begin
@@ -355,10 +369,26 @@ begin
         end;
     end;
 
+    CheckType := vtUnknown;
     case ParamIndex of
-      1: Param := @ILItem.Param1;
-      2: Param := @ILItem.Param2;
-      3: Param := @ILItem.Param3;
+      1:
+      begin
+        Param := @ILItem.Param1;
+        if Loading and (Prim <> nil) then
+          CheckType := Prim.LType
+      end;
+      2:
+      begin
+        Param := @ILItem.Param2;
+        if Loading and (Prim <> nil) then
+          CheckType := Prim.RType;
+      end;
+      3:
+      begin
+        Param := @ILItem.Param3;
+        if Loading and (Prim <> nil) then
+          CheckType := Prim.ResultType;
+      end;
     else
       System.Assert(False);
     end;
@@ -371,15 +401,15 @@ begin
       //Loading
       pkImmediate:
         if Loading and (Param.Reg <> rNone) then
-          CopyParamToMoveState(Param);
+          CopyParamToMoveState(Param, CheckType);
       pkVarSource,pkPop,pkPopByte:
         if Loading then
-          CopyParamToMoveState(Param);
+          CopyParamToMoveState(Param, CheckType);
 
       //Storing/After
       pkVarDest,pkPush,pkPushByte:
         if not Loading then
-          CopyParamToMoveState(Param);
+          CopyParamToMoveState(Param, CheckType);
 //      pkBranch: ;
       pkCondBranch:
         if not Loading then
@@ -432,7 +462,7 @@ procedure SetFuncMoveState(Func: PFunction;Loading: Boolean);
     ILParam.VarVersion := 0;
 
     MoveState[FuncParam.Reg].Done := False;
-    MoveState[FuncParam.Reg].FuncParam := FuncParam;
+    MoveState[FuncParam.Reg].CheckType := FuncParam.VarType;
     MoveState[FuncParam.Reg].MoveType := AssessMoveType(ILParam);
     MoveState[FuncParam.Reg].ProcessType := AssessProcessType(ILParam);
   end;
@@ -521,14 +551,18 @@ var Reg: TCPUReg;
 begin
   for Reg := low(MoveState) to high(TMoveState) do
     if not MoveState[Reg].Done then
-      if MoveState[Reg].MoveType in [mtImm, mtImmKeep, mtImmCopy] then
-      begin //Immediate value could be sacrificed to load data. If so check the
-        //value is still there
-        if not RegStateEqualsLiteral(Reg, MoveState[Reg].Param.Imm.ToInteger) then
-          EXIT(False);
-      end
+      case MoveState[Reg].MoveType of
+        mtImm, mtImmKeep, mtImmCopy:
+          //Immediate value could be sacrificed to load data. If so check the
+          //value is still there
+          if not RegStateEqualsLiteral(Reg, MoveState[Reg].Param.Imm.ToInteger) then
+            EXIT(False);
+        mtLabel:
+          if not RegStateEqualsLabel(Reg, MoveState[Reg].Param.Imm.ToLabel) then
+            EXIT(False);
       else
         EXIT(False);
+      end;
   Result := True;
 end;
 
@@ -545,12 +579,10 @@ begin
         if MoveState[Reg].Param <> nil then
           if (MoveState[Reg].MoveType in MoveTypes) or (MoveState[Reg].ProcessType in ProcessTypes) then
           begin
-            //The type we're loading into (for extending/range checking)
-            //If calling a func, set ToType to parameters VarType
-            if MoveState[Reg].FuncParam <> nil then
-              ToType := MoveState[Reg].FuncParam.VarType
-            //else no type conversion to validate
-            else
+            //If we need to range check the load
+            if MoveState[Reg].CheckType <> vtUnknown then
+              ToType := MoveState[Reg].CheckType
+            else //no type conversion to validate
               ToType := MoveState[Reg].Param.GetVarType;
 
             GenLoadParam(MoveState[Reg].Param^, ToType, Options);
@@ -558,14 +590,14 @@ begin
           end;
 end;
 
-function GenRegLoad(ILIndex: Integer): Integer;
+function GenRegLoad(ILIndex: Integer;Prim: PPrimitive): Integer;
 begin
   InitMoveAnalysis;
 
   //Initialise the MoveState array with the parameters we need to load into each
   //register, where that value can be sourced, and whether any range checking or
   //extending will be needed (and wether doing so will affect A or Flags
-  Result := SetMoveState(ILIndex, True);
+  Result := SetMoveState(ILIndex, Prim, True);
 
   if DataMoveDone then
     EXIT;
@@ -591,13 +623,13 @@ begin
     EXIT;
   //Load all values into registers other than A
   GenDataLoadParams([rB, rC, rD, rE, rH, rL, rBC, rDE, rHL, rIX, rIY],
-    [mtStatic16, mtStack, mtAddrStatic, mtCopy, mtImm, mtImmCopy], [],
+    [mtStatic16, mtStack, mtAddrStatic, mtCopy, mtImm, mtImmCopy, mtLabel], [],
     [moPreserveHLDE{, moPreserveA, moPreserveCF, moPreserveOtherFlags}]); //<--- Mostly just error checking here
 
   if DataMoveDone then
     EXIT;
   //Load values which will trash A register into A register
-  GenDataLoadParams([rA], [mtStatic16, mtStatic8, mtStack, mtCopy, mtImm, mtImmCopy],
+  GenDataLoadParams([rA], [mtStatic16, mtStatic8, mtStack, mtCopy, mtImm, mtImmCopy, mtLabel],
     [ptSignExtend, ptShrink, ptRangeCheck8, ptRangeCheck16], [moPreserveHLDE]);
 
   Assert(DataMoveDone, 'Data Load failed to load everything :(');
@@ -748,12 +780,10 @@ begin
       if MoveState[Reg].Param <> nil then
         if (MoveState[Reg].MoveType in MoveTypes) or (MoveState[Reg].ProcessType in ProcessTypes) then
         begin
-          //The type we're converting from (for extending or range checking)
-          //If returning from a func, set FromType to parameters VarType
-          if MoveState[Reg].FuncParam <> nil then
-            FromType := MoveState[Reg].FuncParam.VarType
-          //else no converting happening, set FromType to the parameters type
-          else
+          //If we need to range check the store
+          if MoveState[Reg].CheckType <> vtUnknown then
+              FromType := MoveState[Reg].CheckType
+          else //no converting happening, set FromType to the parameters type
             FromType := MoveState[Reg].Param.GetVarType;
 
           GenDestParam(MoveState[Reg].Param^, FromType,
@@ -766,7 +796,7 @@ function GenRegStore(ILIndex: Integer): Integer;
 begin
   InitMoveAnalysis;
 
-  Result := SetMoveState(ILIndex, False);
+  Result := SetMoveState(ILIndex, nil, False);
 
   UpdateCPUStateFromMoveState;
 

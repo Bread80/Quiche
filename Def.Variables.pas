@@ -2,7 +2,7 @@ unit Def.Variables;
 
 interface
 uses Classes, Generics.Collections,
-  Def.QTypes;
+  Def.QTypes, Def.Consts;
 
 type
   TVarStorage = (
@@ -54,7 +54,10 @@ type
     FuncParamIndex: Integer;  //>= 0 if this is a function parameter, otherwise -1
 
     //Parse and execution time data
-    WriteCount: Integer;
+    Version: Integer; //Version is incremented every time the variable is written to
+                      //This (along with phi vars) enable the optimiser and code generator
+                      //to track what is stored in the variable at any point and
+                      //optimise appropriately
 
     //Compile time only data
     Touched: Boolean; //Temporary data used when generating phi functions
@@ -75,9 +78,9 @@ type
     //is unknown, and the type is assigned immediately after.
     procedure SetType(VType: TVarType);
 
-    //Incremenents the Sub Count of a variable and returns the value
+    //Incremenents the Version of a variable and returns the new value
     //Does not increment if SkipMode is enabled
-    function IncWriteCount: Integer;
+    function IncVersion: Integer;
 
     //Returns the name of the variable used in Assemby code
     function GetAsmName: String;
@@ -161,10 +164,6 @@ procedure ScopeDepthDecced(NewDepth: Integer);
 
 //Prepare all variables for execution
 procedure VarsExecClear;
-
-//Returns contents of output buffer
-function LoadVarsFromMemoryDump(Filename: String;Base: Integer;
-  out RunTimeError: Byte;out RunTimeErrorAddress: Word): String;
 
 procedure VarsToStrings(S: TStrings;TypeSummary: Boolean);
 
@@ -317,13 +316,13 @@ begin
   Result.InScope := True;
   Result.Storage := Storage;
   Result.FuncParamIndex := -1;
-  Result.WriteCount := 0;
+  Result.Version := 0;
   Result.Touched := False;
   Result.Offset := -1;
   Result.Access := vaLocal;
   Vars.Add(Result);
 
-  Result.Value.VarType := VType;
+  Result.Value.CreateTyped(VType, 0);
 end;
 
 function VarCreateHidden(VarType: TVarType): PVariable;
@@ -447,11 +446,11 @@ begin
   Result := '_v_' + Scope.Name + '_' + LName;
 end;
 
-function TVariable.IncWriteCount: Integer;
+function TVariable.IncVersion: Integer;
 begin
-  Result := WriteCount + 1;
+  Result := Version + 1;
   if not SkipMode then
-    WriteCount := Result;
+    Version := Result;
 end;
 
 function VarIndexToData(Index: Integer): PVariable;
@@ -532,49 +531,6 @@ begin
       Result := Result + GetTypeSize(V.VarType);
 end;
 
-function LoadVarsFromMemoryDump(Filename: String;Base: Integer;
-  out RunTimeError: Byte;out RunTimeErrorAddress: Word): String;
-var Mem: TBytes;
-  V: PVariable;
-  BufHead: Byte;
-  BufPtr: Word;
-begin
-  Assert(sizeof(TVarType) = 1,'LoadVarsFromMemoryDump: sizeof vtType needs updating');
-  Mem := TFile.ReadAllBytes(Filename);
-
-  RuntimeError := Mem[$800b];
-  RunTimeErrorAddress := Mem[$800c] + (Mem[$800d] shl 8);
-
-  for V in Vars do
-    //if <suitable var>
-    begin
-      case V.Storage of
-        vsStack:
-          case V.VarType of
-            vtInteger: V.Value := TImmValue.CreateInteger(Int16(Mem[Base+V.Offset] + (Mem[Base+V.Offset+1] shl 8)));
-            vtInt8: V.Value := TImmValue.CreateInteger(Int8(Mem[Base+V.Offset]));
-            vtWord, vtPointer: V.Value := TImmValue.CreateInteger(Mem[Base+V.Offset] + (Mem[Base+V.Offset+1] shl 8));
-            vtByte, vtBoolean, vtChar, vtTypeDef:  V.Value := TImmValue.CreateInteger(Mem[Base+V.Offset]);
-          else
-            raise Exception.Create('Invalid VarType in LoadVarsFromMemoryDump');
-          end;
-        vsStatic:
-          //TODO
-          V.Value := TImmValue.CreateInteger(-1);
-      end;
-    end;
-
-  BufHead := Mem[$800e];
-  Result := '';
-  BufPtr := $800f;
-  while BufHead > 0 do
-  begin
-    Result := Result + chr(Mem[BufPtr]);
-    inc(BufPtr);
-    dec(BufHead);
-  end;
-end;
-
 
 
 
@@ -595,27 +551,7 @@ begin
     Result := '+' + IntToHex(Offset, 2) + ' ';
   Result := Result + GetAsmName + ': ' + VarTypeToName(VarType);
   if not TypeSummary then
-  begin
     Result := Result + ' = ' + Value.ToString;
-(*    case VarType of
-      vtUnknown: ;
-      vtInteger, vtInt8: Result := Result + Value.ToString;
-      vtWord, vtByte, vtPointer: Result := Result + Value.ToString;
-      vtBoolean:
-        case Value of
-          valueFalse: Result := Result + 'False';
-          valueTrue and $ff: Result := Result + 'True';
-        else
-          Result := Result + 'ILLEGAL BOOLEAN: ' + IntToStr(ValueInt);
-        end;
-      vtChar: Result := Result + '''' + chr(ValueInt and $ff) + '''';
-      vtTypeDef: Result := Result + 'type ' + VarTypeToName(TVarType(ValueInt));
-//      vtString: ;
-//      vtReal: ;
-    else
-      Result := Result + '*** Unknown variable type ***';
-    end;
-*)  end;
 end;
 
 procedure VarsToStrings(S: TStrings;TypeSummary: Boolean);
@@ -638,7 +574,7 @@ begin
   begin
     V.Value := TImmValue.CreateInteger(0);
     V.VarType := vtUnknown;
-    V.WriteCount := 0;
+    V.Version := 0;
   end;
 end;
 

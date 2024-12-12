@@ -80,7 +80,7 @@ procedure LoadFragmentsFile(Filename: String);
 implementation
 uses Classes, Generics.Collections, SysUtils,
   IDE.Compiler, //For meta commentary
-  Def.QTypes, Def.Variables,
+  Def.QTypes, Def.Consts, Def.Variables,
   Parse.Source,
   CodeGen,
   Z80.CPUState;
@@ -458,7 +458,6 @@ var RegStr: String;
   Reg: TCPUReg;
   Value: String;
   ValueInt: Integer;
-  Error: String;
 begin
   RegStr := Parser.ReadIdentifier;
   Reg := IdentToCPUReg(RegStr);
@@ -515,7 +514,7 @@ begin
     if Reg = rNone then
       EXIT([]);
 
-    Result := Result + [StrToCPURegAll(S, True)];
+    Result := Result + [Reg];
     if Parser.TestChar = ',' then
     begin
       Parser.SkipChar;
@@ -589,7 +588,6 @@ begin
 end;
 
 function ParseCorrupts(Parser: TGenericReader;out Regs: TCPURegSet): Boolean;
-var S: String;
 begin
   Regs := ParseRegList(Parser, '');
   if Regs = [] then
@@ -598,8 +596,7 @@ begin
 end;
 
 procedure ParseMetaCommand(Parser: TGenericReader;var Meta: TCodeProcMeta);
-var At: Integer;
-  Command: String;
+var Command: String;
   Error: String;
 begin
   Assert(Parser.TestChar = '-');
@@ -664,9 +661,9 @@ procedure LoadFragmentsFile(Filename: String);
 var Parser: TGenericReader;
   Entry: PFragment;
 begin
+  Parser := TGenericReader.Create;
   try
     Entry := nil;
-    Parser := TGenericReader.Create;
     Parser.OpenFile(Filename);
 
     while not Parser.EOF do

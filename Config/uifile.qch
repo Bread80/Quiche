@@ -1,18 +1,9 @@
-
-[Corrupts F]
-function KM_READ_CHAR(out Character: A as Char): CF; call $bb09;
-
-[PreservesAll]
-procedure TXT_OUTPUT(Character: A as Char); call $bb5a;
+function f(const s:String): Integer
+begin
+  write s
+  write s
+end
 
 begin
-  var Ch: Char
-  for var x:= 0 to 32767
-  begin
-    var Have := KM_READ_CHAR(Ch)
-    if Have
-      TXT_OUTPUT(Ch)
-    else
-      write('.')
-  end
+  f('Hello')
 end.

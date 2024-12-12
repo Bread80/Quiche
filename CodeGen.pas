@@ -99,49 +99,6 @@ begin
   Result := CodeGenScope;
 end;
 
-procedure DataGen;
-var I: Integer;
-  V: PVariable;
-  S: String;
-  C: Integer;
-begin
-  for I := 0 to VarGetCount-1 do
-  begin
-    V := VarIndexToData(I);
-    case V.Storage of
-      vsStatic:
-      begin
-        S := V.GetAsmName + ': ';
-        case GetTypeSize(V.VarType) of
-          1: S := S + 'db 0';
-          2: S := S + '  dw 0';
-        else
-          S := 'db ';
-          for C := 1 to GetTypeSize(V.VarType) do
-          begin
-            if C <> 1 then
-              S := S + ',';
-            S := S + '0';
-          end;
-        end;
-      end;
-      vsStack:
-      begin
-        S := V.GetAsmName + ' equ ' + abs(V.Offset).ToString;
-      end;
-    else
-      Assert(False);
-    end;
-
-    AsmDataScope.Append(S);
-    AsmDataFull.Append(S);
-  end;
-end;
-
-
-
-
-
 
 procedure Line(S: String);
 begin
@@ -218,6 +175,122 @@ begin
   Line(Name + ':');
 end;
 
+
+//=======================DATA SECTIONS
+
+//Convert the string into a sanitised string for a data directive
+function AsmSanitiseString(const S: String): String;
+var InString: Boolean;
+  I: Integer;
+begin
+  InString := False;
+  for I := 0 to length(S)-1 do
+    if (S.Chars[I] >= #32) and (S.Chars[I] < #128) then
+    begin
+      if not InString then
+      begin
+        if Result <> '' then
+          Result := Result + ',';
+        Result := Result + '''';
+        InString := True;
+      end;
+      Result := Result + S.Chars[I];
+    end
+    else
+    begin
+      if InString then
+      begin
+        Result := Result + '''';
+        InString := False;
+      end;
+      if Result <> '' then
+        Result := Result + ',';
+      Result := Result + ord(S.Chars[I]).ToString;
+    end;
+
+  if InString then
+    Result := Result + '''';
+end;
+
+procedure GenLiterals(const Param: TILParam);
+var Code: String;
+  S: String;
+begin
+  if Param.Kind <> pkImmediate then
+    EXIT;
+  if not IsPointeredType(Param.Imm.VarType) then
+    EXIT;
+  case Param.Imm.VarType of
+    vtString:
+    begin
+      S := Param.Imm.StringValue;
+      Code := Param.Imm.ToLabel + ':'#13 +
+        'db ' + length(S).ToString + ',' + AsmSanitiseString(S);
+    end;
+  else
+    Assert(False);
+  end;
+
+  AsmDataScope.Append(Code);
+  AsmDataFull.Append(Code);
+end;
+
+procedure LiteralsGen;
+var I: Integer;
+  ILItem: PILItem;
+begin
+    //Codegen for each item
+  for I := 0 to ILGetCount-1 do
+  begin
+    ILItem := ILIndexToData(I);
+    GenLiterals(ILItem.Param1);
+    GenLiterals(ILItem.Param2);
+    GenLiterals(ILItem.Param3);
+  end;
+end;
+
+//For the current scope:
+//Allocates global memory for static vars.
+//Generates constants for offsets for stack vars
+procedure DataGen;
+var I: Integer;
+  V: PVariable;
+  S: String;
+  C: Integer;
+begin
+  for I := 0 to VarGetCount-1 do
+  begin
+    V := VarIndexToData(I);
+    case V.Storage of
+      vsStatic:
+      begin
+        S := V.GetAsmName + ': ';
+        case GetTypeSize(V.VarType) of
+          1: S := S + 'db 0';
+          2: S := S + '  dw 0';
+        else
+          S := 'db ';
+          for C := 1 to GetTypeSize(V.VarType) do
+          begin
+            if C <> 1 then
+              S := S + ',';
+            S := S + '0';
+          end;
+        end;
+      end;
+      vsStack:
+      begin
+        S := V.GetAsmName + ' equ ' + abs(V.Offset).ToString;
+      end;
+    else
+      Assert(False);
+    end;
+
+    AsmDataScope.Append(S);
+    AsmDataFull.Append(S);
+  end;
+end;
+
 //================================== LIBRARY CODE
 
 
@@ -277,7 +350,6 @@ end;
 procedure GenPrimitive(var ILItem: TILItem;ILIndex: Integer);
 var Prim: PPrimitive;
   SwapParams: Boolean;
-  Options: TMoveOptionSet;
 begin
   //Find the Prim based on the operation and parameter data type(s)
   Prim := ILItemToPrimitive(ILItem, SwapParams);
@@ -296,7 +368,7 @@ begin
   ILItem.Param1.LoadType := Prim.LLoadType;
 
   //Load parameters
-  GenRegLoad(ILIndex);
+  GenRegLoad(ILIndex, Prim);
 //  LoadBeforePrim(ILItem, Prim);
 
   if Assigned(Prim.Fragment) then
@@ -319,8 +391,6 @@ end;
 
 procedure DoCodeGenItem(ILIndex: Integer);
 var ILItem: PILItem;
-  Prim: PPrimitive;
-  SwapParams: Boolean;
   Comments: String;
 begin
   ILItem := ILIndexToData(ILIndex);
@@ -374,12 +444,12 @@ begin
       GenDestParam(ILItem.Dest, vtUnknown, False, nil, [])
      end;
     opRegLoad, opRegLoadExtended: //Load multiple values to registers
-      ILIndex := GenRegLoad(ILIndex);
+      ILIndex := GenRegLoad(ILIndex, nil);
     opRegStore, opRegStoreExtended: //Store multiple values from registers
       ILIndex := GenRegStore(ILIndex);
     opFuncCall, opFuncCallExtended:
     begin
-      GenRegLoad(ILIndex);
+      GenRegLoad(ILIndex, nil);
       GenFuncCall(ILIndex);
       ILIndex := GenRegStore(ILIndex);
     end;
@@ -410,6 +480,8 @@ begin
 
     //Calc variables size/offsets
     VarSetOffsets;
+
+    LiteralsGen;
 
     //Generate any global data
     DataGen;

@@ -78,76 +78,6 @@ end;
 //===============================================
 //Language syntax
 
-//Creates IL to assign the slug to a variable.
-//If Variable is nil it will be created.
-//If VType is nil:
-//  If the variable is being created it will be assigned the implicit type of the expression
-//  Otherwise the variable will be checked for compatibility with the expressions result type
-procedure AssignSlugToVariable(const Slug: TExprSlug;var Variable: PVariable;
-  VType: TVarType);
-var VarVersion: Integer;
-  ILItem: PILItem;
-begin
-  if Variable = nil then
-  begin
-    if VType = vtUnknown then
-      Variable := VarCreateUnknown(Slug.ImplicitType)
-    else
-      Variable := VarCreateUnknown(VType);
-  end;
-
-  VarVersion := Variable.IncWriteCount;
-
-  if Slug.ILItem <> nil then
-  begin
-    ILItem := Slug.ILItem;
-    if ILItem.Op = OpUnknown then
-      if (ILItem.Param1.Kind = pkImmediate) and (ILItem.Param2.Kind = pkNone) then
-        ILItem.Op := OpStoreImm
-      else
-        ILItem.Op := OpMove;
-  end
-  else
-  begin
-    if Slug.Operand.Kind = pkImmediate then
-      ILItem := ILAppend(OpStoreImm)
-    else
-      ILItem := ILAppend(OpMove);
-    ILItem.Param1 := Slug.Operand;
-    ILItem.Param2.Kind := pkNone;
-    ILItem.ResultType := Slug.ResultType;
-  end;
-
-  ILItem.Dest.SetVarDestAndVersion(Variable, VarVersion);
-
-  //Overflows for an immediate assignment must be validated by the parser
-  if ILItem.Op = OpStoreImm then
-    ILItem.Flags := ILItem.Flags - [cgOverflowCheck];
-end;
-
-//Parses an expression (After the <varname> := has been parsed) and creates IL
-//to assign it to the Variable which has been passed in. VarIndex is the index of
-//the Variable
-//If Variable is nil and VarIndex is -1, creates a new variable, assigning it a
-//type based on the result of the expression. The caller will then need to fill
-//in the variables Name, and any other necessary details.
-//WARNING: When creating and initialising a variable the variable MUST be created
-//*after* the expression has been evaluated. If the variable is created before
-//then it will be possible to reference the variable within the expression which
-//would, of course, be an bug.
-function ParseAssignmentExpr(var Variable: PVariable;VType: TVarType): TQuicheError;
-var
-  ExprType: TVarType;
-  Slug: TExprSlug;
-begin
-  ExprType := VType;
-  Result := ParseExpressionToSlug(Slug, ExprType);
-  if Result <> qeNone then
-    EXIT;
-
-  AssignSlugToVariable(Slug, Variable, VType);
-end;
-
 // < boolean-expression> := <expression>
 //                       where the result is a Boolean type
 //If the expression evaluates to a constant:
@@ -528,10 +458,10 @@ begin
   NewBlock := True;
   NewBlockComment := 'Loop header: ' + LoopVarName;
   LoopVarPhi := ILAppend(OpPhi);
-  LoopVarPhi.Param1.SetPhiVarSource(EntryBlockID, LoopVar.WriteCount);
+  LoopVarPhi.Param1.SetPhiVarSource(EntryBlockID, LoopVar.Version);
   //(Fixup param2 later)
 
-  LoopVarPhi.Dest.SetPhiVarDest(LoopVar, LoopVar.IncWriteCount);
+  LoopVarPhi.Dest.SetPhiVarDest(LoopVar, LoopVar.IncVersion);
 
   HeaderBlockID := GetCurrBlockID;
   PhiItemIndex := ILGetCount - 1; //Needed later so we can Phi any other variables
@@ -548,7 +478,7 @@ begin
   ExitTestItem.Param1.SetVarSource(LoopVar);
   if ToVar = nil then
   begin //TO value is constant
-    ExitTestItem.Param2.SetImmediate(ToValue.VarType);
+    ExitTestItem.Param2.Kind := pkImmediate;
     ExitTestItem.Param2.Imm := ToValue;
   end
   else  //To value is variable
@@ -594,16 +524,16 @@ begin
   ILItem.ResultType := LoopVar.VarType;
   ILItem.Param1.SetVarSource(LoopVar);
   //(Uncomment to add Step value)
-  ILItem.Param2.SetImmediate(vtByte);
-  ILItem.Param2.Imm.IntValue := 1;
+  ILItem.Param2.Kind := pkImmediate;
+  ILItem.Param2.Imm.CreateTyped(vtByte, 1);
 
-  ILItem.Dest.SetVarDestAndVersion(LoopVar, LoopVar.IncWriteCount);
+  ILItem.Dest.SetVarDestAndVersion(LoopVar, LoopVar.IncVersion);
 
   //Insert Branch back to Header section
   ILAppendBranch(HeaderBlockID);
 
   //Fixup Phi for Loopvar at start of Header section
-  LoopVarPhi.Param2.SetPhiVarSource(GetCurrBlockID, LoopVar.WriteCount);
+  LoopVarPhi.Param2.SetPhiVarSource(GetCurrBlockID, LoopVar.Version);
 
   //Insert Phis at start of Header (for any variables updated during loop)
   VarClearAdjust; //Prep for branch adjust
@@ -625,14 +555,90 @@ begin
   ScopeDecDepth;  //If loop counter was declared take it out of scope
 end; //----------------------------------------------------------- /FOR
 
-// <if-statement> := IF <boolean-expression> THEN
+
+// <while-statement> := WHILE <boolean-expression> [DO]
+//                        <block>
+function DoWHILE(Storage: TVarStorage): TQuicheError;
+var
+  LoopID: Integer; //Block ID of the WHILE - so we can generate the loop code
+  WhileIndex: Integer;  //Index of the first ILItem (the WHILE)
+  Break: PILItem;     //The Break out conditional. Nil if expression is a constant
+  ConstExprValue: Boolean;  //If branch condition is a constant
+  PrevSkipMode: Boolean;  //If we're skipping the loop code (WHILE FALSE DO)
+  PhiInsertCount: Integer;  //Number of Phis inserted at start of loop
+begin
+  NewBlock := True;
+  NewBlockComment := 'While header';
+  LoopID := GetCurrBlockID + 1;
+  WhileIndex := ILGetCount;
+
+  //Note: If Branch returns nil then we have a constant expression.
+  //We'll use that to optimise infinite loops or never executed code. We do, however,
+  //still need to parse non-executed that code!
+  Result := ParseBranchExpr(Break, ConstExprValue);
+  if Result <> qeNone then
+    EXIT;
+
+  //Test for DO - optional if there's a new line before code
+  if not TestForIdent('do') then
+  begin
+    Result := Parser.SkipToNextLine;
+    if Result = qeNewlineExpected then
+      EXIT(Err(qeDOExpected));
+    if Result <> qeNone then
+      EXIT;
+  end;
+
+  //Jump out of loop
+  if Break <> nil then
+  begin
+    Break.Dest.SetCondBranch;
+    //If condition then jump 'into' the loop (this will get optimised away)
+    Break.Dest.TrueBlockID := GetCurrBlockID + 1;
+
+    NewBlock := True;
+  end;
+
+  //Generate code within the loop
+  PrevSkipMode := SkipModeStart((Break = nil) and not ConstExprValue);
+
+  NewBlock := True;
+  NewBlockComment := 'While body';
+
+  Result := ParseBlock(bsSingle, Storage);
+  if Result <> qeNone then
+    EXIT;
+
+  //Loop back to the WHILE
+  ILAppendBranch(LoopID);
+
+  //If loop var was /not/ a constant, set the jump target for the break out
+  if Break <> nil then
+    Break.Dest.FalseBlockID := GetCurrBlockID + 1;
+
+  //PHI variables
+  //Insert Phis at start of the loop (for any variables updated during loop)
+  VarClearAdjust; //Prep for branch adjust
+  VarClearTouches;
+  PhiInsertCount := PhiWalkInt(ILGetCount-1, WhileIndex, -1, WhileIndex,
+    GetCurrBlockID, LoopID-1, False, WhileIndex);
+  //We also need to fixup references within the loop to any variables we have phi'd
+  BranchFixUpRight(WhileIndex {HeaderLastItemIndex} + PhiInsertCount {+ 2}, ILGetCount - 1);
+
+  NewBlock := True;
+  NewBlockComment := 'While ended';
+
+  SkipModeEnd(PrevSkipMode);
+end;
+
+// <if-statement> := IF <boolean-expression> [THEN]
 //                     <block>
 //                   [ ELSE
 //                     <block> ]
 function DoIF(Storage: TVarStorage): TQuicheError;
 var
   Branch: PILItem;      //The Branch condition. Nil if expression is a constant
-  ConstExprValue: Boolean;  //If branch condition is s constant
+  ConstExprValue: Boolean;  //If branch condition is a constant
   PrevSkipMode: Boolean;    //Cache old SkipMode
   ThenBranch: PILItem;    //Unconditional branch at end of ELSE section
   //BlockIDs
@@ -808,6 +814,7 @@ begin
     keyVAR: Result := DoVAR('', Storage);
     keyFOR: Result := DoFOR(Storage);
     keyIF: Result := DoIF(Storage);
+    keyWHILE: Result := DoWHILE(Storage);
     else
       EXIT(ErrSub(qeInvalidKeyword, Ident));
     end;
@@ -855,7 +862,7 @@ begin
 end;
 
 //Parses a list of statements
-//If AllowEnd until exits when either EOF or the keyword END if read (but not consumed)
+//If ToEnd until exits when either EOF or the keyword END is read (but not consumed)
 //otherwise exits at EOF
 function ParseStatements(ToEnd: Boolean;Storage: TVarStorage): TQuicheError;
 begin

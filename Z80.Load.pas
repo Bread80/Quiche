@@ -10,7 +10,7 @@ generated.
 unit Z80.Load;
 
 interface
-uses Def.IL, Def.Primitives, Def.QTypes,
+uses Def.IL, Def.Primitives, Def.QTypes, Def.Consts,
   Z80.CPU;
 
 //Generates the code to load a single parameter
@@ -721,6 +721,14 @@ begin
   RegStateSetVariable(ToReg, Variable, 0, rskVarAddr);
 end;
 
+procedure GenLoadLiteralPointer(ToReg: TCPUReg;const Imm: TImmValue; Options: TMoveOptionSet);
+begin
+  Assert(ToReg in CPUReg16Bit);
+  OpLD(ToReg, Imm.ToLabel);
+  RegStateSetLabel(ToReg, Imm.ToLabel);
+end;
+
+
 //=========================================OLD CODE
 
 //======================== LOAD PARAMETERS
@@ -735,7 +743,10 @@ begin
     pkImmediate:
       //If Reg is rNone the literal is loaded by the primitive itself
       if Param.Reg <> rNone then
-        GenLoadRegLiteral(Param.Reg, Param.Imm, Options);
+        if IsPointeredType(Param.Imm.VarType) then
+          GenLoadLiteralPointer(Param.Reg, Param.Imm, Options)
+        else
+          GenLoadRegLiteral(Param.Reg, Param.Imm, Options);
     pkVarSource:
       GenLoadRegVarValue(Param.Variable, Param.VarVersion, Param.Reg, Param.LoadType, ToType,
         cgRangeCheck in Param.Flags, Options);

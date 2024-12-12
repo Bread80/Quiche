@@ -178,7 +178,7 @@ begin
   AScope.Parent := CurrentScope;
   AScope.Depth := 0;
   AScope.Func := nil;
-  AScope.ConstList := CreateConstList;
+  AScope.ConstList := CreateConstList(AScope.Name);
 //    Types: ;
   AScope.VarList := CreateVarList;
   AScope.FuncList := CreateFuncList;
@@ -192,12 +192,12 @@ begin
   Assert((Func <> nil) or (Name <> ''), 'Scope requires a Func or a Name (or both)');
   New(Result);
   ScopeList.Add(Result);
-  Initscope(Result);
-
   if Name <> '' then
     Result.Name := Name
   else
     Result.Name := Func.Name;
+
+  Initscope(Result);
   Result.Func := Func;
 
   if MainScope = nil then
@@ -355,9 +355,9 @@ begin
     SetCurrentScope(@SystemScope);
     SystemScope.ConstList.Add('False', vtBoolean, TImmValue.CreateBoolean(False));
     SystemScope.ConstList.Add('True', vtBoolean, TImmValue.CreateBoolean(True));
-    SystemScope.ConstList.Add('Maxint', vtInteger, TImmValue.CreateInteger(GetMaxValue(vtInteger)));
-    SystemScope.ConstList.Add('Minint', vtInteger, TImmValue.CreateInteger(GetMinValue(vtInteger)));
-    SystemScope.ConstList.Add('nil', vtPointer, TImmValue.CreateInteger(0));
+    SystemScope.ConstList.Add('Maxint', vtInteger, TImmValue.CreateTyped(vtInteger, GetMaxValue(vtInteger)));
+    SystemScope.ConstList.Add('Minint', vtInteger, TImmValue.CreateTyped(vtInteger, GetMinValue(vtInteger)));
+    SystemScope.ConstList.Add('nil', vtPointer, TImmValue.CreateTyped(vtPointer, $0000));
   finally
 //    SetCurrentScope(nil);
   end;

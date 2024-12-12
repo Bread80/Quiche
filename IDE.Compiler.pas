@@ -214,7 +214,8 @@ begin
   optRangeChecks := Config.RangeChecks;
   optDefaultVarStorage := Config.DefaultVarStorage;
   optDefaultCallingConvention := Config.DefaultCallingConvention;
-  optImplicitIntegerType := vtWord;
+  optDefaultSignedInteger := True;
+  optDefaultSmallestInteger := False;
 end;
 
 procedure Initialise(InitDirectives, WarmInit: Boolean);

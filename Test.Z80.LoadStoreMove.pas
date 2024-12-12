@@ -4,7 +4,7 @@ interface
 
 implementation
 uses TestFrameWork,
-  Def.IL, Def.Primitives, Def.QTypes, Def.Scopes, Def.Variables,
+  Def.IL, Def.Primitives, Def.QTypes, Def.Consts, Def.Scopes, Def.Variables,
   CodeGen,
   Z80.CPU, Z80.CPUState, Z80.LoadStoreMove, Z80.Load, Z80.Store;
 
@@ -539,7 +539,7 @@ begin
   V := VarCreate('Test1', VarType);
   V.Storage := VarStorage;
   V.Offset := 0;  //Needed??
-  V.WriteCount := 10; //VarVersion Needed??
+  V.Version := 10; //VarVersion Needed??
   Param.Reg := Reg;
   Param.Kind := pkVarSource;
   Param.Variable := V;
@@ -1269,7 +1269,7 @@ begin
   V := VarCreate('Test1', VarType);
   V.Storage := VarStorage;
   V.Offset := 0;  //Needed??
-  V.WriteCount := 10; //VarVersion Needed??
+  V.Version := 10; //VarVersion Needed??
   Param.Reg := Reg;
   Param.Kind := pkVarDest;
   Param.Variable := V;

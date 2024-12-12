@@ -3334,6 +3334,15 @@ object Form1: TForm1
         ImageIndex = -1
       end
     end
+    object MenuItem1: TMenuItem
+      Text = '&Run'
+      object MenuItem5: TMenuItem
+        Action = acRun
+        Enabled = True
+        Locked = True
+        ImageIndex = -1
+      end
+    end
     object MenuItem4: TMenuItem
       Text = '&Tools'
       object MenuItem3: TMenuItem
@@ -3390,6 +3399,12 @@ object Form1: TForm1
       Category = 'File'
       Text = 'Save as...'
       OnExecute = acSaveAsExecute
+    end
+    object acRun: TAction
+      Category = 'Run'
+      Text = '&Run'
+      ShortCut = 120
+      OnExecute = acRunExecute
     end
   end
 end

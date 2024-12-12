@@ -4,7 +4,7 @@ Low level CPU data and code generators
 unit Z80.CPU;
 
 interface
-uses Def.QTypes, Def.Variables;
+uses Def.QTypes, Def.Consts, Def.Variables;
 
 type
   //This list details the CPU-level places where primitives can find input data
@@ -167,6 +167,8 @@ procedure OpADD(RAcc, RAdd: TCPUReg);
 procedure OpINC(Reg: TCPUReg);
 procedure OpDEC(Reg: TCPUReg);
 
+procedure OpcodeOR(Reg: TCPUReg);
+
 procedure OpANDA;
 
 //Used to specify limitations when loading, storing, converting, validating, etc. parameters etc.
@@ -189,7 +191,7 @@ procedure GenSignExtend(RIn, ROut: TCPUReg;Options: TMoveOptionSet);
 //and 'modifying' the existing value, eg. by INCrementing it.
 //The available optimisations depend on both register, the current CPPU state and
 //whether CPU flags need to be preserved.
-procedure GenLoadRegLiteral(Reg: TCPUReg;Value: TImmValue;Options: TMoveOptionSet);
+procedure GenLoadRegLiteral(Reg: TCPUReg;const Value: TImmValue;Options: TMoveOptionSet);
 
 //Generate code to move FromReg to ToReg
 //Currently only allows 'main' registers (ABCDEHL)
@@ -237,40 +239,13 @@ begin
   else if Length(S) = 1 then
     Result := CharToCPUReg(S.Chars[0], ForCorrupts)
   else
+  begin
     for Result := low(TCPUReg) to high(TCPUReg) do
       if CompareText(CPURegAllStrings[Result], S) = 0 then
         EXIT;
-(*
-  Result := rNone;
-  else if CompareText(S, 'none') = 0 then
-    Result := rNone
-  else if (S = 'bc') or (S = 'BC') then
-    Result := rBC
-  else if (S = 'de') or (S = 'DE') then
-    Result := rDE
-  else if (S = 'hl') or (S = 'HL') then
-    Result := rHL
-  else if (S = 'ix') or (S = 'IX') then
-    Result := rIX
-  else if (S = 'iy') or (S = 'IY') then
-    Result := rIY
-  else if (S = 'zf') or (S = 'ZF') then
-    Result := rZF
-  else if (S = 'zfa') or (S = 'ZFA') then
-    Result := rZFA
-  else if (S = 'nzf') or (S = 'NZF') then
-    Result := rNZF
-  else if (S = 'nzfa') or (S = 'NZFA') then
-    Result := rNZFA
-  else if (S = 'cf') or (S = 'CF') then
-    Result := rCF
-  else if (S = 'ncf') or (S = 'NCF') then
-    Result := rNCF
-  else if (S = 'cpla') or (S = 'CPLA') then
-    Result := rCPLA
-  else
-    raise Exception.Create('Invalid register: ' + S);
-*)end;
+    Result := rNone;
+  end;
+end;
 
 
 function OffsetToStr(Reg: TCPUReg;Variable: PVariable;ByteIndex: Integer = 0): String;
@@ -415,6 +390,11 @@ end;
 procedure OpDEC(Reg: TCPUReg);
 begin
   Opcode('dec',CPURegStrings[Reg]);
+end;
+
+procedure OpcodeOR(Reg: TCPUReg);
+begin
+  Opcode('or',CPURegStrings[Reg]);
 end;
 
 procedure OpANDA;
@@ -772,7 +752,7 @@ end;
 //If not true the operation failed (ie. one or more of the conditions specified
 //in Options was not met. Ie. the load couldn't be completed without trashing
 //something which needed to be kept)
-procedure GenLoadRegLiteral(Reg: TCPUReg;Value: TImmValue;Options: TMoveOptionSet);
+procedure GenLoadRegLiteral(Reg: TCPUReg;const Value: TImmValue;Options: TMoveOptionSet);
 var R: TCPUReg;
 begin
   //If Reg aleady holds target value then EXIT

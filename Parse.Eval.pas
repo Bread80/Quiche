@@ -2,7 +2,7 @@ unit Parse.Eval;
 
 interface
 uses SysUtils,
-  Def.IL, Def.Operators, Def.QTypes,
+  Def.IL, Def.Operators, Def.QTypes, Def.Consts,
   Parse.Errors;
 
 //Evaulate an operator with two parameters
@@ -63,140 +63,158 @@ function EvalBi(Op: TOperator;Param1, Param2: PILParam;
 var P1: TImmValue;  //First parameter value
   P2: TImmValue;    //Second parameter value
   Error: Boolean;
+  IntValue: Integer;
+  VarType: TVarType;  //Of result
 begin
   Error := False;
   Result := qeNone;
   P1 := Param1.Imm;
   P2 := Param2.Imm;
-  Value.VarType := vtUnknown;
-
+  VarType := vtUnknown;
 
   case Op of
     opAdd:
       if IsIntegerType(P1.VarType) and IsIntegerType(P2.VarType) then
-        Value.IntValue := P1.IntValue + P2.IntValue
+        IntValue := P1.IntValue + P2.IntValue
+      else if (P1.VarType in [vtChar, vtString]) and (P2.VarType in [vtChar, vtString]) then
+      begin
+        Value.CreateString(P1.StringValue + P2.StringValue);
+        EXIT;
+      end
       else
         Error := True;
     opSubtract:
       if IsIntegerType(P1.VarType) and IsIntegerType(P2.VarType) then
-        Value.IntValue := P1.IntValue - P2.IntValue
+        IntValue := P1.IntValue - P2.IntValue
       else
         Error := True;
     opMultiply:
       if IsIntegerType(P1.VarType) and IsIntegerType(P2.VarType) then
-        Value.IntValue := P1.IntValue * P2.IntValue
+        IntValue := P1.IntValue * P2.IntValue
       else
         Error := True;
     opIntDivide:
-    begin
       if IsIntegerType(P1.VarType) and IsIntegerType(P2.VarType) then
         if P2.IntValue = 0 then
           EXIT(Err(qeDivByZero))
         else
-          Value.IntValue := P1.IntValue div P2.IntValue
+          IntValue := P1.IntValue div P2.IntValue
       else
         Error := True;
-    end;
     opMod:
       if IsIntegerType(P1.VarType) and IsIntegerType(P2.VarType) then
         if P2.IntValue = 0 then
           EXIT(Err(qeDivByZero))
         else
-          Value.IntValue := P1.IntValue mod P2.IntValue
+          IntValue := P1.IntValue mod P2.IntValue
       else
         Error := True;
+
     opEqual, opNotEqual:
     begin
       if IsIntegerType(P1.VarType) and IsIntegerType(P2.VarType) then
-        Value.BoolValue := P1.IntValue = P2.IntValue
+        Value.CreateBoolean(P1.IntValue = P2.IntValue)
       else if (P1.VarType = vtBoolean) and (P2.VarType = vtBoolean) then
-        Value.BoolValue := P1.BoolValue = P2.BoolValue
-      else if (P1.VarType = vtChar) and (P2.VarType = vtChar) then
-        Value.BoolValue := P1.CharValue = P2.CharValue
+        Value.CreateBoolean(P1.BoolValue = P2.BoolValue)
+      else if (P1.VarType in [vtChar, vtString]) and (P2.VarType in [vtChar, vtString]) then
+        Value.CreateBoolean(P1.StringValue = P2.StringValue)
       else if (P1.VarType = vtTypeDef) and (P2.VarType = vtTypeDef) then
-        Value.BoolValue := P1.TypeValue = P2.TypeValue
+        Value.CreateBoolean(P1.TypeDefValue = P2.TypeDefValue)
       else
         Error := True;
       if Op = opNotEqual then
-        Value.BoolValue := not Value.BoolValue;
-      Value.VarType := vtBoolean;
+        Value.CreateBoolean(not Value.BoolValue);
+      if not Error then
+        EXIT;
     end;
     opLess, opGreaterEqual:
     begin
       if IsIntegerType(P1.VarType) and IsIntegerType(P2.VarType) then
-        Value.BoolValue := P1.IntValue < P2.IntValue
+        Value.CreateBoolean(P1.IntValue < P2.IntValue)
       else if (P1.VarType = vtBoolean) and (P2.VarType = vtBoolean) then
-        Value.BoolValue := P1.BoolValue < P2.BoolValue
+        Value.CreateBoolean(P1.BoolValue < P2.BoolValue)
       else if (P1.VarType = vtChar) and (P2.VarType = vtChar) then
-        Value.BoolValue := P1.CharValue < P2.CharValue
+        Value.CreateBoolean(P1.CharValue < P2.CharValue)
       else if (P1.VarType = vtTypeDef) and (P2.VarType = vtTypeDef) then
-        Value.BoolValue := P1.TypeValue < P2.TypeValue
+        Value.CreateBoolean(P1.TypeDefValue < P2.TypeDefValue)
       else
         Error := True;
       if Op = opGreaterEqual then
-        Value.BoolValue := not Value.BoolValue;
-      Value.VarType := vtBoolean;
+        Value.CreateBoolean(not Value.BoolValue);
+      if not Error then
+        EXIT;
     end;
     opGreater, opLessEqual:
     begin
       if IsIntegerType(P1.VarType) and IsIntegerType(P2.VarType) then
-        Value.BoolValue := P1.IntValue > P2.IntValue
+        Value.CreateBoolean(P1.IntValue > P2.IntValue)
       else if (P1.VarType = vtBoolean) and (P2.VarType = vtBoolean) then
-        Value.BoolValue := P1.BoolValue > P2.BoolValue
+        Value.CreateBoolean(P1.BoolValue > P2.BoolValue)
       else if (P1.VarType = vtChar) and (P2.VarType = vtChar) then
-        Value.BoolValue := P1.CharValue > P2.CharValue
+        Value.CreateBoolean(P1.CharValue > P2.CharValue)
       else if (P1.VarType = vtTypeDef) and (P2.VarType = vtTypeDef) then
-        Value.BoolValue := P1.TypeValue > P2.TypeValue
+        Value.CreateBoolean(P1.TypeDefValue > P2.TypeDefValue)
       else
         Error := True;
       if Op = opLessEqual then
-        Value.BoolValue := not Value.BoolValue;
-      Value.VarType := vtBoolean;
+        Value.CreateBoolean(not Value.BoolValue);
+      if not Error then
+        EXIT;
     end;
+
     opAND:
       if IsIntegerType(P1.VarType) and IsIntegerType(P2.VarType) then
       begin
-        Value.IntValue := P1.IntValue and P2.IntValue;
-        Value.IntValue := LogicValueToType(Value.IntValue, P1.VarType);
+        IntValue := P1.IntValue and P2.IntValue;
+        IntValue := LogicValueToType(IntValue, P1.VarType);
       end
       else if (P1.VarType = vtBoolean) and (P2.VarType = vtBoolean) then
-        Value.BoolValue := P1.BoolValue and P2.BoolValue
+      begin
+        Value.CreateBoolean(P1.BoolValue and P2.BoolValue);
+        EXIT;
+      end
       else
         Error := True;
     opOR:
       if IsIntegerType(P1.VarType) and IsIntegerType(P2.VarType) then
       begin
-        Value.IntValue := P1.IntValue or P2.IntValue;
-        Value.IntValue := LogicValueToType(Value.IntValue, P1.VarType);
+        IntValue := P1.IntValue or P2.IntValue;
+        IntValue := LogicValueToType(IntValue, P1.VarType);
       end
       else if (P1.VarType = vtBoolean) and (P2.VarType = vtBoolean) then
-        Value.BoolValue := P1.BoolValue or P2.BoolValue
+      begin
+        Value.CreateBoolean(P1.BoolValue or P2.BoolValue);
+        EXIT;
+      end
       else
         Error := True;
     opXOR:
       if IsIntegerType(P1.VarType) and IsIntegerType(P2.VarType) then
       begin
-        Value.IntValue := P1.IntValue xor P2.IntValue;
-        Value.IntValue := LogicValueToType(Value.IntValue, P1.VarType);
+        IntValue := P1.IntValue xor P2.IntValue;
+        IntValue := LogicValueToType(IntValue, P1.VarType);
       end
       else if (P1.VarType = vtBoolean) and (P2.VarType = vtBoolean) then
-        Value.BoolValue := P1.BoolValue xor P2.BoolValue
+      begin
+        Value.CreateBoolean(P1.BoolValue xor P2.BoolValue);
+        EXIT;
+      end
       else
         Error := True;
     opSHL:
       if IsIntegerType(P1.VarType) and IsIntegerType(P2.VarType) then
         if (P2.IntValue < 0) or (P2.IntValue > 32) then
-          Value.IntValue := 0
+          IntValue := 0
         else
-          Value.IntValue := P1.IntValue shl P2.IntValue
+          IntValue := P1.IntValue shl P2.IntValue
       else
         Error := True;
     opSHR:
       if IsIntegerType(P1.VarType) and IsIntegerType(P2.VarType) then
         if (P2.IntValue < 0) or (P2.IntValue > 32) then
-          Value.IntValue := 0
+          IntValue := 0
         else
-          Value.IntValue := P1.IntValue shr P2.IntValue
+          IntValue := P1.IntValue shr P2.IntValue
       else
         Error := True;
   else
@@ -206,18 +224,24 @@ begin
   if Result <> qeNone then
     EXIT;
 
-  if Value.VarType = vtUnknown then
+  if VarType = vtUnknown then
     if Operations[Op].SignCombine then
     begin
-      Value.VarType := GetImmSignCombineType(Value.IntValue, P1.VarType, P2.VarType);
-      if Value.VarType = vtUnknown then
+      VarType := GetImmSignCombineType(IntValue, P1.VarType, P2.VarType);
+      if VarType = vtUnknown then
         EXIT(Err(qeConstantExpressionOverflow));
+      Value.CreateTyped(VarType, IntValue);
+      Result := qeNone;
     end
     else if IsNumericType(Value.VarType) then
-      Result := ValueToVarType(Value.IntValue, Value.VarType)
+    begin
+      VarType := Value.VarType;
+      Result := ValueToVarType(IntValue, VarType);
+      Value.CreateTyped(VarType, IntValue)
+    end
     else
     begin
-      Value.VarType := P1.VarType;
+      Value.CreateTyped(Value.VarType, IntValue);
       Result := qeNone;
     end
   else
@@ -228,38 +252,35 @@ begin
       VarTypeToName(Param2.Imm.VarType), Op));
 end;
 
-
-
-
 function EvalUnary(Op: TOperator; Param: PILParam; out Value: TImmValue): TQuicheError;
 var P: TImmValue;
+  VarType: TVarType;
+  IntValue: Integer;
 begin
   Result := qeNone;
   P := Param.Imm;
-  Value.VarType := vtUnknown;
+  VarType := vtUnknown;
 
   if IsNumericType(P.VarType) then
   begin
     case Op of
       opComplement:
       begin
-        Value.IntValue := not P.IntValue;
-        Value.IntValue := LogicValueToType(Value.IntValue, P.VarType);
+        IntValue := not P.IntValue;
+        IntValue := LogicValueToType(IntValue, P.VarType);
       end;
-      opNegate: Value.IntValue :=  - P.IntValue
+      opNegate: IntValue :=  - P.IntValue
     else
       raise Exception.Create('Unknown operation in Evaluate');
     end;
 
-//    Value.VarType := P.VarType;
   end
   else if P.VarType = vtBoolean then
   begin
     if Op = opComplement then
     begin
-      Value.BoolValue := not P.BoolValue;
-      Value.VarType := vtBoolean;
-      Result := qeNone;
+      Value.CreateBoolean(not P.BoolValue);
+      EXIT;
     end
     else
       raise Exception.Create('Unknown operation in Evaluate');
@@ -268,194 +289,215 @@ begin
     EXIT(ErrOpUsageSub(qeOpIncompatibleType,
       VarTypeToName(Param.Imm.VarType), Op));
 
-
   if Result <> qeNone then
     EXIT;
 
-  if Value.VarType = vtUnknown then
+  if VarType = vtUnknown then
     if IsNumericType(Value.VarType) then
-      Result := ValueToVarType(Value.IntValue, Value.VarType)
+    begin
+      VarType := Value.VarType;
+      Result := ValueToVarType(IntValue, VarType);
+      Value.CreateTyped(VarType, IntValue);
+    end
     else
     begin
-      Value.VarType := P.VarType;
+      Value.CreateTyped(P.VarType, IntValue);
       Result := qeNone;
     end
   else
     Result := qeNone;
-
-{  if Error then
-    EXIT(ErrOpUsage('Incompatible types ' +
-      VarTypeToName(Param1.Imm.VarType) + ' and ' +
-      VarTypeToName(Param2.Imm.VarType), Op));
-}end;
+end;
 
 //Evaluate and intrinsic with a single parameter
 function EvalIntrinsicUnary(Op: TOperator;const Param: TILParam;
   out Value: TImmValue): TQuicheError;
 var P: TImmValue;
   Error: Boolean;
-//const TypeCastToType: array[low(TypecastOps)..high(TypecastOps)] of TVarType =
-//  (vtInt8, vtInteger, vtByte, vtWord, vtPointer, vtBoolean, vtChar);
+  VarType: TVarType;
+  IntValue: Integer;
 begin
   Error := False;
   Assert(Param.Kind = pkImmediate);
   P := Param.Imm;
-  Value.VarType := vtUnknown;
+  VarType := vtUnknown;
+  Result := qeNone;
 
   case Op of
     //Typecasts
     opInt8:
     begin
-      Value.IntValue := LogicValueToType(Param.Imm.ToInteger and $ff, vtInt8);
-      Value.VarType := vtInt8;
+      Value.CreateTyped(vtInt8, LogicValueToType(Param.Imm.ToInteger and $ff, vtInt8));
+      EXIT;
     end;
     opInteger:
     begin
-      Value.IntValue := Param.Imm.ToInteger;
-      Value.VarType := vtInteger;
+      if Param.Imm.ToInteger > 32767 then
+        Value.CreateTyped(vtInteger, Param.Imm.ToInteger or (-1 xor $ffff))
+      else
+        Value.CreateTyped(vtInteger, Param.Imm.ToInteger);
+      EXIT;
     end;
     opByte:
     begin
-      Value.IntValue := Param.Imm.ToInteger and $ff;
-      Value.VarType := vtByte;
+      Value.CreateTyped(vtByte, Param.Imm.ToInteger and $ff);
+      EXIT;
     end;
     opWord:
     begin
-      Value.IntValue := Param.Imm.ToInteger and iCPUWordMask;
-      Value.VarType := vtWord;
+      Value.CreateTyped(vtWord, Param.Imm.ToInteger and iCPUWordMask);
+      EXIT;
     end;
     opPointer:
     begin
-      Value.IntValue := Param.Imm.ToInteger and iCPUWordMask;
-      Value.VarType := vtPointer;
+      Value.CreateTyped(vtPointer, Param.Imm.ToInteger and iCPUWordMask);
+      EXIT;
     end;
 //    opReal: Value.VarType := vtReal;
     opBoolean:
     begin
-      Value.BoolValue := Param.Imm.ToInteger <> 0;
-      Value.VarType := vtBoolean;
+      Value.CreateBoolean(Param.Imm.ToInteger <> 0);
+      EXIT;
     end;
     opChar:
     begin
-      Value.CharValue := chr(Param.Imm.ToInteger and $ff);
-      Value.VarType := vtChar;
+      Value.CreateChar(chr(Param.Imm.ToInteger and $ff));
+      EXIT;
     end;
 
     //-----Maths functions
     opAbs:
       if IsIntegerType(P.VarType) then
-        Value.IntValue := abs(P.IntValue)
+      begin
+        Value.CreateTyped(vtInteger, abs(P.IntValue));
+        EXIT;
+      end
       else
         Error := True;
     opOdd:
-    begin
       if IsIntegerType(P.VarType) then
-        Value.BoolValue := odd(P.IntValue)
+      begin
+        Value.CreateBoolean(odd(P.IntValue));
+        EXIT;
+      end
       else
         Error := True;
-      Value.VarType := vtBoolean;
-    end;
 
     //-----System functions
     opHi:
-    begin
       if (GetTypeSize(P.VarType) = 2) and IsIntegerType(P.VarType) then
-        Value.IntValue := hi(P.IntValue)
+      begin
+        Value.CreateTyped(vtByte, hi(P.IntValue));
+        EXIT;
+      end
       else
         Error := True;
-      Value.VarType := vtByte;
-    end;
     opHigh:
     begin
-      if P.VarType = vtTypeDef then
-        Value.VarType := P.TypeValue
-      else
-        Value.VarType := P.VarType;
-      if IsEnumerable(P.VarType) then
-        SetMaxValue(Value)
+      case P.VarType of
+        vtInteger, vtInt8, vtByte, vtWord, vtPointer: Value.CreateTyped(P.VarType, GetMaxValue(P.VarType));
+        vtChar:     Value.CreateChar(#255);
+        vtBoolean:  Value.CreateBoolean(True);
+        vtTypeDef:  Value.CreateTypeDef(High(TVarType));
       else
         Error := True;
+      end;
+      if not Error then
+        EXIT;
     end;
     opLo:
-    begin
       if (GetTypeSize(P.VarType) = 2) and IsIntegerType(P.VarType) then
-        Value.IntValue := lo(P.IntValue)
+      begin
+        Value.CreateTyped(vtByte, lo(P.IntValue));
+        EXIT;
+      end
       else
         Error := True;
-      Value.VarType := vtByte;
-    end;
     opLow:
     begin
-      if P.VarType = vtTypeDef then
-        Value.VarType := P.TypeValue
-      else
-        Value.VarType := P.VarType;
-      if IsEnumerable(P.VarType) then
-        SetMinValue(Value)
+      case P.VarType of
+        vtInteger, vtInt8, vtByte, vtWord, vtPointer: Value.CreateTyped(P.VarType, GetMinValue(P.VarType));
+        vtChar:     Value.CreateChar(#0);
+        vtBoolean:  Value.CreateBoolean(False);
+        vtTypeDef:  Value.CreateTypeDef(Low(TVarType));
       else
         Error := True;
+      end;
+      if not Error then
+        EXIT;
     end;
     opOrd:
     begin
       if IsIntegerType(P.VarType) then
-        Value := P
+        Value.CreateTyped(P.VarType, P.IntValue)
       else
       begin
         case P.VarType of
           vtBoolean:
             if P.BoolValue = True then
-              Value.IntValue := 1
+              Value.CreateTyped(vtByte, 1)
             else
-              Value.IntValue := 0;
+              Value.CreateTyped(vtByte, 0);
           vtChar:
-            Value.IntValue := ord(P.CharValue);
+            Value.CreateTyped(vtByte, ord(P.CharValue));
           vtTypeDef:
-            Value.IntValue := ord(P.TypeValue);
+            Value.CreateTyped(vtByte, ord(P.TypeDefValue));
         else
           Error := True;
         end;
-        if Value.IntValue <= 255 then
-          Value.VarType := vtbyte
-        else
-          Value.VarType := vtWord;
       end;
+      if not Error then
+        EXIT;
     end;
     opPred:
       if IsIntegerType(P.VarType) then
-        Value.IntValue := pred(P.IntValue)
+        IntValue := pred(P.IntValue)
       else
-      case P.VarType of
-        vtBoolean: Value.BoolValue := pred(P.BoolValue);
-        vtChar: Value.CharValue := pred(P.CharValue);
-      else
-        Error := True;
+      begin
+        case P.VarType of
+          vtBoolean: Value.CreateBoolean(pred(P.BoolValue));
+          vtChar: Value.CreateChar(pred(P.CharValue));
+          vtTypeDef: Value.CreateTypeDef(pred(P.TypeDefValue));
+        else
+          Error := True;
+        end;
+        if not Error then
+          EXIT;
       end;
     opSizeof:
     begin
-      if P.VarType = vtTypeDef then
-        Value.IntValue := GetTypeSize(P.TypeValue)
+      case P.VarType of
+        vtTypeDef: IntValue := GetTypeSize(P.TypeDefValue);
+        vtString: IntValue := Length(P.StringValue);
       else
-        Value.IntValue := GetTypeSize(P.VarType);
-      if Value.IntValue < 256 then
-        Value.VarType := vtByte
+        IntValue := GetTypeSize(P.VarType);
+      end;
+
+      if IntValue < 256 then
+        Value.CreateTyped(vtByte, IntValue)
       else
-        Value.VarType := vtWord;
+        Value.CreateTyped(vtWord, IntValue);
+      EXIT;
     end;
     opSucc:
       if IsIntegerType(P.VarType) then
-        Value.IntValue := succ(P.IntValue)
+        IntValue := succ(P.IntValue)
       else
-      case P.VarType of
-        vtBoolean: Value.BoolValue := succ(P.BoolValue);
-        vtChar: Value.CharValue := succ(P.CharValue);
-      else
-        Error := True;
+      begin
+        case P.VarType of
+          vtBoolean: Value.CreateBoolean(succ(P.BoolValue));
+          vtChar: Value.CreateChar(succ(P.CharValue));
+          vtTypeDef: Value.CreateTypeDef(succ(P.TypeDefValue));
+        else
+          Error := True;
+        end;
+        if not Error then
+          EXIT;
       end;
     opSwap:
       if (GetTypeSize(P.VarType) = 2) and IsIntegerType(P.VarType) then
       begin
-        Value.IntValue := swap(P.IntValue);
-        Value.VarType := P.VarType;
+        Value.CreateTyped(P.VarType, swap(P.IntValue));
+        EXIT;
       end
       else
         Error := True;
@@ -464,36 +506,54 @@ begin
     opChr:
     begin
       if IsIntegerType(P.VarType) then
-        if not (P.IntValue in [0..255]) then
-          EXIT(Err(qeConstantExpressionOverflow))
+        if P.IntValue in [0..255] then
+        begin
+          Value.CreateChar(chr(P.IntValue));
+          EXIT;
+        end
         else
-          Value.CharValue := chr(P.IntValue)
+          EXIT(Err(qeConstantExpressionOverflow))
       else
         Error := True;
-      Value.VarType := vtChar
     end;
     opDowncase:
+    begin
       if P.VarType = vtChar then
-        Value.CharValue := P.CharValue.ToLower
+        Value.CreateChar(P.CharValue.ToLower)
+      else if P.VarType = vtString then
+        Value.CreateString(P.StringValue.ToLower)
       else
         Error := True;
+      if not Error then
+        EXIT;
+    end;
     opUpcase:
+    begin
       if P.VarType = vtChar then
-        Value.CharValue := P.CharValue.ToUpper
+        Value.CreateChar(P.CharValue.ToUpper)
+      else if P.VarType = vtString then
+        Value.CreateString(P.StringValue.ToUpper)
       else
         Error := True;
+      if not Error then
+        EXIT;
+    end;
 
     //----End
   else
     EXIT(qeIntrinsicCantBeEvaluatedAtCompileTime);
   end;
 
-  if Value.VarType = vtUnknown then
+  if VarType = vtUnknown then
     if IsIntegerType(P.VarType) then
-      Result := ValueToVarType(Value.IntValue, Value.VarType)
+    begin
+      VarType := Value.VarType;
+      Result := ValueToVarType(IntValue, VarType);
+      Value.CreateTyped(VarType, IntValue);
+    end
     else
     begin
-      Value.VarType := P.VarType;
+      Value.CreateTyped(P.VarType, IntValue);
       Result := qeNone
     end
     else
@@ -508,28 +568,35 @@ function EvalIntrinsicBi(Op: TOperator;const Param1, Param2: TILParam;
   out Value: TImmValue): TQuicheError;
 var P1, P2: TImmValue;
   Error: Boolean;
+  VarType: TVarType;
+  IntValue: Integer;
 begin
   Assert(Param1.Kind = pkImmediate);
   Assert(Param2.Kind = pkImmediate);
   Error := False;
+  Result := qeNone;
 
   P1 := Param1.Imm;
   P2 := Param2.Imm;
-  Value.VarType := vtUnknown;
+  VarType := vtUnknown;
 
   case Op of
     opPred:
     begin
       if IsIntegerType(P2.VarType) then
         if IsIntegerType(P1.VarType) then
-          Value.IntValue := P1.IntValue - P2.IntValue
+          IntValue := P1.IntValue - P2.IntValue
         else
+        begin
           case P1.VarType of
-            vtBoolean: Value.BoolValue := False;
-            vtChar: Value.CharValue := chr(ord(P1.CharValue)-P2.IntValue);
+            vtBoolean: Value.CreateBoolean(False);
+            vtChar: Value.CreateChar(chr(ord(P1.CharValue)-P2.IntValue));
           else
             Error := True;
-          end
+          end;
+          if not Error then
+            EXIT;
+        end
       else
         Error := True;
     end;
@@ -537,14 +604,18 @@ begin
     begin
       if IsIntegerType(P2.VarType) then
         if IsIntegerType(P1.VarType) then
-          Value.IntValue := P1.IntValue + P2.IntValue
+          IntValue := P1.IntValue + P2.IntValue
         else
+        begin
           case P1.VarType of
-            vtBoolean: Value.BoolValue := True;
-            vtChar: Value.CharValue := chr(ord(P1.CharValue)+P2.IntValue);
+            vtBoolean: Value.CreateBoolean(True);
+            vtChar: Value.CreateChar(chr(ord(P1.CharValue)+P2.IntValue));
           else
             Error := True;
-          end
+          end;
+          if not Error then
+            EXIT;
+        end
       else
         Error := True;
     end;
@@ -552,12 +623,16 @@ begin
     EXIT(qeIntrinsicCantBeEvaluatedAtCompileTime);
   end;
 
-  if Value.VarType = vtUnknown then
-    if IsNumericType(Value.VarType) then
-      Result := ValueToVarType(Value.IntValue, Value.VarType)
+  if VarType = vtUnknown then
+    if IsNumericType(VarType) then
+    begin
+      VarType := Value.VarType;
+      Result := ValueToVarType(IntValue, VarType);
+      Value.CreateTyped(VarType, IntValue);
+    end
     else
     begin
-      Value.VarType := P1.VarType;
+      Value.CreateTyped(P1.VarType, IntValue);
       Result := qeNone;
     end
   else
