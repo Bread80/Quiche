@@ -3,15 +3,15 @@ unit Parse.Fixups;
 interface
 
 //Performs branch fixups.
-//Branch fixups are needed after mutliple execution paths have been parsed.
+//Branch fixups are needed after multiple execution paths have been parsed.
 //Each variable stores the current assign version index. If the variable has
 //been assigned a value in an earlier (alternate) code branch then it's Version
 //will be incorrect on entry to the second path. This routine resolves that issue,
 //and needs to be called once the branches merge.
-//Index and StopIndex are indexes into the IL list of the first and last items of
-//the (second, ELSE) code path
-//OtherFirstIndex and OtherStopIndex are the indexes into the IL list of the first
-//and last items in the other code path (THEN clause)
+//LeftIndex and LeftStopIndex are indexes into the IL list of the first and last items of
+//    the (second, ELSE) code path
+//RightFirstIndex and RightStopIndex are the indexes into the IL list of the first
+//    and last items in the other code path (THEN clause)
 procedure BranchFixup(LeftIndex, LeftStopIndex, RightIndex, RightStopIndex: Integer);
 
 //Sub to BranchFixup for anyone brave enough :)

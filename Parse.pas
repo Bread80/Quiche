@@ -620,7 +620,7 @@ begin
   //Insert Phis at start of the loop (for any variables updated during loop)
   VarClearAdjust; //Prep for branch adjust
   VarClearTouches;
-  PhiInsertCount := PhiWalkInt(ILGetCount-1, WhileIndex, -1, WhileIndex,
+  PhiInsertCount := PhiWalkInt(ILGetCount-1, WhileIndex-1, -1, WhileIndex-1,
     GetCurrBlockID, LoopID-1, False, WhileIndex);
   //We also need to fixup references within the loop to any variables we have phi'd
   BranchFixUpRight(WhileIndex {HeaderLastItemIndex} + PhiInsertCount {+ 2}, ILGetCount - 1);

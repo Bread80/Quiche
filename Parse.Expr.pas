@@ -759,7 +759,7 @@ end;
 
 //Parse and returns a *binary* operator (i.e. not unary ones) and it's precedence
 //If at the end of an expression returns opNone.
-function ParseOperator(var Slug: TExprSlug): TQuicheError;
+function ParseInfixOperator(var Slug: TExprSlug): TQuicheError;
 var Ident: String;
 begin
   Result := Parser.SkipWhite;
@@ -783,7 +783,7 @@ begin
   else if TestIdentFirst then
   begin
     Result := ParseIdentifier(#0, Ident);
-    Slug.Op := IdentToOperator(Ident);
+    Slug.Op := IdentToInfixOperator(Ident);
   end
   else
     EXIT(Err(qeOperatorExpected));
@@ -808,7 +808,7 @@ begin
   if Result <> qeNone then
     EXIT;
 
-  Result := ParseOperator(Slug);
+  Result := ParseInfixOperator(Slug);
 end;
 
 

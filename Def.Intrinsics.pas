@@ -68,7 +68,7 @@ begin
         Intrinsic := FuncCreate('System', Fields[fName]);
         Intrinsic.CallingConvention := ccIntrinsic;
 
-        Intrinsic.Op := IdentToOperator(Fields[fName]);
+        Intrinsic.Op := IdentToIntrinsicOperator(Fields[fName]);
         if Intrinsic.Op = opUnknown then
           raise Exception.Create('Operator not found: ' + Fields[fName]);
 

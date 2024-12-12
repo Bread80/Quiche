@@ -1,9 +1,2 @@
-function f(const s:String): Integer
-begin
-  write s
-  write s
-end
-
-begin
-  f('Hello')
-end.
+var x%
+x:=x inc(x)

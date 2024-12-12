@@ -790,7 +790,7 @@ begin
         PrimList.Add(Prim);
 
         //Primitive selection data
-        Prim.Op := IdentToOperator(Fields[fName]);
+        Prim.Op := IdentToAnyOperator(Fields[fName]);
         if Prim.Op = opUnknown then
           raise Exception.Create('Operation not found for primitive in ' + Line);
         if Operations[Prim.Op].FirstPrimIndex < 0 then
