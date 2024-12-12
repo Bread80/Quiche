@@ -1,2 +1,5 @@
-var x%
-x:=x inc(x)
+var x:=1
+repeat
+  inc(x)
+until x=5
+write x

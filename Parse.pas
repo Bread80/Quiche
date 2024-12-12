@@ -35,7 +35,9 @@ function ErrorLine: String;
 //otherwise Ident must be an empty string
 function ParseStatement(Storage: TVarStorage): TQuicheError;
 
-function ParseStatements(ToEnd: Boolean;Storage: TVarStorage): TQuicheError;
+type TEndAt = (eaEOF, eaEND, eaUNTIL);
+function ParseStatements(EndAt: TEndAt;Storage: TVarStorage): TQuicheError;forward;
+
 
 //Parse the declaration part, including Types, Consts, and Vars.
 //If AllowFuncs is True then Functions and Procedure declarations are also allowed.
@@ -124,6 +126,8 @@ begin
     ILItem.ResultType := vtBoolean; //(Not technically needed)
   end;
 end;
+
+//============================= DECLARATIONS
 
 // <assignment> := <variable-name> := <expression>
 //Parses assignment and variable declarations
@@ -337,6 +341,8 @@ end;
 
 
 type TBlockState = (bsSingle, bsBeginRead);
+
+//=================================== LOOPS
 
 //Parse a code block. BlockState specifies whether the initial BEGIN keyword
 //has already been parsed (If so, nothing following it should have been parsed)
@@ -560,22 +566,22 @@ end; //----------------------------------------------------------- /FOR
 //                        <block>
 function DoWHILE(Storage: TVarStorage): TQuicheError;
 var
-  LoopID: Integer; //Block ID of the WHILE - so we can generate the loop code
-  WhileIndex: Integer;  //Index of the first ILItem (the WHILE)
-  Break: PILItem;     //The Break out conditional. Nil if expression is a constant
+  WHILEID: Integer; //Block ID of the WHILE - so we can generate the loop code
+  WHILEIndex: Integer;  //Index of the first ILItem (the WHILE)
+  Conditional: PILItem;     //The Break out conditional. Nil if expression is a constant
   ConstExprValue: Boolean;  //If branch condition is a constant
   PrevSkipMode: Boolean;  //If we're skipping the loop code (WHILE FALSE DO)
   PhiInsertCount: Integer;  //Number of Phis inserted at start of loop
 begin
   NewBlock := True;
   NewBlockComment := 'While header';
-  LoopID := GetCurrBlockID + 1;
-  WhileIndex := ILGetCount;
+  WHILEID := GetCurrBlockID + 1;
+  WHILEIndex := ILGetCount;
 
   //Note: If Branch returns nil then we have a constant expression.
   //We'll use that to optimise infinite loops or never executed code. We do, however,
   //still need to parse non-executed that code!
-  Result := ParseBranchExpr(Break, ConstExprValue);
+  Result := ParseBranchExpr(Conditional, ConstExprValue);
   if Result <> qeNone then
     EXIT;
 
@@ -590,46 +596,116 @@ begin
   end;
 
   //Jump out of loop
-  if Break <> nil then
+  if Conditional <> nil then
   begin
-    Break.Dest.SetCondBranch;
+    Conditional.Dest.SetCondBranch;
     //If condition then jump 'into' the loop (this will get optimised away)
-    Break.Dest.TrueBlockID := GetCurrBlockID + 1;
+    Conditional.Dest.TrueBlockID := GetCurrBlockID + 1;
 
     NewBlock := True;
   end;
 
-  //Generate code within the loop
-  PrevSkipMode := SkipModeStart((Break = nil) and not ConstExprValue);
+  //Generate code within the loop (not required if conditional is a literal FALSE
+  PrevSkipMode := SkipModeStart((Conditional = nil) and not ConstExprValue);
 
   NewBlock := True;
-  NewBlockComment := 'While body';
+  NewBlockComment := 'WHILE body';
 
   Result := ParseBlock(bsSingle, Storage);
   if Result <> qeNone then
     EXIT;
 
   //Loop back to the WHILE
-  ILAppendBranch(LoopID);
+  ILAppendBranch(WHILEID);
 
   //If loop var was /not/ a constant, set the jump target for the break out
-  if Break <> nil then
-    Break.Dest.FalseBlockID := GetCurrBlockID + 1;
+  if Conditional <> nil then
+    Conditional.Dest.FalseBlockID := GetCurrBlockID + 1;
 
   //PHI variables
   //Insert Phis at start of the loop (for any variables updated during loop)
   VarClearAdjust; //Prep for branch adjust
   VarClearTouches;
-  PhiInsertCount := PhiWalkInt(ILGetCount-1, WhileIndex-1, -1, WhileIndex-1,
-    GetCurrBlockID, LoopID-1, False, WhileIndex);
+  PhiInsertCount := PhiWalkInt(ILGetCount-1, WHILEIndex-1, -1, WHILEIndex-1,
+    GetCurrBlockID, WHILEID-1, False, WHILEIndex);
   //We also need to fixup references within the loop to any variables we have phi'd
-  BranchFixUpRight(WhileIndex {HeaderLastItemIndex} + PhiInsertCount {+ 2}, ILGetCount - 1);
+  BranchFixUpRight(WHILEIndex {HeaderLastItemIndex} + PhiInsertCount {+ 2}, ILGetCount - 1);
 
   NewBlock := True;
-  NewBlockComment := 'While ended';
+  NewBlockComment := 'WHILE ended';
 
   SkipModeEnd(PrevSkipMode);
 end;
+
+// <repeat-statement> :=  REPEAT
+//                          <statements>
+//                        UNTIL <boolean-expression>
+function DoREPEAT(Storage: TVarStorage): TQuicheError;
+var
+  REPEATID: Integer;    //Block ID of the REPEAT - so we can generate the loop code
+  REPEATIndex: Integer; //Index of the first ILItem (the REPEAT)
+  Conditional: PILItem; //Loop conditional. Nil if expression is a constant
+  ConstExprValue: Boolean;  //If branch condition is a constant
+  PhiInsertCount: Integer;  //Number of Phi nodes inserted at start of loop
+begin
+  //Start a new scope
+  ScopeIncDepth;
+
+  NewBlock := True;
+  NewBlockComment := 'REPEAT';
+  REPEATID := GetCurrBlockID + 1;
+  RepeatIndex := ILGetCount;
+
+  //Parse the code statements
+  Result := ParseStatements(eaUNTIL, Storage);
+  if Result <> qeNone then
+    EXIT;
+
+  //Note: If Branch returns nil then we have a constant expression.
+  //We'll use that to optimise infinite loops
+  Result := ParseBranchExpr(Conditional, ConstExprValue);
+  if Result <> qeNone then
+    EXIT;
+
+  //Jump out of loop
+  if Conditional = nil then
+  begin
+    if  ConstExprValue then
+      //UNTIL TRUE (literal value) - doesn't loop
+    else
+      //UNTIL FALSE - loop unconditionally
+      ILAppendBranch(REPEATID);
+  end
+  else
+  begin //Branch expression
+    Conditional.Dest.SetCondBranch;
+    //If not <condition> then jump back to the REPEAT
+    Conditional.Dest.FalseBlockID := REPEATID;
+    //Otherwise fall through to next block
+    Conditional.Dest.TrueBlockID := GetCurrBlockID + 1;
+  end;
+
+//  Result := Parser.SkipWhiteNL;
+//  if Result <> qeNone then
+//    EXIT;
+
+  //PHI variables
+  //Insert Phis at start of the loop (for any variables updated during loop)
+  VarClearAdjust; //Prep for branch adjust
+  VarClearTouches;
+  PhiInsertCount := PhiWalkInt(ILGetCount-1, REPEATIndex-1, -1, REPEATIndex-1,
+    GetCurrBlockID, REPEATID-1, False, REPEATIndex);
+  //We also need to fixup references within the loop to any variables we have phi'd
+  BranchFixUpRight(REPEATIndex {HeaderLastItemIndex} + PhiInsertCount {+ 2}, ILGetCount - 1);
+
+  NewBlock := True;
+  NewBlockComment := 'REPEAT completed';
+
+  //End the scope
+  ScopeDecDepth;
+end;
+
+//==============================CONDITIONALS
 
 // <if-statement> := IF <boolean-expression> [THEN]
 //                     <block>
@@ -772,7 +848,7 @@ begin
 end;  //---------------------------------------------------------- IF
 
 
-//===============================================================
+//==============================================STATEMENTS
 
 // <statement> := <block>
 //             |  <function-call>
@@ -809,12 +885,13 @@ begin
   if Keyword <> keyUNKNOWN then
   begin
     case Keyword of
-    keyBEGIN: Result := ParseBlock(bsBeginRead, Storage);
-    keyCONST: Result := DoCONST('');
-    keyVAR: Result := DoVAR('', Storage);
-    keyFOR: Result := DoFOR(Storage);
-    keyIF: Result := DoIF(Storage);
-    keyWHILE: Result := DoWHILE(Storage);
+      keyBEGIN: Result := ParseBlock(bsBeginRead, Storage);
+      keyCONST: Result := DoCONST('');
+      keyVAR: Result := DoVAR('', Storage);
+      keyFOR: Result := DoFOR(Storage);
+      keyIF: Result := DoIF(Storage);
+      keyREPEAT: Result := DoREPEAT(Storage);
+      keyWHILE: Result := DoWHILE(Storage);
     else
       EXIT(ErrSub(qeInvalidKeyword, Ident));
     end;
@@ -862,18 +939,25 @@ begin
 end;
 
 //Parses a list of statements
-//If ToEnd until exits when either EOF or the keyword END is read (but not consumed)
-//otherwise exits at EOF
-function ParseStatements(ToEnd: Boolean;Storage: TVarStorage): TQuicheError;
+//If ToEnd is eaEND of eaUNTIL, parses until END or UNTIL is parsed, or EOF.
+//    If found the END or UNTIL is consumed
+//otherwise (ToEnd is eaEOF) exits at EOF
+function ParseStatements(EndAt: TEndAt;Storage: TVarStorage): TQuicheError;
 begin
   Result := Parser.NextStatement(False);
   if Result <> qeNone then
     EXIT;
   while not Parser.EOF do
   begin
-    if ToEnd then
-      if TestForIdent('end') then
+    case EndAt of
+      eaEND: if TestForIdent('end') then
         EXIT(qeNone);
+      eaUNTIL: if TestForIdent('until') then
+        EXIT(qeNone);
+      eaEOF: ;  //Nothing
+    else
+      Assert(False);
+    end;
     Result := ParseStatement(Storage);
     if Result <> qeNone then
       EXIT;
@@ -881,10 +965,14 @@ begin
     if Result <> qeNone then
       EXIT;
   end;
-  if ToEnd then
-    Result := Err(qeENDExpected)
+
+  case EndAt of
+    eaEOF: Result := qeNone;
+    eaEND: Result := Err(qeENDExpected);
+    eaUNTIL: Result := Err(qeUNTILExpected);
   else
-    Result := qeNone;
+    Assert(False);
+  end;
 end;
 
 // <block> := BEGIN [ <statement-list> ] END
@@ -895,7 +983,7 @@ begin
   ScopeIncDepth;
 
   if BlockState = bsBeginRead then
-    Result := ParseStatements(True, Storage)
+    Result := ParseStatements(eaEND, Storage)
   else
     Result := ParseStatement(Storage);
   if Result <> qeNone then
@@ -940,7 +1028,6 @@ begin
     begin //Identifier
       Result := ParseIdentifier(#0, Ident);
       Keyword := IdentToKeyword(Ident);
-//      Result := ParseKeyword(Keyword);
       if Result <> qeNone then
         EXIT;
       if Keyword = keyUNKNOWN then

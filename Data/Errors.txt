@@ -64,6 +64,11 @@
 	VAR <var-name><type-symbol>
 	DO is optional at line end but required if the block is on the same line
 
+=UNTILExpected
+	UNTIL expected
+	REPEAT
+	  <statements>
+	UNTIL <boolean-expr>
 ;IF conditionals
 =THENExpected
 	THEN expected

@@ -26,11 +26,10 @@ type TKeyword = (keyUNKNOWN,
   keyCONST, keyDIV, keyDO, keyDOWNTO,
   keyELSE, keyEND, {keyEXTERN,} keyFOR, {keyFORWARD, }keyFUNCTION,
   keyIF, keyIN,
-  keyMOD, keyNOT, keyOR, keyPROCEDURE,
+  keyMOD, keyNOT, keyOR, keyPROCEDURE, keyREPEAT,
   keySHL, keySHR,
-  keyTHEN, keyTO, keyVAR, keyXOR,
-  keyWHILE,
-  keyFALSE, keyTRUE, keyMAXINT, keyMININT //These are Consts and shouldn't be here!
+  keyTHEN, keyTO, keyUNTIL, keyVAR, keyXOR,
+  keyWHILE
   );
 
 //Converts an identifier to it's keyXXX constant.
@@ -173,11 +172,10 @@ const KeywordStrings: array[low(TKeyword)..high(TKeyword)] of String = (
   'and', 'begin', 'const', 'div', 'do', 'downto',
   'else', 'end', 'for', 'function',
   'if', 'in',
-  'mod', 'not', 'or', 'procedure',
+  'mod', 'not', 'or', 'procedure', 'repeat',
   'shl', 'shr',
-  'then', 'to', 'var', 'xor',
-  'while',
-  'false','true','maxint','minint');
+  'then', 'to', 'until', 'var', 'xor',
+  'while');
 begin
   for Result := low(TKeyword) to high(TKeyword) do
     if CompareText(KeywordStrings[Result], Ident) = 0 then

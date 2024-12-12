@@ -27,6 +27,8 @@ type TQuicheError = (
   //FOR loops
   qeTOorDOWNTOExpected,
   qeDOExpected,
+  //REPEAT..UNTIL
+  qeUNTILExpected,
   //IF conditionals
   qeTHENExpected,
   //VAR declarations

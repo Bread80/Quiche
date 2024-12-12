@@ -351,6 +351,11 @@ begin
     Result.BlockID := After.BlockID;
     After.BlockID := -1;
   end;
+  if After.Comments <> '' then
+  begin
+    Result.Comments := After.Comments;
+    After.Comments := '';
+  end;
 end;
 
 function ILAppendBranch(BranchID: Integer): PILItem;

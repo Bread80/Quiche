@@ -286,9 +286,9 @@ begin
     //Block level
     while (LastError = qeNone) and not ParserEOF do
       case BlockType of
-        btDefault: LastError := ParseStatements(False, optDefaultVarStorage);
-        btStack: LastError := ParseStatements(False, vsStack);
-        btStatic: LastError := ParseStatements(False, vsStatic);
+        btDefault: LastError := ParseStatements(eaEOF, optDefaultVarStorage);
+        btStack: LastError := ParseStatements(eaEOF, vsStack);
+        btStatic: LastError := ParseStatements(eaEOF, vsStatic);
       else
         raise Exception.Create('Unknown compile scope in Compiler.Parse');
       end;
