@@ -1,0 +1,107 @@
+Clever Puppy 2.0 Algorithm
+================
+
+1. (Generate Chunk 1) 
+  With the first IL step:
+  Generate all possible combinations of:
+    base operations
+    source for each source parameter (reg, immediate, static, stack, pop1, pop2 etc)
+	dest for each dest parameter (reg), (no memory, static, stack, push etc)
+  For each combo, calculate heuristics (cycles, bytes etc) for:
+    each operation
+	each source
+	each dest
+   (Aside: In the data structure use sets where the options are interchangeable (ie same heuristics)
+     when we calculate heuristics we will need to separate any combos with differing heuristics
+	 (and regroup any with identical heuristics)).
+   (Also: generate CPU state after the step - how to parameterise for sets?)
+   (!!! Loading and storing 8-bit values to/from static addresses is s complex proglem set in itself.
+   Eg. LD A,(nnnn), LD rp,(nnnn) etc.
+   The solution may be to have multiple options for static source and dest so each can be explored separately)
+   (Attention must be paid to the variable map when generating combos and (possibly) heuristics.
+   Whether a value is required in future, how far in the future etc are all relevant to the set
+   of practical combos.
+   Eg. Must we write to memory (is it a return value, single read, across blocks, volatile, etc)?)
+   Heuristics also needs to include range and overflow checking.
+   Where a function (including intrinsics) is called we need a way to asess the cost of the subroutine
+   for times when the subsoutine might be called a variable number of times (ie if the parse is generating 
+   multiple options), or where a loop calucalted value (eg array index) can be optimised to an INC. This 
+   is probably not required at present(!). Possibly this needs a additional heuristics (number of functions/calls?
+   Library routine byte count?)
+   
+-> We now have Chunk 1
+   
+2. (Generate Chunk 2)
+  Repeat as above for the next IL step
+
+3. For each combo in Chunk 1, remove if it is invalidated by all combos in Chunk 2
+4. For each combo in Chunk 2, remove if it is invalidated by all combos in Chunk 1
+  (Invalidated here means that, for example, the register set by Chunk 1 will be corrupted
+  by Chunk 2).
+  
+4. (Generate Chunk 3)
+  Generate the full set of valid combos of Chunk 1 followed by Chunk 2
+  (Could this replace steps 3,4?)
+  The amalgamated goups is called Chunk 3. Chunks 1 and 2 are no longer needed and can be disposed of.
+  Generate heuristics for Chunk 3
+  (Optional: remove any combos which are grossly inefficient - how to define? This will reduce the search space)
+  
+Loop back to stage 2 until done.
+
+At the end if we have multiple combos left choose the most efficient.
+
+Future options:
+* Look at reordering IL steps. (But testing every possible combination could result 
+  in a very large set of combinations. This could be an option for higher levels of optimisation
+  (and longer compile times).
+* Clever Puppy would be useful for high level optimisations, for example exploring loop options such as:
+  - loop unrolling
+  - loop inversion
+  - loop counter options when index is used for (eg) array indexing.
+  It therefore makes sense for the parser/IL generator to be able to generate multiple ILs so
+  each can be run through CP to ascertain the peak solution.
+  
+
+Data Structures
+---------------
+Basic data is the same as an ILItem with ILParams but
+  Each ILParam needs sets for:
+    source location (register (a set), immediate, stack, static, pop etc)
+	Dest register
+	Dest memory location (static, stack, push etc)
+  ILItem needs data for heuristics:
+    Cycle count
+	Byte count
+	(Other?)
+	
+CP data structure stores:
+  Parallel set of combos
+  Serial list of sub-chunks (where each sub-chunk is either a parallel set or a 
+    serial list of sub-chunks
+	
+	
+	
+Test Program
+============
+	
+var a:Integer
+  b:Integer
+  c:Integer
+  x:Integer
+  y:Integer
+
+{$CLEVERPUPPY+}
+procedure proc;register;
+begin
+  x:=a+b
+  y:=a+c
+  y:=y+x
+end
+{$CLEVERPUPPY-}
+
+begin
+  a:=1
+  b:=10
+  c:=100
+  proc
+end.	

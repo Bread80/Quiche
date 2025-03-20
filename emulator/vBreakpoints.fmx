@@ -1,0 +1,31 @@
+object Breakpoints: TBreakpoints
+  Left = 0
+  Top = 0
+  Caption = 'Form2'
+  ClientHeight = 480
+  ClientWidth = 182
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop]
+  OnCreate = FormCreate
+  DesignerMasterStyle = 0
+  object Label1: TLabel
+    Position.X = 8.000000000000000000
+    Position.Y = 16.000000000000000000
+    Text = 'Addr'
+    TabOrder = 0
+  end
+  object edAddr: TEdit
+    Touch.InteractiveGestures = [LongTap, DoubleTap]
+    TabOrder = 1
+    Position.X = 40.000000000000000000
+    Position.Y = 16.000000000000000000
+    OnChange = edAddrChange
+  end
+  object Label2: TLabel
+    Position.X = 40.000000000000000000
+    Position.Y = 48.000000000000000000
+    Text = 'Label2'
+    TabOrder = 3
+  end
+end

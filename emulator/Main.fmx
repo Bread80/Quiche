@@ -1,0 +1,283 @@
+object Form1: TForm1
+  Left = 0
+  Top = 0
+  Caption = 'Form1'
+  ClientHeight = 627
+  ClientWidth = 974
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop]
+  OnCreate = FormCreate
+  DesignerMasterStyle = 0
+  object Panel3: TPanel
+    Align = Client
+    Size.Width = 974.000000000000000000
+    Size.Height = 554.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 2
+    object Splitter1: TSplitter
+      Align = Left
+      Cursor = crHSplit
+      MinSize = 20.000000000000000000
+      Position.X = 209.000000000000000000
+      Size.Width = 9.000000000000000000
+      Size.Height = 419.000000000000000000
+      Size.PlatformDefault = False
+    end
+    object TabRight: TTabControl
+      Align = Right
+      Position.X = 712.000000000000000000
+      Size.Width = 262.000000000000000000
+      Size.Height = 419.000000000000000000
+      Size.PlatformDefault = False
+      TabIndex = 2
+      TabOrder = 1
+      TabPosition = PlatformDefault
+      Sizes = (
+        262s
+        393s
+        262s
+        393s
+        262s
+        393s)
+      object TabIO: TTabItem
+        CustomIcon = <
+          item
+          end>
+        IsSelected = False
+        Size.Width = 54.000000000000000000
+        Size.Height = 26.000000000000000000
+        Size.PlatformDefault = False
+        StyleLookup = ''
+        TabOrder = 0
+        Text = 'IO RW'
+        ExplicitSize.cx = 33.000000000000000000
+        ExplicitSize.cy = 26.000000000000000000
+        object MemoIO: TMemo
+          Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+          DataDetectorTypes = []
+          Align = Client
+          Size.Width = 262.000000000000000000
+          Size.Height = 393.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 0
+          Viewport.Width = 258.000000000000000000
+          Viewport.Height = 389.000000000000000000
+        end
+      end
+      object TabMemRW: TTabItem
+        CustomIcon = <
+          item
+          end>
+        IsSelected = False
+        Size.Width = 70.000000000000000000
+        Size.Height = 26.000000000000000000
+        Size.PlatformDefault = False
+        StyleLookup = ''
+        TabOrder = 0
+        Text = 'Mem RW'
+        ExplicitSize.cx = 65.000000000000000000
+        ExplicitSize.cy = 26.000000000000000000
+        object MemoMemory: TMemo
+          Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+          DataDetectorTypes = []
+          Align = Client
+          Size.Width = 262.000000000000000000
+          Size.Height = 393.000000000000000000
+          Size.PlatformDefault = False
+          TabOrder = 0
+          Viewport.Width = 258.000000000000000000
+          Viewport.Height = 389.000000000000000000
+        end
+      end
+      object TabMemory: TTabItem
+        CustomIcon = <
+          item
+          end>
+        IsSelected = True
+        Size.Width = 83.000000000000000000
+        Size.Height = 26.000000000000000000
+        Size.PlatformDefault = False
+        StyleLookup = ''
+        TabOrder = 0
+        Text = 'TabMemory'
+        ExplicitSize.cx = 83.000000000000000000
+        ExplicitSize.cy = 26.000000000000000000
+      end
+    end
+    object tabMain: TTabControl
+      Align = Bottom
+      Position.X = 209.000000000000000000
+      Position.Y = 419.000000000000000000
+      Size.Width = 765.000000000000000000
+      Size.Height = 135.000000000000000000
+      Size.PlatformDefault = False
+      TabIndex = 0
+      TabOrder = 2
+      TabPosition = PlatformDefault
+      Sizes = (
+        765s
+        109s)
+      object tabTerminal: TTabItem
+        CustomIcon = <
+          item
+          end>
+        IsSelected = True
+        Size.Width = 65.000000000000000000
+        Size.Height = 26.000000000000000000
+        Size.PlatformDefault = False
+        StyleLookup = ''
+        TabOrder = 0
+        Text = 'Terminal'
+        ExplicitSize.cx = 65.000000000000000000
+        ExplicitSize.cy = 26.000000000000000000
+      end
+    end
+    object Splitter2: TSplitter
+      Align = Right
+      Cursor = crHSplit
+      MinSize = 20.000000000000000000
+      Position.X = 704.000000000000000000
+      Size.Width = 8.000000000000000000
+      Size.Height = 419.000000000000000000
+      Size.PlatformDefault = False
+    end
+    object Panel2: TPanel
+      Align = MostLeft
+      Size.Width = 209.000000000000000000
+      Size.Height = 554.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 4
+      object pnlCPUView: TPanel
+        Align = Top
+        Size.Width = 209.000000000000000000
+        Size.Height = 369.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 1
+      end
+      object pnlBreakpoints: TPanel
+        Align = Client
+        Size.Width = 209.000000000000000000
+        Size.Height = 185.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 2
+      end
+    end
+    object pnlSourceFileView: TPanel
+      Align = Client
+      Size.Width = 486.000000000000000000
+      Size.Height = 419.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 5
+    end
+  end
+  object Panel1: TPanel
+    Align = Top
+    Size.Width = 974.000000000000000000
+    Size.Height = 73.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 3
+    object Step: TButton
+      Action = acStepInto
+      Enabled = True
+      ImageIndex = -1
+      Position.X = 104.000000000000000000
+      Position.Y = 8.000000000000000000
+      TabOrder = 1
+    end
+    object Run: TButton
+      Action = acRun
+      Enabled = True
+      ImageIndex = -1
+      Position.X = 192.000000000000000000
+      Position.Y = 8.000000000000000000
+      TabOrder = 2
+    end
+    object Pause: TButton
+      Position.X = 280.000000000000000000
+      Position.Y = 8.000000000000000000
+      TabOrder = 3
+      Text = 'Pause'
+      OnClick = PauseClick
+    end
+    object Reset: TButton
+      Position.X = 8.000000000000000000
+      Position.Y = 8.000000000000000000
+      TabOrder = 4
+      Text = 'Reset'
+      OnClick = ResetClick
+    end
+    object btnTest: TButton
+      Position.X = 480.000000000000000000
+      Position.Y = 8.000000000000000000
+      TabOrder = 6
+      Text = 'Test'
+      OnClick = btnTestClick
+    end
+    object Initialise: TButton
+      Position.X = 568.000000000000000000
+      Position.Y = 8.000000000000000000
+      TabOrder = 7
+      Text = 'Initialise'
+      OnClick = InitialiseClick
+    end
+    object cbQuiet: TCheckBox
+      IsChecked = True
+      Position.X = 368.000000000000000000
+      Position.Y = 8.000000000000000000
+      Size.Width = 65.000000000000000000
+      Size.Height = 19.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 8
+      Text = 'Quiet'
+      OnChange = cbQuietChange
+    end
+    object MilliTest: TButton
+      Position.X = 720.000000000000000000
+      Position.Y = 8.000000000000000000
+      TabOrder = 9
+      Text = 'MilliTest'
+      OnClick = MilliTestClick
+    end
+    object Label1: TLabel
+      Position.X = 8.000000000000000000
+      Position.Y = 40.000000000000000000
+      Text = 'Config'
+      TabOrder = 10
+    end
+    object edConfigFile: TEdit
+      Touch.InteractiveGestures = [LongTap, DoubleTap]
+      TabOrder = 11
+      Position.X = 48.000000000000000000
+      Position.Y = 40.000000000000000000
+      Size.Width = 193.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+    end
+    object btnLoadConfig: TButton
+      Position.X = 248.000000000000000000
+      Position.Y = 40.000000000000000000
+      TabOrder = 12
+      Text = 'Load'
+    end
+  end
+  object ActionList1: TActionList
+    Left = 440
+    Top = 24
+    object acRun: TAction
+      Text = 'Run'
+      ShortCut = 120
+      OnExecute = RunClick
+    end
+    object acStepInto: TAction
+      Text = 'Step into'
+      ShortCut = 118
+      OnExecute = StepClick
+    end
+    object acStepOver: TAction
+      Text = 'Step over'
+      ShortCut = 119
+      OnExecute = acStepOverExecute
+    end
+  end
+end

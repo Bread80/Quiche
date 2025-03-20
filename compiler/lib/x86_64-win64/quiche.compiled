@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <Compiler Value="C:\lazarus\fpc\3.2.2\bin\x86_64-win64\fpc.exe" Date="1497193866"/>
+  <Params Value=" -MDelphi -Scghi -O1 -gw3 -gl -l -vewnhibq -FiC:\Dropbox\Delphi\Quiche\compiler\lib\x86_64-win64 -FuC:\Dropbox\Delphi\Quiche\Emulator -FuC:\lazarus\components\lazutils\lib\x86_64-win64 -FuC:\lazarus\packager\units\x86_64-win64 -FuC:\Dropbox\Delphi\Quiche\compiler\ -FUC:\Dropbox\Delphi\Quiche\compiler\lib\x86_64-win64\ -FEC:\Dropbox\Delphi\Quiche\redist\bin\ -oC:\Dropbox\Delphi\Quiche\redist\bin\quiche-x86_64-win64.exe quiche.lpr"/>
+</CONFIG>

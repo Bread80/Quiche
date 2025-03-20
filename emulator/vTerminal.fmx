@@ -1,0 +1,73 @@
+object TerminalForm: TTerminalForm
+  Left = 0
+  Top = 0
+  Caption = 'Terminal'
+  ClientHeight = 480
+  ClientWidth = 640
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop]
+  OnCreate = FormCreate
+  DesignerMasterStyle = 0
+  object Panel1: TPanel
+    Align = Top
+    Size.Width = 640.000000000000000000
+    Size.Height = 57.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 0
+    object Label1: TLabel
+      Position.X = 8.000000000000000000
+      Position.Y = 8.000000000000000000
+      Text = 'In buffer:'
+      TabOrder = 0
+    end
+    object Label2: TLabel
+      Position.X = 8.000000000000000000
+      Position.Y = 32.000000000000000000
+      Text = 'Out buffer:'
+      TabOrder = 1
+    end
+    object edInBuffer: TEdit
+      Touch.InteractiveGestures = [LongTap, DoubleTap]
+      TabOrder = 2
+      Position.X = 72.000000000000000000
+      Position.Y = 8.000000000000000000
+      Size.Width = 209.000000000000000000
+      Size.Height = 22.000000000000000000
+      Size.PlatformDefault = False
+      OnKeyDown = Memo1KeyDown
+    end
+    object edOutBuffer: TEdit
+      Touch.InteractiveGestures = [LongTap, DoubleTap]
+      TabOrder = 3
+      Position.X = 72.000000000000000000
+      Position.Y = 32.000000000000000000
+    end
+    object cbShowControlCodes: TCheckBox
+      Position.X = 176.000000000000000000
+      Position.Y = 32.000000000000000000
+      Size.Width = 137.000000000000000000
+      Size.Height = 19.000000000000000000
+      Size.PlatformDefault = False
+      TabOrder = 4
+      Text = 'Show control codes'
+    end
+  end
+  object Memo1: TMemo
+    Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+    DataDetectorTypes = []
+    ReadOnly = True
+    StyledSettings = [Size, Style, FontColor]
+    TextSettings.Font.Family = 'Courier New'
+    Align = Client
+    Size.Width = 640.000000000000000000
+    Size.Height = 423.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 1
+    ParentShowHint = False
+    ShowHint = False
+    OnKeyDown = Memo1KeyDown
+    Viewport.Width = 636.000000000000000000
+    Viewport.Height = 419.000000000000000000
+  end
+end

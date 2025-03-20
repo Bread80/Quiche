@@ -1,0 +1,23 @@
+program
+
+var a:Integer
+  b:Integer
+  c:Integer
+  x:Integer
+  y:Integer
+
+{$CLEVERPUPPY+}
+procedure proc;register;
+begin
+  x:=a+b
+  y:=a+c
+  y:=y-1+x
+end
+{$CLEVERPUPPY-}
+
+begin
+  a:=1
+  b:=10
+  c:=100
+  proc
+end.

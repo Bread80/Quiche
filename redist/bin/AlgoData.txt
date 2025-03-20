@@ -1,0 +1,62 @@
+;Algo Data for Standard Z80
+;==========================
+
+;For each available 'algo' for the Z80 this file contains data such as
+;the fragment name to generate
+
+;Items MUST be in the same ordering as items in the source code (Z80.LibData)
+
+;Format:
+;Lines beginning with semicolons are ignored
+;Lines beginning with an equals sign specify data for an algo
+;Algo data format:
+;=<Name>,<Fragment>,RegSafety
+;  - Name is a freetext identifier (used for comments, reports etc).
+;  - Fragment is the fortine to generate
+;  - RegSafe should be specified if the routine does not affect, and is not 
+;    affected by, the order in which registers are loaded
+
+;Meta
+=Unspecified, dummy, RegSafe
+=None, dummy, RegSafe
+
+;Algos for loading immediate/literals into registers
+=Imm8, load_r8_imm, RegSafe
+=Imm16, load_r16_imm, RegSafe
+=ImmXY, load_xy_imm, RegSafe
+=SCF, set_cf, RegSafe
+=ClearCF, clear_cf, RegSafe
+
+;Algos for sourcing data from register or loading from memory
+=LStaticHL, load_hl_static, RegSafe
+=LStatic16, load_r16_static, RegSafe
+=LStack16, load_r16_stack, RegSafe
+;=Register
+;=Pop
+
+;Algos for moving data between registers
+=Preserve, dummy, Preserve
+;=From8Bit, move_from_8bit
+=FromPair, move_from_pair, Copy
+;=PushXYPop, pushxy_pop
+;=PushPopXY, push_popxy
+;=PushXYPopXY, pushxy_popxy
+
+;We only want to generate an exchange once, so we'll replace one side with this as a placeholder
+=ExchangeOther, dummy, Exchange
+=EXHLDE, ex_hl_de, Exchange
+
+;Algos for storing data to memory
+=SStaticHL, store_static_hl, RegSafe
+=SStatic16, store_static_r16, RegSafe
+=SStack16, store_stack_r16, RegSafe
+;=Push
+
+;Algos for detecting overflow
+=COverflow,c_overflow,RegSafe
+=NCOverflow,nc_overflow,RegSafe
+=NZOverflow,nz_overflow,RegSafe
+=POverflow,p_overflow,RegSafe
+=MOverflow,m_overflow,RegSafe
+=PEOverflow,pe_overflow,RegSafe
+;=HRegNZOverflow,hreg_nz_overflow,**Collateral - A register, CF, ZF, Flags

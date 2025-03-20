@@ -1,3 +1,6 @@
+{$ifdef fpc}
+  {$mode delphi}
+{$endif}
 unit Def.Operators;
 (*
 Operators/Operations are operations performed on data by a program. These might
@@ -136,8 +139,8 @@ type
 
 const
   SystemOps = [opUnknown..opFuncReturn];
-  BinaryOps = [opAdd..opSHL];
-  UnaryOps = [opNegate..{opComplement];//}opAddrOf];
+  InfixOps = [opAdd..opSHL];
+  UnaryOps = [opNegate..opAddrOf];
   TypecastOps = [opInt8..opChar];
   IntrinsicOps = [opAbs..opUpcase];
 
@@ -168,9 +171,11 @@ var Operations : array[low(TOperator)..high(TOperator)] of TOpData;
 
 //Finds the first operator with the given symbol
 function SymbolToOperator(const Symbol: String): TOperator;
+
 //Finds the operator with the given Name
-//function OpIdentifierToOpData(const Name: String): POpData;
-function IdentToOperator(const Name: String): TOperator;
+function IdentToInfixOperator(const Name: String): TOperator;
+function IdentToAnyOperator(const Name: String): TOperator;
+function IdentToIntrinsicOperator(const Name: String): TOperator;
 
 procedure InitialiseOperators;
 
@@ -218,9 +223,9 @@ uses Generics.Collections, Classes, SysUtils;
 
 const
   //Mapping between ASCII and symbolic operators
-  SymbolOps: array[0..9] of TOperator = (opAdd, opSubtract, opMultiply, opRealDiv,
-    opEqual,opNotEqual,opLess,opGreater,opLessEqual,opGreaterEqual);
-  SymbolStrings: array[0..9] of String = ('+','-','*','/','=','<>','<','>','<=','>=');
+  SymbolOps: TArray<TOperator> = [opAdd, opSubtract, opMultiply, opRealDiv,
+    opEqual,opNotEqual,opLess,opGreater,opLessEqual,opGreaterEqual];
+  SymbolStrings: TArray<String> = ['+','-','*','/','=','<>','<','>','<=','>='];
 
 procedure ClearOpList;
 var Op: TOperator;
@@ -247,9 +252,27 @@ begin
   Result := opUnknown;
 end;
 
-function IdentToOperator(const Name: String): TOperator;
+function IdentToInfixOperator(const Name: String): TOperator;
+begin
+  for Result in InfixOps do
+    if CompareText(Name, OpStrings[Result]) = 0 then
+      EXIT;
+
+  Result := opUnknown;
+end;
+
+function IdentToAnyOperator(const Name: String): TOperator;
 begin
   for Result := low(TOperator) to high(TOperator) do
+    if CompareText(Name, OpStrings[Result]) = 0 then
+      EXIT;
+
+  Result := opUnknown;
+end;
+
+function IdentToIntrinsicOperator(const Name: String): TOperator;
+begin
+  for Result in (TypecastOps + IntrinsicOps) do
     if CompareText(Name, OpStrings[Result]) = 0 then
       EXIT;
 

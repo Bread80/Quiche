@@ -1,0 +1,155 @@
+Clever Puppy Example 1 - Add, Add, Multiply 16 Bit
+================
+
+Worked example 1
+---
+
+Source: (all values are 16-bit)
+x := (a+b)*(a+c)
+
+IL Code:
+1: temp_1 := add var_a, var_b
+2: temp_2 := add var_a, var_c
+3: var_x := multiply temp_1, temp_2
+
+Notes:
+We're assuming all values are only stored in static variables, therefore no need
+to explore the space of possible sources (stack, register etc)
+
+**TODO: Preference is to store dest in registers. Spilling (static/stack, or push) is also an option
+  Sometimes register and spilling is best. Therefore we need to look at combos of:
+  [reg only], [spill only], [reg and spill]
+  The variable map will be useful here (number of reads, distance to next read etc)
+  Note: It may be desirable to have the dest in multiple registers (eg same value for two parameters)
+  It is suggested that this will be obptimally generated at the /input/ side of the next (etc) operation.
+  Ie the Dest side will only consider leaving the result in a (or moving to) a single register
+  This action will need to be reconsidered where an operation returns multiple values.
+
+# Generate the set possible register allocations for step 1
+  and generate heuristsics for each of them (cycles, bytes)
+1:[
+	temp_1/HL->[HL,DE,BC][mem,push] := add var_a/static->HL, var_b/static->[DE,BC],
+	temp_1/HL->[HL,DE,BC][mem,push] := add var_a/static->[DE,BC], var_b/static->HL
+]
+* [] Syntax is shorthand for showing multiple possible combinations
+* Add is symmetrical so se need to explore options with operands swapped
+* Dest can be stored to:
+  - register (HL,DE,BC)
+  - stack (push)
+  - memory (static)
+
+# Generate the set possible register allocations for step 2
+  and generate heuristsics for each of them (cycles, bytes)
+2:[
+	temp_2/HL->[HL,DE,BC][mem,push] := add var_a/static->HL, var_c/static->[DE,BC],
+	temp_2/HL->[HL,DE,BC][mem,push] := add var_a/static->[DE,BC], var_c/static->HL
+]
+* Notes as for step 1
+
+# For every combination of step 1, eliminate any which are invalidated by Step 2:
+* HL is always corrupted by Step 2, therefore and variants of Step 1 which place dest in HL can be eliminated
+* If DE or BC is used as dest for Step 1, and also used as source in Step 2 that combo is invalid and can be removed
+
+# For every combination of step 2, eliminate any which are invalidated by Step 1:
+* Nothing required here
+
+# Generate the total set of resulting (still valid) combinations of step 1 and step 2
+  and generate heuristsics for each of them (cycles, bytes)
+[	1:temp_1/HL->[DE][mem,push] := add var_a/static->HL, var_b/static->[DE,BC]
+	2:[
+		temp_2/HL->[HL,DE,BC][mem,push] := add var_a/static->HL, var_c/static->[BC],
+		temp_2/HL->[HL,DE,BC][mem,push] := add var_a/static->[BC], var_c/static->HL
+	],
+],
+[
+	1:temp_1/HL->[BC][mem,push] := add var_a/static->HL, var_b/[DE,BC]
+	2:[
+		temp_2/HL->[HL,DE,BC][mem,push] := add var_a/static->HL, var_c/static->DE,
+		temp_2/HL->[HL,DE,BC][mem,push] := add var_a/static->DE, var_c/static->HL
+	],
+],
+[
+	1:temp_1/HL->[DE][mem,push] := add var_a/static->[DE,BC], var_b/static->HL
+	2:[
+		temp_2/HL->[HL,DE,BC][mem,push] := add var_a/static->HL, var_c/static->BC,
+		temp_2/HL->[HL,DE,BC][mem,push] := add var_a/static->BC, var_c/static->HL
+	],
+],
+[
+	1:temp_1/HL->[BC][mem,push] := add var_a/sttaic->[DE,BC], var_b/static->HL
+	2:[
+		temp_2/HL->[HL,DE,BC][mem,push] := add var_a/static->HL, var_c/static->DE,
+		temp_2/HL->[HL,DE,BC][mem,push] := add var_a/static->DE, var_c/static->HL
+	]
+]
+* Heuristics will show that:
+	- Where var_a is *not* loaded into HL by step 1, 
+		it is persisted through step 1 and does not need to be reloaded for step 2
+	- Since there are no possibly costs to this (cycles, bytes, corruption) (TODO: How to prove? what about temp_1?)
+		there can be no benefits to loading var a into HL
+	- Where var a is loaded into the same register in step 2 as it was in step 1 then
+		it does not need to be reloaded for step 2 giving benefits (Possible disbenefits?)
+	- Therefore any options for Step 1 which load var a into HL can be eliminated
+[
+	1:temp_1/HL->[DE][mem,push] := add var_a/BC, var_b/HL
+	2:temp_2/HL->[HL,DE,BC][mem,push] := add var_a/[BC], var_c/HL
+],
+[
+	1:temp_1/HL->[BC][mem,push] := add var_a/DE, var_b/HL
+	2:temp_2/HL->[HL,DE,BC][mem,push] := add var_a/DE, var_c/HL
+]	
+* Where temp_1 is loaded into a register which does not get trashed by step 1,
+	it will still be present after step 2. This is not (yet) beneficial.
+	
+# Generate the combinations for Step 3:
+3:[
+	var_x/HL->static := multiply temp_1/static->HL, temp_2/static->DE,
+	var_x/HL->static := multiply temp_1/static->DE, temp_2/static->HL
+]
+(Full listing not shown for brevity - each combo of steps (1,2) have each combo of step 3)
+* Again multiply is symmetrical so we need options for swapping source registers
+* There is only one options for dest (write to variable)
+
+# For every combination of Steps (1,2) elimanate any which are invalidfated by step 3
+* Nothing
+
+# For every combination of Step 3 elimanate any which are invalidfated by steps (1,2)
+* Nothing
+
+# Generate all combinations of Steps (1,2) and Step 3
+	and generate heuristics
+* It will be found that,
+	- where Step 3 sources temp_2 in HL, no storing, loading or moving is required
+		(and variable map will show that temp_2 is not required in anyy further steps)
+	- therefore these combinations are better
+
+This leaves combinations for steps (1,2,3) of: (
+[
+	1:temp_1/HL->[DE] := add var_a/static->BC, var_b/static->HL
+	2:temp_2/HL->HL := add var_a/BC, var_c/static->HL
+	3:var_x/HL->static := multiply temp_1/BC->DE, temp_2/HL
+],
+[
+	1:temp_1/HL->[BC] := add var_a/static->DE, var_b/static->HL
+	2:temp_2/HL->HL := add var_a/DE, var_c/static->HL
+	3:var_x/HL->static := multiply temp_1/DE, temp_2/HL
+]	
+*Also
+	- where step 1 moved temp_1 to [DE,BC] and loaded var_a into the other register of this set
+		then temp_1 persists to step 3 and does not need to be reloaded
+	- where Step 1 moved temp_1 into DE it does not need to be moved again for step 3
+	
+This leaves a single combination for steps (1,2,3) of:
+[
+	1:temp_1/HL->[BC] := add var_a/DE, var_b/HL
+	2:temp_2/HL->HL := add var_a/DE, var_c/HL
+	3:var_x/HL->static := multiply temp_1/DE, temp_2/HL
+]
+* The move from HL to DE at step 1 dest can be perfomed multiple ways:
+  - PUSH/POP
+  - LD low,low:LD high,high
+  - EX HL,DE
+  the last of these can only be used when moving from HL to DE (ie. not when moving HL to BC)
+  if having temp_1 in BC where still an option at step 3 then this ability to use EX HL,DE
+  may swing the advantage to the usage of DE. Therefore this option ought to be considered.
+  Perhaps this can be done when generating heuristics for moves?

@@ -1,0 +1,250 @@
+
+//Conway's Game of Life implementation for the Quiche language and compiler.
+//The compiler is currently an early work in progress (WiP). This code uses various
+//work arounds for not-yet-implemented, or just plain buggy, features. The code here
+//will be updates as the compiler progresses.
+
+//This variation uses a much more optimised algorithm than that in Life.qch
+
+//Language features to note:
+//* Quiche is a variant of Pascal. Most Pascal code will work as-is. Extra features are
+//layered on top and (mostly) optional.
+//* Semi-colon statement separators are allowed but ignored. The compiler relies more
+//heavily on end-of-lines as statement separators (this is still WiP). With semicolons
+//the code is very Pascal compatible.
+//* Parenthesis around function arguments are optional, using the same rules as Ruby:
+//Essentually they're optional if the syntax would be unambiguous. There must be no whitespace
+//between a function name and the opening parenthesis around an argument list. If there is the
+//parenthesis will be parsed as part of an expression.
+//* VARiables can be declared in a declarations section (or globally)(as in Pascal) or inline
+//(as in C)
+
+//Default compiler directives
+{$O-,R-}
+{$CALLINGCONVENTION REGISTER}
+{$DEFAULTSIGNEDINTEGER-}
+{$DEFAULTSMALLESTINTEGER+}
+
+//(Overflow checking off, Range checking off, Default calling convention)
+
+//Platform specific code
+
+//The call directive imports an assembly subroutine. When the routine is used the
+//compiler will set up the registers as given in the function template.
+//These are firmware routines for the Amstrad CPC. The capitalisation and underscores
+//are standard Amstrad style for the routine names but Quiche style camel case could also
+//be used.
+
+//Set the screen mode. We'll use this to initialise the display at startup.
+[Corrupts AF, BC, DE, HL]
+procedure SCR_SET_MODE(Mode: A); call $bc0e;
+
+//Output a character. Note how we've given a type to the parameter. If no type is specified
+//the compiler will assume a Byte or Word depending on a register(s). The compiler will
+//use the type to help create correct code even when calling assembler routines. Typecasts can,
+//of course, be used when calling external code if needed. As the type system develops you'll
+//be able to specify complex user-defined types as needed, whether that be arrays, records,
+//enumerations or whatever else.
+[PreservesAll]
+procedure TXT_OUTPUT(Character: A as Char); call $bb5a;
+
+//Set the text cursor position. Values are 1-based.
+[Corrupts AF, HL]
+procedure TXT_SET_CURSOR(LogicalColumn: H;LogicalRow: L); call $bb75;
+
+//Turn off the text cursor
+[PreservesAll]
+procedure TXT_CUR_OFF; call $bb84;
+
+//The program itself
+
+//Buffers have two extra rows, and two extra columns. These are the 'off-screen' cells,
+//or margins. All cells in the off-screen rows are always 'off'. This makes updating the
+//buffers much easier as we don't need to create exceptions for cells at the edges
+const ColCount = 20
+  RowCount = 20
+  BufSize = (ColCount + 2) * (RowCount + 2)
+
+//Initialise a buffer by setting all cells to off
+procedure InitBuffer(Buffer: Pointer)
+begin
+  for Buffer := Buffer to Buffer + BufSize - 1 do
+    poke(Buffer, 0)
+end
+
+procedure InitScreen
+begin
+  //Clear screen, set mode, etc
+  //Call the firmware routine to change screen mode
+  SCR_SET_MODE(1)
+  //Turn the text cursor off to avoid flicker
+  TXT_CUR_OFF
+end
+
+//Co-ordinates are 1-based. Unsigned maths is (usually) significantly faster
+//than signed (and mixed). If we used 0-based co-ords the left and top margins
+//would be at -1.
+function CoordToOffset(X, Y: Byte): Word
+begin
+  //The byte values need to be explicitly expanded to words to
+  //avoid overflow during the mutliplication
+  Result := Word(Y) * (ColCount+2) + X
+end
+
+function ReadCell(Buffer: Pointer;X, Y: Byte): Boolean
+begin
+  //The third parameter specifies the return type of the Peek
+  //function
+  Result := Peek(Buffer + CoordToOffset(X, Y), Boolean)
+end
+
+procedure WriteCell(Buffer: Pointer;X, Y, Value: Byte)
+begin
+  //Parenthesis are optional (see notes at top)
+  //Sometimes it just feels natural to omit them
+  poke Buffer + CoordToOffset(X, Y), Value
+end
+
+//Put initial data (first generation) into the buffer
+//Here we're creating a glider
+procedure SetInitialState(Buffer: Pointer)
+begin
+  WriteCell(Buffer, 2,3, 1)
+  WriteCell(Buffer, 3,4, 1)
+  WriteCell(Buffer, 4,2, 1)
+  WriteCell(Buffer, 4,3, 1)
+  WriteCell(Buffer, 4,4, 1)
+end
+
+//Update the cell at the given Offset.
+//Returns:
+//  0 if the cell was alive but has died,
+//  1 if the cell was dead but is now alive
+//  2 if the cell is unchanged
+function UpdateCell(OldBuf, NewBuf: Pointer;Offset: Word): Byte
+var Alive: Byte //Neighbour count
+begin
+  var Base: Pointer = OldBuf + Offset
+
+  //Row above
+  Alive := peek(Base - ColCount-3) +
+    peek(Base - ColCount-2) + peek(Base - ColCount-1) +
+
+    //Current row
+    peek(Base - 1) + peek(Base + 1) +
+
+    //Row below
+    peek(Base + ColCount+1) + peek(Base + ColCount+2) +
+    peek(Base + ColCount+3)
+
+  if peek(Base) <> 0 then
+  begin //Live cell, die unless two or three neighbours
+    if (Alive = 2) or (Alive = 3) then
+    begin
+      Poke(NewBuf + Offset, 1)
+      Result := 2
+    end
+    else
+    begin
+      poke(NewBuf + Offset, 0)
+      Result := 0
+    end
+  end
+  else
+  begin //Empty cell, generate life if three neighbours
+    if Alive = 3 then
+     begin
+       poke(NewBuf + Offset, 1)
+       Result := 1
+     end
+     else
+     begin
+       Poke(NewBuf + Offset, 0)
+       Result := 2
+     end
+  end
+end
+
+//Set the state of NewBuf based on the state of OldBuf and the game rules.
+//Also updates the display as it goes for maximum speed.
+procedure Update(OldBuf, NewBuf: Pointer)
+var Offset: Word
+  X:Byte
+  Y:Byte
+begin
+  //Position of first active pixel (second address of second row)
+  Offset := ColCount+3
+  for Y := 1 to RowCount do
+  begin
+    for X := 1 to ColCount do
+    begin
+      var State := UpdateCell(OldBuf, NewBuf, Offset)
+      if State < 2 then
+      begin
+        TXT_SET_CURSOR(X, Y)
+        if State = 0 then
+          TXT_OUTPUT(' ')
+        else //State = 1
+          TXT_OUTPUT(#$e9)
+      end
+
+      inc(Offset)
+    end
+    //Step over right and left margin bytes
+    inc(Offset,2)
+  end
+end
+
+//Update the display to show the state of Buffer
+procedure UpdateScreen(Buffer: Pointer);
+var X: Byte
+  Y: Byte
+begin
+  for Y := 1 to RowCount do
+  begin
+    //Set cursor position to start of row
+    TXT_SET_CURSOR(1, Y)
+
+    for X := 1 to ColCount do
+      if ReadCell(Buffer, X, Y) then
+        //We could use standard function Write but this is more fun <g> - and shows how easy
+        //it is to call external routines.
+        TXT_OUTPUT(#$e9)  //# is a character literal. $ is hex prefix
+      else
+        TXT_OUTPUT(' ')
+  end
+end
+
+var
+  //We have no arrays (yet) so we'll just peek and poke data into memory using pointers
+  //for the start of each buffer
+  //We have no memory management, so use buffer addresses which we know won't overwrite anything
+  Buffer1: Pointer
+  Buffer2: Pointer
+begin
+  //Init buffer pointers
+  Buffer1 := $4000
+  Buffer2 := Buffer1 + BufSize
+
+  //Clear buffers
+  InitBuffer(Buffer1)
+  InitBuffer(Buffer2)
+
+  InitScreen
+
+  //Set initial pattern
+  SetInitialState(Buffer1)
+  UpdateScreen(Buffer1)
+
+  //We don't have while loops yet so can't do a 'while true'
+  for var gen:=1 to 50 do
+  begin
+    //Calculates next generation and updates the screen
+    Update(Buffer1, Buffer2)
+
+    //Swap buffers
+    var Temp := Buffer1
+    Buffer1 := Buffer2
+    Buffer2 := Temp
+  end
+end.

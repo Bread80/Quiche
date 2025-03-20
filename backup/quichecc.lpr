@@ -7,8 +7,8 @@ uses
   cthreads,
   {$ENDIF}
   Classes, SysUtils, CustApp,
-  { you can add units after this }
-  Compiler;
+  Def.Globals,
+  IDE.Compiler;
 
 type
 
@@ -28,23 +28,100 @@ type
 procedure TQuicheCC.DoRun;
 var
   ErrorMsg: String;
+  NonOptions: TStringArray;
+  SourceFile: String;
+  Lines: TStringList;
 begin
+  writeln('Quiche Language Compiler');
+  writeln('  by Bread80 - http://bread80.com');
+  writeln;
   // quick check parameters
   ErrorMsg:=CheckOptions('h', 'help');
-  if ErrorMsg<>'' then begin
-    ShowException(Exception.Create(ErrorMsg));
+  if ErrorMsg = '' then
+  begin
+    NonOptions := GetNonOptions('h',['help']);
+    if Length(NonOptions) = 0 then
+      ErrorMsg := 'No source file specified'
+    else if Length(NonOptions) > 1 then
+      ErrorMsg := 'Too many source files specified'
+    else
+      SourceFile := NonOptions[0];
+  end;
+  if ErrorMsg<>'' then
+  begin
+    writeln('Error: ', ErrorMsg);
+    writeln;
+    writeln('Run `quiche -h` for usage');
     Terminate;
     Exit;
   end;
 
+  //TODO: Do this properly
+  SetQuicheFolder('c:\DropBox\Delphi\Quiche');
+  Config.PlatformName := 'TestCase';
+  OutputFolder := 'c:\RetroTools\Quiche';
+
+  try
+    IDE.Compiler.Initialise(True, False);
+  except
+    on E:Exception do
+    begin
+      writeln('Error: ', E.Message);
+      Terminate;
+      Exit;
+  end;
+
+  end;
   // parse parameters
-  if HasOption('h', 'help') then begin
+  if HasOption('h', 'help') then
+  begin
     WriteHelp;
     Terminate;
     Exit;
   end;
 
-  { add your program here }
+  writeln('Compiling file: ', NonOptions[0]);
+
+  Lines := TStringList.Create;
+  try
+    try
+      Lines.LoadFromFile(SourceFile);
+    except
+      on E:Exception do
+      begin
+        writeln('Error: ', E.Message);
+        Terminate;
+        Exit;
+      end;
+    end;
+
+    try
+      IDE.Compiler.CompileStrings(Lines, btDefault, ptDeclarations, False, True);
+
+      if ParseErrorNo <> 0 then
+      begin
+        write(ParseErrorString);
+        writeln(' at line ', ParseErrorLine.ToString, ', ', ParseErrorPos.ToString);
+        writeln(ParseErrorHelp);
+      end
+      else if AssembleError then
+      begin
+        writeln('Assembler error:');
+        writeln(AssemblerLog);
+      end
+      else
+        writeln('Compiled with no errors');
+    except
+      on E:Exception do
+      begin
+        writeln('Error: ', E.Message);
+        Terminate;
+        Exit;
+      end;
+    end;
+  finally
+    Lines.Free;
+  end;
 
   // stop program loop
   Terminate;
@@ -63,8 +140,10 @@ end;
 
 procedure TQuicheCC.WriteHelp;
 begin
-  { add your help code here }
-  writeln('Usage: ', ExeName, ' -h');
+  writeln('Usage: quichecc <source-file> [Options]');
+  writeln;
+  writeln('Options:');
+  writeln(' -h, --help - Show this message');
 end;
 
 var

@@ -1,0 +1,322 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectSession>
+    <PathDelim Value="\"/>
+    <Version Value="12"/>
+    <BuildModes Active="Default"/>
+    <Units>
+      <Unit>
+        <Filename Value="quichecc.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <TopLine Value="28"/>
+        <CursorPos X="3" Y="58"/>
+        <UsageCount Value="29"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Def.Operators.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="12"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Def.Consts.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="12"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Def.Variables.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="11"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Def.Functions.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="11"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Def.IL.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="11"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Parse.Source.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="11"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Parse.Base.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="11"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Def.Scopes.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="11"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Parse.Errors.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="11"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Parse.Expr.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="11"/>
+      </Unit>
+      <Unit>
+        <Filename Value="CG.Fragments.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="11"/>
+      </Unit>
+      <Unit>
+        <Filename Value="IDE.Config.pas"/>
+        <EditorIndex Value="3"/>
+        <TopLine Value="58"/>
+        <CursorPos X="34" Y="9"/>
+        <UsageCount Value="12"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="IDE.Compiler.pas"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="1"/>
+        <CursorPos Y="3"/>
+        <UsageCount Value="13"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Def.Intrinsics.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="11"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Def.Primitives.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="11"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Parse.Fixups.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="11"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Parse.Eval.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="11"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Parse.FuncCall.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="11"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Parse.FuncDef.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="11"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Parse.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="11"/>
+      </Unit>
+      <Unit>
+        <Filename Value="IDE.Emulator.pas"/>
+        <EditorIndex Value="2"/>
+        <TopLine Value="2"/>
+        <CursorPos X="3" Y="18"/>
+        <UsageCount Value="11"/>
+        <Loaded Value="True"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit>
+      <Unit>
+        <Filename Value="IDE.ILExec.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="11"/>
+      </Unit>
+      <Unit>
+        <Filename Value="IDE.Shell.pas"/>
+        <EditorIndex Value="4"/>
+        <TopLine Value="66"/>
+        <CursorPos X="9" Y="114"/>
+        <UsageCount Value="13"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Z80.CPUState.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Z80.Optimise.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Z80.Validation.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Z80.Store.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Z80.LoadStoreMove.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Z80.RegAlloc.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Z80.CodeGen.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Z80.Load.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="CodeGen.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="10"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Z80.CPU.pas"/>
+        <EditorIndex Value="-1"/>
+        <UsageCount Value="10"/>
+      </Unit>
+    </Units>
+    <JumpHistory HistoryIndex="29">
+      <Position>
+        <Filename Value="IDE.Shell.pas"/>
+        <Caret Line="25" Column="83"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Shell.pas"/>
+        <Caret Line="136" Column="5" TopLine="104"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Shell.pas"/>
+        <Caret Line="9"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Compiler.pas"/>
+        <Caret Line="121" Column="33" TopLine="115"/>
+      </Position>
+      <Position>
+        <Filename Value="quichecc.lpr"/>
+        <Caret Line="39" TopLine="18"/>
+      </Position>
+      <Position>
+        <Filename Value="quichecc.lpr"/>
+        <Caret Line="72" Column="40" TopLine="54"/>
+      </Position>
+      <Position>
+        <Filename Value="quichecc.lpr"/>
+        <Caret Line="40" Column="13" TopLine="21"/>
+      </Position>
+      <Position>
+        <Filename Value="quichecc.lpr"/>
+        <Caret Line="61" Column="46" TopLine="37"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Compiler.pas"/>
+        <Caret Line="501" Column="58" TopLine="486"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Compiler.pas"/>
+        <Caret Line="17" Column="11"/>
+      </Position>
+      <Position>
+        <Filename Value="quichecc.lpr"/>
+        <Caret Line="73" Column="3" TopLine="42"/>
+      </Position>
+      <Position>
+        <Filename Value="quichecc.lpr"/>
+        <Caret Line="94" TopLine="79"/>
+      </Position>
+      <Position>
+        <Filename Value="quichecc.lpr"/>
+        <Caret Line="60" Column="28" TopLine="45"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Compiler.pas"/>
+        <Caret Line="85" Column="20" TopLine="64"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Compiler.pas"/>
+        <Caret Line="327" Column="3" TopLine="313"/>
+      </Position>
+      <Position>
+        <Filename Value="quichecc.lpr"/>
+        <Caret Line="85" Column="34" TopLine="78"/>
+      </Position>
+      <Position>
+        <Filename Value="quichecc.lpr"/>
+        <Caret Line="11"/>
+      </Position>
+      <Position>
+        <Filename Value="quichecc.lpr"/>
+        <Caret Line="94" Column="39" TopLine="78"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Compiler.pas"/>
+        <Caret Line="85" Column="16" TopLine="73"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Compiler.pas"/>
+        <Caret Line="92" Column="56" TopLine="73"/>
+      </Position>
+      <Position>
+        <Filename Value="quichecc.lpr"/>
+        <Caret Line="59" Column="47" TopLine="53"/>
+      </Position>
+      <Position>
+        <Filename Value="quichecc.lpr"/>
+        <Caret Line="60" Column="20" TopLine="44"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Compiler.pas"/>
+        <Caret Line="44" Column="43" TopLine="27"/>
+      </Position>
+      <Position>
+        <Filename Value="quichecc.lpr"/>
+        <Caret Line="60" Column="32" TopLine="44"/>
+      </Position>
+      <Position>
+        <Filename Value="quichecc.lpr"/>
+        <Caret Line="61" Column="20" TopLine="44"/>
+      </Position>
+      <Position>
+        <Filename Value="quichecc.lpr"/>
+        <Caret Line="110" Column="30" TopLine="87"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Compiler.pas"/>
+        <Caret Line="20" Column="44" TopLine="10"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Compiler.pas"/>
+        <Caret Line="511" TopLine="479"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Compiler.pas"/>
+        <Caret Line="3" Column="3"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Compiler.pas"/>
+        <Caret Line="9" Column="27"/>
+      </Position>
+    </JumpHistory>
+    <RunParams>
+      <FormatVersion Value="2"/>
+      <Modes ActiveMode=""/>
+    </RunParams>
+  </ProjectSession>
+</CONFIG>

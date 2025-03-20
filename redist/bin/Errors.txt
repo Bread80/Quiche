@@ -1,0 +1,282 @@
+;Parser Error Messages
+;=====================
+
+;Each entry begins with an equal sign (=)
+;The lines are:
+;Error name
+;Error message, which can accept format specifiers
+;Help text. Help text can span multiple lines until the next error-name line
+
+;Lines beginning with a semi-colon are ignored. This includes within help text. Beware.
+;Leading whitespace will be trimmed from Message and Help lines.
+;    Indentation makes the file easier for humans to read
+;WARNING: Error names are used by self-tester. Do NOT change them
+;Items are listed in the same order as the TQuicheError enumeration defined
+;in Parse.Errors
+
+=None
+	No error
+
+;General syntax
+=Syntax
+	Syntax error
+=FunctionCall
+	Error in function call
+=InvalidKeyword
+	Invalid keyword: '%s'
+=InvalidPROGRAM
+    A PROGRAM statement, if given, must be the first statement in a program
+=ENDExpected
+	END expected
+=ENDdotExpected
+	END. expected
+=CodeAfterENDdot
+	Code after END.
+=InvalidTopLevel
+	Incorrect code at top-level. Expecting FUNCTION, PROCEDURE, TYPE, CONST, VAR or BEGIN
+=UnexpectedEndOfFile
+	Unexpected end of file
+=TextAfterContinuationChar
+	Text after continuation character (\)
+=UnterminatedComment
+	Untermined comment
+=InvalidEndOfLine
+	End of line not allowed here
+=EndOfStatementExpected
+	New line or semi-colon expected
+=NewlineExpected
+	New line or line continuation ('\') expected
+	There should be a line break or a keyword here
+
+;FOR loops
+=TOorDOWNTOExpected
+	TO or DOWNTO expected
+	FOR <var-name> := <from-expr> TO|DOWNTO <to-expr> [DO]|DO <block>
+	<var-name> can also be a <var-declaration> in the form
+	VAR <var-name>: <type-name>
+	or
+	VAR <var-name><type-symbol>
+	DO is optional at line end but required if the block is on the same line
+=DOExpected
+	DO expected
+	FOR <var-name> := <from-expr> TO|DOWNTO <to-expr> [DO]|DO <block>
+	<var-name> can also be a <var-declaration> in the form
+	VAR <var-name>: <type-name>
+	or
+	VAR <var-name><type-symbol>
+	DO is optional at line end but required if the block is on the same line
+
+=UNTILExpected
+	UNTIL expected
+	REPEAT
+	  <statements>
+	UNTIL <boolean-expr>
+;IF conditionals
+=THENExpected
+	THEN expected
+	IF <boolean-expr> [THEN]|THEN <block> [ELSE <block]
+	THEN is optional at end of line but required if the block is on the same line
+
+;VAR declarations
+=ColonExpectedInVAR
+	: expected
+	VAR <var-name>: <type-name>
+	VAR <var-name><type-symbol>
+	VAR <var-name>: <type-name> = <expr>
+	VAR <var-name><type-symbol> = <expr>
+	VAR <var-name> := <expr>
+
+;CONST delarations
+=EqualExpectedInCONST
+	= expected
+	CONST <identifier>[: <type>] = <constant-expr>
+	CONST <identifier><type-symbol> = <constant-expr>
+
+;Assignment
+=AssignmentExpected
+	:= expected
+=EqualExpectedInAssignment
+	= expected
+
+;Function declarations
+=FunctionRedeclared
+	Function redeclared: '%s'
+=FunctionBodyExpected
+	Function body expected
+=FunctionDeclaration
+	Error in function declaration
+=FuncDecDoesntMatch
+	Function declaration doesn''t match forward declaration
+=DecTooManyParams
+	Too many parameters - there is a hard coded maximum. Sorry.
+=ParamNameRedeclared
+	Parameter name redeclared: '%s'
+=RegisterParamRedeclared
+	Register has %s already been assigned
+=InvalidRegisterName
+	Invalid register '%s'
+=RegisterParamMismatch
+	Either all parameters must be register parameters, or none
+=RegisterParamInvalidAccessType
+	Invalid access specifier for a register parameter
+	Register parameters must use either value (none) or OUT access specifiers
+=FunctionResultExpected
+	Function declaration must include a result declaration
+	
+=NestedFuncsNotAllowed
+	Nested/local function declarations are not allowed
+=UnsatisfiedForward
+	Unsatisfied forward declared function: '%s'
+=IntegerExpectedForCALLOrRST
+	Integer value expected for CALL or RST directive
+=CallDirectiveOutOfRange
+	CALL directive value out of range
+	The value must be an integer between $0000 and $ffff
+=RSTOutOfRange
+	RST directive value out of range
+	The value must be one of: 0..8,$10,$18,$20,$28,$30,$38
+=CALLOrRSTForwardDeclared
+	CALL and RST functions can't be forward declared
+	The CALL and RST function directives are not compatible with the FORWARD directive
+=MultipleCALLOrRST
+	Multiple CALL or RST directives not allowed
+=MultipleCallingConventions
+	Multiple calling conventions declared
+=FORWARDRedeclared
+	FORWARD redeclared
+	The function has already been declared as FORWARD and can't be FORWARD declared again
+=ColonExpectedFuncDecl
+	: expected
+	FUNCTION <func-name> <param-def-list> : <result-type> ; [<directives> ;] <function-body>
+	PROCEDURE <func-name> <param-def-list> ; [<directives> ;] <function-body>
+	<param-def-list> := ( <Param-def> [ ; <Param-def> ] )
+	<param-def> := <param-name> [ , <param-name>]: <Param-type>
+=SemicolonOrCloseBraceExpectedFuncDecl
+	; or ) expected
+	FUNCTION <func-name> <param-def-list> : <result-type> ; [<directives> ;] <function-body>
+	PROCEDURE <func-name> <param-def-list> ; [<directives> ;] <function-body>
+	<param-def-list> := ( <Param-def> [ ; <Param-def> ] )
+	<param-def> := <param-name> [ , <param-name>]: <Param-type>
+
+;Function calls
+=CommaOrCloseParensExpected
+	, or ) expected after parameter
+=ArgMustBeVariable
+	Argument for a VAR or OUT parameter must be a variable (on '%s')
+	Parameters declared as VAR or OUT return a value which will be stored in the given variable
+=ReturnedArgTypeMismatch
+	Argument type mismatch on '%s' ('%s', '%s')
+	Variable type must exactly match the argument type for VAR and OUT parameters
+=TooManyArgs
+	Too many arguments
+	The compiler has a hard coded maximum. No function can be declared with this many anyway.
+=IntegerConstantArgExpected
+	The value for '%s' must be an integer constant expression
+=BytePassedToHiLoSwap
+	The argument passed to Hi(), Lo() or Swap() must be larger than a single byte
+=NotEnoughParameters
+	Not enough parameters (found %s, wanted %s)
+=FuncPrimitiveNotFound
+	Couldn't find a primitive with matching argument types: '%s'
+=CantAssignProcedure
+	Can't assign procedure result
+	A procedure has no return value and therefore can't be used in expressions, assigned to varaibles or passed as an argument in a function call
+
+
+;Identifiers
+=IdentifierExpected
+	Invalid keyword in this context: '%s'
+=UndefinedIdentifier
+	Undeclared identifier: '%s'
+=ReservedWord
+	Reserved word: '%s'
+=VariableNotFound
+	Variable not found: '%s'
+=IdentifierRedeclared
+	Identifier already declared: '%s'
+=UnknownType
+	Invalid or undeclared type identifier: '%s'
+=ConstNameNotValidHere
+	Constant name not valid here: '%s'
+
+//Types
+=TypeNameNotValidHere
+	Type name not valid here: '%s'
+=TypeMismatch
+	Type mismatch: from %s to %s
+
+;Expressions
+=Expression
+	Expression error
+=OperandExpected
+	Operand or unary operator expected
+=OperatorExpected
+	Operator expected
+=UnknownOperator
+	Unknown operator
+=ConstantExpressionExpected
+	Constant expression expected
+=ConstantExpressionOverflow
+	Constant expression overflow
+=ConstantOutOfRange
+	Constant expression out of range
+=ConstantAssignmentOutOfRange
+	Constant expression out of range. Can't assign value '%s' to variable of type %s
+=DivByZero
+	Division by zero
+=InvalidDecimalNumber
+	Incorrect decimal number
+=InvalidHexNumber
+	Incorrect hex number
+=InvalidBinaryNumber
+	Incorrect binary number
+=UnterminatedString
+	Unterminated string
+=InvalidCharLiteral
+	Incorrect character literal
+=UnmatchedBrackets
+	Unmatched brackets
+=IntrinsicCantBeEvaluatedAtCompileTime
+	Intrinsic can't be evaluated at compile time
+=At
+	@-able expression expected
+=BooleanExpressionExpected
+	Boolean expression expected
+	This can also be caused by an invalid line break
+
+;Ops
+=OpIncompatibleTypes
+	Operator not compatible with given operand types (%s, %s)
+=OpIncompatibleType
+	Operator not compatible with given operand type (%s)
+
+;Directives
+=UnknownDirective
+	Unknown directive '%s'
+=DirectiveSyntax
+	Error in directive syntax
+=InvalidDirectiveValue
+	Invalid value for directive '%s'
+
+
+;Attributes
+=InvalidAttrName
+	Invalid or unknown attribute name '%s'
+=CloseSquareExpectedAttr
+	] expected at end of attribute
+=XOrYExpected
+	X or Y required after I in Corrupts attribute (IX or IY register)
+=InvalidCorruptsAttr
+	Invalid corrupts attribute: '%s'
+	Valid values are A,B,C,D,E,F,H,L,IX,IY,L,X,Y. Whitespace and comma separators are allowed.
+
+;Techie stuff
+=AttributeError
+	Invalid attribute
+=AssemblyError
+	Code generation error in: '%s'
+
+=BUG
+	This is a bug and you shouldn't be seeing it. Please report, thank you
+=TODO
+	Feature not yet implemented. You're seeing this because there's a code stub waiting to be completed
