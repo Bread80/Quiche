@@ -58,7 +58,7 @@ end;
 
 function TempVarCreate(Index: Integer): PVariable;
 begin
-  Result := nil;
+(*  Result := nil;
   if TempVars.Count <= Index then
     while TempVars.Count <= Index do
     begin
@@ -74,7 +74,7 @@ begin
     Result.Value := TImmValue.CreateTyped(vtInteger, 0);
     Result.VarType := vtUnknown;
   end;
-end;
+*)end;
 
 function GetValue(ILItem: PILItem;Param: PILParam;var ValueType: TVarType;out SubMismatch: Boolean): Integer;
 var Variable: PVariable;

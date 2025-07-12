@@ -20,6 +20,13 @@
 //(as in C)
 
 
+//The program statement is optional but, if used, switches the parser from an informal
+//'scripting' mode into a more formal 'program' mode.
+//In scripting mode executable code can be parsed at 'root' level.
+//In program mode 'root' level code must be within a BEGIN ... END. block, and multi-
+//line decarations (VAR, CONST, TYPE) are allowed at root level.
+program Life
+
 //Platform specific code
 
 //The call directive imports an assembly subroutine. When the routine is used the
@@ -57,15 +64,13 @@ procedure TXT_CUR_OFF; call $bb84;
 
 //These should be CONSTants but the compiler doesn't have them yet, so
 //we'll create them as VARs and initialise at startup
-var
+const
   //These first two would be better off as Bytes, and we can typecast to Word if necessary
   //for a calculation. But typecasts aren't currently working while I revise the Intrinsic
   //implementation
-  ColCount: Word
-
-  //VAR should be sticky. It currently isn't :(
-var  RowCount: Word
-var  BufSize: Word  //Buffer size is (ColCount + 2) * (RowCount + 2)
+  ColCount = 20
+  RowCount = 20
+  BufSize = (ColCount + 2) * (RowCount + 2)
 
 //Initialise a buffer by setting all cells to off
 procedure InitBuffer(Buffer: Pointer)
@@ -177,13 +182,8 @@ var
   //for the start of each buffer
   //We have no memory management, so use buffer addresses which we know won't overwrite anything
   Buffer1: Pointer
-var  Buffer2: Pointer
+  Buffer2: Pointer
 begin
-  //'Constants'
-  ColCount := 20
-  RowCount := 20
-  BufSize := (ColCount + 2) * (RowCount + 2)
-
   //Init buffer pointers
   Buffer1 := $4000
   Buffer2 := Buffer1 + BufSize

@@ -24,49 +24,59 @@ function SuperTypeToString(Super: TSuperType): String;
 //========================Language types
 
 type TVarType = (
+  //========== Types which can be instantiated 'as-is'
   //Numeric types
   vtInt8,
   vtInteger,
   vtByte,
   vtWord,
   vtPointer,
+  vtTypedPointer, //Pointer to a type
   vtReal,
 
   //Boolean types
   vtBoolean,
-  vtFlag,
+  vtFlag,         //System only (at present)
 
   //Other simple types
   vtChar,
-  vtTypeDef,
-//  vtEnumeration,
-//  vtRange,
-//  vtSet,
+  vtTypeDef,      //System only (at present) - a pointer to the type data
+
+  //String types
+  vtString,       //aka List of Char
+
+  //========== Types which require a full declaration to instantiate
+  //User types
+  vtEnumeration,
+  vtSubRange,
+(*  vtSparseSet,  //Parse time only  - contains values and ranges
+  vtRange,        //Run time
+*)
+  vtSetByte,    //A set which fits into a byte (1..8 elements)
+  vtSetWord,    //A set which fits into a word (9..16 elements)
+  vtSetMem,     //A set stored in memory
 
   //Array types
-  vtString,
-//  vtArray,
+  vtArray,        //Low and high indices specifiable. Fixed length.
+                  //Inflexible asssignments and parameters.
+  vtUnboundArray, //An array with no bounds specified. Enables easier passing of
+                  //arrays to functions but no bounds checking is possible (and
+                  //will have to be managed by the programmer).
+  vtVector,     //0-indexed. Length specified within data. Length is changeable,
+                  //but requires reallocatable data storage. Flexible assignments
+  vtList,         //0-indexed. Length and allocated space specified within data.
+                  //Items can be freely added and removed without requiring reallocations
+                  //(but subject to maximum allocated space). Flexible assignments.
+                  //Extension to DynArray type
 
   //Other complex types
-//  vtRecord,
+  vtRecord,       //Has multiple fields
+(*  vtStream,       //Readble or writeable sequence of bytes or chars
+*)  vtFunction,     //Code as data.
 
   //Error/undefined
   vtUnknown
   );
-
-{
-  //TODO:
-  TUserType = record
-    Name: String;
-    case VarType: TVarType of
-      vtEnumeration: NameList (Pointer), ItemCount;
-      vtRange: Lower, Upper;  //Constant or run-time?
-      vtSet: Enumartion: PUserType<Enumeration>
-      vtArray: BoundRange: PUserType<Range>;
-      vtRecord: FieldList (Pointer)
-  end;
-}
-
 
 function VarTypeToName(VarType: TVarType): String;
 
@@ -75,7 +85,7 @@ function StringToVarType(VarTypeName: String): TVarType;
 //Returns the number of bytes used to store the type.
 //NOT the same as sizeof(): For types which use pointers (real, string etc)
 //returns the size of the pointer data, not the stored data.
-function GetTypeSize(VarType: TVarType): Integer;
+function GetVarTypeSize(VarType: TVarType): Integer;
 
 //Is this a type which is referenced by a pointer (as opposed to a type where the
 //value is directly stored in the register)
@@ -85,7 +95,7 @@ function IsPointeredType(VarType: TVarType): Boolean;
 function IsNumericType(VarType: TVarType): Boolean;
 
 //Any integer type. Not typed pointers - these can't be used in expressions
-function IsIntegerType(VarType: TVarType): Boolean;
+function IsIntegerVarType(VarType: TVarType): Boolean;
 
 //Returns True if the type is a signed numeric type. Returns False for *all* other
 //types
@@ -100,9 +110,13 @@ function IsWordType(VarType: TVarType): Boolean;
 //Any type which can be used in logical/boolean operations
 function IsLogicalType(VarType: TVarType): Boolean;
 
-//An enumerable type is one with a fixed range of named values
-function IsEnumerable(VarType: TVarType): Boolean;
+//An ordinal type is one with an ordered set of values with a defined first and
+//last value. These are the integer numeric types, chars, booleans, enumerations
+//and subranges.
+function IsOrdinalType(VarType: TVarType): Boolean;
 
+//Any arrayed type. Array, vector, list, string etc.
+function IsArrayType(VarType: TVarType): Boolean;
 
 //For Integer and enumerated types only: Returns True if Value is in range for type VarType
 function TryIntegerToVarType(Value: Integer;out VarType: TVarType): Boolean;
@@ -166,11 +180,6 @@ function GetImmSignCombineType(Value: Integer;LType, RType: TVarType): TVarType;
 function GetMaxValue(VarType: TVarType): Integer;
 function GetMinValue(VarType: TVarType): Integer;
 
-//Validates whether the ExprType can be assigned to the variable (etc)
-//with type of AssignType
-function ValidateAssignmentType(AssignType, ExprType: TVarType): Boolean;
-
-
 implementation
 uses SysUtils,
   Def.Globals;
@@ -196,13 +205,21 @@ begin
 end;
 
 const VarTypeNames: array[low(TVarType)..high(TVarType)] of String = (
-  'Int8', 'Integer', 'Byte', 'Word', 'Pointer', 'Real',
+  'Int8', 'Integer', 'Byte', 'Word',
+  'Pointer', 'TypedPointer',
+  'Real',
   'Boolean', '<Flag>',
   'Char', 'TypeDef',
-  {'Enumeration', 'Range', 'Set',}
-  'String', {'Array',}
-  {'Record',}
+  'String',
+  'Enumeration', 'SubRange', (*'<SparseRange>', 'Range',*)
+  'Set','Set','Set',  //SetByte, SetWord, SetMem
+  'Array','Array',
+  'Vector',
+  'List',
+  'Record',
+(*'Stream',*)'Function',
   '<Unknown>');
+
 function VarTypeToName(VarType: TVarType): String;
 begin
   Result := VarTypeNames[VarType];
@@ -224,36 +241,62 @@ begin
 end;
 
 
+//TODO: Clarify if we want the pointer size or the data size!
 const VarTypeSizes: array[low(TVarType)..high(TVarType)] of Integer = (
-  1,2,1,2,2,  //Integers
-  iRealSize,  //Reals
-  1,1,        //Boolean,<Flag>
-  1,1,        //Char, TypeDef
-  {-1, -1, -1,} //Enumeration, Range, Set
-  2, {-1,}   //String, Array
-  {-1,}       //Record
-  -1);         //Unknown
-function GetTypeSize(VarType: TVarType): Integer;
+  1,2,1,2,2,2,  //Integers and pointers
+  iRealSize,    //Reals
+  1,1,      //Boolean,<Flag>
+  1,0,      //Char, TypeDef
+
+  0,        //String, WideString
+  1, 0,    //Enumeration, SubRange
+(*-1, 2,*)  //SparseRange, Range
+  1, 2, 0,  //SetByte, SetWord, SetMem
+  0, 0,     //Array, UnboundArray
+  0, 0,     //Vector, List
+  0,        //Record
+  (*2,*)    //Stream
+  2,        //Function
+  0);      //<Unknown>);
+function GetVarTypeSize(VarType: TVarType): Integer;
 begin
   Result := VarTypeSizes[VarType];
 
   //Add code for complex types here
-  Assert(Result <> -1);
+  Assert(Result <> 0);
 end;
+
+const VarTypeIsPointered: array[low(TVarType)..high(TVarType)] of Boolean = (
+  False, False, False, False, //Integers
+  False, False, //Pointers
+  False,        //Real
+  False, False, //Booleans
+  False, False, //Char, TypeDef (?)
+  True,         //Strings
+  False, False, (* True, True, *) //Misc
+  False, False, True, //SetByte, SetWord, SetMem
+  True, True,   //Arrays
+  True,         //Vectors
+  True,         //Lists
+  True,         //Records
+(*  True, *)    //Streams
+  True,         //Functions
+  False);       //Unknown
 
 function IsPointeredType(VarType: TVarType): Boolean;
 begin
-  Result := VarType in [vtString];
+  Result := VarTypeIsPointered[VarType];
 end;
 
 function IsNumericType(VarType: TVarType): Boolean;
 begin
-  Result := VarType in [vtInt8, vtByte, vtInteger, vtWord, vtPointer, vtReal];
+  Result := VarType in [vtInt8, vtByte, vtInteger, vtWord, vtPointer, vtTypedPointer, vtReal];
 end;
 
-function IsIntegerType(VarType: TVarType): Boolean;
+function IsIntegerVarType(VarType: TVarType): Boolean;
 begin
-  Result := VarType in [vtInt8, vtByte, vtInteger, vtWord, vtPointer];
+  Result := VarType in
+    [vtInt8, vtByte, vtInteger, vtWord, vtPointer, vtTypedPointer];
 end;
 
 function IsSignedType(VarType: TVarType): Boolean;
@@ -263,12 +306,12 @@ end;
 
 function IsByteType(VarType: TVarType): Boolean;
 begin
-  Result := GetTypeSize(VarType) = 1;
+  Result := GetVarTypeSize(VarType) = 1;
 end;
 
 function IsWordType(VarType: TVarType): Boolean;
 begin
-  Result := GetTypeSize(VarType) = 2;
+  Result := GetVarTypeSize(VarType) = 2;
 end;
 
 function IsLogicalType(VarType: TVarType): Boolean;
@@ -276,9 +319,15 @@ begin
   Result := VarType in [vtBoolean, vtFlag];
 end;
 
-function IsEnumerable(VarType: TVarType): Boolean;
+function IsOrdinalType(VarType: TVarType): Boolean;
 begin
-  Result := VarType in [vtWord, vtByte, vtPointer, vtInt8, vtInteger, vtChar, vtBoolean];
+  Result := VarType in [vtWord, vtByte, vtPointer, vtInt8, vtInteger,
+    vtChar, vtBoolean, vtEnumeration, vtSubRange];
+end;
+
+function IsArrayType(VarType: TVarType): Boolean;
+begin
+  Result := VarType in [vtArray, vtVector, vtList, vtString];
 end;
 
 function GetMaxValue(VarType: TVarType): Integer;
@@ -289,8 +338,8 @@ begin
     vtInteger: Result := 32767;
     vtWord, vtPointer: Result := 65535;
     vtBoolean: Result := valueTrue;
-    vtTypeDef: Result := Integer(high(TVarType));
-  else
+(*    vtTypeDef: Result := Integer(high(TVarType));
+*)  else
     Assert(False);
     Result := 0;
   end;
@@ -300,7 +349,7 @@ function GetMinValue(VarType: TVarType): Integer;
 begin
   case VarType of
     vtInt8: Result := -128;
-    vtByte, vtChar, vtWord, vtPointer, vtTypeDef: Result := 0;
+    vtByte, vtChar, vtWord, vtPointer(*, vtTypeDef*): Result := 0;
     vtInteger: Result := -32768;
     vtBoolean: Result := valueFalse;
   else
@@ -309,31 +358,13 @@ begin
   end;
 end;
 
-function ValidateAssignmentType(AssignType, ExprType: TVarType): Boolean;
-begin
-  if AssignType = ExprType then
-    EXIT(True);
-
-  //Numeric types
-  if IsNumericType(AssignType) and IsNumericType(ExprType) then
-    EXIT(ExprType <> vtReal);
-  case AssignType of
-    vtString: EXIT(ExprType in [vtChar, vtString]);
-    vtChar: //TODO: if AssignType = vtChar we can assign a string of length one to it
-      if ExprType = vtString then
-        raise Exception.Create('TODO: Add code to allow assigning string of length one to a Char');
-  end;
-
-  Result := False;
-end;
-
 function TryIntegerToVarType(Value: Integer;out VarType: TVarType): Boolean;
 begin
   case VarType of
     vtInteger: EXIT((Value >= -32768) and (Value <= 32767));
     vtInt8: EXIT((Value >= -128) and (Value <= 127));
     vtByte, vtChar: EXIT((Value >= 0) and (Value <= 255));
-    vtWord, vtPointer: EXIT((Value >= 0) and (Value <= 65535));
+    vtWord, vtPointer, vtTypedPointer: EXIT((Value >= 0) and (Value <= 65535));
     vtBoolean: EXIT((Value = -1) or (Value = 0));
   else
     Assert(False);
@@ -353,13 +384,14 @@ end;
 //Fitness values for (<primitive-type>,<code-type>)
 const FitnessVarTypeVarType: array[vtInt8..vtReal,vtInt8..vtReal] of Integer =
 //From. This axis is the parameter type. Other is primitive argument type
-//To	    Int8	Int	Byt	Wrd	Ptr	Real
-{Int8}	  ((0,	10,	10,	30,	30,	30),		//Otherwise:
-{Integer}	(1,	  0,	3,	10,	10,	10),		//	If both parameters are unsigned set Byte to Integer to 3
-{Byte}	  (20,	30,	0,	20,	20,	40),		//If SignCombine is set for an operator:
-{Word}	  (10,	20,	2,	0,	1,	20),		//If SignCombine is set for an operator:
-{Pointer}	(10,	20,	3,	1,	0,	20),		//	If either parameter is signed, set Byte to Integer to 1
-{Real}	  (4,	  4,	4,	4,	4,	0));    //**This is handled in code in GetFitnessTypeType
+//To	    Int8	Int	Byt	Wrd	Ptr	TPtr Real
+{Int8}	  ((0,	10,	10,	30,	30,	-1, 30),		//Otherwise:
+{Integer}	(1,	  0,	3,	10,	10,	-1, 10),		//	If both parameters are unsigned set Byte to Integer to 3
+{Byte}	  (20,	30,	0,	20,	20,	-1, 40),		//If SignCombine is set for an operator:
+{Word}	  (10,	20,	2,	0,	1,	-1, 20),		//If SignCombine is set for an operator:
+{Pointer}	(10,	20,	3,	1,	0,	0,  20),		//	If either parameter is signed, set Byte to Integer to 1
+{TPointer}(-1,  -1, -1, -1, -1, -1, -1),    //Typed Pointer to Pointer is allowed. All others fail.
+{Real}	  (4,	  4,	4,	4,	4,	-1, 0));    //**This is handled in code in GetFitnessTypeType
 
 
 //NOTE: FINAL VALUES TODO
@@ -372,6 +404,7 @@ const FitnessNumberRangeVarTypeUnsigned:
 {Byte}	  (30,  20,	10,	0,	0,	  10,	  20),
 {Word}	  (10,  10,	20,	1,	1,	  0,	  0),
 {Pointer}	(10,  10,	20,	1,	1,	  0,	  0),
+{TPointer}(-1,  -1, -1, -1, -1,   -1,   -1),
 {Real}	  (0,	  4,	4,	4,	4,	  4,	  4));
 
 //NOTE: FINAL VALUES TODO
@@ -384,6 +417,7 @@ const FitnessNumberRangeVarTypeSigned:
 {Byte}	  (30,  20,	10,	0,	0,	  10,	  20),
 {Word}	  (10,  10,	20,	2,	2,	  1,	  0), //+1 to Any, S16U8, S16u16
 {Pointer}	(10,  10,	20,	2,	2,	  1,	  0), //+1 to Any, S16U8, S16u16
+{TPointer}(-1,  -1, -1, -1, -1,   -1,   -1),
 {Real}	  (0,	  4,	4,	4,	4,	  4,	  4));
 
 //See the PrimSelection.xlsx spreadsheet for calculations, validations, and notes
@@ -451,7 +485,7 @@ begin
     Result := vtInteger
   else if (LType = vtPointer) or (RType = vtPointer) then
     Result := vtPointer
-  else if (GetTypeSize(LType) = 1) and (GetTypeSize(RType) = 1) then
+  else if (GetVarTypeSize(LType) = 1) and (GetVarTypeSize(RType) = 1) then
     if Value >= 0 then
       Result := vtByte
     else

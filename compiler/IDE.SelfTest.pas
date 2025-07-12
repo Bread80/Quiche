@@ -2,6 +2,7 @@ unit IDE.SelfTest;
 
 interface
 uses SysUtils, Generics.Collections,
+  Parse,
   Def.Globals, Def.QTypes, Def.Variables,
   CodeGen,
   IDE.Compiler;
@@ -12,7 +13,7 @@ type
     //blocktype static|stack      - Select Stack to generate a stack frame and use local vars
     BlockType: TBlockType;
     //parsetype declarations|code
-    ParseType: TParseType;
+    ParseMode: TParseMode;
     //$overflow on|off            - enable or disable overflow checking
     OverFlowCheck: Boolean;
     //$range on|off               - enable or disable range checking
@@ -231,7 +232,7 @@ type TTestFile = class(TTestGroup)
   protected
     //Test options
     function ParseBlockType(Fields: TArray<String>): TBlockType;
-    function ParseParseType(Fields: TArray<String>): TParseType;
+    function ParseParseMode(Fields: TArray<String>): TParseMode;
     function ParseBoolean(Fields: TArray<String>): Boolean;
   public
     procedure LoadTestFile(const Filename: String);
@@ -270,7 +271,8 @@ procedure LoadSelfTests;
 
 implementation
 uses Classes, IOUtils,
-  Parse.Errors;
+  Def.Consts, Def.UserTypes,
+  Parse.Errors, Parse.Expr;
 
 const TestActionStrings: array[low(TTestAction)..high(TTestAction)] of String = (
   'VarType', 'Compile', 'UsesPrimitive', 'VarValue', 'Runtime');
@@ -295,7 +297,7 @@ function TTestOptions.ToString: String;
 const BoolToStr: array[False..True] of String = ('Off','On');
 begin
   Result := 'Block Type: ' + BlockTypeStrings[BlockType] + #13 +
-    'Parse Type: ' + ParseTypeStrings[ParseType] + #13 +
+    'Parse Mode: ' + ParseModeStrings[ParseMode] + #13 +
     'OverFlow Checks: ' + BoolToStr[OverflowCheck] + #13 +
     'Range Checks: ' + BoolToStr[RangeCheck] + #13 +
     'Log Primitives: ' + BoolToStr[LogPrimitives];
@@ -419,7 +421,7 @@ begin
   SL := TStringList.Create;
   try
     SL.Text := FCode;
-    FCompileOkay := IDE.Compiler.CompileStrings(SL, FOptions.BlockType, FOptions.ParseType, False, True);
+    FCompileOkay := IDE.Compiler.CompileStrings(SL, FOptions.BlockType, FOptions.ParseMode, False, True);
   finally
     SL.Free;
   end;
@@ -439,7 +441,7 @@ begin
   FWRiteBuffer := '';
   FRuntimeError := 0;
 
-  Result := IDE.Compiler.Emulate(IDE.Compiler.GetBinaryFileName);
+  Result := IDE.Compiler.Deploy(IDE.Compiler.GetBinaryFileName);
   FEmulateError := not Result;
   if FEmulateError then
     FErrorReport := 'ERROR: Unexpected runtime error '#13
@@ -673,52 +675,26 @@ procedure TTest.TestVarValue(Step: PTestStep);
 var V: PVariable;
   I: Integer;
   C: Char;
+  ExprType: PUserType;
+  Value: TImmValue;
 begin
   V := VarFindByNameAllScopes(Step.Name);
   if not Assigned(V) then
     Error(Step, 'ERROR: No such variable: ''' + Step.Name + ''''#13)
   else
-  case V.VarType of
-    vtInteger, vtInt8, vtWord, vtByte, vtPointer:
-    begin
-      if not TryStrToInt(Step.Value, I) then
-        Error(Step, 'Invalid integer value: ''' + Step.Value + ''''#13)
-      else
-        Check(V.Value.ToInteger = I, Step, 'VarValue mismatch on ' + V.Name +
-          ', wanted ' + Step.Value + ' got ' + V.Value.ToString + #13);
-    end;
-    vtBoolean:
-    begin
-      if CompareText(Step.Value, 'false') = 0 then
-      Check(V.Value.ToInteger = valueFalse and $ff, Step, 'VarValue mismatch on ' + V.Name +
-        ', wanted ' + Step.Value + ' got ' + V.Value.ToString + #13)
-      else if CompareText(Step.Value, 'true') = 0 then
-        Check((V.Value.ToInteger and $ff) = (valueTrue and $ff), Step, 'VarValue mismatch on ' + V.Name +
-          ', wanted ' + Step.Value + ' got ' + V.Value.ToString + #13)
-      else
-        Error(Step, 'Invalid boolean value: ''' + Step.Value + ''''#13);
-    end;
-    vtChar:
-    begin
-      if (Length(Step.Value) = 3) and (Step.Value.Chars[0] = '''') and (Step.Value.Chars[2] = '''') then
-      begin
-        C := Step.Value.Chars[1];
-        Check(V.Value.ToInteger = ord(C), Step, 'VarValue mismatch on ' + V.Name +
-          ', wanted ''' + C + ''' got ''' + chr(V.Value.ToInteger) + ''''#13);
-      end
-      else if Step.Value.Chars[0] = '#' then
-        //Numeric char literal
-        if TryStrToInt(Step.Value.Substring(1), I) then
-          if I <= 255 then
-            Check(V.Value.ToInteger = I, Step, 'VarValue mismatch on ' + V.Name +
-              ', wanted ' + CharToStr(I) + ' got ''' + chr(V.Value.ToInteger) + ''''#13)
-          else
-            Error(Step, 'Invalid string value: ''' + Step.Value + ''''#13)
-        else
-          Error(Step, 'Invalid string value: ''' + Step.Value + ''''#13);
-    end;
-  else
-    Error(Step, 'Unknown variable type for ' + Step.Name + ''''#13);
+  begin
+    IDE.Compiler.LoadSourceString(Step.Value);
+    ExprType := V.UserType;
+    if ParseConstantExpr(Value, ExprType) <> qeNone then
+      raise Exception.Create('Invalid test expression: ' + Step.Value + #13 +
+        IDE.Compiler.ParseErrorString);
+
+    if IsIntegerType(V.UserType) and IsIntegerType(ExprType) then
+      Check(V.Value.ToInteger = Value.ToInteger, Step, 'VarValue mismatch on ' + V.Name +
+          ', wanted ' + Value.ToString + ' got ' + V.Value.ToString + #13)
+    else
+      Check(V.Value.ToString = Value.ToString, Step, 'VarValue mismatch on ' + V.Name +
+          ', wanted ' + Value.ToString + ' got ' + V.Value.ToString + #13);
   end;
 end;
 
@@ -767,7 +743,7 @@ begin
 
   //Platform
   IDE.Compiler.SetPlatformToDefault;
-  IDE.Compiler.SetDeploy('EmulateRun');
+  IDE.Compiler.SetDeploy('quiche');
 end;
 
 constructor TTestGroup.Create;
@@ -853,7 +829,7 @@ end;
 procedure TTestGroup.InitOptions(var Options: TTestOptions);
 begin
   Options.BlockType := btStatic;
-  Options.ParseType := ptCode;
+  Options.ParseMode := pmRootUnknown;
   Options.OverflowCheck := True;
   Options.RangeCheck := True;
   Options.LogPrimitives := False;
@@ -882,6 +858,7 @@ var Options: TTestOptions;
   SL: TStringList;
   Test: TTest;
   Line: String;
+  LineNo: Integer;
   Fields: TArray<String>;
   InCode: Boolean;
   Error: String;
@@ -897,8 +874,11 @@ begin
   SL.LoadFromFile(Filename);
 
   InCode := False;
+  LineNo := 0;
   for Line in SL do
   begin
+    inc(LineNo);
+
     if InCode then
     begin
       if Line.StartsWith('endcode') then
@@ -921,7 +901,7 @@ begin
         else if CompareText(Fields[0], 'blocktype') = 0 then
           Options.BlockType := ParseBlockType(Fields)
         else if CompareText(Fields[0], 'parsetype') = 0 then
-          Options.ParseType := ParseParseType(Fields)
+          Options.ParseMode := ParseParseMode(Fields)
         else if CompareText(Fields[0], '$overflow') = 0 then
           Options.OverflowCheck := ParseBoolean(Fields)
         else if CompareText(Fields[0], '$range') = 0 then
@@ -948,9 +928,11 @@ begin
           raise Exception.Create('Invalid line: ' + Line + #13' in file ' + Filename);
       end;
     if Error <> '' then
-      raise Exception.Create(Error);
+      raise Exception.Create('Error loading test file: ' + Filename + #13 +
+        Error + ' in line ' + LineNo.ToString + #13 + Line);
     if FLastError <> '' then
-      raise Exception.Create(FLastError);
+      raise Exception.Create('Error loading test file: ' + Filename + #13 +
+        FLastError + ' in line ' + LineNo.ToString + #13 + Line);
   end;
 end;
 
@@ -992,9 +974,10 @@ begin
     FLastError := errInvalidField + Fields[1];
 end;
 
-function TTestFile.ParseParseType(Fields: TArray<String>): TParseType;
+function TTestFile.ParseParseMode(Fields: TArray<String>): TParseMode;
+var Mode: TParseMode;
 begin
-  Result := ptCode;
+  Result := pmRootUnknown;
   if Length(Fields) <> 2 then
   begin
     FLastError := errExpectedTwoFields;
@@ -1002,11 +985,16 @@ begin
   end;
 
   if CompareText(Fields[1], 'declarations') = 0 then
-    Result := ptDeclarations
+    Result := pmProgram
   else if CompareText(Fields[1], 'code') = 0 then
-    Result := ptCode
+    Result := pmRootUnknown
   else
+  begin
+    for Mode := low(TParseMode) to high(TParseMode) do
+      if CompareText(ParseModeStrings[Mode], Fields[1]) = 0 then
+        EXIT(Mode);
     FLastError := errInvalidField + Fields[1];
+  end;
 end;
 
 //;;================
@@ -1102,7 +1090,7 @@ const BoolStr: array[False..True] of String = ('Off', 'On');
 const AccessStr: array[False..True] of String = ('Stack', 'Register');
 begin
   InitOptions(Options);
-  Options.ParseType := ptDeclarations;
+  Options.ParseMode := pmRootUnknown;
 
   for FromType in [vtInteger, vtInt8, vtByte, vtWord, vtPointer] do
   begin
@@ -1173,7 +1161,7 @@ const BoolStr: array[False..True] of String = ('Off', 'On');
 const AccessStr: array[False..True] of String = ('Stack', 'Register');
 begin
   InitOptions(Options);
-  Options.ParseType := ptDeclarations;
+  Options.ParseMode := pmRootUnknown;
 
   for FromType in [vtInteger, vtInt8, vtByte, vtWord, vtPointer] do
   begin

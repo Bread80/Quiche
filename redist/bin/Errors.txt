@@ -47,7 +47,11 @@
 =NewlineExpected
 	New line or line continuation ('\') expected
 	There should be a line break or a keyword here
-
+=CommaOrCloseParensExpected
+	, or ) expected
+=CloseSquareBraceExpected	
+	] expected
+	
 ;FOR loops
 =TOorDOWNTOExpected
 	TO or DOWNTO expected
@@ -79,7 +83,7 @@
 
 ;VAR declarations
 =ColonExpectedInVAR
-	: expected
+	: or := expected
 	VAR <var-name>: <type-name>
 	VAR <var-name><type-symbol>
 	VAR <var-name>: <type-name> = <expr>
@@ -91,12 +95,51 @@
 	= expected
 	CONST <identifier>[: <type>] = <constant-expr>
 	CONST <identifier><type-symbol> = <constant-expr>
+	
+;TYPE declarations
+=EqualExpectedInTYPE
+	= expected
+	TYPE <identifier> = <type-definition>
+=InvalidTypeDefinition
+	Type specifier, type name, enumeration or constant range expression expected
+=PointedTypeNameExpected
+    Type name expected after ^
+=RangeOperatorExpected
+	Range operator expected (..) in subrange definition
+=RangeBoundsTypeMismatch
+	Range low and high values must be of the same type ('%s', '%s')
+
+=SimpleTypeExpected
+	Simple type expected ('%s')
+=SimpleConstExprExpected
+	Expecting a constant expression which evaluates to a member of a simple type
+=RangeExprValuesTooWide
+	The range bounds values are too wide to fit into any available type ('%s', '%s')
+=RangeValuesMisordered
+	The left value (lower bound) must be lower than the right value (upper bound) ('%s', '%s')
+=OFExpected
+	OF expected in type definition
+=ArrayBoundsDefinition
+	Error in array bounds syntax
+	[<low>..<high>,<low>..<high>]
+	[<low>..<high>][<low>..<high>]
+	Bounds can also be:
+	* - the name of a simple type,
+	* - an enumeration definition,
+	* - a simple type value (for the element count of a zero-based array)
+=ListCapacityError
+	List capacity must be an integer constant expression >= 1
+=ConcreteOrPointerTypeRequired
+	Concrete or pointer type required
+	The parser requires a type with a defined, concrete size. If required other types can be specified using a pointer.
 
 ;Assignment
 =AssignmentExpected
 	:= expected
 =EqualExpectedInAssignment
 	= expected
+=AssignmentNotAllowed
+	Assigning a value is not allowed here
 
 ;Function declarations
 =FunctionRedeclared
@@ -145,6 +188,16 @@
 =FORWARDRedeclared
 	FORWARD redeclared
 	The function has already been declared as FORWARD and can't be FORWARD declared again
+=FORWARDInTypeOrRecord
+	FORWARD directive not allowed in function type or record method declarations
+=CALLOrRSTInTypeOrRecord
+	CALL or RST directive not allowed in function type or record method declarations
+=FuncTypeDefUnspecifiedReg
+	No register allocation specified for parameter '%s'
+	In if function type definition, where the calling convention is register based one, every
+	parameter must have a register specified either implicitly via the calling convention or
+	implicitly in the function declaration. Eg.
+	TYPE MyFunc = FUNCTION(Address: HL as Pointer): A as Char;register;
 =ColonExpectedFuncDecl
 	: expected
 	FUNCTION <func-name> <param-def-list> : <result-type> ; [<directives> ;] <function-body>
@@ -159,8 +212,6 @@
 	<param-def> := <param-name> [ , <param-name>]: <Param-type>
 
 ;Function calls
-=CommaOrCloseParensExpected
-	, or ) expected after parameter
 =ArgMustBeVariable
 	Argument for a VAR or OUT parameter must be a variable (on '%s')
 	Parameters declared as VAR or OUT return a value which will be stored in the given variable
@@ -185,7 +236,7 @@
 
 ;Identifiers
 =IdentifierExpected
-	Invalid keyword in this context: '%s'
+	Identifier expected
 =UndefinedIdentifier
 	Undeclared identifier: '%s'
 =ReservedWord
@@ -204,7 +255,10 @@
 	Type name not valid here: '%s'
 =TypeMismatch
 	Type mismatch: from %s to %s
-
+=EnumItemNotValidHere
+	Enumeation item not valid here: '%s'
+=InstantiateUnboundedArray
+	Attempting to instantiate (create a variable which is) an unbounded array ('%s'). Did you mean to create a pointer to an unbounded array type ('^%s')?
 ;Expressions
 =Expression
 	Expression error
@@ -243,6 +297,10 @@
 =BooleanExpressionExpected
 	Boolean expression expected
 	This can also be caused by an invalid line break
+
+;========Pointers
+=PointerDerefError
+    Unable to derefence data - '%s' is not a pointer type
 
 ;Ops
 =OpIncompatibleTypes

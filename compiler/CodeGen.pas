@@ -29,12 +29,11 @@ function UsesPrimitive(const Name: String): Boolean;
 
 implementation
 uses SysUtils,
-  Def.Functions, Def.Operators, Def.QTypes, Def.Variables,
+  Def.Functions, Def.Operators, Def.QTypes, Def.Variables, Def.UserTypes,
   Parse.Base,
   Lib.GenFragments, Lib.Data, Lib.Primitives,
   CG.Data, CG.VarMap,
-  CG.CPUState.Z80, CG.Z80, CG.LoadStoreMove.Z80, CG.Load.Z80, CG.Store.Z80, CG.RegAlloc.Z80,
-  Z80.GenProcs,
+  Z80.CG, Z80.LoadStoreMove, Z80.Load, Z80.Store, Z80.RegAlloc, Z80.CPUState, Z80.GenProcs,
   IDE.Compiler; //<-- Allowed here ONLY so we can access assembler output meta data settings
 
 
@@ -128,21 +127,24 @@ procedure DataGen;
 var I: Integer;
   V: PVariable;
   S: String;
+  Bytes: Integer;
   C: Integer;
 begin
   for I := 0 to VarGetCount-1 do
   begin
     V := VarIndexToData(I);
-    case V.Storage of
-      vsStatic:
+    case V.AddrMode of
+      amStatic:
       begin
         S := V.GetAsmName + ': ';
-        case GetTypeSize(V.VarType) of
+        Bytes := GetTypeSize(V.UserType);
+        case Bytes of
+          0: ;  //TODO: ??
           1: S := S + 'db 0';
           2: S := S + '  dw 0';
         else
-          S := 'db ';
-          for C := 1 to GetTypeSize(V.VarType) do
+          S := S + 'db ';
+          for C := 1 to Bytes do
           begin
             if C <> 1 then
               S := S + ',';
@@ -150,7 +152,7 @@ begin
           end;
         end;
       end;
-      vsStack:
+      amStack:
       begin
         S := V.GetAsmName + ' equ ' + abs(V.Offset).ToString;
       end;
@@ -176,38 +178,10 @@ begin
         GenLibraryProc(Prim.OverflowCheckProcName, ILItem);
 end;
 
-procedure GenPrimitive(var ILItem: TILItem;ILIndex: Integer);
+procedure GenPrimitiveOLD(var ILItem: TILItem;ILIndex: Integer);
 var Prim: PPrimitive;
-  Proc: TCodeGenProc;
   SwapParams: Boolean;
 begin
-  if Assigned(ILItem.Prim) then
-  begin
-    //NEW METHOD (With CleverPuppy):
-    //Primitive has been pre-assigned, which implies all other register allocation
-    //etc data must also have been applied
-
-    if LogPrimitives then
-      PrimitiveLog.Add(Prim.ProcName);
-
-    //TODO: Param Load Type (must have been done by allocator)
-
-    //Generate any code for source algos
-    GenSourceParams(ILIndex);
-
-    if Assigned(ILItem.Prim.Fragment) then
-      GenFragmentItem(ILItem.Prim.Fragment, @ILItem)
-    else
-      GenLibraryProc(ILItem.Prim.ProcName, @ILItem);
-
-    //Genate code for overflow algo (if there is one)
-//TODO    GenOverflowCheck(@ILItem, Prim);
-
-    //Generate code for Dest algos.
-    //Also generates branches and updates CPU state for Dest
-    GenDestParams(ILIndex);
-  end
-  else
   begin //OLD METHOD (Without CleverPuppy)
     //Find the Prim based on the operation and parameter data type(s)
     Prim := ILItemToPrimitive(ILItem, SwapParams);
@@ -242,6 +216,39 @@ begin
     //Also generates branches and updates CPU state for Dest
     StoreAfterPrim(@ILItem, Prim);
   end;
+end;
+
+
+procedure GenPrimitive(var ILItem: TILItem;ILIndex: Integer);
+begin
+  if Assigned(ILItem.Prim) then
+  begin
+    //NEW METHOD (With CleverPuppy):
+    //Primitive has been pre-assigned, which implies all other register allocation
+    //etc data must also have been applied
+
+    if LogPrimitives then
+      PrimitiveLog.Add(ILItem.Prim.ProcName);
+
+    //TODO: Param Load Type (must have been done by allocator)
+
+    //Generate any code for source algos
+    GenSourceParams(ILIndex);
+
+    if Assigned(ILItem.Prim.Fragment) then
+      GenFragmentItem(ILItem.Prim.Fragment, @ILItem)
+    else
+      GenLibraryProc(ILItem.Prim.ProcName, @ILItem);
+
+    //Genate code for overflow algo (if there is one)
+//TODO    GenOverflowCheck(@ILItem, Prim);
+
+    //Generate code for Dest algos.
+    //Also generates branches and updates CPU state for Dest
+    GenDestParams(ILIndex);
+  end
+  else
+    GenPrimitiveOLD(ILItem, ILIndex);
 end;
 
 //========================= CODE GENERATOR
@@ -287,9 +294,9 @@ begin
       //When loading: load to type specified in Dest (extend, range check etc).
       //GenOpMove(ILItem);
       TEMPRegAllocMove(ILItem); //(??)
-      GenLoadParam(ILItem.Param1, ILItem.Dest.GetVarType, []);
+      GenLoadParam(ILItem.Param1, ILItem.Dest.GetUserType, []);
       //Range checking and extending (if required) is done while loading
-      GenDestParam(ILItem.Dest, vtUnknown, False, nil, [])
+      GenDestParam(ILItem.Dest, nil, False, nil, [])
      end;
     opBranch: GenUncondBranch(ILItem);
     opBoolVarBranch:  //Branch where condition is a boolean variable (which could
@@ -297,9 +304,20 @@ begin
     begin //TODO: Rework this to be neater
       //GenOpMove(ILItem);
       TEMPRegAllocBoolVarBranch(ILItem); //(??)
-      GenLoadParam(ILItem.Param1, vtFlag, []);
-      GenDestParam(ILItem.Dest, vtUnknown, False, nil, [])
+      GenLoadParam(ILItem.Param1, GetSystemType(vtFlag), []);
+      GenDestParam(ILItem.Dest, nil, False, nil, [])
      end;
+    opPtrLoad:
+    begin
+      TEMPRegAllocPtrLoad(ILItem);
+      GenPtrLoad(ILItem^, []);
+      GenDestParam(ILItem.Dest, nil, False, nil, [])
+    end;
+    opPtrStore:
+    begin
+      TEMPRegAllocPtrStore(ILItem);
+      GenPtrStore(ILItem^, []);
+    end;
     opRegLoad, opRegLoadExtended: //Load multiple values to registers
       ILIndex := GenRegLoad(ILIndex, nil);
     opRegStore, opRegStoreExtended: //Store multiple values from registers

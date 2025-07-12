@@ -9,9 +9,9 @@
         <Filename Value="quiche.lpr"/>
         <IsPartOfProject Value="True"/>
         <IsVisibleTab Value="True"/>
-        <TopLine Value="25"/>
-        <CursorPos X="59" Y="30"/>
-        <UsageCount Value="34"/>
+        <TopLine Value="41"/>
+        <CursorPos X="21" Y="68"/>
+        <UsageCount Value="50"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -92,18 +92,18 @@
       </Unit>
       <Unit>
         <Filename Value="IDE.Config.pas"/>
-        <EditorIndex Value="9"/>
-        <TopLine Value="42"/>
-        <CursorPos Y="33"/>
-        <UsageCount Value="15"/>
+        <EditorIndex Value="3"/>
+        <TopLine Value="245"/>
+        <CursorPos X="35" Y="260"/>
+        <UsageCount Value="20"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="IDE.Compiler.pas"/>
-        <EditorIndex Value="1"/>
-        <TopLine Value="17"/>
-        <CursorPos Y="17"/>
-        <UsageCount Value="16"/>
+        <EditorIndex Value="2"/>
+        <TopLine Value="523"/>
+        <CursorPos X="56" Y="549"/>
+        <UsageCount Value="24"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -150,10 +150,9 @@
       <Unit>
         <Filename Value="Parse.pas"/>
         <EditorIndex Value="-1"/>
-        <TopLine Value="393"/>
-        <CursorPos X="39" Y="406"/>
+        <TopLine Value="16"/>
+        <CursorPos X="3" Y="33"/>
         <UsageCount Value="11"/>
-        <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
         <Filename Value="IDE.Emulator.pas"/>
@@ -171,10 +170,10 @@
       </Unit>
       <Unit>
         <Filename Value="IDE.Shell.pas"/>
-        <EditorIndex Value="12"/>
-        <TopLine Value="66"/>
-        <CursorPos X="9" Y="114"/>
-        <UsageCount Value="16"/>
+        <EditorIndex Value="4"/>
+        <TopLine Value="109"/>
+        <CursorPos X="9" Y="131"/>
+        <UsageCount Value="24"/>
         <Loaded Value="True"/>
       </Unit>
       <Unit>
@@ -242,36 +241,32 @@
       <Unit>
         <Filename Value="C:\lazarus\components\lazutils\fileutil.pas"/>
         <UnitName Value="FileUtil"/>
-        <EditorIndex Value="10"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="142"/>
         <CursorPos X="23" Y="32"/>
-        <UsageCount Value="13"/>
-        <Loaded Value="True"/>
+        <UsageCount Value="17"/>
       </Unit>
       <Unit>
         <Filename Value="C:\lazarus\components\lazutils\lazfileutils.pas"/>
         <UnitName Value="LazFileUtils"/>
-        <EditorIndex Value="11"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="30"/>
         <CursorPos X="20" Y="57"/>
-        <UsageCount Value="13"/>
-        <Loaded Value="True"/>
+        <UsageCount Value="17"/>
       </Unit>
       <Unit>
         <Filename Value="Def.Globals.pas"/>
-        <EditorIndex Value="2"/>
+        <EditorIndex Value="-1"/>
         <CursorPos X="18" Y="8"/>
-        <UsageCount Value="13"/>
-        <Loaded Value="True"/>
+        <UsageCount Value="17"/>
       </Unit>
       <Unit>
         <Filename Value="C:\lazarus\fpc\3.2.2\source\packages\rtl-generics\src\generics.collections.pas"/>
         <UnitName Value="Generics.Collections"/>
-        <EditorIndex Value="3"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="1170"/>
         <CursorPos X="20" Y="1186"/>
-        <UsageCount Value="13"/>
-        <Loaded Value="True"/>
+        <UsageCount Value="17"/>
       </Unit>
       <Unit>
         <Filename Value="Parse.Directives.pas"/>
@@ -283,163 +278,174 @@
       </Unit>
       <Unit>
         <Filename Value="..\emulator\mZ80.pas"/>
-        <EditorIndex Value="4"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="494"/>
         <CursorPos X="9" Y="512"/>
-        <UsageCount Value="13"/>
-        <Loaded Value="True"/>
+        <UsageCount Value="17"/>
       </Unit>
       <Unit>
         <Filename Value="..\emulator\mSymbols.pas"/>
-        <EditorIndex Value="6"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="87"/>
         <CursorPos X="3" Y="104"/>
-        <UsageCount Value="12"/>
-        <Loaded Value="True"/>
+        <UsageCount Value="16"/>
       </Unit>
       <Unit>
         <Filename Value="..\emulator\mHardware.pas"/>
-        <EditorIndex Value="7"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="368"/>
         <CursorPos X="26" Y="383"/>
-        <UsageCount Value="12"/>
-        <Loaded Value="True"/>
+        <UsageCount Value="16"/>
       </Unit>
       <Unit>
         <Filename Value="..\emulator\mConfigFile.pas"/>
-        <EditorIndex Value="8"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="101"/>
         <CursorPos X="12" Y="117"/>
-        <UsageCount Value="12"/>
-        <Loaded Value="True"/>
+        <UsageCount Value="16"/>
       </Unit>
       <Unit>
         <Filename Value="..\emulator\mMemory.pas"/>
-        <EditorIndex Value="5"/>
+        <EditorIndex Value="-1"/>
         <CursorPos X="15" Y="14"/>
-        <UsageCount Value="12"/>
+        <UsageCount Value="16"/>
+      </Unit>
+      <Unit>
+        <Filename Value="CleverPuppy.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="625"/>
+        <CursorPos X="5" Y="645"/>
+        <UsageCount Value="14"/>
+      </Unit>
+      <Unit>
+        <Filename Value="IDE.CommandLine.pas"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="17"/>
+        <CursorPos X="60" Y="31"/>
+        <UsageCount Value="18"/>
         <Loaded Value="True"/>
       </Unit>
     </Units>
     <JumpHistory HistoryIndex="29">
       <Position>
-        <Filename Value="C:\lazarus\components\lazutils\lazfileutils.pas"/>
-        <Caret Line="37" Column="42" TopLine="10"/>
+        <Filename Value="IDE.Compiler.pas"/>
+        <Caret Line="193" Column="80" TopLine="166"/>
       </Position>
       <Position>
-        <Filename Value="C:\lazarus\components\lazutils\lazfileutils.pas"/>
-        <Caret Line="38" Column="51" TopLine="11"/>
+        <Filename Value="IDE.Compiler.pas"/>
+        <Caret Line="512" Column="33" TopLine="485"/>
       </Position>
       <Position>
-        <Filename Value="C:\lazarus\components\lazutils\lazfileutils.pas"/>
-        <Caret Line="43" Column="13" TopLine="16"/>
+        <Filename Value="IDE.Compiler.pas"/>
+        <Caret Line="552" TopLine="524"/>
       </Position>
       <Position>
-        <Filename Value="C:\lazarus\components\lazutils\lazfileutils.pas"/>
-        <Caret Line="44" Column="35" TopLine="17"/>
+        <Filename Value="IDE.Compiler.pas"/>
+        <Caret Line="177" Column="15" TopLine="161"/>
       </Position>
       <Position>
-        <Filename Value="C:\lazarus\components\lazutils\lazfileutils.pas"/>
-        <Caret Line="56" Column="20" TopLine="29"/>
+        <Filename Value="IDE.Compiler.pas"/>
+        <Caret Line="267" Column="13" TopLine="251"/>
       </Position>
       <Position>
-        <Filename Value="C:\lazarus\components\lazutils\lazfileutils.pas"/>
-        <Caret Line="57" Column="20" TopLine="30"/>
+        <Filename Value="IDE.Compiler.pas"/>
+        <Caret Line="294" Column="13" TopLine="279"/>
       </Position>
       <Position>
-        <Filename Value="C:\lazarus\components\lazutils\lazfileutils.pas"/>
-        <Caret Line="115" Column="18" TopLine="88"/>
+        <Filename Value="IDE.Compiler.pas"/>
+        <Caret Line="529" Column="16" TopLine="513"/>
       </Position>
       <Position>
-        <Filename Value="C:\lazarus\components\lazutils\lazfileutils.pas"/>
-        <Caret Line="162" Column="13" TopLine="135"/>
+        <Filename Value="IDE.Compiler.pas"/>
+        <Caret Line="540" Column="10" TopLine="524"/>
       </Position>
       <Position>
-        <Filename Value="C:\lazarus\components\lazutils\lazfileutils.pas"/>
+        <Filename Value="IDE.Compiler.pas"/>
+        <Caret Line="33" Column="40" TopLine="17"/>
       </Position>
       <Position>
-        <Filename Value="C:\lazarus\components\lazutils\lazfileutils.pas"/>
-        <Caret Line="35" Column="52" TopLine="8"/>
-      </Position>
-      <Position>
-        <Filename Value="C:\lazarus\components\lazutils\lazfileutils.pas"/>
-        <Caret Line="36" Column="44" TopLine="9"/>
-      </Position>
-      <Position>
-        <Filename Value="C:\lazarus\components\lazutils\lazfileutils.pas"/>
-        <Caret Line="37" Column="42" TopLine="10"/>
-      </Position>
-      <Position>
-        <Filename Value="C:\lazarus\components\lazutils\lazfileutils.pas"/>
-        <Caret Line="38" Column="51" TopLine="11"/>
-      </Position>
-      <Position>
-        <Filename Value="C:\lazarus\components\lazutils\lazfileutils.pas"/>
-        <Caret Line="43" Column="13" TopLine="16"/>
-      </Position>
-      <Position>
-        <Filename Value="C:\lazarus\components\lazutils\lazfileutils.pas"/>
-        <Caret Line="44" Column="35" TopLine="17"/>
-      </Position>
-      <Position>
-        <Filename Value="C:\lazarus\components\lazutils\lazfileutils.pas"/>
-        <Caret Line="56" Column="20" TopLine="29"/>
+        <Filename Value="IDE.Compiler.pas"/>
+        <Caret Line="548" Column="48" TopLine="533"/>
       </Position>
       <Position>
         <Filename Value="IDE.Shell.pas"/>
-        <Caret Line="114" Column="9" TopLine="66"/>
+        <Caret Line="137" Column="60" TopLine="112"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Shell.pas"/>
+        <Caret Line="7" Column="12"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Shell.pas"/>
+        <Caret Line="23" Column="68"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Shell.pas"/>
+        <Caret Line="126" Column="34" TopLine="116"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Shell.pas"/>
+        <Caret Line="8" Column="34"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Shell.pas"/>
+        <Caret Line="140" Column="20" TopLine="116"/>
       </Position>
       <Position>
         <Filename Value="IDE.Compiler.pas"/>
-        <Caret Line="270" Column="38" TopLine="254"/>
+        <Caret Line="531" Column="56" TopLine="519"/>
       </Position>
       <Position>
         <Filename Value="IDE.Compiler.pas"/>
-        <Caret Line="282" Column="7" TopLine="262"/>
+        <Caret Line="18" Column="9"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Config.pas"/>
+        <Caret Line="86" Column="31" TopLine="70"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Config.pas"/>
+        <Caret Line="264" TopLine="248"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Config.pas"/>
+        <Caret Line="17" TopLine="17"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Config.pas"/>
+        <Caret Line="260" Column="35" TopLine="245"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Shell.pas"/>
+        <Caret Line="8" Column="38"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Shell.pas"/>
+        <Caret Line="151" Column="84" TopLine="119"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Shell.pas"/>
+        <Caret Line="128" Column="13" TopLine="120"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Shell.pas"/>
+        <Caret Line="141" Column="30" TopLine="121"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Shell.pas"/>
+        <Caret Line="136" Column="35" TopLine="107"/>
       </Position>
       <Position>
         <Filename Value="IDE.Compiler.pas"/>
-        <Caret Line="279" Column="60" TopLine="263"/>
-      </Position>
-      <Position>
-        <Filename Value="quiche.lpr"/>
-        <Caret Line="96" Column="36" TopLine="80"/>
+        <Caret Line="172" Column="38" TopLine="164"/>
       </Position>
       <Position>
         <Filename Value="IDE.Compiler.pas"/>
-        <Caret Line="278" Column="55" TopLine="263"/>
+        <Caret Line="15" Column="42"/>
       </Position>
       <Position>
         <Filename Value="IDE.Compiler.pas"/>
-        <Caret Line="47" TopLine="17"/>
-      </Position>
-      <Position>
-        <Filename Value="quiche.lpr"/>
-        <Caret Line="109" Column="9" TopLine="82"/>
-      </Position>
-      <Position>
-        <Filename Value="IDE.Compiler.pas"/>
-        <Caret Line="241" Column="60" TopLine="221"/>
-      </Position>
-      <Position>
-        <Filename Value="IDE.Compiler.pas"/>
-        <Caret Line="53" Column="55" TopLine="33"/>
-      </Position>
-      <Position>
-        <Filename Value="quiche.lpr"/>
-        <Caret Line="128" Column="19" TopLine="112"/>
-      </Position>
-      <Position>
-        <Filename Value="quiche.lpr"/>
-        <Caret Line="123" Column="62" TopLine="107"/>
-      </Position>
-      <Position>
-        <Filename Value="IDE.Compiler.pas"/>
-        <Caret Line="273" Column="60" TopLine="263"/>
-      </Position>
-      <Position>
-        <Filename Value="quiche.lpr"/>
-        <Caret Line="124" Column="9" TopLine="107"/>
+        <Caret Line="530" Column="3" TopLine="527"/>
       </Position>
     </JumpHistory>
     <RunParams>

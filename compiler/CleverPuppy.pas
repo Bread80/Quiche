@@ -4,7 +4,7 @@ interface
 uses Classes, Generics.Collections,
   Def.IL, Def.Functions,
   Lib.Data,
-  CG.CPUState.Z80, Z80.AlgoData,
+  Z80.CPUState, Z80.AlgoData,
   Z80.Hardware, Z80.Algos;
 
 type
@@ -263,7 +263,7 @@ type
 
 implementation
 uses SysUtils,
-  Def.Operators, Def.Variables, Def.QTypes, Def.Scopes,
+  Def.Operators, Def.Variables, Def.QTypes, Def.Scopes, Def.UserTypes,
   Lib.CPUState, Lib.Primitives,
   Z80.GenProcs,
   Puppy.Source;
@@ -544,8 +544,8 @@ procedure TChunkSet.TailScavengeLoads;
 var I: Integer;
   SourcePuppy: TSourcePuppy;
 begin
+  SourcePuppy := TSourcePuppy.Create(Self);
   try
-    SourcePuppy := TSourcePuppy.Create(Self);
     I := 0;
     while I < Combos.Count do
     begin
@@ -621,33 +621,36 @@ begin
 
   ChunkIL := TChunkIL(From);
   SetLength(Items, Length(ChunkIL.Items));
+  {$IFDEF FPC}
+  Items := Copy(ChunkIL.Items, 0, Length(ChunkIL.Items));
+  {$ELSE}
   TArray.Copy<TILItem>(ChunkIL.Items, Items, 0, 0, Length(ChunkIL.Items));
+  {$ENDIF}
 
   SetLength(FSourceParams, Length(ChunkIL.FSourceParams));
   if Length(ChunkIL.FSourceParams) > 0 then
+    {$IFDEF FPC}
+    FSourceParams := Copy(ChunkIL.FSourceParams, 0, Length(ChunkIL.FSourceParams));
+    {$ELSE}
     TArray.Copy<Integer>(ChunkIL.FSourceParams, FSourceParams, 0, 0, Length(ChunkIL.FSourceParams));
+    {$ENDIF}
 
   SetLength(DestParams, Length(ChunkIL.DestParams));
   if Length(ChunkIL.DestParams) > 0 then
+    {$IFDEF FPC}
+    DestParams := Copy(ChunkIL.DestParams, 0, Length(ChunkIL.DestParams));
+    {$ELSE}
     TArray.Copy<Integer>(ChunkIL.DestParams, DestParams, 0, 0, Length(ChunkIL.DestParams));
+    {$ENDIF}
+
   RegState := ChunkIL.RegState;
 end;
 
 constructor TChunkIL.Create(ALogProc: TLogProc;AnItemIndex: Integer);
-var SwapParams: Boolean;  //Will be ignored
-  Prim: PPrimitive;
-  DestIndex: Integer; //Index of Result parameter, also gives us param count
-  TempParam: TILParam;
-  Intersection: TCPURegSet;
-  RegSet: TCPURegSet;
-  Param0: PILParam;
-  Param1: PILParam;
-  Dest: PILParam;
 begin
   inherited Create(ALogProc);
   FItemIndex := AnItemIndex;
   FCosts.Init;
-  Prim := nil;
   InitItems(AnItemIndex);
 end;
 
@@ -968,7 +971,7 @@ begin
   V := Param.Variable;
   Assert((V.VarType = Param.CheckType) or not (cgRangeCheck in Param.Flags), 'TODO - Dest Range checking/type conversion');
   Assert(not Base.GetPrim.ProcMeta.ResultInLReg, 'TODO - Dest ResultInLReg');
-  Assert(GetTypeSize(V.VarType) = 2, 'TODO - Dest TypeSize <> 2');
+  Assert(GetTypeSize(V.UserType) = 2, 'TODO - Dest TypeSize <> 2');
 
   case Base.GetPrim.ProcMeta.ResultLoc of
     plNone, plImmediate: Assert(False); //Invalid as Dest
@@ -984,14 +987,14 @@ begin
       for Reg in Param.ResultRegs do
       begin
         Param.Reg := Reg;
-        case V.Storage of
-          vsStatic:
+        case V.AddrMode of
+          amStatic:
             //Where the heuristics depend on the register :sigh:
             if Reg = rHL then
               Param.Algo := saStaticHL
             else
               Param.Algo := saStatic16;
-          vsStack:  Param.Algo := saStack16;
+          amStack:  Param.Algo := saStack16;
         else
           Assert(False);
         end;
@@ -1024,20 +1027,20 @@ begin
   //TODO: Type conversion?? Range check??
   V := Param.Variable;
   Assert((V.VarType = Param.CheckType) or not (cgRangeCheck in Param.Flags), 'TODO - Source range checking/type conversion');
-  Assert(GetTypeSize(V.VarType) = 2, 'TODO - Source TypeSize <> 2');
+  Assert(GetTypeSize(V.UserType) = 2, 'TODO - Source TypeSize <> 2');
 
   //Generate Combo for every possible register
   for Reg in Param.SourceRegs do
   begin
     Param.Reg := Reg;
-    case V.Storage of
-      vsStatic:
+    case V.AddrMode of
+      amStatic:
         //Heuristics depend on the register :sigh:
         if Reg = rHL then
           Param.Algo := laStaticHL
         else
           Param.Algo := laStatic16;
-      vsStack:  Param.Algo := laStack16;
+      amStack:  Param.Algo := laStack16;
     else
       Assert(False);
     end;
@@ -1075,6 +1078,9 @@ var
 begin
   Assert(Length(Base.Items) > 0);
   Assert(not (Base.Items[0].Op in SystemOps));
+  Param0 := nil;
+  Param1 := nil;
+  Dest := nil;
 
   //TODO: Get /list/ of primitives (ie Combo Primitives)
   Prim := ILItemToPrimitive(Base.Items[0], SwapParams);
@@ -1336,7 +1342,6 @@ end;
 
 procedure TChunkBlock.MergeSteps;
 var Combos: TChunkSet;
-  Sequence: TChunkSequence;
 begin
   LogProc(Self, 'Merging steps for block ' + GetFirstChunkIL.Items[0].BlockID.ToString);
 

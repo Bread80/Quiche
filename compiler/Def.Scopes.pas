@@ -23,12 +23,10 @@ unit Def.Scopes;
 
 interface
 uses Classes,
-  Def.Functions, Def.IL, Def.Variables, Def.Consts,
+  Def.Functions, Def.IL, Def.Variables, Def.Consts, Def.UserTypes,
   CleverPuppy;
 
 type
-  TIdentType = (itVar, itFunction, itConst, itType);
-
   PScope= ^TScope;
   TScope = record
     Parent: PScope;   //The next higher Scope, or nil in none
@@ -38,17 +36,17 @@ type
                       //Depth is increased for every BEGIN and decreased for every END
     Func: PFunction;  //The function which owns this scope. Nil for main/global code
     ConstList: PConstList;  //Constants declared at this scope level
-//    Types: ;          //Ditto for Types
-    VarList: TVarList;  //Ditto for Variables
+    TypeList: PTypeList;       //Ditto for Types
+    VarList: TVarList;      //Ditto for Variables
+    FuncList: TFuncList;    //Functions declared in this scope
 
-    FuncList: TFuncList;  //Functions declared in this scope
-    AsmCode: TStringList;  //Assembly code for Code segment for this scope (from CodeGen)
+    AsmCode: TStringList;   //Assembly code for Code segment for this scope (from CodeGen)
     AsmData: TStringList;   //Assembly code for Data segment (from CodeGen)
     ILList: TILList;
     CleverPuppy: TCleverPuppy;  //Clever puppy codegen data (if any)
 
     //Returns the storage type for local variables
-    function GetLocalStorage: TVarStorage;
+    function GetLocalAddrMode: TAddrMode;
   end;
 
 //Only to be used with caution!!
@@ -60,7 +58,7 @@ procedure SetCurrentScope(Scope: PScope);
 //Returns True if there was a parent scope, False if not
 function SetParentScope: Boolean;
 
-//Get te current scope. Used by varsm consts, types, functions to cache the current
+//Get te current scope. Used by vars, consts, types, functions to cache the current
 //value before searching parent scopes
 function GetCurrentScope: PScope;
 
@@ -70,6 +68,15 @@ function GetCurrentScope: PScope;
 //Name is the name of the scope. If Name is '' the name will be retrived from Func.
 function CreateCurrentScope(Func: PFunction;const Name: String): PScope;
 
+//Creates a new scope to be used in a record deefinition.
+//Scope will be created a selected as the current scope such that variable and
+//function definitions will be created in the appropriate lists.
+//NOTE:
+//Current scope *must* be preserved before calling this (GetCurrentScope)...
+//...and reselected afterwards (SetCurrentScope)
+//TODO: Parent reference may need to be removed(??)
+function CreateRecordScope(const Name: String): PScope;
+
 //Set the current scope to the parent of the curent scope
 procedure EndCurrentScope;
 
@@ -77,15 +84,6 @@ procedure EndCurrentScope;
 //current scope
 procedure InitialiseScopes;
 
-//Search the current scope for an item with the given identifier (name)
-//Returns a pointer to the item if an item was found, otherwise returns nil.
-//The return value can be cast to the appropriate type: PVariable, PFunction, etc.
-//Return values:
-//IdentType identifies if the found item is a variable, function, const or type etc.
-function SearchCurrentScope(const Ident: String;out IdentType: TIdentType): Pointer;
-//Search the current scope and it's parents for an item with the given identifier (name)
-//Scope returns the scope in which the item was found.
-function SearchScopes(const Ident: String;out IdentType: TIdentType;out Scope: PScope): Pointer;
 
 //Increase the Depth of the current Scope (called for each BEGIN)
 procedure ScopeIncDepth;
@@ -96,6 +94,42 @@ procedure ScopeDecDepth;
 //Get the depth of the current Scope
 function ScopeGetDepth: Integer;
 
+//========== SEARCH FOR IDENTIFIERS
+type
+  TIdentType = (itUnknown, itVar, itFunction, itConst, itType, itEnumItem);
+
+  TIdentData = record
+    case IdentType: TIdentType of
+      itUnknown: ();
+      itVar: (
+        V: PVariable;
+        );
+      itFunction: (
+        F: PFunction;
+        );
+      itConst: (
+        C: PConst;
+        );
+      itType, itEnumItem: (
+        T: PUserType;
+        Index: Integer; //Not used for itType
+        );
+    end;
+
+//Search the current scope for an item with the given identifier (name)
+//Returns a pointer to the item if an item was found, otherwise returns nil.
+//The return value can be cast to the appropriate type: PVariable, PFunction, etc.
+//Return values:
+//IdentType identifies if the found item is a variable, function, const or type etc.
+//IgnoreFuncs is temporarily required so that searches for Type names return the type instead
+function SearchCurrentScope(const Ident: String; IgnoreFuncs: Boolean = False): TIdentData;
+//Search the current scope and it's parents for an item with the given identifier (name)
+//Scope returns the scope in which the item was found.
+function SearchScopes(const Ident: String;out Scope: PScope;
+  IgnoreFuncs: Boolean = False): TIdentData;
+
+//Searches all current scopes for a typed pointer to the given UserType
+function SearchScopesForAnonTypedPointer(UserType: PUserType): PUserType;
 
 //-----GUI utlilities
 procedure ScopesToStrings(S: TStrings);
@@ -104,7 +138,13 @@ procedure ScopesToStrings(S: TStrings);
 //NOT to be used whilst compiling!
 function ScopeSelectByName(Name: String): Boolean;
 
+//For 'built-in' types, consts and functions (intrinsics)
 var SystemScope: TScope;
+
+//A couple of functions to hack our way around circular unit references.
+//(NEVER directly typecast one to the other, just in case this changes)
+function ScopeToScopeHandle(Scope: PScope): TScopeHandle;
+function ScopeHandleToScope(Handle: TScopeHandle): PScope;
 
 implementation
 uses Generics.Collections, SysUtils,
@@ -132,7 +172,8 @@ begin
     //Free items owned by the scope??
     Scope.ConstList.Clear;
     Dispose(Scope.ConstList);
-//    Types: ;
+    Scope.TypeList.Clear;
+    Dispose(Scope.TypeList);
     ClearVarList(Scope.VarList);
     Scope.VarList.Free;
     ClearFuncList(Scope.FuncList);
@@ -153,7 +194,7 @@ procedure SetCurrentScope(Scope: PScope);
 begin
   CurrentScope := Scope;
   SetCurrentConstList(Scope.ConstList);
-  //Types
+  SetCurrentTypeList(Scope.TypeList);
   SetCurrentVarList(Scope.VarList);
   SetCurrentFuncList(Scope.FuncList);
   //AsmCode - nowt to do
@@ -182,7 +223,7 @@ begin
   AScope.Depth := 0;
   AScope.Func := nil;
   AScope.ConstList := CreateConstList(AScope.Name);
-//    Types: ;
+  AScope.TypeList := CreateTypeList;
   AScope.VarList := CreateVarList;
   AScope.FuncList := CreateFuncList;
   AScope.AsmCode := TStringlist.Create;
@@ -209,6 +250,12 @@ begin
   SetCurrentScope(Result);
 end;
 
+function CreateRecordScope(const Name: String): PScope;
+begin
+  Result := CreateCurrentScope(nil, Name);
+  Result.Parent := nil;
+end;
+
 procedure InitialiseScopes;
 begin
   ClearScopeList;
@@ -220,58 +267,96 @@ begin
   CreateCurrentScope(nil, '_Global');
 end;
 
-function SearchCurrentScope(const Ident: String;out IdentType: TIdentType): Pointer;
+function SearchCurrentScope(const Ident: String;IgnoreFuncs: Boolean = False): TIdentData;
 var
   Scope: PScope;
-  C: PConst;
-  V: PVariable;
-  Func: PFunction;
 begin
   Scope := GetCurrentScope;
 
   //Consts
   if Assigned(Scope.ConstList) then
   begin
-    C := Consts.FindByNameInScope(Ident);
-    if C <> nil then
+    Result.C := Consts.FindByNameInScope(Ident);
+    if Result.C <> nil then
     begin
-      IdentType := itConst;
-      EXIT(C);
+      Result.IdentType := itConst;
+      EXIT;
+    end;
+  end;
+
+  //Types and Enumerations
+  if Assigned(Scope.TypeList) then
+  begin
+    Result.T := Types.FindByNameInScope(Ident);
+    if Result.T <> nil then
+    begin
+      Result.IdentType := itType;
+      EXIT;
+    end;
+    Result.T := Types.FindByEnumNameInScope(Ident, Result.Index);
+    if Result.T <> nil then
+    begin
+      Result.IdentType := itEnumItem;
+      EXIT;
     end;
   end;
 
   //Variables
   if Assigned(Scope.VarList) then
   begin
-    V := VarFindByNameInScope(Ident);
-    if V <> nil then
+    Result.V := VarFindByNameInScope(Ident);
+    if Result.V <> nil then
     begin
-      IdentType := itVar;
-      EXIT(V);
+      Result.IdentType := itVar;
+      EXIT;
     end;
   end;
 
-  if Assigned(Scope.FuncList) then
-  begin
-    Func := FuncFindInScope(Ident);
-    if Func <> nil then
+  if not IgnoreFuncs then //TEMP
+    if Assigned(Scope.FuncList) then
     begin
-      IdentType := itFunction;
-      EXIT(Func);
+      Result.F := FuncFindInScope(Ident);
+      if Result.F <> nil then
+      begin
+        Result.IdentType := itFunction;
+        EXIT;
+      end;
     end;
-  end;
 
-  Result := nil;
+  Result.IdentType := itUnknown;;
 end;
 
-function SearchScopes(const Ident: String;out IdentType: TIdentType;
-  out Scope: PScope): Pointer;
+function SearchScopes(const Ident: String;out Scope: PScope;IgnoreFuncs: Boolean = False): TIdentData;
 begin
   Scope := GetCurrentScope;
 
   repeat
     //Search scope
-    Result := SearchCurrentScope(Ident, IdentType);
+    Result := SearchCurrentScope(Ident, IgnoreFuncs);
+    if Result.IdentType <> itUnknown then
+    begin
+      //Restore original scope
+      SetCurrentScope(Scope);
+      EXIT;
+    end;
+  until not SetParentScope;
+
+  //Search System scope
+  SetCurrentScope(@SystemScope);
+  Result := SearchCurrentScope(Ident, IgnoreFuncs);
+
+  //Restore original scope
+  SetCurrentScope(Scope);
+end;
+
+function SearchScopesForAnonTypedPointer(UserType: PUserType): PUserType;
+var Scope: PScope;
+begin
+  Scope := GetCurrentScope;
+
+  repeat
+    //Search scope
+    Result := Types.FindAnonPointerForType(UserType);
     if Assigned(Result) then
     begin
       //Restore original scope
@@ -282,17 +367,10 @@ begin
 
   //Search System scope
   SetCurrentScope(@SystemScope);
-  Result := SearchCurrentScope(Ident, IdentType);
-  if Assigned(Result) then
-  begin
-    //Restore original scope
-    SetCurrentScope(Scope);
-    EXIT;
-  end;
+  Result := Types.FindAnonPointerForType(UserType);
 
   //Restore original scope
   SetCurrentScope(Scope);
-  Result := nil;
 end;
 
 procedure ScopeIncDepth;
@@ -342,12 +420,12 @@ end;
 
 { TScope }
 
-function TScope.GetLocalStorage: TVarStorage;
+function TScope.GetLocalAddrMode: TAddrMode;
 begin
   if Func = nil then
-    Result := optDefaultVarStorage
+    Result := optDefaultAddrMode
   else
-    Result := Func.GetLocalStorage;
+    Result := Func.GetLocalAddrMode;
 end;
 
 procedure InitSystemScope;
@@ -357,14 +435,21 @@ begin
   try
     //Fake the current scope
     SetCurrentScope(@SystemScope);
-    SystemScope.ConstList.Add('False', vtBoolean, TImmValue.CreateBoolean(False));
-    SystemScope.ConstList.Add('True', vtBoolean, TImmValue.CreateBoolean(True));
-    SystemScope.ConstList.Add('Maxint', vtInteger, TImmValue.CreateTyped(vtInteger, GetMaxValue(vtInteger)));
-    SystemScope.ConstList.Add('Minint', vtInteger, TImmValue.CreateTyped(vtInteger, GetMinValue(vtInteger)));
-    SystemScope.ConstList.Add('nil', vtPointer, TImmValue.CreateTyped(vtPointer, $0000));
+    SetSystemTypes;
+    SetSystemConsts;
   finally
 //    SetCurrentScope(nil);
   end;
+end;
+
+function ScopeToScopeHandle(Scope: PScope): TScopeHandle;
+begin
+  Result := TScopeHandle(Scope);
+end;
+
+function ScopeHandleToScope(Handle: TScopeHandle): PScope;
+begin
+  Result := PScope(Handle);
 end;
 
 initialization

@@ -24,14 +24,14 @@ type TRC2014SIO2 = class(TIODevice)
     procedure WriteControl(const Channel: Char;const Value: Byte);
     procedure WriteData(const Channel: Char;const Value: Byte);
     function ReadControl(const Channel: Char): Byte;
+  protected
+    function DoTryWriteByte(Addr: Word;Data: Byte): Boolean;override;
+    function DoTryReadByte(Addr: Word;var Data: Byte): Boolean;override;
   public
     constructor Create(const AName, ASettings: String);override;
     destructor Destroy;override;
 
     procedure Reset;override;
-
-    function TryWriteIO(Addr: Word;Data: Byte): Boolean;override;
-    function TryReadIO(Addr: Word;var Data: Byte): Boolean;override;
 
     property PortMask: Word read FPortMask write FPortMask;
     property BasePort: Word read FBasePort write FBasePort;
@@ -62,7 +62,7 @@ end;
 
 //A1=B/A
 //A0=C/D !!Inverted
-function TRC2014SIO2.TryReadIO(Addr: Word;var Data: Byte): Boolean;
+function TRC2014SIO2.DoTryReadByte(Addr: Word;var Data: Byte): Boolean;
 begin
   Result := (Addr and PortMask) = BasePort;
   if Result then
@@ -82,8 +82,7 @@ begin
     end;
 end;
 
-
-function TRC2014SIO2.TryWriteIO(Addr: Word;Data: Byte): Boolean;
+function TRC2014SIO2.DoTryWriteByte(Addr: Word;Data: Byte): Boolean;
 begin
   Result := (Addr and PortMask) = BasePort;
   if Result then

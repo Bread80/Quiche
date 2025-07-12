@@ -34,24 +34,28 @@ type TParseMode = (
                   //PROGRAM statement has been read.
                   //Code may include multiline CONST, TYPE and VAR statements.
                   //Code must end with a BEGIN ... END. block
-  pmFuncDecls,     //The declarations section of a function.
-
-  pmRootCode,     //At root level, parsing code outside a BEGIN...END block.
+  pmScript,       //At root level, parsing code outside a BEGIN...END block.
                   //Multiline CONST, TYPE, VAR are not allowed.
+
+  pmFuncDecls,     //The declarations section of a function.
   pmStatement,    //Parse a single statement (which might be a block)
   pmBlock,        //A BEGIN ... END code block.
                   //The BEGIN has already been consumed
   pmREPEAT        //In a REPEAT ... UNTIL loop. End at the UNTIL keyword
   );
 
+const ParseModeStrings: array[low(TParseMode)..high(TParseMode)] of String = (
+  'RootUnknown', 'Program', 'Script', 'FuncDecls', 'Statement', 'Block', 'REPEAT');
+
 //Parses Quiche source code.
-function ParseQuiche(ParseMode: TParseMode;Storage: TVarStorage): TQuicheError;
+function ParseQuiche(ParseMode: TParseMode;AddrMode: TAddrMode): TQuicheError;
 
 implementation
 uses SysUtils, Classes,
   Def.Functions, Def.Globals, Def.IL, Def.Operators, Def.QTypes, Def.Scopes,
-  Def.Consts,
-  Parse.Base, Parse.Fixups, Parse.FuncCall, Parse.FuncDef, Parse.Source;
+  Def.Consts, Def.UserTypes,
+  Parse.Base, Parse.Fixups, Parse.FuncCall, Parse.FuncDef, Parse.Source, Parse.TypeDefs,
+  Parse.VarDefs, Parse.Literals;
 
 //===============================================
 //Language syntax
@@ -64,17 +68,17 @@ uses SysUtils, Classes,
 //  Returns last ILItem of the expression in ILItem and ConstExprValue as junk
 //  ILItem will have a CondBranch destination.
 function ParseBranchExpr(out ILItem: PILItem;out ConstExprValue: Boolean): TQuicheError;
-var ExprType: TVarType;
+var ExprType: PUserType;
 //  ImplicitType: TVarType; //Dummy
   Slug: TExprSlug;
 begin
   Slug.Initialise;
 
-  ExprType := vtUnknown;
-  Result := ParseExpressionToSlug(Slug, ExprType);
+  ExprType := nil;
+  Result := ParseExprToSlug(Slug, ExprType);
   if Result <> qeNone then
     EXIT;
-  if ExprType <> vtBoolean then
+  if UTToVT(ExprType) <> vtBoolean then
     EXIT(Err(qeBooleanExpressionExpected));
 
   if Slug.ILItem <> nil then
@@ -84,8 +88,8 @@ begin
     ILItem.Dest.SetCondBranch;
     if ILItem.Op in [opUnknown, OpMove, OpStoreImm] then
       ILItem.Op := OpBranch;
-    Assert(ILItem.ResultType = vtBoolean);
-    ILItem.ResultType := vtFlag;  //Required for proper primitive selection
+    Assert(ILItem.ResultVarType = vtBoolean);
+    ILItem.ResultType := GetSystemType(vtFlag);  //Required for proper primitive selection
   end
   //ILItem = nil
   else if Slug.Operand.Kind = pkImmediate then
@@ -99,182 +103,45 @@ begin
     ILItem := ILAppend(OpBoolVarBranch);
     ILItem.Param1 := Slug.Operand;
     ILItem.Param2.Kind := pkNone;
-    ILItem.ResultType := vtBoolean; //(Not technically needed)
+    ILItem.ResultType := GetSystemType(vtBoolean); //(Not technically needed)
   end;
 end;
 
 //============================= DECLARATIONS
 
-// <assignment> := <variable-name> := <expression>
-//Parses assignment and variable declarations
-//VarRead should be True if a 'var' keyword has been parsed
-//AllowVar is True if a declaration beginning with 'var' is allowed and the 'var'
-//has yet to be parsed
-//If the variable name has already been parsed it must be passed in in VarName,
-//if not VarName must be empty
-//Variable returns the Variable which was either created or assigned to
-//VarIndex returns the Index in the variable list of Variable
-//Also inspects the optAllowAutoCreation option to determine if a declaration
-//requires an explicit 'var' or can be implied by the first assignment to a variable
-function ParseAssignment(VarRead, AllowVar, AssignRequired: Boolean;const Ident: String;
-  out Variable: PVariable;Storage: TVarStorage): TQuicheError;
-var Ch: Char;
-  VarName: String;
-  VarType: TVarType;  //vtUnknown if we're using type inference
-  DoAssign: Boolean;  //True if we're assigning a value
-  Creating: Boolean;
-  Keyword: TKeyword;
-  IdentType: TIdentType;
+//With the parser positioned at the char after an identifier (variable, const etc)
+//attempts to parse a type-symbol or name
+//<type-specifier> := <type-symbol>
+//                  | :<type-name>
+//Anything other syntax will return qeNone, VT as vtUnknown, and leaves the parser
+//cursor unchanged
+//If the <type-name> is unknown will return an error
+function ParseTypeSpecifier(out UT: PUserType): TQuicheError;
 begin
-  Result := Parser.SkipWhiteNL;
-  if Result <> qeNone then
-    EXIT;
-
-  //VAR keyword or variable name
-  if Ident <> '' then
-    VarName := Ident
-  else
+  if Parser.TestChar = ':' then
   begin
-    Result := ParseIdentifier(#0, VarName);
-    if Result <> qeNone then
-      EXIT;
-  end;
-
-  if optVarAutoCreate and not VarRead and AllowVar then
-  begin
-    VarRead := CompareText(VarName, 'var') = 0;
-    if VarRead then
+    Parser.Mark;
+    Parser.SkipChar;
+    if Parser.TestChar = '=' then
     begin
-      Result := ParseIdentifier(#0,VarName);
-      if Result <> qeNone then
-        EXIT;
-    end;
-  end;
-
-  VarType := vtUnknown;
-  //Is a there any form of type sepcifier?
-  if optVarAutoCreate or VarRead then
-  begin
-    Keyword := IdentToKeyword(VarName);
-    if Keyword <> keyUnknown then
-      EXIT(ErrSub(qeReservedWord, VarName));
-
-    Result := TestForTypeSymbol(VarType);
-    if Result <> qeNone then
-      EXIT;
-
-    if VarType <> vtUnknown then
-    begin //<type-symbol> form
-      DoAssign := TestAssignment;
-      if AssignRequired and not DoAssign then
-        EXIT(Err(qeAssignmentExpected));
-    end
-    else if TestAssignment then
-      //Type inference form - nothing to do here
-      DoAssign := True
-    else
-    begin //Type name form
-      Result := Parser.SkipWhiteNL;
-      if Result <> qeNone then
-        EXIT;
-
-      Ch := Parser.TestChar;
-      if Ch <> ':' then
-        EXIT(Err(qeColonExpectedInVAR));
-      Parser.NextChar(Ch);
-      Result := Parser.SkipWhiteNL;
-      if Result <> qeNone then
-        EXIT;
-
-      Result := ParseVarTypeName(VarType);
-      if Result <> qeNone then
-        EXIT;
-      if VarType = vtUnknown then
-        EXIT(Err(qeUnknownType));
-      if VarType in [vtReal, vtString] then
-        EXIT(ErrTODO('Type not yet supported: ' + VarTypeToName(VarType)));
-
-      Result := Parser.SkipWhite;
-      if Result <> qeNone then
-        EXIT;
-
-      Ch := Parser.TestChar;
-      DoAssign := Parser.TestChar = '=';
-      if AssignRequired and not DoAssign then
-        EXIT(Err(qeEqualExpectedInAssignment));
-
-      if DoAssign then
-        Parser.SkipChar;
+      Parser.Undo;
+      UT := nil;
+      EXIT(qeNone);
     end;
 
-    if VarRead then
-    begin
-      if SearchCurrentScope(VarName, IdentType) <> nil then
-        EXIT(ErrSub(qeIdentifierRedeclared, VarName));
-      Variable := nil;
-    end
-    else
-      Variable := VarFindByNameAllScopes(VarName);
-  end
-  else  //We're only doing assignment, no creation allowed
-  begin
-    DoAssign := TestAssignment;
-    if not DoAssign then
-      EXIT(Err(qeAssignmentExpected));
-    Variable := VarFindByNameAllScopes(VarName);
-    if Variable = nil then
-      EXIT(ErrSub(qeVariableNotFound, VarName));
-    VarType := Variable.VarType;
-  end;
-
-  //Are we assigning a value today?
-  if DoAssign then
-  begin
-    Creating := Variable = nil;
-    Result := ParseAssignmentExpr(Variable, VarType);
+    Parser.SkipChar;
+    Result := Parser.SkipWhiteNL;
     if Result <> qeNone then
       EXIT;
-
-    if Creating and (VarType <> vtUnknown) then
-      Variable.SetType(VarType);
-
-    //Was a type specified, or are we using type inference?
-{    if VarType <> vtUnknown then
-    begin
-      //If a type was specified, is the expression result compatible with that type?
-      if not ValidateAssignmentTypes(VarType, Variable.VarType) then
-        EXIT(errIncompatibleTypes)
-      else  //If so, update the variable to the type specified in the declaration
-        VarSetType(Variable, VarType);
-    end
-    else if Creating then //Use type returned from expression - but extend integers
-      if Variable.VarType = vtInt8 then
-        VarSetType(Variable, vtInteger);
-}
-    if Creating then
-      Variable.SetName(VarName);
+    Result := ParseTypeDefinition(UT);
+//    Result := ParseVarTypeName(VT);
   end
   else
-  begin //Otherwise just create it. Meh. Boring
-    Variable := VarCreate(VarName, VarType);
-    if Variable = nil then
-      EXIT(ErrSub(qeIdentifierRedeclared, VarName));
-    Result := qeNone;
+  begin
+    Result := TestForTypeSymbol(UT);
+    if not Assigned(UT) then
+      Result := qeNone;
   end;
-end;
-
-//=====================================================
-//Keywords
-
-// <variable-declararion> := VAR <identifier>[: <type>] [= <expr>]
-//                           (Either <type> or <expr> (or both) must be given
-//                        |  VAR <identifier><type-symbol> [:= <expr>]
-//                           (no space allowed between <identifier> and <type-symbol>)
-//                           VAR <identifier> := <expr>
-function DoVAR(const Ident: String;Storage: TVarStorage): TQuicheError;
-var Variable: PVariable;
-begin
-  Result := ParseAssignment(True, False, False, Ident, Variable, Storage);
 end;
 
 // <constant-declaration> := CONST <identifier>[: <type>] = <expr>
@@ -282,7 +149,7 @@ end;
 function DoCONST(const Ident: String): TQuicheError;
 var ConstName: String;
   Value: TImmValue;
-  VarType: TVarType;
+  UType: PUserType;
 begin
   Result := Parser.SkipWhiteNL;
   if Result <> qeNone then
@@ -295,7 +162,7 @@ begin
     EXIT;
 
   //Type (if specified)
-  Result := ParseTypeSpecifier(VarType);
+  Result := ParseTypeSpecifier(UType);
   if Result <> qeNone then
     EXIT;
 
@@ -308,25 +175,24 @@ begin
   Parser.SkipChar;
 
   //Value
-  Result := ParseConstantExpression(Value, VarType);
+  Result := ParseConstantExpr(Value, UType);
   if Result <> qeNone then
     EXIT;
 
-  Consts.Add(ConstName, VarType, Value);
+  Consts.Add(ConstName, UType, Value);
 end;
-
 
 type TBlockState = (bsSingle, bsBeginRead);
 
 //=================================== LOOPS
 
 //Parse a code block.
-function ParseBlock(ParseMode: TParseMode;Storage: TVarStorage): TQuicheError;
+function ParseBlock(ParseMode: TParseMode;AddrMode: TAddrMode): TQuicheError;
 begin
   Assert(ParseMode in [pmStatement, pmBlock, pmREPEAT]);
   ScopeIncDepth;
 
-  Result := ParseQuiche(ParseMode, Storage);
+  Result := ParseQuiche(ParseMode, AddrMode);
   if Result <> qeNone then
     EXIT;
 
@@ -353,13 +219,13 @@ end;
 //  Branch to Header Section (Block 2)
 //Block 5- Exit Section (code after the loop)
 //  Generate fixups (ie. extra phi functions for block 2)
-function DoFOR(Storage: TVarStorage): TQuicheError;
+function DoFOR(AddrMode: TAddrMode): TQuicheError;
 var
-  VarRead: Boolean;
+  VarStatus: TVarStatus;
   LoopVarName: String;
   LoopVar: PVariable;
   Step: Integer;       //TO or DOWNTO?
-  ExprType: TVarType;
+  ExprType: PUserType;
   Slug: TExprSlug;
   ToVar: PVariable;  //Hidden variable to contain end value for the loop. Nil if value is constant
   ToValue: TImmValue;  //If EndVar is nil, contants constant endvalue
@@ -386,8 +252,12 @@ begin
   if Result <> qeNone then
     EXIT;
 
-  VarRead := CompareText(LoopVarName, 'var') = 0;
-  if VarRead then
+  if CompareText(LoopVarName, 'var') = 0 then
+    VarStatus := vsVarRead
+  else
+    VarStatus := vsVarNotAllowed;
+
+  if VarStatus = vsVarRead then
   begin
     Result := Parser.SkipWhiteNL;
     if Result <> qeNone then
@@ -407,7 +277,7 @@ begin
     //
 
   //(Create and) assign the loop variable
-  Result := ParseAssignment(VarRead, false, True, LoopVarName, LoopVar, Storage);
+  Result := ParseVarDeclaration(VarStatus, asAssignRequired, LoopVarName, LoopVar, AddrMode);
   if Result <> qeNone then
     EXIT;
 
@@ -419,8 +289,8 @@ begin
     EXIT(Err(qeTOorDOWNTOExpected));
 
   //TO value
-  ExprType := LoopVar.VarType;
-  Result := ParseExpressionToSlug(Slug, ExprType);
+  ExprType := LoopVar.UserType;
+  Result := ParseExprToSlug(Slug, ExprType);
   ToVar := nil;
   if Result <> qeNone then
     EXIT;
@@ -428,7 +298,7 @@ begin
   if (Slug.ILItem = nil) and (Slug.Operand.Kind = pkImmediate) then
     ToValue := Slug.Operand.Imm
   else //if the value is not constant, assign it to a temp variable
-    AssignSlugToVariable(Slug, ToVar, ExprType);
+    AssignSlugToDest(Slug, ToVar, ExprType);
 
   //TODO: Insert code here for Step value
 
@@ -466,7 +336,7 @@ begin
   else
     Assert(False, 'Invalid Step value');
   end;
-  ExitTestItem.ResultType := vtBoolean;
+  ExitTestItem.ResultType := GetSystemType(vtBoolean);
   ExitTestItem.Param1.SetVarSource(LoopVar);
   if ToVar = nil then
   begin //TO value is constant
@@ -485,7 +355,7 @@ begin
   NewBlockComment := 'Loop Body: ' + LoopVarName;
 
   //Parse Loop block
-  Result := ParseBlock(pmStatement, Storage);
+  Result := ParseBlock(pmStatement, AddrMode);
   if Result <> qeNone then
     EXIT;
 
@@ -501,19 +371,19 @@ begin
   ILItem := nil;
   case Step of
     1:
-    if IsEnumerable(LoopVar.VarType) then
+    if IsOrdinalType(LoopVar.VarType) then
       ILItem := ILAppend(opSucc)
     else //Real??
       ILItem := ILAppend(OpAdd);
     -1:
-    if IsEnumerable(LoopVar.VarType) then
+    if IsOrdinalType(LoopVar.VarType) then
       ILItem := ILAppend(opPred)
     else //Real??
       ILItem := ILAppend(OpSubtract);
   else
     Assert(False, 'Invalid Step Value');
   end;
-  ILItem.ResultType := LoopVar.VarType;
+  ILItem.ResultType := LoopVar.UserType;
   ILItem.Param1.SetVarSource(LoopVar);
   //(Uncomment to add Step value)
   ILItem.Param2.Kind := pkImmediate;
@@ -550,7 +420,7 @@ end; //----------------------------------------------------------- /FOR
 
 // <while-statement> := WHILE <boolean-expression> [DO]
 //                        <block>
-function DoWHILE(Storage: TVarStorage): TQuicheError;
+function DoWHILE(AddrMode: TAddrMode): TQuicheError;
 var
   WHILEID: Integer; //Block ID of the WHILE - so we can generate the loop code
   WHILEIndex: Integer;  //Index of the first ILItem (the WHILE)
@@ -597,7 +467,7 @@ begin
   NewBlock := True;
   NewBlockComment := 'WHILE body';
 
-  Result := ParseBlock(pmStatement, Storage);
+  Result := ParseBlock(pmStatement, AddrMode);
   if Result <> qeNone then
     EXIT;
 
@@ -626,7 +496,7 @@ end;
 // <repeat-statement> :=  REPEAT
 //                          <statements>
 //                        UNTIL <boolean-expression>
-function DoREPEAT(Storage: TVarStorage): TQuicheError;
+function DoREPEAT(AddrMode: TAddrMode): TQuicheError;
 var
   REPEATID: Integer;    //Block ID of the REPEAT - so we can generate the loop code
   REPEATIndex: Integer; //Index of the first ILItem (the REPEAT)
@@ -643,7 +513,7 @@ begin
   RepeatIndex := ILGetCount;
 
   //Parse the code statements
-  Result := ParseBlock(pmREPEAT, Storage);
+  Result := ParseBlock(pmREPEAT, AddrMode);
   if Result <> qeNone then
     EXIT;
 
@@ -697,7 +567,7 @@ end;
 //                     <block>
 //                   [ ELSE
 //                     <block> ]
-function DoIF(Storage: TVarStorage): TQuicheError;
+function DoIF(AddrMode: TAddrMode): TQuicheError;
 var
   Branch: PILItem;      //The Branch condition. Nil if expression is a constant
   ConstExprValue: Boolean;  //If branch condition is a constant
@@ -758,7 +628,7 @@ begin
   //Test for empty THEN block. If so skip parsing it.
   if not TestForIdent('else') then
   begin
-    Result := ParseBlock(pmStatement, Storage);
+    Result := ParseBlock(pmStatement, AddrMode);
     if Result <> qeNone then
       EXIT;
   end;
@@ -788,7 +658,7 @@ begin
 
     //Parse block
     PrevSkipMode := SkipModeStart((Branch = nil) and ConstExprValue);
-    Result := ParseBlock(pmStatement, Storage);
+    Result := ParseBlock(pmStatement, AddrMode);
     if Result <> qeNone then
       EXIT;
     SkipModeEnd(PrevSkipMode);
@@ -844,7 +714,7 @@ begin
   Result := Parser.SkipWhite;
   if Result <> qeNone then
     EXIT;
-  if Parser.TestChar in csIdentFirst then
+  if CharInSet(Parser.TestChar, csIdentFirst) then
     Result := ParseIdentifier(#0, Ident);
 end;
 
@@ -852,26 +722,27 @@ end;
 //Assumes the keyword has already been consumed.
 //Assumes the keyword has already been validated for use in the current source
 //code context.
-function DoKeyword(Keyword: TKeyword;ParseMode: TParseMode;Storage: TVarStorage): TQuicheError;
+function DoKeyword(Keyword: TKeyword;ParseMode: TParseMode;AddrMode: TAddrMode): TQuicheError;
+var Func: PFunction; //Dummy
 begin
   case Keyword of
-    keyUNKNOWN: Assert(False);
+    keyUNKNOWN: Result := Err(qeBUG);
 
     //Declarations
     keyPROGRAM:   Result := DoPROGRAM;
 
-    keyFUNCTION:  Result := ParseFunctionDef(False);
-    keyPROCEDURE: Result := ParseFunctionDef(True);
+    keyFUNCTION:  Result := DoFUNCTION(False, fptNormal, Func);
+    keyPROCEDURE: Result := DoFUNCTION(True, fptNormal, Func);
 
     keyCONST:     Result := DoCONST('');
-{    keyTYPE: ...
-}    keyVAR:       Result := DoVAR('', Storage);
+    keyTYPE:      Result := DoTYPE('');
+    keyVAR:       Result := DoVAR('', AddrMode);
 
     //Control flow
-    keyFOR: Result := DoFOR(Storage);
-    keyIF: Result := DoIF(Storage);
-    keyREPEAT: Result := DoREPEAT(Storage);
-    keyWHILE: Result := DoWHILE(Storage);
+    keyFOR: Result := DoFOR(AddrMode);
+    keyIF: Result := DoIF(AddrMode);
+    keyREPEAT: Result := DoREPEAT(AddrMode);
+    keyWHILE: Result := DoWHILE(AddrMode);
 
     keyBEGIN: //BEGIN ... END block
     begin
@@ -883,10 +754,10 @@ begin
           EXIT;
       end;
 
-      Result := ParseBlock(pmBlock, Storage);
+      Result := ParseBlock(pmBlock, AddrMode);
       if Result <> qeNone then
         EXIT;
-      if ParseMode in [pmRootUnknown, pmProgram, pmRootCode] then
+      if ParseMode in [pmRootUnknown, pmProgram, pmScript] then
         Assert(ScopeGetDepth = 0);
       EXIT(qeNone);
     end;
@@ -902,55 +773,55 @@ end;
 //Non-keyword identifier which start a statement. These will either be:
 // * Variable assignments
 // * Function calls
-function DoNonKeyword(const Ident: String;Storage: TVarStorage): TQuicheError;
+function DoNonKeyword(const Ident: String;AddrMode: TAddrMode): TQuicheError;
 var
-  Keyword: TKeyword;
   Scope: PScope;
-  IdentType: TIdentType;
-  Item: Pointer;
+  IdentData: TIdentData;
 begin
-  Item := SearchScopes(Ident, IdentType, Scope);
-  if Assigned(Item) then
-  begin
-    case IdentType of
-      itVar:
+  IdentData := SearchScopes(Ident, Scope);
+  case IdentData.IdentType of
+    itUnknown:
+    begin //Identifier not found
+      //If followed by := raise variable not found
+      Parser.Mark;
+      Result := Parser.SkipWhite;
+      if Result <> qeNone then
+        EXIT;
+      if TestAssignment then
       begin
-        Result := ParseAssignment(false, false, False, Ident, PVariable(Item), Storage);
-        if Result <> qeNone then
-          EXIT;
-      end;
-      itFunction:
-      begin
-        Result := DoParseProcedureCall(PFunction(Item));
-        if Result <> qeNone then
-          EXIT;
-      end;
-      itConst: EXIT(ErrSub(qeConstNameNotValidHere, Ident));
-      itType: EXIT(ErrSub(qeTypeNameNotValidHere, Ident));
-    else
-      EXIT(ErrBUG('Invalid/unknown IdentType'));
-    end;
-  end
-  else
-  begin //Identifier not found
-    //If followed by := raise variable not found
-    Parser.Mark;
-    Result := Parser.SkipWhite;
-    if Result <> qeNone then
-      EXIT;
-    if TestAssignment then
-    begin
-      Parser.Undo;
-      EXIT(ErrSub(qeVariableNotFound, Ident));
-    end;
+        if optVarAutoCreate then
+          //Auto-create variables
+          EXIT(ErrTODO('VarAutoCreate not yet implemented'));
 
-    //Raise identifier not found
-    EXIT(ErrSub(qeUndefinedIdentifier, Ident));
+        Parser.Undo;
+        EXIT(ErrSub(qeVariableNotFound, Ident));
+      end;
+
+      //Raise identifier not found
+      EXIT(ErrSub(qeUndefinedIdentifier, Ident));
+    end;
+    itVar:
+    begin
+      Result := ParseAssignment(IdentData.V);
+      if Result <> qeNone then
+        EXIT;
+    end;
+    itFunction:
+    begin
+      Result := DoParseProcedureCall(IdentData.F);
+      if Result <> qeNone then
+        EXIT;
+    end;
+    itConst: EXIT(ErrSub(qeConstNameNotValidHere, Ident));
+    itType: EXIT(ErrSub(qeTypeNameNotValidHere, Ident));
+    itEnumItem: EXIT(ErrSub(qeEnumItemNotValidHere, Ident));
+  else
+    EXIT(ErrBUG('Invalid/unknown IdentType'));
   end;
 end;
 
-function ParseQuiche(ParseMode: TParseMode;Storage: TVarStorage): TQuicheError;
-type TDeclState = (dsNone, dsCONST, dsVAR);
+function ParseQuiche(ParseMode: TParseMode;AddrMode: TAddrMode): TQuicheError;
+type TDeclState = (dsNone, dsCONST, dsTYPE, dsVAR);
 var
   Ch: Char;
   Ident: String;
@@ -982,7 +853,6 @@ begin
       Result := ParseAttribute;
       if Result <> qeNone then
         EXIT;
-      Keyword := keyUNKNOWN;
     end
     else if CharInSet(Ch, csIdentFirst) then
     begin //Identifier
@@ -1006,10 +876,9 @@ begin
               ParseMode := pmProgram
             else
               EXIT(Err(qeInvalidPROGRAM));
-(*TODO          keyTYPE:
+          keyTYPE:
             if ParseMode in [pmProgram, pmFuncDecls] then
               DeclState := dsTYPE;
-*)
           keyEND:
             if ParseMode = pmBlock then
               EXIT(qeNone);
@@ -1020,7 +889,7 @@ begin
             if ParseMode in [pmProgram, pmFuncDecls] then
               DeclState := dsVAR;
           keyFUNCTION, keyPROCEDURE:
-            if not (ParseMode in [pmProgram, pmRootCode, pmRootUnknown]) then
+            if not (ParseMode in [pmRootUnknown, pmProgram, pmScript]) then
               EXIT(Err(qeInvalidTopLevel));
           keyBEGIN: ; //Acceptable anywhere
         else
@@ -1029,9 +898,9 @@ begin
         end;
         if ParseMode = pmRootUnknown then
           if Keyword <> keyPROGRAM then
-            ParseMode := pmRootCode;
+            ParseMode := pmScript;
 
-        Result := DoKeyword(Keyword, ParseMode, Storage);
+        Result := DoKeyword(Keyword, ParseMode, AddrMode);
         if Result <> qeNone then
           EXIT;
 
@@ -1067,11 +936,11 @@ begin
               EXIT(Err(qeInvalidTopLevel))
             else
               //Variable assignment or function call (ie NOT an error!)
-              Result := DoNonKeyword(Ident, Storage);
+              Result := DoNonKeyword(Ident, AddrMode);
 
           dsCONST: Result := DoCONST(Ident);
-//          dsTYPE: Result := DoTYPE(Ident);
-          dsVAR:   Result := DoVAR(Ident, Storage);
+          dsTYPE: Result := DoTYPE(Ident);
+          dsVAR:   Result := DoVAR(Ident, AddrMode);
           else
             Assert(False, 'Unknown DeclState');
         end;
@@ -1084,7 +953,7 @@ begin
     end //Identifier
     else if Ch = #0 then
     begin
-      if ParseMode = pmRootCode then
+      if ParseMode = pmScript then
         EXIT(qeNone)
       else
         EXIT(Err(qeUnexpectedEndOfFile));

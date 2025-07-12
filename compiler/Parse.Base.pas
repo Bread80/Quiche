@@ -2,7 +2,7 @@ unit Parse.Base;
 
 interface
 uses Classes,
-  Def.IL, Def.QTypes, Def.Variables,
+  Def.IL, Def.QTypes, Def.Variables, Def.UserTypes, Def.Consts,
   Parse.Errors, Parse.Source,
   Z80.Hardware;
 
@@ -22,13 +22,15 @@ var Parser: TQuicheSourceReader;
 
 //Keywords listed in alphabetical order (for convenience)
 type TKeyword = (keyUNKNOWN,
-  keyAND, keyBEGIN,
+  keyAND, keyARRAY, keyBEGIN,
   keyCONST, keyDIV, keyDO, keyDOWNTO,
-  keyELSE, keyEND, {keyEXTERN,} keyFOR, {keyFORWARD, }keyFUNCTION,
-  keyIF, keyIN,
-  keyMOD, keyNOT, keyOR, keyPROCEDURE, keyPROGRAM, keyREPEAT,
-  keySHL, keySHR,
-  keyTHEN, keyTO, keyUNTIL, keyVAR, keyXOR,
+  keyELSE, keyEND, keyFOR, keyFUNCTION,
+  keyIF, keyIN, keyLIST,
+  keyMOD, keyNOT, keyOR, keyPROCEDURE, keyPROGRAM,
+  keyRECORD, keyREPEAT,
+  keySET, keySHL, keySHR,
+  keyTHEN, keyTO, keyTYPE, keyUNTIL, keyVAR, keyXOR,
+  keyVECTOR,
   keyWHILE
   );
 
@@ -42,12 +44,16 @@ function IdentToKeyword(Ident: String): TKeyword;
 //If not found, leaves the parser position unchanged
 function TestAssignment: Boolean;
 
+//If Found consumes the symbol, otherwise consumes nothing
+function TestRangeOperator(out Found: Boolean): TQuicheError;
+
 //Tests for a specific identifier.
 //Parser must be position on the first char of the identifier
 //If found, the parser consumes the characters,
 //if not found, leaves the parser position unchanged.
 function TestForIdent(Ident: String): Boolean;
 
+//Is the next char the first char of a symbol?
 function TestSymbolFirst: Boolean;
 
 function ParseSymbol(out Ident: String): TQuicheError;
@@ -87,16 +93,12 @@ function ParseVarTypeName(out VT: TVarType): TQuicheError;
 //Test for a Type Suffix Symbol.
 //If found returns the type and consumes the characters,
 //if not returns vtUnknown and leaves the Parser cursor unchanged
-function TestForTypeSymbol(out VarType: TVarType): TQuicheError;
+function TestForTypeSymbol(out UserType: PUserType): TQuicheError;
 
-//With the parser positioned at the char after an identifier (variable, const etc)
-//attempts to parse a type-symbol or name
-//<type-specifier> := <type-symbol>
-//                  | :<type-name>
-//Anything other syntax will return qeNone, VT as vtUnknown, and leaves the parser
-//cursor unchanged
-//If the <type-name> is unknown will return an error
-function ParseTypeSpecifier(out VT: TVarType): TQuicheError;
+//Parses a comma separated list of identifiers.
+//Each must not be a keyword. Each must be unique within the list.
+//If Unique is True each must be undeclared in the current scope.
+function ParseIdentifierList(Unique: Boolean;out Items: TArray<String>): TQuicheError;
 
 //Attribute data
 var AttrPreserves: TCPURegSet;
@@ -133,7 +135,9 @@ function SkipModeStart(Enable: Boolean): Boolean;
 //To be called at the end of Skip mode. PrevSkipMode MUST be the value returned by the
 //previous call to SkipModeStart
 procedure SkipModeEnd(PrevSkipMode: Boolean);
-
+(*
+function ParseLiteralToValue: TImmValue;
+*)
 implementation
 uses SysUtils,
   {$ifndef fpc}IOUtils,{$endif}
@@ -174,12 +178,14 @@ end;
 function IdentToKeyword(Ident: String): TKeyword;
 const KeywordStrings: array[low(TKeyword)..high(TKeyword)] of String = (
   '',  //Placeholder for Unknown value
-  'and', 'begin', 'const', 'div', 'do', 'downto',
+  'and', 'array', 'begin', 'const', 'div', 'do', 'downto',
   'else', 'end', 'for', 'function',
-  'if', 'in',
-  'mod', 'not', 'or', 'procedure', 'program', 'repeat',
-  'shl', 'shr',
-  'then', 'to', 'until', 'var', 'xor',
+  'if', 'in','list',
+  'mod', 'not', 'or', 'procedure', 'program',
+  'record', 'repeat',
+  'set', 'shl', 'shr',
+  'then', 'to', 'type', 'until', 'var', 'xor',
+  'vector',
   'while');
 begin
   for Result := low(TKeyword) to high(TKeyword) do
@@ -229,6 +235,19 @@ begin
   end;
   Parser.Undo;
   Result := False;
+end;
+
+function TestRangeOperator(out Found: Boolean): TQuicheError;
+var S: String;
+  Cursor: TParseCursor;
+begin
+  Cursor := Parser.GetCursor;
+  Result := ParseSymbol(S);
+  if Result <> qeNone then
+    EXIT;
+  Found := S = '..';
+  if not Found then
+    Parser.SetCursor(Cursor);
 end;
 
 function TestSymbolFirst: Boolean;
@@ -306,12 +325,11 @@ begin
 end;
 
 function TestUniqueIdentifier(const Ident: String): TQuicheError;
-var IdentType: TIdentType;
 begin
   if IdentToKeyword(Ident) <> keyUNKNOWN then
     EXIT(ErrSub(qeReservedWord, Ident));
 
-  if SearchCurrentScope(Ident, IdentType) <> nil then
+  if SearchCurrentScope(Ident).IdentType <> itUnknown then
     EXIT(ErrSub(qeIdentifierRedeclared, Ident));
 
   Result := qeNone;
@@ -320,7 +338,7 @@ end;
 function ParseUniqueIdentifier(First: Char;out Ident: String): TQuicheError;
 begin
   Result := ParseIdentifier(First, Ident);
-  if Result <> qeNone then
+  if Result = qeNone then
     Result := TestUniqueIdentifier(Ident);
 end;
 
@@ -351,10 +369,12 @@ begin
     EXIT(ErrSub(qeUnknownType, Ident));
 end;
 
-function TestForTypeSymbol(out VarType: TVarType): TQuicheError;
+function TestForTypeSymbol(out UserType: PUserType): TQuicheError;
 var Ch: Char;
+  VarType: TVarType;
+  Cursor: TParseCursor;
 begin
-  Parser.Mark;
+  Cursor := Parser.GetCursor;
 
   Ch := Parser.TestChar;
   case Ch of
@@ -376,9 +396,9 @@ begin
       if Parser.TestChar = Ch then
       begin
         case VarType of
-          vtString: VarType := vtChar;
-          vtWord: VarType := vtByte;
-          vtInteger: VarType := vtInt8;
+          vtString:   VarType := vtChar;
+          vtWord:     VarType := vtByte;
+          vtInteger:  VarType := vtInt8;
         end;
         Parser.SkipChar;
       end;
@@ -389,34 +409,50 @@ begin
   end;
 
   if VarType = vtUnknown then
-    Parser.Undo;
+    Parser.SetCursor(Cursor);
+  UserType := GetSystemType(VarType);
   Result := qeNone;
 end;
 
-function ParseTypeSpecifier(out VT: TVarType): TQuicheError;
+function ParseIdentifierList(Unique: Boolean;out Items: TArray<String>): TQuicheError;
+var Ident: String;
+  S: String;
 begin
-  if Parser.TestChar = ':' then
-  begin
-    Parser.Mark;
-    Parser.SkipChar;
-    if Parser.TestChar = '=' then
-    begin
-      Parser.Undo;
-      VT := vtUnknown;
-      EXIT(qeNone);
-    end;
+  SetLength(Items, 0);
 
+  Result := Parser.SkipWhite;
+  if Result <> qeNone then
+    EXIT;
+
+  while True do
+  begin
+    if Unique then
+      Result := ParseUniqueIdentifier(#0, Ident)
+    else
+      Result := ParseIdentifier(#0, Ident);
+    if Result <> qeNone then
+      EXIT;
+
+    //Check ident is unique in the list
+    for S in Items do
+      if CompareText(S, Ident) = 0 then
+        EXIT(ErrSub(qeIdentifierRedeclared, Ident));
+
+    //Add to list
+    SetLength(Items, Length(Items)+1);
+    Items[Length(Items)-1] := Ident;
+
+    Result := Parser.SkipWhite;
+    if Result <> qeNone then
+      EXIT;
+
+    if Parser.TestChar <> ',' then
+      EXIT(qeNone);
     Parser.SkipChar;
+
     Result := Parser.SkipWhiteNL;
     if Result <> qeNone then
       EXIT;
-    Result := ParseVarTypeName(VT);
-  end
-  else
-  begin
-    Result := TestForTypeSymbol(VT);
-    if VT = vtUnknown then
-      Result := qeNone;
   end;
 end;
 
@@ -559,7 +595,11 @@ begin
   CurrSkipMode := PrevSkipMode;
 end;
 
-
+(*function ParseLiteralToValue: TImmValue;
+begin
+  Assert(False);
+end;
+*)
 initialization
   Parser := TQuicheSourceReader.Create;
   InitialiseSkipMode;

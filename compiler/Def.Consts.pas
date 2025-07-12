@@ -8,7 +8,7 @@ unit Def.Consts;
 interface
 uses
   Generics.Collections, Classes,
-  Def.QTypes;
+  Def.QTypes, Def.UserTypes;
 
 type PConstList = ^TConstList;
 
@@ -18,62 +18,75 @@ type PConstList = ^TConstList;
 //parameters within function definitions
   TImmValue = record
   public
-  //AValue is converted to the appropriate type, if possible,
-  //For complex types, the only acceptable value for AValue is 0, which will
-  //result in a default initialisation
-  constructor CreateTyped(AType: TVarType;AValue: Integer);
-  //For generic integer values
-  constructor CreateInteger(AValue: Integer);
+    //AValue is converted to the appropriate type, if possible,
+    //For complex types, the only acceptable value for AValue is 0, which will
+    //result in a default initialisation
+    constructor CreateTyped(AType: TVarType;AValue: Integer);overload;
+    constructor CreateTyped(AType: PUserType;AValue: Integer);overload;
 
-  constructor CreateChar(AValue: Char);
-  constructor CreateBoolean(AValue: Boolean);
-  constructor CreateTypeDef(AValue: TVarType);
+    //For generic integer values
+    constructor CreateInteger(AValue: Integer);
 
-  constructor CreateString(AString: String);
+    constructor CreateChar(AValue: Char);
+    constructor CreateBoolean(AValue: Boolean);
+    constructor CreateEnumItem(AUserType: PUserType;Index: Integer);
+    constructor CreateTypeDef(AValue: PUserType);
 
-  procedure UpdateVarType(NewType: TVarType);
+    constructor CreateString(AString: String);
 
-  function VarType: TVarType;
+    //Can *only* be user for integer types (both new and current)
+    procedure UpdateUserType(NewType: PUserType);
+//    procedure UpdateVarType(NewType: TVarType);
 
-  function IntValue: Integer;
-  function BoolValue: Boolean;
-  function CharValue: Char;
-  function TypeDefValue: TVarType;
-  //If VarType is vtString or vChar
-  function StringValue: String;
+    function UserType: PUserType;
+    function VarType: TVarType;
 
-  //For (mostly) code generation
-  //Only applicable to enumerated types
-  function ToInteger: Integer;
+    function IntValue: Integer;
+    function BoolValue: Boolean;
+    function CharValue: Char;
+    function TypeDefValue: PUserType;
+    //If VarType is vtString or vChar
+    function StringValue: String;
+    //If VarType is vtList ... More TODO
+    function BlobValue: String;
 
-  //Where data the stored as a pointer (ie Strings etc), returns a label for the
-  //constant data
-  function ToLabel: String;
+    //For (mostly) code generation
+    //Only applicable to enumerated types
+    function ToInteger: Integer;
 
-  //Returns a string suitable for passing to the assembler.
-  //Value returned must be a single byte. Value will be masked (with $ff) if necessary
-  //This routine can return chars as string literals and makae code easier to read
-  //than using numeric literals
-  function ToStringByte: String;
-  //Returns a 16-bit value masked with $ffff
-  function ToStringWord: String;
+    //Where data the stored as a pointer (ie Strings etc), returns a label for the
+    //constant data
+    function ToLabel: String;
 
-  //For debugging. Sometimes for code generation
-  function ToString: String;
+    //Returns a string suitable for passing to the assembler.
+    //Value returned must be a single byte. Value will be masked (with $ff) if necessary
+    //This routine can return chars as string literals and makae code easier to read
+    //than using numeric literals
+    function ToStringByte: String;
+    //Returns a 16-bit value masked with $ffff
+    function ToStringWord: String;
 
+    //For debugging. Sometimes for code generation
+    function ToString: String;
   private
+    FUserType: PUserType;
+
     case FVarType: TVarType of
-      vtInt8, vtInteger, vtByte, vtWord, vtPointer:
+      vtInt8, vtInteger, vtByte, vtWord, vtPointer, vtEnumeration, vtSubRange:
         (FIntValue: Integer);
       vtReal: (); //TODO
       vtBoolean, vtFlag: (FBoolValue: Boolean);
       vtChar: (FCharValue: Char);
-      vtTypeDef: (FTypeDefValue: TVarType);
+      vtTypeDef: (FTypeDefValue: PUserType);
       vtString: (
-        FConstList: PConstList;  //Scope to which the constant belongs
+        FStringConstList: PConstList;  //Scope to which the constant belongs
         FStringIndex: Integer); //Index into string constants list for Scope
                   //(We aren't allowed to put strings in a variant section. Instead
                   //we'll store them elsewhere and put an index to them here.
+      vtList: (
+        FBlobConstList: PConstList;
+        FBlobIndex: Integer;
+        );
   end;
 
 //==================CONST
@@ -81,7 +94,7 @@ type PConstList = ^TConstList;
   PConst = ^TConst;
   TConst = record
     Name: String;
-    VarType: TVarType;
+    UserType: PUserType;
     InScope: Boolean;
     Depth: Integer;
     Value: TImmValue;
@@ -103,7 +116,7 @@ type PConstList = ^TConstList;
     //need to go out of scope
     procedure ScopeDepthDecced(NewDepth: Integer);
 
-    function Add(const AName: String;AVarType: TVarType;const AValue: TImmValue): PConst;
+    function Add(const AName: String;UType: PUserType;const AValue: TImmValue): PConst;
     function FindByNameInScope(const AName: String): PConst;
   end;
 
@@ -118,6 +131,9 @@ procedure InitialiseConsts;
 function CreateConstList(const ScopeName: String): PConstList;
 procedure SetCurrentConstList(List: PConstList);
 
+//Add global/system consts to the /current/ const list (Ie current scope should be global scope)
+procedure SetSystemConsts;
+
 implementation
 uses
   SysUtils,
@@ -125,6 +141,22 @@ uses
   CG.Data;
 
 //----------------------TImmValue
+
+function TImmValue.BlobValue: String;
+begin
+  case FVarType of
+    vtList:
+    begin
+      Assert(Assigned(FBlobConstList));
+      Assert(FBlobIndex <> -1);
+
+      Assert(False, 'TODO: Array blobs');
+//      Result := FBlobConstList.Blobs[FBlobIndex];
+    end;
+  else
+    Assert(False);
+  end;
+end;
 
 function TImmValue.BoolValue: Boolean;
 begin
@@ -134,36 +166,99 @@ end;
 
 function TImmValue.CharValue: Char;
 begin
-  Assert(FVarType = vtChar);
+  Assert((FVarType = vtChar) or ((FVarType = vtSubRange) and (FUserType.OfType.VarType = vtChar)));
   Result := FCharValue;
 end;
 
 constructor TImmValue.CreateBoolean(AValue: Boolean);
 begin
   FVarType := vtBoolean;
+  FUserType := GetSystemType(FVarType);
   FBoolValue := AValue;
 end;
 
 constructor TImmValue.CreateChar(AValue: Char);
 begin
   FVarType := vtChar;
+  FUserType := GetSystemType(FVarType);
   FCharValue := AValue;
+end;
+
+constructor TImmValue.CreateEnumItem(AUserType: PUserType; Index: Integer);
+begin
+  Assert(AUserType.VarType = vtEnumeration);
+  FUserType := AUserType;
+  FVarType := vtEnumeration;
+  FIntValue := Index;
+end;
+
+constructor TImmValue.CreateInteger(AValue: Integer);
+begin
+  FVarType := vtInteger;
+  FUserType := GetSystemType(FVarType);
+  FIntValue := AValue;
+end;
+
+constructor TImmValue.CreateString(AString: String);
+begin
+  FVarType := vtString;
+  FUserType := GetSystemType(FVarType);
+  FStringConstList := GetCurrentScope.ConstList;
+  Assert(Assigned(FStringConstList));
+  FStringIndex := FStringConstList.Strings.Add(AString);
 end;
 
 constructor TImmValue.CreateTyped(AType: TVarType; AValue: Integer);
 begin
+  FUserType := GetSystemType(AType);
   FVarType := AType;
   case AType of
-    vtInt8, vtInteger, vtByte, vtWord, vtPointer: FIntValue := AValue;
+    vtInt8, vtInteger, vtByte, vtWord, vtPointer,
+      vtTypedPointer, vtEnumeration, vtSubRange: FIntValue := AValue;
     vtReal: Assert(False); //TODO
     vtBoolean, vtFlag: FBoolValue:= AValue <> 0;
     vtChar: FCharValue := chr(AValue);
-    vtTypeDef: FTypeDefValue := TVarType(AValue);
+    vtTypeDef: FTypeDefValue := PUserType(AValue);
     vtString:
       if AValue = 0 then
       begin
-        FConstList := nil;
+        FStringConstList := nil;
         FStringIndex := -1;
+      end
+      else
+        Assert(False);
+  else
+    Assert(False);  //NOTE: We can't do complex types here!!
+  end;
+end;
+
+constructor TImmValue.CreateTyped(AType: PUserType; AValue: Integer);
+begin
+  Assert(Assigned(AType));
+  FUserType := AType;
+  FVarType := AType.VarType;
+  case FVarType of
+    vtInt8, vtInteger, vtByte, vtWord, vtPointer,
+      vtEnumeration, vtSubRange, vtSetByte, vtSetWord,
+      vtTypedPointer, vtFunction:
+      FIntValue := AValue;
+    vtReal: Assert(False); //TODO
+    vtBoolean, vtFlag: FBoolValue:= AValue <> 0;
+    vtChar: FCharValue := chr(AValue);
+    vtTypeDef: FTypeDefValue := PUserType(AValue);
+    vtString:
+      if AValue = 0 then
+      begin
+        FStringConstList := nil;
+        FStringIndex := -1;
+      end
+      else
+        Assert(False);
+    vtArray, vtVector, vtList, vtSetMem, vtRecord:
+      if AValue = 0 then
+      begin
+        FBlobConstList := nil;
+        FBlobIndex := -1;
       end
       else
         Assert(False);
@@ -172,40 +267,27 @@ begin
   end;
 end;
 
-constructor TImmValue.CreateInteger(AValue: Integer);
+constructor TImmValue.CreateTypeDef(AValue: PUserType);
 begin
-  FVarType := vtInteger;
-  FIntValue := AValue;
+  FVarType := vtTypeDef;
+  FUserType := GetSystemType(FVarType);
+  FTypeDefValue := AValue;
 end;
 
 function TImmValue.IntValue: Integer;
 begin
-  Assert(IsIntegerType(FVarType));
+  Assert(IsIntegerVarType(FVarType) or IsIntegerType(FUserType));
   Result := FIntValue;
-end;
-
-constructor TImmValue.CreateString(AString: String);
-begin
-  FVarType := vtString;
-  FConstList := GetCurrentScope.ConstList;
-  Assert(Assigned(FConstList));
-  FStringIndex := FConstList.Strings.Add(AString);
-end;
-
-constructor TImmValue.CreateTypeDef(AValue: TVarType);
-begin
-  FVarType := vtTypeDef;
-  FTypeDefValue := AValue;
 end;
 
 function TImmValue.StringValue: String;
 begin
-  case VarType of
+  case FVarType of
     vtString:
     begin
-      Assert(Assigned(FConstList));
+      Assert(Assigned(FStringConstList));
       Assert(FStringIndex <> -1);
-      Result := FConstList.Strings[FStringIndex];
+      Result := FStringConstList.Strings[FStringIndex];
     end;
     vtChar: Result := CharValue;
   else
@@ -215,15 +297,17 @@ end;
 
 function TImmValue.ToInteger: Integer;
 begin
-  case VarType of
-    vtInt8, vtInteger, vtByte, vtWord, vtPointer : Result := IntValue;
+  case FVarType of
+    vtInt8, vtInteger, vtByte, vtWord, vtPointer,
+      vtEnumeration, vtSubRange:
+        Result := FIntValue;
     vtBoolean:
       if BoolValue then
         Result := valueTrue
       else
         Result := valueFalse;
     vtChar: Result := ord(CharValue);
-    vtTypeDef: Result := ord(TypeDefValue);
+    vtTypeDef: Result := Integer(TypeDefValue);
   else
     Assert(False);
     Result := 0;
@@ -232,44 +316,79 @@ end;
 
 function TImmValue.ToLabel: String;
 begin
-  case VarType of //TODO: Add scope name to the result
-    vtString: Result := '__sl_' + FConstList.ScopeName.ToLower + '_' + FStringIndex.ToString;
+  case FVarType of //TODO: Add scope name to the result
+    vtString: Result := '__sl_' + FStringConstList.ScopeName.ToLower + '_' + FStringIndex.ToString;
   else
     Assert(False);
   end;
 end;
 
 function TImmValue.ToString: String;
-begin
-  case VarType of
-    vtByte: Result := '$' + IntToHex(IntValue, 2);
-    vtWord, vtPointer: Result := '$' + IntToHex(IntValue, 4);
-    vtInt8, vtInteger: Result := IntValue.ToString;
-    vtBoolean:
-      if BoolValue then
-        Result := 'True'
+
+  function ToVarTypedString(AVarType: TVarType): String;
+  begin
+    case AVarType of
+      vtByte: Result := '$' + IntToHex(IntValue, 2);
+      vtWord, vtPointer, vtTypedPointer:
+        Result := '$' + IntToHex(IntValue, 4);
+      vtInt8, vtInteger: Result := IntValue.ToString;
+      vtBoolean:
+        if BoolValue then
+          Result := 'True'
+        else
+          Result := 'False';
+      vtChar:
+        if CharInSet(CharValue, [#32..#126]) then
+          Result := ''''+CharValue+''''
+        else
+          Result := '#' + ord(CharValue).ToString;
+      vtTypeDef:
+      if TypeDefValue <> nil then
+        Result := TypeDefValue.Name
       else
-        Result := 'False';
-    vtChar:
-      if CharInSet(CharValue, [#32..#126]) then
-        Result := ''''+CharValue+''''
-      else
-        Result := '#' + ord(CharValue).ToString;
-    vtTypeDef:
-      Result := VarTypeToName(TypeDefValue);
-    vtString:
-      if (FConstList = nil) or (FStringIndex = -1) then
-        Result := '<<UNASSIGNED>>'
-      else
-        Result := ''''+StringValue+'''';
-  else
-    Assert(False);
+        Result := 'nil';
+      vtSubRange: Result := ToInteger.ToString;
+      vtString:
+        if (FStringConstList = nil) or (FStringIndex = -1) then
+          Result := '<<UNASSIGNED>>'
+        else
+          Result := ''''+StringValue+'''';
+      vtArray, vtList:
+        if (FBlobConstList = nil) or (FBlobIndex = -1) then
+          Result := '<<UNASSIGNED>>'
+        else
+          Result := BlobValue;
+    else
+      Assert(False);
+    end;
   end;
+
+  function ToUserTypedString(AUserType: PUserType): String;
+  begin
+    case UTToVT(AUserType) of
+      vtEnumeration:
+      begin
+        Assert(Assigned(FUserType));
+        Result := AUserType.EnumItems[FIntValue] + '(' + FIntValue.ToString + ')';
+      end;
+    else
+      Result := ToVarTypedString(UTToVT(AUserType));
+    end;
+  end;
+
+begin
+  if Assigned(FUserType) then
+    if FVarType = vtSubRange then
+      Result := ToUserTypedString(FUserType.OfType)
+    else
+      Result := ToUserTypedString(FUserType)
+  else
+    Result := ToVarTypedString(FVarType);
 end;
 
 function TImmValue.ToStringByte: String;
 begin
-  case VarType of
+  case FVarType of
     vtBoolean: Result := ByteToStr(ToInteger);
     vtChar:
       if CharInSet(CharValue, [#32..#127]) then
@@ -286,23 +405,39 @@ begin
   Result := WordToStr(ToInteger);
 end;
 
-
-function TImmValue.TypeDefValue: TVarType;
+function TImmValue.TypeDefValue: PUserType;
 begin
   Assert(FVarType = vtTypeDef);
   Result := FTypeDefValue;
 end;
 
+procedure TImmValue.UpdateUserType(NewType: PUserType);
+begin
+  Assert(Def.QTypes.IsIntegerVarType(UTToVT(NewType)));
+  Assert(Def.QTypes.IsIntegerVarType(UTToVT(FUserType)));
+  FVarType := UTToVT(NewType);
+  FUserType := NewType;
+end;
+(*
 procedure TImmValue.UpdateVarType(NewType: TVarType);
 begin
-  Assert(IsIntegerType(NewType));
-  Assert(IsIntegerType(FVarType));
+  Assert(Def.QTypes.IsIntegerVarType(NewType));
+  Assert(Def.QTypes.IsIntegerVarType(FVarType));
   FVarType := NewType;
+  FUserType := GetSystemType(FVarType);
+end;
+*)
+function TImmValue.UserType: PUserType;
+begin
+  Result := FUserType;
 end;
 
 function TImmValue.VarType: TVarType;
 begin
-  Result := FVarType;
+(*  if UserType = nil then
+    Result := vtUnknown
+  else
+*)    Result := FVarType;
 end;
 
 //================SCOPE RELATED
@@ -333,13 +468,13 @@ end;
 { TConstList }
 
 
-function TConstList.Add(const AName: String; AVarType: TVarType;
+function TConstList.Add(const AName: String; UType: PUserType;
   const AValue: TImmValue): PConst;
 begin
   New(Result);
   Items.Add(Result);
   Result.Name := AName;
-  Result.VarType := AVarType;
+  Result.UserType := UType;
   Result.InScope := True;
   Result.Depth := GetCurrentScope.Depth;
   Result.Value := AValue;
@@ -381,6 +516,15 @@ begin
     Items[I].InScope := False;
     dec(I);
   end;
+end;
+
+procedure SetSystemConsts;
+begin
+  Consts.Add('False', GetSystemType(vtBoolean), TImmValue.CreateBoolean(False));
+  Consts.Add('True', GetSystemType(vtBoolean), TImmValue.CreateBoolean(True));
+  Consts.Add('Maxint', GetSystemType(vtInteger), TImmValue.CreateTyped(vtInteger, GetMaxValue(vtInteger)));
+  Consts.Add('Minint', GetSystemType(vtInteger), TImmValue.CreateTyped(vtInteger, GetMinValue(vtInteger)));
+  Consts.Add('nil', GetSystemType(vtPointer), TImmValue.CreateTyped(vtPointer, $0000));
 end;
 
 initialization

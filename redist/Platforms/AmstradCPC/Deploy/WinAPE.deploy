@@ -1,1 +1,3 @@
-Run: C:\RetroTools\WinAPE\WinAPE.exe c:\RetroTools\Quiche\Quiche.dsk /a:quiche.bin
+Executable: C:\RetroTools\WinAPE\WinAPE.exe
+Parameter: c:\RetroTools\Quiche\Quiche.dsk
+Parameter: /a:quiche.bin

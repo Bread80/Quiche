@@ -1,11 +1,11 @@
 unit IDE.Shell;
 
 interface
+uses IDE.Config;
 
 function Assemble(Filename: String): String;
-{$ifndef fpc}
-function Emulate(const CommandLine, WorkingDir: String): String;
-{$endif}
+
+function DoDeploy(Deploy: TDeployment): String;
 
 implementation
 uses {$ifdef fpc}Process, {$else}Windows, IOUtils, {$endif}Classes, SysUtils;
@@ -114,7 +114,7 @@ var
 {$endif}
 begin
 {$ifdef fpc}
-  RunCommand(Rasm, ExpandFilename(Filename) + ' -oa -s -sa -map -eo', Result);
+  RunCommand(Rasm, [ExpandFilename(Filename), '-oa','-s','-sa','-map','-eo'], Result);
 {$else}
   //-oa option takes output file path from input file path
   CommandLine := RASM + ' ' + TPath.GetFullPath(Filename) + ' -oa -s -sa -map -eo';
@@ -123,18 +123,23 @@ begin
   Result := ExtractMapFile(Filename, Result);
 end;
 
+function DoDeploy(Deploy: TDeployment): String;
 {$ifndef fpc}
-function Emulate(const CommandLine, WorkingDir: String): String;
-{const Emulator = '..\..\..\Z80Emulator\Win32\Debug\z80Emulator.exe';
-//  Config = '..\..\Z80Code\Config.txt';
-  Config = 'C:\RetroTools\Quiche\Config.txt';
-  WorkDir = 'c:\';
-var
-  CommandLine: String;
-}begin
-//  CommandLine := TPath.GetFullPath(Emulator) + ' @' + TPath.GetFullPath(Config);
-  Result := GetDosOutput(CommandLine, WorkingDir);
-end;
+var WorkingDir: String;
+  Param: String;
+  Params: String;
 {$endif}
+begin
+{$ifdef fpc}
+  if not RunCommand(Deploy.Executable, Deploy.Parameters, Result) then
+    Result := 'Unable to run shell command: ' + Deploy.Executable;
+{$else}
+  WorkingDir := 'C:\';
+  Params := '';
+  for Param in Deploy.Parameters do
+    Params := Params + ' ' + Param;
+  Result := GetDosOutput(Deploy.Executable + Params, WorkingDir);
+{$endif}
+end;
 
 end.

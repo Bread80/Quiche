@@ -28,6 +28,8 @@ type TQuicheError = (
   qeEndOfStatementExpected,
   qeNewlineExpected,      //This should probably be overridden by the caller
                           //to give a more specific error
+  qeCommaOrCloseParensExpected,
+  qeCloseSquareBraceExpected,
 
   //FOR loops
   qeTOorDOWNTOExpected,
@@ -36,13 +38,35 @@ type TQuicheError = (
   qeUNTILExpected,
   //IF conditionals
   qeTHENExpected,
+
   //VAR declarations
   qeColonExpectedInVAR,
   //CONST declarations
   qeEqualExpectedInCONST,
+
+  //TYPE declarations
+  qeEqualExpectedInTYPE,
+//  qeTypeNameOrRangeExpected,
+  qeInvalidTypeDefinition,
+  qePointedTypeNameExpected,  //Type definition ^SomeType but identifier is invalid
+
+  qeRangeOperatorExpected,    //'..' operator
+  qeRangeBoundsTypeMismatch,  //x..y
+
+  qeSimpleTypeExpected,
+  qeSimpleConstExprExpected,  //Expression must evaluate to a value which is a
+                              //member of a simple type
+  qeRangeExprValuesTooWide,   //Numeric range bounds values won't fit into any available type
+  qeRangeValuesMisordered,    //The left value >= the right value
+  qeOFExpected,
+  qeArrayBoundsDefinition,
+  qeListCapacityError,
+  qeConcreteOrPointerTypeRequired,  //(In RECORD definition. Possibly elsewhere too)
+
   //Assignment
   qeAssignmentExpected, // := operator
   qeEqualExpectedInAssignment,
+  qeAssignmentNotAllowed,
 
   //Function declarations
   qeFunctionRedeclared,
@@ -66,11 +90,14 @@ type TQuicheError = (
   qeMultipleCALLOrRST,
   qeMultipleCallingConventions,
   qeFORWARDRedeclared,
+  qeFORWARDInTypeOrRecord,
+  qeCALLOrRSTInTypeOrRecord,
+  qeFuncTypeDefUnspecifiedReg,  //No register specified for a parameter in a function
+                                //type definition (when the calling convention requires it)
   qeColonExpectedFuncDecl,  //Colon expected in function parameter
   qeSemicolonOrCloseBraceExpectedFuncDecl,  //After parameter
 
   //Function calls
-  qeCommaOrCloseParensExpected,
   qeArgMustBeVariable,        //For VAR or OUT parameters
   qeReturnedArgTypeMismatch,  //For VAR and OUT parameters
   qeTooManyArgs,              //Number of arguments being passed his above hard coded limit
@@ -93,6 +120,8 @@ type TQuicheError = (
   //Types
   qeTypeNameNotValidHere,
   qeTypeMismatch,
+  qeEnumItemNotValidHere,
+  qeInstantiateUnboundedArray,  //Attempting to instantiate an unbounded array variable
 
   //Expressions
   qeExpression,         //Generic expression error
@@ -113,6 +142,9 @@ type TQuicheError = (
   qeIntrinsicCantBeEvaluatedAtCompileTime,  //Used as a signal, not an error
   qeAt,                 //@ operator syntax
   qeBooleanExpressionExpected,  //For conditionals etc.
+
+  //Pointers
+  qePointerDerefError,  //Data is not a pointer so can't deref
 
   //Ops
   qeOpIncompatibleTypes,  //Binary operator

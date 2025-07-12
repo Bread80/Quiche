@@ -54,7 +54,7 @@ uses
   FMX.Controls.Presentation, FMX.StdCtrls, FMX.ScrollBox, FMX.Memo, FMX.Edit,
   System.Actions, FMX.ActnList, FMX.ListBox, IDE.Compiler, FMX.TabControl,
   TextBrowser, FMX.Menus,
-  Def.Globals;
+  Parse, Def.Globals, IDE.CommandLine;
 
 type
   TForm1 = class(TForm)
@@ -93,9 +93,6 @@ type
     Label5: TLabel;
     cbDeploy: TComboBox;
     GroupBox1: TGroupBox;
-    GroupBox2: TGroupBox;
-    rbDeclarations: TRadioButton;
-    rbCode: TRadioButton;
     MenuBar1: TMenuBar;
     MenuItem2: TMenuItem;
     MenuItem4: TMenuItem;
@@ -140,9 +137,10 @@ type
     tdSource: TTextBrowser;
     //True if this window is still being created. Prevents options being autosaved etc.
     Created: Boolean;
+    CommandLine: TCommandLine;
+    EmulateGood: Boolean;
     procedure LoadDeployList;
     function GetBlockType: TBlockType;
-    function GetParseType: TParseType;
     procedure UpdateCaption;
     procedure OpenProject(const Filename: String);
     procedure SaveConfigFile;
@@ -202,17 +200,20 @@ var Good: Boolean;
 begin
   if not SaveProject then
     EXIT;
-  Good := IDE.Compiler.CompileString(tdSource.Text.AsString, GetBlockType, GetParseType,
-    True, False);
+  EmulateGood := False;
+
+  Good := IDE.Compiler.CompileString(tdSource.Text.AsString, GetBlockType,
+    pmRootUnknown, True, False);
 
   IDE.Compiler.GetScopeList(cbScope.Items);
   if cbScope.Items.Count > 0 then
     cbScope.ItemIndex := 0;
-
+(*
   IDE.Compiler.GetILText(mmIL.Lines);
   IDE.Compiler.GetVarsText(mmVariables.Lines, True);
   IDE.Compiler.GetFunctionsText(mmFunctions.Lines);
-
+//  IDE.Compiler.GetTypesText(mmFunctions.Lines);
+*)
   if not Good then
   begin
     if IDE.Compiler.ParseErrorNo <> 0 then
@@ -311,7 +312,8 @@ end;
 
 procedure TForm1.btnEmulateClick(Sender: TObject);
 begin
-  if IDE.Compiler.Emulate(IDE.Compiler.GetBinaryFileName) then
+  EmulateGood := IDE.Compiler.Deploy(IDE.Compiler.GetBinaryFileName);
+  if EmulateGood then
   begin
     mmIL.Lines.Add('');
     IDE.Compiler.GetVarsText(mmEmulate.Lines, False);
@@ -336,10 +338,17 @@ end;
 
 procedure TForm1.cbDeployChange(Sender: TObject);
 begin
-  if cbDeploy.ItemIndex = -1 then
-    IDE.Compiler.ClearDeploy
-  else
+  if cbDeploy.ItemIndex >= 0 then
+  begin
+    IDE.Compiler.GetConfig.DeployName := cbDeploy.Items[cbDeploy.ItemIndex];
+    if Created then
+      SaveConfigFile;
+
+
     IDE.Compiler.SetDeploy(cbDeploy.Items[cbDeploy.ItemIndex]);
+  end
+  else
+    IDE.Compiler.ClearDeploy;
 end;
 
 procedure TForm1.cbOverflowChecksChange(Sender: TObject);
@@ -379,7 +388,7 @@ begin
 
     IDE.Compiler.GetObjectCode(mmAssembly.Lines);
 
-    IDE.Compiler.GetVarsText(mmVariables.Lines, False);
+    IDE.Compiler.GetVarsText(mmVariables.Lines, not EmulateGood);
   end;
 end;
 
@@ -420,19 +429,31 @@ end;
 
 procedure TForm1.FormCreate(Sender: TObject);
 var PlatformIndex: Integer;
+  DeployName: String;
+  DeployIndex: Integer;
 begin
 //                             FileName = 'Amakrits.Style'
   StyleBook1.Filename := 'Amakrits.Style';
+
+  //(Temp for testing(??))
+  CommandLine := TCommandLine.Create;
 
   IDE.Compiler.DefaultInitFolders;
 
   IDE.Compiler.GetPlatformList(cbPlatforms.Items);
 
   PlatformIndex := cbPlatforms.Items.IndexOf(GetConfig.PlatformName);
+  DeployName:= GetConfig.DeployName;
+
   if PlatformIndex < 0 then
     ShowMessage('Unknown platform: ' + GetConfig.PlatformName)
   else
     cbPlatforms.ItemIndex := PlatformIndex;
+  DeployIndex := cbDeploy.Items.IndexOf(DeployName);
+  if DeployIndex < 0 then
+    ShowMessage('Unknown deploy: ' + DeployName)
+  else
+    cbDeploy.ItemIndex := DeployIndex;
   cbOverflowChecks.IsChecked := GetConfig.OverflowChecks;
   cbRangeChecks.IsChecked := GetConfig.RangeChecks;
 
@@ -462,16 +483,6 @@ begin
     Result := btStatic
   else
     raise Exception.Create('Invalid Block Type selection');
-end;
-
-function TForm1.GetParseType: TParseType;
-begin
-  if rbDeclarations.IsChecked then
-    Result := ptDeclarations
-  else if rbCode.IsChecked then
-    Result := ptCode
-  else
-    raise Exception.Create('Invalid Parse Type selection');
 end;
 
 procedure TForm1.LoadDeployList;

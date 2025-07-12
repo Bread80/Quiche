@@ -67,7 +67,7 @@ var
   //This setting does not affect hexadecimal or binary literals
   optDefaultSmallestInteger: Boolean;
 
-  optDefaultVarStorage: TVarStorage;
+  optDefaultAddrMode: TAddrMode;
 
   optDefaultCallingConvention: TCallingConvention;
 

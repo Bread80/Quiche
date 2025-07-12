@@ -19,8 +19,7 @@ procedure LibStateFromDestParam(Dest: PILParam);
 
 implementation
 uses Def.Consts,
-  CG.CPUState.Z80,
-  Z80.Hardware, Z80.AlgoData, Z80.GenProcs;
+  Z80.CPUState, Z80.Hardware, Z80.AlgoData, Z80.GenProcs;
 
 //Update CPU state with state from the ProcMeta
 procedure LibStateUpdateEntryState(const Meta: TCodeProcMeta);

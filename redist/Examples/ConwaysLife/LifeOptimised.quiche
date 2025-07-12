@@ -1,4 +1,3 @@
-
 //Conway's Game of Life implementation for the Quiche language and compiler.
 //The compiler is currently an early work in progress (WiP). This code uses various
 //work arounds for not-yet-implemented, or just plain buggy, features. The code here
@@ -26,6 +25,13 @@
 {$DEFAULTSMALLESTINTEGER+}
 
 //(Overflow checking off, Range checking off, Default calling convention)
+
+//The program statement is optional but, if used, switches the parser from an informal
+//'scripting' mode into a more formal 'program' mode.
+//In scripting mode executable code can be parsed at 'root' level.
+//In program mode 'root' level code must be within a BEGIN ... END. block, and multi-
+//line decarations (VAR, CONST, TYPE) are allowed at root level.
+program Life
 
 //Platform specific code
 

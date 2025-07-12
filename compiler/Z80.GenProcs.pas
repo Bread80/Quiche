@@ -71,10 +71,9 @@ procedure Initialise;
 
 implementation
 uses Generics.Collections, SysUtils,
-  Def.Globals, Def.Operators,
+  Def.Globals, Def.Operators, Def.Variables, Def.UserTypes,
   CG.Data,
-  CG.CPUState.Z80,
-  Z80.Assembler, Z80.AlgoData;
+  Z80.CPUState, Z80.Assembler, Z80.AlgoData;
 
 function GetOverflowAlgoForType(VarType: TVarType): TAlgo;
 begin
@@ -179,8 +178,7 @@ begin
 end;
 
 procedure GenParams(ILIndex: Integer);
-var Item: PILItem;
-  ParamIndex: Integer;
+var ParamIndex: Integer;
   Param: PILParam;
 begin
   ParamIndex := 0;
@@ -771,7 +769,150 @@ begin
       GenLibraryProc('dec16_reg', ILItem);
 end;
 
+//=================================== ARRAYS
 
+procedure Proc_AddrOfArrayElemStaticImm(ILItem: PILItem);
+var V: PVariable; //The array
+  ElementSize: Integer;
+  Index: Integer;
+begin
+  Assert(ILItem.Param1.Kind = pkVarAddr);
+  Assert(ILItem.Param2.Kind = pkImmediate);
+  Assert(IsOrdinalType(UTToVT(ILItem.Param2.Imm.UserType)));
+
+  V := ILItem.Param1.Variable;
+  Assert(V.AddrMode = amStatic);
+  Assert(UTToVT(V.UserType) in [vtArray, vtVector, vtList]);
+  Assert(Assigned(V.UserType.OfType));
+
+  ElementSize := GetTypeSize(V.UserType.OfType);
+  Index := ILItem.Param2.Imm.ToInteger;
+  Assert(Index >= 0, 'TODO - negative indexes');
+
+  case UTToVT(V.UserType) of
+    vtArray:
+    begin
+      //TODO: Adjust Index for range low
+      //TODO: Validate array size
+      //TODO: Check Reg State: is value already loaded?
+      OpLD(rHL, V.GetAsmName + ' + ' + WordToStr(ElementSize * Index));
+      //TODO: Update Reg State
+    end;
+//    vtVector:
+{    vtList:
+}  else
+    Assert(False);  //Must be array type
+  end;
+end;
+
+procedure Proc_AddrOfArrayElemStaticVarSource(ILItem: PILItem);
+var V: PVariable; //The array
+  ElementSize: Integer;
+  IndexVT: TVarType;
+  Index: Integer;
+begin
+  Assert(ILItem.Param1.Kind = pkVarAddr);
+  Assert(ILItem.Param2.Kind = pkVarSource);
+  Assert(IsOrdinalType(UTToVT(ILItem.Param2.Variable.UserType)));
+
+  V := ILItem.Param1.Variable;
+  Assert(V.AddrMode = amStatic);
+  Assert(UTToVT(V.UserType) in [vtArray, vtVector, vtList]);
+  Assert(Assigned(V.UserType.OfType));
+
+  ElementSize := GetTypeSize(V.UserType.OfType);
+  //Index will be in L (for bytes) or HL (for words)
+  IndexVT := UTToVT(GetBaseType(ILItem.Param2.Variable.UserType));
+  case IndexVT of
+    vtByte, vtInt8: GenLoadRegLiteral(rH, TImmValue.CreateInteger(0), []);
+    vtWord, vtInteger, vtPointer: ; //Nothing to do
+  else
+    assert(False);  //Invalid index type
+  end;
+
+  case ElementSize of
+    0: Assert(False);
+    1: ;  //Nothing to do
+    2: OpADD(rHL, rHL); //Multiply by two
+  else
+    GenLoadRegLiteral(rDE, TImmValue.CreateInteger(ElementSize), []);
+    //HL := HL * DE
+    GenLibraryProc(':mult16_u_u__u', nil);
+  end;
+
+  //Now add base address of the variable, and any offsets for Vector, List etc
+  case UTToVT(V.UserType) of
+    vtArray:
+    begin
+      //TODO: Adjust Index for range low
+      //TODO: Validate array size
+      //TODO: Check Reg State: is value already loaded?
+      OpLD(rDE, V.GetAsmName);
+      //TODO: Update Reg State
+    end;
+//    vtVector:
+{    vtList:
+} else
+    Assert(False);  //Must be array type
+  end;
+
+  OpADD(rHL, rDE);
+  //TODO: Update reg state
+end;
+
+(*
+//Calculate the address of an array element where the index is a literal
+//Result := BaseAddr + ElementSize * Index
+//Generated code
+//  static var: a load
+//  stack var: an addition (or an optimisation thereof)
+procedure Proc_AddrOfArrayElemStaticImm(ILItem: PILItem);
+var V: PVariable; //The array
+  ElementSize: Integer;
+  Index: Integer;
+begin
+  Assert(ILItem.Param1.Kind = pkVarSource);
+  Assert(ILItem.Param2.Kind = pkImmediate);
+  Assert(IsEnumerable(UTToVT(ILItem.Param2.Imm.UserType)));
+
+  V := ILItem.Param1.Variable;
+  case UTToVT(V.UserType) of
+    vtArray:
+    begin
+      //TODO: Validate array size
+      Assert(Assigned(V.UserType.BaseType));  //BaseType is the element type
+      ElementSize := GetUserTypeSize(V.UserType.BaseType);
+      Index := ILItem.Param2.Imm.ToInteger;
+      case V.Storage of
+        vsStatic:
+          OpLD(rHL, V.GetAsmName + ' + ' + WordToStr(ElementSize * Index));
+//          GenLoadRegLiteral(rHL, TImmValue.CreateInteger(V.Offset + ElementSize * Index), []);
+        vsStack:
+        begin
+          if Index < 0 then
+            //TODO: Index from end of array
+          else if Index = 0 then
+            //Nothing to do!!
+{          else if Index * ElementSize < 3 then
+            //Generate INCs
+}          else //Generate ADD
+          begin
+            GenLoadRegLiteral(rDE, TImmValue.CreateInteger(Index * ElementSize), []);
+            OpAdd(rHL, rDE);
+            //TODO: UpdateRegState
+          end;
+        end;
+      else
+        Assert(False);
+      end;
+    end;
+//    vtVector:
+{    vtList:
+}  else
+    Assert(False);  //Must be array type
+  end;
+end;
+*)
 procedure InitCodeGenProcs;
 begin
   CodeGenProcs := TDictionary<String, TCodeGenProc>.Create;
@@ -781,6 +922,9 @@ begin
   CodeGenProcs.Add('proc_dec16_reg',Proc_Dec16Reg);
   CodeGenProcs.Add('proc_inc8_reg',Proc_Inc8Reg);
   CodeGenProcs.Add('proc_inc16_reg',Proc_Inc16Reg);
+  CodeGenProcs.Add('proc_addrof_arrayelem_static_imm',Proc_AddrOfArrayElemStaticImm);
+  CodeGenProcs.Add('proc_addrof_arrayelem_static_varsource',Proc_AddrOfArrayElemStaticVarSource);
+  //NOTE: Also add line to Initialise
 end;
 
 function FindCodeGenProc(const AName: String): TCodeGenProc;
@@ -846,6 +990,9 @@ begin
   AddGenProcFragment('proc_dec16_reg','');
   AddGenProcFragment('proc_inc8_reg','');
   AddGenProcFragment('proc_inc16_reg','');
+
+  AddGenProcFragment('proc_addrof_arrayelem_static_imm','');
+  AddGenProcFragment('proc_addrof_arrayelem_static_varsource','');
 end;
 
 initialization

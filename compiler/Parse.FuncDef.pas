@@ -17,7 +17,16 @@ Stack:
 }
 
 interface
-uses Parse.Base, Parse.Errors;
+uses
+  Def.Functions,
+  Parse.Base, Parse.Errors;
+
+type TFuncParseType = (
+  fptNormal,  //Normal function definition
+  fptTypeDef, //Definition is part of a type definition - certain directives are
+              //not allowed (eg FORWARD, CALL or RST).
+  fptRecord); //Part of a RECORD type definition. As fptTypeDef, plus a 'hidden'
+              //Self parameter will be added to the start of the parameter list.
 
 // <function-def> := FUNCTION [ <param-def-list> ] <type-def> ; [<directive>] [,<directive>]
 //                |  PROCEDURE [ <param-def-list> ] ; [ <directive> ] [, <directive> ]
@@ -28,15 +37,17 @@ uses Parse.Base, Parse.Errors;
 //Assumes that the 'function' or 'procedure' keyword has already been consumed
 //Inputs:
 //  Proc is True if we're parsing a Procedure definition, false for a Function
-function ParseFunctionDef(Proc: Boolean): TQuicheError;
+function DoFUNCTION(Proc: Boolean;ParseType: TFuncParseType;out Func: PFunction): TQuicheError;
 
-//Verifies all forward decalarations are satisfied (ie. which have no implementation)
+//Verifies all forward decalarations within the current scope are satisfied.
+//(ie. which have no implementation)
 function AreAnyForwardsUnsatisfied: TQuicheError;
 
 implementation
 uses SysUtils,
-  Def.Functions, Def.Globals, Def.IL, Def.Operators, Def.QTypes, Def.Scopes, Def.Variables,
-  Parse, Parse.Expr,
+  Def.Globals, Def.IL, Def.Operators, Def.QTypes, Def.Scopes, Def.Variables,
+  Def.UserTypes,
+  Parse, Parse.Expr, Parse.Literals, Parse.Source,
   Z80.Hardware;
 
 //Parse a parameter name and add it to the function definition
@@ -146,8 +157,8 @@ begin
   if Result <> qeNone then
     EXIT;
 
-  Parser.SkipWhiteNL;
-  //Is a Z80 register (or flag!) specified?
+(*  Parser.SkipWhiteNL;
+*)  //Is a Z80 register (or flag!) specified?
   Reg := IdentToCPUReg(Ident);
   if Reg <> rNone then
   begin
@@ -159,12 +170,16 @@ begin
       EXIT;
     //TODO: Validate all params are reg params ?At end of definition?
 
+    Result := Parser.SkipWhite;
+    if Result <> qeNone then
+      EXIT;
     if TestForIdent('as') then
     begin //Type specified
       Result := Parser.SkipWhite;
       if Result <> qeNone then
         EXIT;
 
+      //REWRITE TO USE TYPE PARSER
       Result := ParseVarTypeName(VarType);
       if Result <> qeNone then
         EXIT;
@@ -188,14 +203,14 @@ begin
     begin
       if (Func.Params[P].Reg <> Reg) or
         //TODO: AreTypesCompatible()
-        (Func.Params[P].VarType <> VarType) then
+        (Func.Params[P].UserType <> GetSystemType(VarType)) then
 //        (Func.Params[P].VarTypes <> [VarType]) then
         EXIT(Err(qeFuncDecDoesntMatch));
     end
     else
     begin
       Func.Params[P].Reg := Reg;
-      Func.Params[P].VarType := VarType;
+      Func.Params[P].UserType := GetSystemType(VarType);
 //      Func.Params[P].VarTypes := [VarType];
     end;
   end;
@@ -307,7 +322,7 @@ function ParseExternDef(Func: PFunction): TQuicheError;
 var IsReg: Boolean;
   P: Integer;
   Slug: TExprSlug;
-  ExprType: TVarType;
+  ExprType: PUserType;
 begin
   Slug.Initialise;
 
@@ -320,13 +335,13 @@ begin
         EXIT(Err(qeRegisterParamMismatch));
   end;
 
-  ExprType := vtPointer;
-  Result := ParseExpressionToSlug(Slug, ExprType);
+  ExprType := nil;
+  Result := ParseExprToSlug(Slug, ExprType);
   if Result <> qeNone then
     EXIT;
   if (Slug.ILItem <> nil) or (Slug.Operand.Kind <> pkImmediate) then
     EXIT(Err(qeConstantExpressionExpected));
-  if not IsIntegerType(Slug.Operand.Imm.VarType) then
+  if not IsIntegerVarType(Slug.Operand.Imm.VarType) then
     EXIT(err(qeIntegerExpectedForCALLOrRST));
   case Func.CallingConvention of
     ccCall:
@@ -352,26 +367,24 @@ end;
 //the first keyword which is not a directive.
 //Returns NoCode True for directives such as CALL, RST and FORWARD where the body is
 //declared elsewhere
-function ParseDirectives(Func: PFunction;out NoCode: Boolean): TQuicheError;
+function ParseDirectives(Func: PFunction;ParseType: TFuncParseType;out NoCode: Boolean): TQuicheError;
 var IsForward: Boolean; //This declaration is a Forward
   NextDirective: TFuncDirective;
   Ident: String;
   Convention: TCallingConvention; //If current directive is a calling convention
+  Cursor: TParseCursor;
 begin
-  Isforward := False;
-  NoCode := False;
+  Isforward := ParseType = fptRecord;
+  NoCode := ParseType <> fptNormal;
 
   while True do
   begin
+    Cursor := Parser.GetCursor;
     Convention := ccUnknown;
 
-    //Possible separator for directives
-    Parser.SkipWhite;
-    while Parser.TestChar = ';' do
-    begin
-      Parser.SkipChar;
-      Parser.SkipWhite;
-    end;
+    Result := Parser.NextStatement(False);
+    if Result <> qeNone then
+      EXIT;
 
     //Do we have a any directives? E.g. calling convention
     NextDirective := dirUNKNOWN;
@@ -384,13 +397,15 @@ begin
 
       if Ident <> '' then
         NextDirective := IdentToFuncDirective(Ident);
-      if NextDirective = dirUNKNOWN then
-        Parser.Undo;
     end;
+    if NextDirective = dirUNKNOWN then
+      Parser.SetCursor(Cursor);
 
     case NextDirective of
       dirFORWARD:
       begin
+        if ParseType <> fptNormal then
+          EXIT(Err(qeFORWARDInTypeOrRecord));
         if IsForward or Func.IsExtern then
           //Extern and forward are incompatible
           EXIT(Err(qeCALLOrRSTForwardDeclared));
@@ -401,6 +416,8 @@ begin
       end;
       dirCALL, dirRST:
       begin
+        if ParseType <> fptNormal then
+          EXIT(Err(qeCALLOrRSTInTypeOrRecord));
         if IsForward then //Extern and forward are incompatible
           EXIT(Err(qeCALLOrRSTForwardDeclared));
         if Func.IsExtern then //Extern and forward are incompatible
@@ -417,6 +434,7 @@ begin
         if Result <> qeNone then
           EXIT;
       end;
+
       dirSTACK:
         if Func.CallingConvention <> ccUnknown then
           EXIT(Err(qeMultipleCallingConventions))
@@ -430,6 +448,7 @@ begin
       //To add extra calling conventions:
       //* Set the Convention variable
       //* Perform additional parsing and validation as required
+
       //The code after this case statement validates that we don't already have a
       //calling convention, that it matches a forward etc.
       dirUNKNOWN:
@@ -464,6 +483,29 @@ begin
   end;
 end;
 
+//If we're parsing a Type definition, validate that the function definition is
+//suitable. Eg. For any register based calling convention every parameter must
+//have a concrete register allocation.
+function ValidateParamsForTypeDef(Func: PFunction;const Cursor: TParseCursor): TQuicheError;
+var Param: TParameter;
+begin
+  Result := qeNone;
+  case Func.CallingConvention of
+    ccStack: ;  //Okay
+    ccRegister:
+      for Param in Func.Params do
+        if (Param.Access <> vaNone) and (Param.Reg = rNone) then
+        begin
+          Parser.SetCursor(Cursor);
+          if Param.Access = vaResult then
+            EXIT(ErrSub(qeFuncTypeDefUnspecifiedReg, 'Result'))
+          else
+            EXIT(ErrSub(qeFuncTypeDefUnspecifiedReg, Param.Name));
+        end;
+  else  //Unknown or invalid calling conventin
+    Result := Err(qeBUG);
+  end;
+end;
 
 //<function-body> := [ <var-declaration> ]
 //                |  [ <type-declaration> ]
@@ -473,8 +515,8 @@ end;
 //Inputs: Func is the function being declared
 function ParseFunctionBody(Func: PFunction): TQuicheError;
 var I: Integer;
-  ParamStorage: TVarStorage;
-  LocalStorage: TVarStorage;
+  ParamAddrMode: TAddrMode;
+  LocalAddrMode: TAddrMode;
   ParamName: String;
   ILItem: PILItem;
   Param: PILParam;
@@ -483,8 +525,8 @@ begin
   //Setup scope for function
   CreateCurrentScope(Func, Func.Name);
 
-  ParamStorage := Func.GetParamStorage;
-  LocalStorage := Func.GetLocalStorage;
+  ParamAddrMode := Func.GetParamAddrMode;
+  LocalAddrMode := Func.GetLocalAddrMode;
 
   ILItem := nil;
   //Add Parameters to variables list for the function
@@ -496,31 +538,13 @@ begin
       ParamName := Func.Name
     else
       ParamName := Func.Params[I].Name;
-    Variable := VarCreateParameter(ParamName, Func.Params[I].VarType, ParamStorage,
+    Variable := VarCreateParameter(ParamName, Func.Params[I].UserType, ParamAddrMode,
       Func.Params[I].Access);
     Variable.FuncParamIndex := I;
-
-(*
-  ***Removed - this needs to be done in the code generator, not in the IL Code generator (us).
-    //For Register calling convention,
-    //generate ILCode to store each register into a temporary variable in memory.
-    //This will (hopefully) be eliminated if the variable can be held in a register.
-    if Func.CallingConvention = ccRegister then
-      if Func.Params[I].Access in [vaVar, vaVal, vaConst] then
-      begin
-        Assert(Func.Params[I].Reg <> rNone, 'No register assigned (for Register calling convention)');
-
-        Param := ILAppendRegStore(ILItem);
-        Param.Kind := pkVarDest;
-        Param.Variable := Variable;
-        Param.VarVersion := Variable.WriteCount;
-        Param.Reg := Func.Params[I].Reg;
-      end;
-*)
   end;
 
   //The function code
-  Result := ParseQuiche(pmFuncDecls, LocalStorage);
+  Result := ParseQuiche(pmFuncDecls, LocalAddrMode);
   if Result <> qeNone then
     EXIT;
 
@@ -539,7 +563,7 @@ begin
         Assert(Variable <> nil);
         Param.Variable := Variable;
         Param.VarVersion := Variable.Version;
-        case GetTypeSize(Variable.VarType) of
+        case GetTypeSize(Variable.UserType) of
           1: Param.Reg := rA;
           2: Param.Reg := rDE;
         else
@@ -571,21 +595,31 @@ end;
 //Assumes that the 'function' or 'procedure' keyword has already been consumed
 //Inputs:
 //  Proc is True if we're parsing a Procedure definition, false for a Function
-function ParseFunctionDef(Proc: Boolean): TQuicheError;
-var Func: PFunction;
-  Ident: String;
+function DoFUNCTION(Proc: Boolean;ParseType: TFuncParseType;out Func: PFunction): TQuicheError;
+var Ident: String;
   NoCode: Boolean;  //Returned by ParseDirectives. If True the declaration has no body
                     //(forward, extern etc).
+  Cursor: TParseCursor;
 begin
-  //Function name...
-  Parser.SkipWhite;
-  Result := ParseIdentifier(#0, Ident);
-  if Result <> qeNone then
-    EXIT;
-  //...error if it's a keyword or already defined (unless a forward)
-  if IdentToKeyword(Ident) <> keyUnknown then
-    EXIT(ErrSub(qeReservedWord, Ident));
-  Func := FuncFindInScope(Ident);
+  Cursor := Parser.GetCursor;
+  if ParseType = fptTypeDef then
+  begin //For a function type declaration we'll create an anonymous function
+    Ident := '';
+    Func := nil;
+  end
+  else
+  begin
+    //Function name...
+    Parser.SkipWhite;
+    Result := ParseIdentifier(#0, Ident);
+    if Result <> qeNone then
+      EXIT;
+    //...error if it's a keyword or already defined (unless a forward)
+    if IdentToKeyword(Ident) <> keyUnknown then
+      EXIT(ErrSub(qeReservedWord, Ident));
+    Func := FuncFindInScope(Ident);
+  end;
+
   if Func = nil then
     Func := FuncCreate(NameSpace, Ident)
   else
@@ -595,6 +629,7 @@ begin
     else if Proc <> (Func.ResultCount = 0) then
       EXIT(Err(qeFuncDecDoesntMatch));
   end;
+
   //Corrupts attribute - TODO
   //Probably better to have a preserves list instead?
   Func.Preserves := [];//TODO Corrupts := AttrCorrupts;
@@ -635,9 +670,16 @@ begin
     else
       EXIT(Err(qeFunctionResultExpected));
 
-  Result := ParseDirectives(Func, NoCode);
+  Result := ParseDirectives(Func, ParseType, NoCode);
   if Result <> qeNone then
     EXIT;
+
+  if ParseType = fptTypeDef then
+  begin
+    Result := ValidateParamsForTypeDef(Func, Cursor);
+    if Result <> qeNone then
+      EXIT;
+  end;
 
   if not NoCode then
   begin

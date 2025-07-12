@@ -34,6 +34,11 @@ procedure OpLD(Dest: TCPUReg;SourceV: PVariable;ByteIndex: Integer);overload;
 procedure OpLD(DestV: PVariable;ByteIndex: Integer;Source: TCPUReg);overload;
 procedure OpLD(Dest: TCPUReg;Source: String);overload;
 
+//Where Dest is 8-bit and Source is 16-bit (pointer)
+procedure OpLDFromIndirect(Dest, Source: TCPUReg);//overload;
+//Where Dest is 16-bit (pointer) and Source is 8-bit
+procedure OpLDToIndirect(Dest, Source: TCPUReg);//overload;
+
 procedure OpPUSH(Reg: TCPUReg);
 procedure OpPOP(Reg: TCPUReg);
 
@@ -54,7 +59,7 @@ uses SysUtils,
 
 function OffsetToStr(Reg: TCPUReg;Variable: PVariable;ByteIndex: Integer = 0): String;
 begin
-  Assert(Variable.Storage = vsStack);
+  Assert(Variable.AddrMode = amStack);
 
   Result := '('+CPURegStrings[Reg];
   if Variable.Offset < 0 then
@@ -99,7 +104,7 @@ end;
 procedure OpLD(DestXY: TCPUReg;DestV: PVariable;Source: TCPUReg;ByteIndex: Integer = 0);overload;
 begin
   Assert(DestXY in [rIX, rIY]);
-  Assert(DestV.Storage = vsStack);
+  Assert(DestV.AddrMode = amStack);
 
   if Source in CPURegPairs then
   begin
@@ -113,7 +118,7 @@ end;
 procedure OpLD(Dest, SourceXY: TCPUReg;SourceV: PVariable;ByteIndex: Integer = 0);overload;
 begin
   Assert(SourceXY in [rIX, rIY]);
-  Assert(SourceV.Storage = vsStack);
+  Assert(SourceV.AddrMode = amStack);
 
   if Dest in CPURegPairs then
   begin
@@ -126,20 +131,20 @@ end;
 
 procedure OpLD(DestV: PVariable;Source: TCPUReg);overload;
 begin
-  Assert(DestV.Storage = vsStatic);
+  Assert(DestV.AddrMode = amStatic);
   AsmOpcode('ld', '('+DestV.GetAsmName+')', CPURegStrings[Source]);
 end;
 
 procedure OpLD(Dest: TCPUReg;SourceV: PVariable);overload;
 begin
-  Assert(SourceV.Storage = vsStatic);
+  Assert(SourceV.AddrMode = amStatic);
   AsmOpcode('ld', CPURegStrings[Dest], '('+SourceV.GetAsmName+')');
 end;
 
 procedure OpLD(Dest: TCPUReg;SourceV: PVariable;ByteIndex: Integer);overload;
 var S: String;
 begin
-  Assert(SourceV.Storage = vsStatic);
+  Assert(SourceV.AddrMode = amStatic);
   S := '('+SourceV.GetAsmName;
   if ByteIndex <> 0 then
     S := S +' +' +ByteIndex.ToString;
@@ -150,7 +155,7 @@ end;
 procedure OpLD(DestV: PVariable;ByteIndex: Integer;Source: TCPUReg);overload;
 var S: String;
 begin
-  Assert(DestV.Storage = vsStatic);
+  Assert(DestV.AddrMode = amStatic);
 
   S := '('+DestV.GetAsmName;
   if ByteIndex <> 0 then
@@ -162,6 +167,28 @@ end;
 procedure OpLD(Dest: TCPUReg;Source: String);overload;
 begin
   AsmOpcode('ld', CPURegStrings[Dest], Source);
+end;
+
+procedure OpLDFromIndirect(Dest, Source: TCPUReg);
+var S: String;
+begin
+  Assert(Source in CPUReg16Bit);
+  Assert(Dest in CPUReg8Bit);
+  Assert((Dest = rA) or (Source = rHL));  //Unacceptable combinations
+
+  S := '(' + CPURegStrings[Source] + ')';
+  AsmOpcode('ld', CPURegStrings[Dest], S);
+end;
+
+procedure OpLDToIndirect(Dest, Source: TCPUReg);
+var D: String;
+begin
+  Assert(Source in CPUReg8Bit);
+  Assert(Dest in CPUReg16Bit);
+  Assert((Source = rA) or (Dest = rHL));  //Unacceptable combinations
+
+  D := '(' + CPURegStrings[Dest] + ')';
+  AsmOpcode('ld', D, CPURegStrings[Source]);
 end;
 
 procedure OpPUSH(Reg: TCPUReg);

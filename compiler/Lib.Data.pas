@@ -466,6 +466,7 @@ begin
   else if CompareText(Command, 'stateproc') = 0 then
     //If we're procedurally updating CPU state
     try
+      StateProc := nil;
       Frag.ProcMeta.StateProc := Frag.Name;
       StateProc := FindStateproc(Frag.Name);
       if not Frag.ProcMeta.HaveCorrupts then

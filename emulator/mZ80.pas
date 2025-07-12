@@ -23,6 +23,9 @@ type
   THookProc = TProc<Word>;
 {$endif}
 
+  TReadByteProc = TFunc<Word, Byte>;
+  TWriteByteProc = TProc<Word, Byte>;
+
 type TZ80Executor = class
   private
     FZ80: TZ80State;
@@ -44,12 +47,19 @@ type TZ80Executor = class
     FIndirectAddr: Word;
     FHaveIndirectAddr: Boolean;
     FHookM1: THookProc;
+    FReadMemoryByte: TReadByteProc;
+    FReadIOByte: TReadByteProc;
+    FWriteIOByte: TWriteByteProc;
+    FWriteMemoryByte: TWriteByteProc;
 
     procedure InitBaseLUT;
     procedure InitIXIYLUTs;
     procedure InitEDLUT;
     procedure InitCBLUT;
     procedure InitPageLUTs;
+
+    function ReadMemoryWord(Addr: Word): Word;
+    procedure WriteMemoryWord(Addr, Data: Word);
 
     //Do an M1/Refresh cycle
     procedure DoM1Refresh;
@@ -271,11 +281,14 @@ type TZ80Executor = class
     //Hook when an M1/Refresh state occurs. Word = address bus (R register)
     //When triggered this happens /before the opcode is read from memory
     property HookM1: THookProc read FHookM1 write FHookM1;
+    property ReadMemoryByte: TReadByteProc read FReadMemoryByte write FReadMemoryByte;
+    property WriteMemoryByte: TWriteByteProc read FWriteMemoryByte write FWriteMemoryByte;
+    property ReadIO: TReadByteProc read FReadIOByte write FReadIOByte;
+    property WriteIO: TWriteByteProc read FWriteIOByte write FWriteIOByte;
   end;
 
 
 implementation
-uses mHardware;
 
 const
   OpADD = 0;
@@ -361,7 +374,7 @@ begin
   //read the final opcoide byte.
   SetIndirectAddr;
 
-  Opcode := Hardware.ReadMemoryByte(Z80.PCInc);
+  Opcode := ReadMemoryByte(Z80.PCInc);
   B543 := (OpCode shr 3) and 7;
   B210 := OpCode and 7;
   case Opcode shr 6 of
@@ -382,7 +395,7 @@ procedure TZ80Executor.ExecEDOpcode;
 var Opcode: Byte;
 begin
   DoM1Refresh; //M1
-  Opcode := Hardware.ReadMemoryByte(Z80.PCInc);
+  Opcode := ReadMemoryByte(Z80.PCInc);
   case Opcode shr 6 of
   1: ExecEDQ1opcode(Opcode);
   2: ExecEDQ2Opcode(Opcode);
@@ -403,13 +416,13 @@ begin
       OpINRC(B543);
     1,9: //OUT (C),r
       if B543 <> Reg8HL then
-        Hardware.WriteIO(Z80.BC, GetReg8(B543, False))
+        WriteIO(Z80.BC, GetReg8(B543, False))
       else
-        Hardware.WriteIO(Z80.BC, 0);
+        WriteIO(Z80.BC, 0);
     2: //SBC HL,rsp - No IX/IY
       Z80.HL := opALU16(opSBC, Z80.HL, Z80.GetRegRSP(B54, imMain));
     3: //LD (nn),rsp - No IX/IY
-      Hardware.WriteMemoryWord(GetImmediate16, Z80.GetRegRSP(B54, imMain));
+      WriteMemoryWord(GetImmediate16, Z80.GetRegRSP(B54, imMain));
     4,$c: //NEG
       OpALU8(OpNEG, 0, Z80.A);
     5,$d: //RETN/RETI - Officially these differ. Unofficially they don't
@@ -430,7 +443,7 @@ begin
     $a: //ADC HL,rsp - No IX/IY
       Z80.HL := opALU16(opADC, Z80.HL, Z80.GetRegRSP(B54, imMain));
     $b: //LD rsp,(nn) - No IX/IY
-      Z80.SetRegRSP(B54, Hardware.ReadMemoryWord(GetImmediate16), imMain);
+      Z80.SetRegRSP(B54, ReadMemoryWord(GetImmediate16), imMain);
     $e: //IM 0/1???/IM 2
       Z80.IM := (OpCode shr 2) and 2;
     $f: //LD R,A/LD A,R/RLD
@@ -498,13 +511,13 @@ var Opcode: Byte;
 begin
   try
     DoM1Refresh;  //M1
-  Opcode := Hardware.ReadMemoryByte(Z80.PCInc);
-  if Assigned(FCurPage[Opcode]) then
-    FCurPage[Opcode](Opcode)
-  else
-    FPageBase[Opcode](Opcode);
+    Opcode := ReadMemoryByte(Z80.PCInc);
+    if Assigned(FCurPage[Opcode]) then
+      FCurPage[Opcode](Opcode)
+    else
+      FPageBase[Opcode](Opcode);
 
-  EndOpcode;
+    EndOpcode;
   except
 {$ifndef fpc}
     on E:Exception do
@@ -515,12 +528,12 @@ end;
 
 function TZ80Executor.GetImmediate16: Word;
 begin
-  Result := Hardware.ReadMemoryByte(Z80.PCInc) or (Hardware.ReadMemoryByte(Z80.PCInc) shl 8);
+  Result := ReadMemoryByte(Z80.PCInc) or (ReadMemoryByte(Z80.PCInc) shl 8);
 end;
 
 function TZ80Executor.GetImmediate8: Byte;
 begin
-  Result := Hardware.ReadMemoryByte(Z80.PCInc);
+  Result := ReadMemoryByte(Z80.PCInc);
 end;
 
 function TZ80Executor.GetReg8(r: TReg8; UseInstructionSet: Boolean): byte;
@@ -530,7 +543,7 @@ begin
     if not FHaveIndirectAddr then
       SetIndirectAddr;
 
-    Result := Hardware.ReadMemoryByte(FIndirectAddr);
+    Result := ReadMemoryByte(FIndirectAddr);
   end
   else if UseInstructionSet then
     Result := FCurR8[r]^
@@ -552,8 +565,8 @@ function TZ80Executor.IndirectAddr(IndexModifier: TIndexModifier): Word;
 begin
   case IndexModifier of
     imMain: Result := Z80.HL;
-    imIX: Result := AddRelative(Z80.IX, Hardware.ReadMemoryByte(Z80.PCInc));
-    imIY: Result := AddRelative(Z80.IY, Hardware.ReadMemoryByte(Z80.PCInc));
+    imIX: Result := AddRelative(Z80.IX, ReadMemoryByte(Z80.PCInc));
+    imIY: Result := AddRelative(Z80.IY, ReadMemoryByte(Z80.PCInc));
   else
     raise EZ80Exception.Create('Invalid modifier');
   end;
@@ -812,14 +825,14 @@ end;
 
 procedure TZ80Executor.OpADCAiHL(Opcode: Byte);
 begin
-  Z80.A := OpADC8Do(Z80.A, Hardware.ReadMemoryByte(Z80.HL));
+  Z80.A := OpADC8Do(Z80.A, ReadMemoryByte(Z80.HL));
 end;
 
 {procedure TZ80Executor.OpADCAixyd(Opcode: Byte);
 var Addr: Word;
 begin
   Addr := AddRelative(FCurRSP[2]^, GetImmediate8);
-  Z80.A := OpADC8Do(Z80.A, Hardware.ReadMemoryByte(Addr));
+  Z80.A := OpADC8Do(Z80.A, ReadMemoryByte(Addr));
 end;
 }
 procedure TZ80Executor.OpADCAn(Opcode: Byte);
@@ -862,14 +875,14 @@ end;
 
 procedure TZ80Executor.OpADDAiHL(Opcode: Byte);
 begin
-  Z80.A := OpADD8Do(Z80.A, Hardware.ReadMemoryByte(Z80.HL));
+  Z80.A := OpADD8Do(Z80.A, ReadMemoryByte(Z80.HL));
 end;
 
 {procedure TZ80Executor.OpADDAixyd(Opcode: Byte);
 var Addr: Word;
 begin
   Addr := AddRelative(FCurRSP[2]^, GetImmediate8);
-  Z80.A := OpADD8Do(Z80.A, Hardware.ReadMemoryByte(Addr));
+  Z80.A := OpADD8Do(Z80.A, ReadMemoryByte(Addr));
 end;
 }
 procedure TZ80Executor.OpADDAn(Opcode: Byte);
@@ -1138,14 +1151,14 @@ end;
 
 procedure TZ80Executor.OpANDiHL(Opcode: Byte);
 begin
-  Z80.A := OpAND8Do(Z80.A, Hardware.ReadMemoryByte(Z80.HL));
+  Z80.A := OpAND8Do(Z80.A, ReadMemoryByte(Z80.HL));
 end;
 
 {procedure TZ80Executor.OpANDixyd(Opcode: Byte);
 var Addr: Word;
 begin
   Addr := AddRelative(FCurRSP[2]^, GetImmediate8);
-  Z80.A := OpAND8Do(Z80.A, Hardware.ReadMemoryByte(Addr));
+  Z80.A := OpAND8Do(Z80.A, ReadMemoryByte(Addr));
 end;
 }
 procedure TZ80Executor.OpANDn(Opcode: Byte);
@@ -1234,14 +1247,14 @@ end;
 
 procedure TZ80Executor.OpCPiHL(Opcode: Byte);
 begin
-  OpSUB8Do(Z80.A, Hardware.ReadMemoryByte(Z80.HL));
+  OpSUB8Do(Z80.A, ReadMemoryByte(Z80.HL));
 end;
 
 {procedure TZ80Executor.OpCPixyd(Opcode: Byte);
 var Addr: Word;
 begin
   Addr := AddRelative(FCurRSP[2]^, GetImmediate8);
-  OpSUB8Do(Z80.A, Hardware.ReadMemoryByte(Addr));
+  OpSUB8Do(Z80.A, ReadMemoryByte(Addr));
 end;
 }
 procedure TZ80Executor.OpCPn(Opcode: Byte);
@@ -1262,7 +1275,7 @@ begin
   if Dir = 0 then
     raise EZ80Exception.Create('Invalid Dir (0)');
 
-  Comp := Z80.A - Hardware.ReadMemoryByte(Z80.HL);
+  Comp := Z80.A - ReadMemoryByte(Z80.HL);
   Z80.HL := Z80.HL + Dir;
   Z80.BC := Z80.BC - 1;
 
@@ -1358,14 +1371,14 @@ end;
 
 procedure TZ80Executor.OpDECiHL(Opcode: Byte);
 begin
-  Hardware.WriteMemoryByte(Z80.HL, OpDEC8Do(Hardware.ReadMemoryByte(Z80.HL)));
+  WriteMemoryByte(Z80.HL, OpDEC8Do(ReadMemoryByte(Z80.HL)));
 end;
 
 {procedure TZ80Executor.OpDECixyd(Opcode: Byte);
 var Addr: Word;
 begin
   Addr := AddRelative(FCurRSP[2]^, GetImmediate8);
-  Hardware.WriteMemoryByte(Addr, OpDEC8Do(Hardware.ReadMemoryByte(Addr)));
+  WriteMemoryByte(Addr, OpDEC8Do(ReadMemoryByte(Addr)));
 end;
 }
 procedure TZ80Executor.OpDECr(Opcode: Byte);
@@ -1440,7 +1453,7 @@ end;
 
 procedure TZ80Executor.OpINAn(Opcode: Byte);
 begin
-  Z80.A := Hardware.ReadIO((Z80.A shl 8) or GetImmediate8);
+  Z80.A := ReadIO((Z80.A shl 8) or GetImmediate8);
 end;
 
 function TZ80Executor.OpINC8Do(Value: Byte): Byte;
@@ -1463,14 +1476,14 @@ end;
 
 procedure TZ80Executor.OpINCiHL(Opcode: Byte);
 begin
-  Hardware.WriteMemoryByte(Z80.HL, OpINC8Do(Hardware.ReadMemoryByte(Z80.HL)));
+  WriteMemoryByte(Z80.HL, OpINC8Do(ReadMemoryByte(Z80.HL)));
 end;
 
 procedure TZ80Executor.OpINCixyd(Opcode: Byte);
 var Addr: Word;
 begin
   Addr := AddRelative(FCurRSP[2]^, GetImmediate8);
-  Hardware.WriteMemoryByte(Addr, OpINC8Do(Hardware.ReadMemoryByte(Addr)));
+  WriteMemoryByte(Addr, OpINC8Do(ReadMemoryByte(Addr)));
 end;
 
 procedure TZ80Executor.OpINCr(Opcode: Byte);
@@ -1492,7 +1505,7 @@ begin
   if Dir = 0 then
     raise EZ80Exception.Create('Invalid Dir (0)');
 
-  Hardware.WriteMemoryByte(Z80.HL, Hardware.ReadIO(Z80.BC));
+  WriteMemoryByte(Z80.HL, ReadIO(Z80.BC));
   Z80.HL := Z80.HL + Dir;
   Z80.B := Z80.B - 1;
 
@@ -1505,7 +1518,7 @@ procedure TZ80Executor.OpINrC(r: TReg8);
 var
   Value: Byte;
 begin
-  Value := Hardware.ReadIO(Z80.BC);
+  Value := ReadIO(Z80.BC);
   if r <> Reg8HL then
     SetReg8(r, False, Value);
   SetFlags(Value, SMAsk or ZMask or PVMask or YMask or XMask, HMask or NMask, 0);
@@ -1590,7 +1603,7 @@ end;
 
 procedure TZ80Executor.OpLDAinn(Opcode: Byte);
 begin
-  Z80.A := HArdware.ReadMemoryByte(GetImmediate16);
+  Z80.A := ReadMemoryByte(GetImmediate16);
 end;
 
 procedure TZ80Executor.OpLDAIR(Value: Byte);
@@ -1608,12 +1621,12 @@ end;
 
 procedure TZ80Executor.OpLDAirsp(Opcode: Byte);
 begin //Note: Only applies to BC and DE
-  Z80.A := Hardware.ReadMemoryByte(Z80.RegRSPBase[(Opcode shr 4) and $03]^);
+  Z80.A := ReadMemoryByte(Z80.RegRSPBase[(Opcode shr 4) and $03]^);
 end;
 
 procedure TZ80Executor.OpLDHLinn(Opcode: Byte);
 begin
-  FCurRSP[2]^ := Hardware.ReadMemoryWord(GetImmediate16);
+  FCurRSP[2]^ := ReadMemoryWord(GetImmediate16);
 end;
 
 function TZ80Executor.OpLDID(Dir: TDir): Boolean;
@@ -1624,8 +1637,8 @@ begin
   if Dir = 0 then
     raise EZ80Exception.Create('Invalid Dir (0)');
 
-  Data := Hardware.ReadMemoryByte(Z80.HL);
-  Hardware.WriteMemoryByte(Z80.DE, Data);
+  Data := ReadMemoryByte(Z80.HL);
+  WriteMemoryByte(Z80.DE, Data);
   Z80.DE := Z80.DE + Dir;
   Z80.HL := Z80.HL + Dir;
   Z80.BC := Z80.BC - 1;
@@ -1653,27 +1666,27 @@ end;
 
 procedure TZ80Executor.OpLDiHLn(Opcode: Byte);
 begin
-  Hardware.WriteMemoryByte(Z80.HL, GetImmediate8);
+  WriteMemoryByte(Z80.HL, GetImmediate8);
 end;
 
 procedure TZ80Executor.OpLDiHLr(Opcode: Byte);
 begin
-  Hardware.WriteMemoryByte(Z80.HL, FCurR8[Opcode and $07]^);
+  WriteMemoryByte(Z80.HL, FCurR8[Opcode and $07]^);
 end;
 
 procedure TZ80Executor.OpLDinnA(Opcode: Byte);
 begin
-  Hardware.WriteMemoryByte(GetImmediate16, Z80.A);
+  WriteMemoryByte(GetImmediate16, Z80.A);
 end;
 
 procedure TZ80Executor.OpLDinnHL(Opcode: Byte);
 begin
-  Hardware.WriteMemoryWord(GetImmediate16, FCurRSP[2]^);
+  WriteMemoryWord(GetImmediate16, FCurRSP[2]^);
 end;
 
 procedure TZ80Executor.OpLDirspA(Opcode: Byte);
 begin //Note: Only applies to BC and DE
-  Hardware.WriteMemoryByte(Z80.RegRSPBase[(Opcode shr 4) and $03]^, Z80.A);
+  WriteMemoryByte(Z80.RegRSPBase[(Opcode shr 4) and $03]^, Z80.A);
 end;
 
 procedure TZ80Executor.OpLDixydn(Opcode: Byte);
@@ -1682,7 +1695,7 @@ var Data: Byte;
 begin
   Addr := AddRelative(FCurRSP[2]^, GetImmediate8);
   Data := GetImmediate8;
-  Hardware.WriteMemoryByte(Addr, Data);
+  WriteMemoryByte(Addr, Data);
 end;
 
 procedure TZ80Executor.OpLDixydr(Opcode: Byte);
@@ -1690,12 +1703,12 @@ var Addr: Word;
 begin
   Addr := AddRelative(FCurRSP[2]^, GetImmediate8);
   //Note: Always read from base registers - don't use IXL, IXH etc.
-  Hardware.WriteMemoryByte(Addr, Z80.Reg8Base[Opcode and 7]^);
+  WriteMemoryByte(Addr, Z80.Reg8Base[Opcode and 7]^);
 end;
 
 procedure TZ80Executor.OpLDriHL(Opcode: Byte);
 begin
-  FCurR8[(Opcode shr 3) and $07]^ := Hardware.ReadMemoryByte(Z80.HL);
+  FCurR8[(Opcode shr 3) and $07]^ := ReadMemoryByte(Z80.HL);
 end;
 
 procedure TZ80Executor.OpLDrixyd(Opcode: Byte);
@@ -1703,7 +1716,7 @@ var Addr: Word;
 begin
   Addr := AddRelative(FCurRSP[2]^, GetImmediate8);
   //Note: Always read from base registers - don't use IXL, IXH etc.
-  Z80.Reg8Base[Opcode shr 3 and 7]^ := Hardware.ReadMemoryByte(Addr);
+  Z80.Reg8Base[Opcode shr 3 and 7]^ := ReadMemoryByte(Addr);
 end;
 
 procedure TZ80Executor.OpLDrn(Opcode: Byte);
@@ -1754,14 +1767,14 @@ end;
 
 procedure TZ80Executor.OpORiHL(Opcode: Byte);
 begin
-  Z80.A := OpOR8Do(Z80.A, Hardware.ReadMemoryByte(Z80.HL));
+  Z80.A := OpOR8Do(Z80.A, ReadMemoryByte(Z80.HL));
 end;
 
 {procedure TZ80Executor.OpORixyd(Opcode: Byte);
 var Addr: Word;
 begin
   Addr := AddRelative(FCurRSP[2]^, GetImmediate8);
-  Z80.A := OpOR8Do(Z80.A, Hardware.ReadMemoryByte(Addr));
+  Z80.A := OpOR8Do(Z80.A, ReadMemoryByte(Addr));
 end;
 }
 procedure TZ80Executor.OpORn(Opcode: Byte);
@@ -1780,7 +1793,7 @@ begin
     raise EZ80Exception.Create('Invalid Dir (0)');
 
   Z80.B := Z80.B - 1;
-  Hardware.WriteIO(Z80.BC, Hardware.ReadMemoryByte(Z80.HL));
+  WriteIO(Z80.BC, ReadMemoryByte(Z80.HL));
   Z80.HL := Z80.HL + Dir;
 
   Result := Z80.B <> 0;
@@ -1790,7 +1803,7 @@ end;
 
 procedure TZ80Executor.OpOUTnA(Opcode: Byte);
 begin
-  Hardware.WriteIO((Z80.A shl 8) or GetImmediate8, Z80.A);
+  WriteIO((Z80.A shl 8) or GetImmediate8, Z80.A);
 end;
 
 procedure TZ80Executor.OpPOP(Opcode: Byte);
@@ -1850,13 +1863,13 @@ var
   NewA: Byte;
 begin
   Addr := Z80.HL;
-  Mem := Hardware.ReadMemoryByte(Addr);
+  Mem := ReadMemoryByte(Addr);
   OldA := Z80.A;
   //High nybble of (HL) to low nybble of A
   NewA := (OldA and $f0) or (Mem shr 4);
   Z80.A := NewA;
   //Rotate low nybble of (HL) to high nybble and move low nybble of A to low nybble of (HL)
-  Hardware.WriteMemoryByte(Addr, (Mem shl 4) or (OldA and $f));
+  WriteMemoryByte(Addr, (Mem shl 4) or (OldA and $f));
 
   SetFlags(NewA, SMask or ZMask or PVMask or YMask or XMask, HMask or NMask, 0);
 end;
@@ -1893,13 +1906,13 @@ var
   NewA: Byte;
 begin
   Addr := Z80.HL;
-  Mem := Hardware.ReadMemoryByte(Addr);
+  Mem := ReadMemoryByte(Addr);
   OldA := Z80.A;
   //Low nybble of (HL) to low nybble of A
   NewA := (OldA and $f0) or (Mem and $0f);
   Z80.A := NewA;
   //Rotate high nybble of (HL) to low nybble and move low nybble of A to high nybble of (HL)
-  Hardware.WriteMemoryByte(Addr, (Mem shr 4) or (OldA shl 4));
+  WriteMemoryByte(Addr, (Mem shr 4) or (OldA shl 4));
 
   SetFlags(NewA, SMask or ZMask or PVMask or YMask or XMask, HMask or NMask, 0);
 end;
@@ -1946,14 +1959,14 @@ end;
 
 procedure TZ80Executor.OpSBCAiHL(Opcode: Byte);
 begin
-  Z80.A := OpSBC8Do(Z80.A, Hardware.ReadMemoryByte(Z80.HL));
+  Z80.A := OpSBC8Do(Z80.A, ReadMemoryByte(Z80.HL));
 end;
 
 {procedure TZ80Executor.OpSBCAixyd(Opcode: Byte);
 var Addr: Word;
 begin
   Addr := AddRelative(FCurRSP[2]^, GetImmediate8);
-  Z80.A := OpSBC8Do(Z80.A, Hardware.ReadMemoryByte(Addr));
+  Z80.A := OpSBC8Do(Z80.A, ReadMemoryByte(Addr));
 end;
 }
 procedure TZ80Executor.OpSBCAn(Opcode: Byte);
@@ -2087,14 +2100,14 @@ end;
 
 procedure TZ80Executor.OpSUBAiHL(Opcode: Byte);
 begin
-  Z80.A := OpSUB8Do(Z80.A, Hardware.ReadMemoryByte(Z80.HL));
+  Z80.A := OpSUB8Do(Z80.A, ReadMemoryByte(Z80.HL));
 end;
 
 {procedure TZ80Executor.OpSUBAixyd(Opcode: Byte);
 var Addr: Word;
 begin
   Addr := AddRelative(FCurRSP[2]^, GetImmediate8);
-  Z80.A := OpSUB8Do(Z80.A, Hardware.ReadMemoryByte(Addr));
+  Z80.A := OpSUB8Do(Z80.A, ReadMemoryByte(Addr));
 end;
 }
 procedure TZ80Executor.OpSUBAn(Opcode: Byte);
@@ -2130,14 +2143,14 @@ end;
 
 procedure TZ80Executor.OpXORiHL(Opcode: Byte);
 begin
-  Z80.A := OpOR8Do(Z80.A, Hardware.ReadMemoryByte(Z80.HL));
+  Z80.A := OpOR8Do(Z80.A, ReadMemoryByte(Z80.HL));
 end;
 
 {procedure TZ80Executor.OpXORixyd(Opcode: Byte);
 var Addr: Word;
 begin
   Addr := AddRelative(FCurRSP[2]^, GetImmediate8);
-  Z80.A := OpXOR8Do(Z80.A, Hardware.ReadMemoryByte(Addr));
+  Z80.A := OpXOR8Do(Z80.A, ReadMemoryByte(Addr));
 end;
 }
 procedure TZ80Executor.OpXORn(Opcode: Byte);
@@ -2150,6 +2163,11 @@ begin
   Z80.A := OpXOR8Do(Z80.A, FCurR8[Opcode and $07]^);
 end;
 
+
+function TZ80Executor.ReadMemoryWord(Addr: Word): Word;
+begin
+  Result := ReadMemoryByte((Addr+1) and $ffff) shl 8 + ReadMemoryByte(Addr);
+end;
 
 procedure TZ80Executor.SetFlags(Value, CalcMask, FixMask, FixValues: Byte);
 var
@@ -2208,7 +2226,7 @@ begin
     if not FHaveIndirectAddr then
       SetIndirectAddr;
 
-    Hardware.WriteMemoryByte(FIndirectAddr, Value);
+    WriteMemoryByte(FIndirectAddr, Value);
   end
   else if UseInstructionSet then
     Z80.SetReg8(r, Value, FIndexModifier)
@@ -2257,15 +2275,21 @@ end;
 
 function TZ80Executor.StackPop: Word;
 begin
-  Result := Hardware.ReadMemoryWord(Z80.SP);
+  Result := ReadMemoryWord(Z80.SP);
   Z80.SP := Z80.SP + 2;
 end;
 
 procedure TZ80Executor.StackPush(Value: Word);
 begin
-  Hardware.WriteMemoryByte(Z80.SP-1, Value shr 8);
-  Hardware.WriteMemoryByte(Z80.SP-2, Value and $ff);
+  WriteMemoryByte(Z80.SP-1, Value shr 8);
+  WriteMemoryByte(Z80.SP-2, Value and $ff);
   Z80.SP := Z80.SP - 2;
+end;
+
+procedure TZ80Executor.WriteMemoryWord(Addr, Data: Word);
+begin
+  WriteMemoryByte(Addr, Data and $ff);
+  WriteMemoryByte((Addr+1) and $ffff, (Data shr 8) and $ff);
 end;
 
 end.

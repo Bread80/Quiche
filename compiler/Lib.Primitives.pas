@@ -4,8 +4,8 @@ Primitives are routines available to the code generator
 unit Lib.Primitives;
 
 interface
-uses Def.IL, Def.Operators, Def.QTypes, Def.Variables,
-  Parse.Expr,
+uses Def.IL, Def.Operators, Def.QTypes, Def.Variables, Def.UserTypes,
+  Parse.Literals,
   Lib.Data,
   Z80.Hardware;
 
@@ -21,9 +21,9 @@ uses Def.IL, Def.Operators, Def.QTypes, Def.Variables,
 //If no suitable routine was found returns vtUnknown
 //If the parameter type were expanded then LType and RType return the expanded type(s)
 function PrimFindParse(Op: TOperator;const Left, Right: TExprSlug;
-  out LeftType, RightType: TVarType;var ResultType: TVarType): Boolean;
+  out LeftType, RightType: PUserType;var ResultType: PUserType): Boolean;
 function PrimFindParseUnary(Op: TOperator;const Left: TExprSlug;
-  out LeftType: TVarType;var ResultType: TVarType): Boolean;
+  out LeftType: PUserType;var ResultType: PUserType): Boolean;
 
 //---Codegen time
 
@@ -49,35 +49,7 @@ procedure ValidatePrimitives;
 
 implementation
 uses Generics.Collections, Classes, SysUtils;
-//  Z80.Algos;
-(*
-type TCodeGenProcMap = record
-    Name: String;
-    Proc: TCodeGenProc;
-  end;
 
-var CodeGenProcs: TArray<TCodeGenProcMap>;
-
-procedure AddCodeGenProc(AName: String;AProc: TCodeGenProc);
-begin
-  SetLength(CodeGenProcs, length(CodeGenProcs)+1);
-  CodeGenProcs[Length(CodeGenProcs)-1].Name := AName;
-  CodeGenProcs[Length(CodeGenProcs)-1].Proc := AProc;
-end;
-
-function FindCodeGenProc(AName: String): TCodeGenProc;
-var I: Integer;
-begin
-  for I := 0 to Length(CodeGenProcs)-1 do
-    if CompareText(CodeGenProcs[I].Name, AName) = 0 then
-    begin
-      Result := CodeGenProcs[I].Proc;
-      EXIT;
-    end;
-
-  Result := nil;
-end;
-*)
 type TValProcMap = record
     Name: String;
     Proc: TValidationProc;
@@ -118,15 +90,14 @@ end;
 procedure InitialisePrimitives;
 begin
   ClearPrimList;
-(*  SetLength(CodeGenProcs, 0);
-*)  SetLength(ValProcs, 0);
+  SetLength(ValProcs, 0);
 end;
 
 
 //==================NG Primitive matching & type matching
 
 function ParamRegMatch(PrimLoc: TCodeProcLoc;AvailableRegs: TCPURegSet;
-  Kind: TILParamKind;Storage: TVarStorage): Boolean;
+  Kind: TILParamKind;AddrMode: TAddrMode): Boolean;
 begin
   if Kind = pkNone then
     EXIT(True);
@@ -134,8 +105,8 @@ begin
   case PrimLoc of
     plNone:      Result := False;
     plImmediate: Result := Kind = pkImmediate;
-    plStaticVar: Result := Storage = vsStatic;
-    plStackVar:  Result := Storage = vsStack;
+    plStaticVar: Result := AddrMode = amStatic;
+    plStackVar:  Result := AddrMode = amStack;
     plRegister:  Result := (AvailableRegs * [rA..rE,rH..rL, rHL..rBC]) <> [];
   else
     raise Exception.Create('Undefined PrimLoc');
@@ -166,8 +137,8 @@ begin
       case Prim.ProcMeta.ResultLoc of
         plNone:      Result := False;
         plRegister:  Result := True;
-        plStaticVar: Result := V.Storage = vsStatic;
-        plStackVar:  Result := V.Storage = vsStack;
+        plStaticVar: Result := V.AddrMode = amStatic;
+        plStackVar:  Result := V.AddrMode = amStack;
       else
         Assert(False);
       end;
@@ -187,24 +158,33 @@ type TPrimSearchRec = record
     IsSigned: Boolean;  //Use signed fitness values
     IsPointer: Boolean; //Use pointer fitness values (i.e. unsigned)
 
+    LUserType: PUserType;
     LType: TVarType;
     LIsRange: Boolean;
     LRange: TNumberRange;
     LKind: TILParamKind;
-    LStorage: TVarStorage;
+    LAddrMode: TAddrMode;
 
+    RUserType: PUserType;
     RType: TVarType;
     RIsRange: Boolean;
     RRange: TNumberRange;
     RKind: TILParamKind;
-    RStorage: TVarStorage;
+    RAddrMode: TAddrMode;
 
     ResultKind: TILParamKind; //Only for GenTime??
-    ResultStorage: TVarStorage; //Only for GenTime??
+    ResultAddrMode: TAddrMode; //Only for GenTime??
 
 
     MatchResultType: TVarType;  //Match if <> vtUnknown
     ResultType: TVarType;
+
+    //If these are non-nil then these values should be
+    //returned (PrimParse), otherwise the values passed
+    //in should be retained
+    ReturnLUserType: PUserType;
+    ReturnRUserType: PUserType;
+    ReturnResultUserType: PUserType;
 
     PrimIndex: Integer;
     SwapParams: Boolean;
@@ -214,6 +194,7 @@ function CalcTypeFitness(const SearchRec: TPrimSearchRec;Prim: PPrimitive;Swap: 
 var
   Fitness: Integer;
   Signed: Boolean;
+  ResultType: TVarType;
 begin
   Signed := SearchRec.IsSigned;// and not SearchRec.IsPointer;
 
@@ -256,7 +237,14 @@ begin
 
   if SearchRec.MatchResultType <> vtUnknown then
   begin
-    Fitness := GetFitnessTypeType(SearchRec.MatchResultType, Prim.ResultType, SearchRec.IsSigned);
+    if Prim.ResultTypeIsLType then
+      ResultType := SearchRec.LType
+    else if Prim.ResultTypeIsRType then
+      ResultType := SearchRec.RType
+    else
+      ResultType := Prim.ResultType;
+
+    Fitness := GetFitnessTypeType(SearchRec.MatchResultType, ResultType, SearchRec.IsSigned);
     if Fitness < 0 then
       EXIT(-1);
     Result := Result + Fitness;
@@ -283,18 +271,18 @@ begin
   begin
     if Swap then
     begin
-      if not ParamRegMatch(Prim.ProcMeta.LLoc, Prim.ProcMeta.LRegs, SearchRec.RKind, SearchRec.RStorage) then
+      if not ParamRegMatch(Prim.ProcMeta.LLoc, Prim.ProcMeta.LRegs, SearchRec.RKind, SearchRec.RAddrMode) then
         EXIT(-1);
       if (Prim.RType <> vtUnknown) and
-        not ParamRegMatch(Prim.ProcMeta.RLoc, Prim.ProcMeta.RRegs, SearchRec.LKind, SearchRec.LStorage) then
+        not ParamRegMatch(Prim.ProcMeta.RLoc, Prim.ProcMeta.RRegs, SearchRec.LKind, SearchRec.LAddrMode) then
         EXIT(-1);
     end
     else
     begin
-      if not ParamRegMatch(Prim.ProcMeta.LLoc, Prim.ProcMeta.LRegs, SearchRec.LKind, SearchRec.LStorage) then
+      if not ParamRegMatch(Prim.ProcMeta.LLoc, Prim.ProcMeta.LRegs, SearchRec.LKind, SearchRec.LAddrMode) then
         EXIT(-1);
       if (Prim.RType <> vtUnknown) and
-        not ParamRegMatch(Prim.ProcMeta.RLoc, Prim.ProcMeta.RRegs, SearchRec.RKind, SearchRec.RStorage) then
+        not ParamRegMatch(Prim.ProcMeta.RLoc, Prim.ProcMeta.RRegs, SearchRec.RKind, SearchRec.RAddrMode) then
         EXIT(-1);
     end;
 
@@ -325,6 +313,10 @@ var
   SwapParams: Boolean;
   Prim: PPrimitive;
 begin
+  SearchRec.ReturnLUserType := nil;
+  SearchRec.ReturnRUserType := nil;
+  SearchRec.ReturnResultUserType := nil;
+
   BestFitness := MaxInt;
   BestIndex := -1;
   SwapParams := False;
@@ -368,39 +360,51 @@ begin
 
   SearchRec.PrimIndex := BestIndex;
   Prim := PrimList[SearchRec.PrimIndex];
+
   if Prim.ResultTypeIsLType then
-    SearchRec.ResultType := SearchRec.LType
+    SearchRec.ReturnResultUserType := SearchRec.LUserType
   else if Prim.ResultTypeIsRType then
-    SearchRec.ResultType := SearchRec.RType
-  else
-    SearchRec.ResultType := Prim.ResultType;
-  SearchRec.LType := Prim.LType;
-  SearchRec.RType := Prim.RType;
+    SearchRec.ReturnResultUserType := SearchRec.RUserType
+  else if Prim.ResultType <> vtUnknown then
+  begin
+    SearchRec.ReturnResultUserType := GetSystemType(Prim.ResultType);
+    Assert(Assigned(SearchRec.ReturnResultUserType));  //Unsuitable Prim.ResultType.
+          //For non-system types you probablu want to specify a ResultType of
+          //LType or RType in Primitives.csv
+  end;
+
+  //Numeric types can be expanded to match available primitives if required
+  if IsNumericType(Prim.LType) then
+    SearchRec.ReturnLUserType := GetSystemType(Prim.LType);
+  if IsNumericType(Prim.RType) then
+    SearchRec.ReturnRUserType := GetSystemType(Prim.RType);
 
   SearchRec.SwapParams := SwapParams;
 end;
 
 function PrimFindParse(Op: TOperator;const Left, Right: TExprSlug;
-  out LeftType, RightType: TVarType;var ResultType: TVarType): Boolean;
+  out LeftType, RightType: PUserType;var ResultType: PUserType): Boolean;
 var SearchRec: TPrimSearchRec;
+  TempType: PUserType;
 begin
-//  Assert(ResultType = vtUnknown, 'Can''t search by ResultType yet');
   SearchRec.Op := Op;
   SearchRec.GenTime := False;
   //Fields not used for parse-time searches.
   SearchRec.ILItem := nil;
-  SearchRec.LStorage := vsStack;  //Don't care at parse time
-  SearchRec.RStorage := vsStack;  //Don't care at parse time
+  SearchRec.LAddrMode := amStack;  //Don't care at parse time
+  SearchRec.RAddrMode := amStack;  //Don't care at parse time
 
-  SearchRec.MatchResultType := ResultType;
+  SearchRec.MatchResultType := UTToVT(ResultType);
 
-  SearchRec.LType := Left.ResultType;
+  SearchRec.LUserType := Left.ResultType;
+  SearchRec.LType := UTToVT(Left.ResultType);
   if Left.ILItem <> nil then
     SearchRec.LKind := pkVarSource
   else
     SearchRec.LKind := Left.Operand.Kind;
 
-  SearchRec.RType := Right.ResultType;
+  SearchRec.RUserType := Right.ResultType;
+  SearchRec.RType := UTToVT(Right.ResultType);
   if Right.ILItem <> nil then
     SearchRec.RKind := pkVarSource
   else
@@ -429,38 +433,41 @@ begin
   else
     SearchRec.IsSigned := False;
 
-  SearchRec.IsPointer := (not SearchRec.LIsRange and (SearchRec.LType = vtPointer)) or
-    (not SearchRec.RIsRange and (SearchRec.RType = vtPointer));
+  SearchRec.IsPointer := (not SearchRec.LIsRange and (SearchRec.LType in [vtPointer, vtTypedPointer])) or
+    (not SearchRec.RIsRange and (SearchRec.RType in [vtPointer, vtTypedPointer]));
 
   {SEARCH}
   Result := PrimSearch(SearchRec);
 
+  if SearchRec.ReturnLUserType <> nil then
+    LeftType := SearchRec.ReturnLUserType;
+  if SearchRec.ReturnRUserType <> nil then
+    RightType := SearchRec.ReturnRUserType;
   if SearchRec.SwapParams then
   begin
-    LeftType := SearchRec.RType;
-    RightType := SearchRec.LType;
-  end
-  else
-  begin
-    LeftType := SearchRec.LType;
-    RightType := SearchRec.RType;
+    TempType := LeftType;
+    LeftType := RightType;
+    RightType := TempType;
   end;
-  if SearchRec.IsPointer then
-    if SearchRec.ResultType = vtWord then
-      SearchRec.ResultType := vtPointer;
 
-  if (SearchRec.ResultType in [vtReal, vtString]) or (SearchRec.LType in [vtReal, vtString]) or
-    (SearchRec.RType in [vtReal, vtString]) then
-    Assert(False);
+  if SearchRec.ReturnResultUserType <> nil then
+  begin
+    ResultType := SearchRec.ReturnResultUserType;
+    if SearchRec.IsPointer then
+      if ResultType.VarType = vtWord then
+        ResultType := GetSystemType(vtPointer);
 
-  if SearchRec.ResultType = vtFlag then
-    ResultType := vtBoolean
-  else
-    ResultType := SearchRec.ResultType;
+    if (ResultType.VarType in [vtReal, vtString]) or (SearchRec.LType in [vtReal, vtString]) or
+      (SearchRec.RType in [vtReal, vtString]) then
+      Assert(False);  //TODO
+
+    if ResultType.VarType = vtFlag then
+      ResultType := GetSystemType(vtBoolean);
+  end;
 end;
 
 function PrimFindParseUnary(Op: TOperator;const Left: TExprSlug;
-  out LeftType: TVarType;var ResultType: TVarType): Boolean;
+  out LeftType: PUserType;var ResultType: PUserType): Boolean;
 var SearchRec: TPrimSearchRec;
 begin
   SearchRec.Op := Op;
@@ -468,20 +475,24 @@ begin
   //Fields not used for parse-time search. This stops the compiler warnings.
   SearchRec.LKind := pkVarSource;
   SearchRec.RKind := pkVarSource;
-  SearchRec.LStorage := vsStack;
-  SearchRec.RStorage := vsStack;
+  SearchRec.LAddrMode := amStack;
+  SearchRec.RAddrMode := amStack;
   SearchRec.ILItem := nil;
 
   if Op = opStoreImm then
     Assert(False);
 
-  SearchRec.MatchResultType := ResultType;
+  SearchRec.MatchResultType := UTToVT(ResultType);
 
-  SearchRec.LType := Left.ResultType;
+  SearchRec.LUserType := Left.ResultType;
+  SearchRec.LType := UTToVT(Left.ResultType);
   if Left.ILItem <> nil then
     SearchRec.LKind := pkVarSource
   else
-    SearchRec.LKind := Left.Operand.Kind;  SearchRec.RType := vtUnknown;
+    SearchRec.LKind := Left.Operand.Kind;
+
+  SearchRec.RUserType := nil;
+  SearchRec.RType := vtUnknown;
 
   SearchRec.LIsRange := (SearchRec.LKind = pkImmediate) and IsNumericType(SearchRec.LType);
   if SearchRec.LIsRange then
@@ -492,21 +503,26 @@ begin
     SearchRec.IsSigned := SearchRec.LRange in SignedRanges
   else
     SearchRec.IsSigned := IsSignedType(SearchRec.LType);
-  SearchRec.IsPointer := not SearchRec.LIsRange and (SearchRec.LType = vtPointer);
+  SearchRec.IsPointer := not SearchRec.LIsRange and (SearchRec.LType in [vtPointer, vtTypedPointer]);
 
   Result := PrimSearch(SearchRec);
 
-  LeftType := SearchRec.LType;
-  if (SearchRec.ResultType in [vtReal, vtString]) or (SearchRec.LType in [vtReal, vtString]) or
-    (SearchRec.RType in [vtReal, vtString]) then
-    Result := False;
+  if SearchRec.ReturnLUserType <> nil then
+    LeftType := SearchRec.ReturnLUserType;
 
-  if SearchRec.IsPointer and (SearchRec.ResultType = vtWord) then
-    ResultType := vtPointer
-  else if SearchRec.ResultType = vtFlag then
-    ResultType := vtBoolean
-  else
-    ResultType := SearchRec.ResultType;
+  if SearchRec.ReturnResultUserType <> nil then
+  begin
+    ResultType := SearchRec.ReturnResultUserType;
+    if SearchRec.IsPointer then
+      if ResultType.VarType = vtWord then
+        ResultType := GetSystemType(vtPointer);
+
+    if (ResultType.VarType in [vtReal, vtString]) or (SearchRec.LType in [vtReal, vtString]) then
+      Assert(False);  //TODO
+
+    if ResultType.VarType = vtFlag then
+      ResultType := GetSystemType(vtBoolean);
+  end;
 end;
 
 //Matching Primitives
@@ -531,15 +547,18 @@ begin
   SearchRec.GenTime := True;
   SearchRec.ILItem := @ILItem;
   //Deduce the initial types to search for
+  SearchRec.LUserType := ILItem.Param1.GetUserType;
   SearchRec.LType := ILItem.Param1.GetVarType;
   SearchRec.LIsRange := False;
+  SearchRec.RUserType := ILItem.Param2.GetUserType;
   SearchRec.RType := ILItem.Param2.GetVarType;
   SearchRec.RIsRange := False;
   SearchRec.IsSigned := Operations[ILItem.Op].SignCombine and (IsSignedType(SearchRec.LType) or IsSignedType(SearchRec.RType));
-  SearchRec.IsPointer := Operations[ILItem.Op].SignCombine and ((SearchRec.LType = vtPointer) or (SearchRec.RType = vtPointer));
+  SearchRec.IsPointer := Operations[ILItem.Op].SignCombine and
+    ((SearchRec.LType in [vtPointer, vtTypedPointer]) or (SearchRec.RType in [vtPointer, vtTypedPointer]));
   //Do we need a boolean result in a flag (for a jump) or register (for assigning)?
-  if ILItem.ResultType in [vtBoolean, vtFlag] then
-    SearchRec.MatchResultType := ILItem.ResultType
+  if ILItem.ResultVarType in [vtBoolean, vtFlag] then
+    SearchRec.MatchResultType := ILItem.ResultVarType
   else
     SearchRec.MatchResultType := vtUnknown;
 
@@ -547,21 +566,21 @@ begin
   if SearchRec.LKind in [pkVarSource, pkVarAddr] then
   begin
     V := ILItem.Param1.ToVariable;
-    SearchRec.LStorage := V.Storage;
+    SearchRec.LAddrMode := V.AddrMode;
   end;
 
   SearchRec.RKind := ILItem.Param2.Kind;
   if SearchRec.RKind in [pkVarSource, pkVarAddr] then
   begin
     V := ILItem.Param2.ToVariable;
-    SearchRec.RStorage := V.Storage;
+    SearchRec.RAddrMode := V.AddrMode;
   end;
 
   SearchRec.ResultKind := ILItem.Dest.Kind;
   if SearchRec.ResultKind = pkVarDest then
   begin
     V := ILItem.Dest.ToVariable;
-    SearchRec.ResultStorage := V.Storage;
+    SearchRec.ResultAddrMode := V.AddrMode;
   end;
 
   if PrimSearch(SearchRec) then

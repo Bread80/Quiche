@@ -1,0 +1,1 @@
+;Records;========================DECLARATIONS;TODO - this needs fleshing outcode Record Basic  type data=record      x: Integer;      y: Integer;    endendcodecompile noerror;=========================INSTANTIATE VARScode Inst Record  type TData=record      x: Integer;      y: Integer;    end var A: TDataendcodecompile noerror

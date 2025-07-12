@@ -13,7 +13,8 @@ unit IDE.Compiler;
 interface
 uses Classes,
   Def.Globals,
-  Parse.Errors,
+  Parse, Parse.Errors,
+  Z80.GenProcs,
   IDE.Config;
 
 //==================Errors and return values
@@ -29,11 +30,15 @@ function ParseErrorHelp: String;
 var AssemblerLog: String;
   AssembleError: Boolean;
 
-//Emulator
+//If an error occured during deployment
+var DeployError: String;
+
+//Built in emulator
 var WriteBuffer: String;    //Text written to output
 var RunTimeError: Byte;
 var RunTimeErrorAddress: Word;
 
+var CompileTime: Double;  //Time taken to compile
 
 //==================Config
 
@@ -74,7 +79,7 @@ procedure DefaultInitFolders;
 //  WarmInit, if True (not recommended) skips various steps, such as loading various
 //  data files (operators, primitives etc).
 procedure Initialise(InitDirectives, WarmInit: Boolean);
-
+(*
 type TParseType = (
   //Parse at the declarations level. Allows functions and globals. Requires BEGIN...END. block
   ptDeclarations,
@@ -83,23 +88,23 @@ type TParseType = (
 
 const ParseTypeStrings: array[low(TParseType)..high(TParseType)] of String = (
   'Declarations', 'Code');
-
+*)
 //'One click' compile to binary
 //Returns False if there was an error
-function CompileStrings(SL: TStrings;BlockType: TBlockType;ParseType: TParseType;
+//ParseMode should be ptProgram or ptRootUnknown. Other values are only (potentially)
+//useful for testing
+function CompileStrings(SL: TStrings;BlockType: TBlockType;ParseMode: TParseMode;
   InitDirectives, WarmInit: Boolean): Boolean;
-function CompileString(S: String;BlockType: TBlockType;ParseType: TParseType;
+function CompileString(S: String;BlockType: TBlockType;ParseMode: TParseMode;
   InitDirectives, WarmInit: Boolean): Boolean;
 
 //Run the interpreter (no longer used or updated)
 procedure RunInterpreter;
 procedure GetInterpreterOutput(S: TStrings);
 
-//Run the emulator
-//Returns False if there was an error whilst trying to run the emulator
-{$ifdef EMULATOR}
-function Emulate(Filename: String): Boolean;
-{$endif}
+//Deploy the compiled binary
+//Returns False if there was an error.
+function Deploy(Filename: String): Boolean;
 
 //====Query compiler data
 
@@ -124,10 +129,12 @@ procedure SaveObjectCode(Filename: String);
 
 implementation
 uses SysUtils, {$ifdef fpc}FileUtil,{$else}IOUtils,{$endif}
-  Def.Functions, Def.IL, Def.Intrinsics, Def.Operators, Def.Primitives, Def.Scopes,
-  Def.Variables, Def.Consts, Def.QTypes,
-  Parse, Parse.Base,
-  CodeGen, CG.Fragments,
+  Def.Functions, Def.IL, Def.Intrinsics, Def.Operators, Def.Scopes,
+  Def.Variables, Def.Consts, Def.QTypes, Def.UserTypes,
+  Parse.Base,
+  Lib.Data, Lib.Primitives,
+  CodeGen, CG.Data,
+  CleverPuppy, Z80.AlgoData,
   {$IFDEF EMULATOR}IDE.Emulator, {$endif}
   IDE.ILExec, IDE.Shell;
 
@@ -170,7 +177,7 @@ var BinaryFileName: String;
 const DeployFolderName = 'Deploy';
   DeployExtension = '.deploy';
 
-var Deploy: TDeploy;
+var DeployData: TDeployment;
 const
   DefaultPlatformName = 'Default';
 
@@ -179,6 +186,7 @@ const
   OperatorsFilename = 'OperatorsNG.csv';
   PrimitivesFilename = 'PrimitivesNG.csv';
   IntrinsicsFilename = 'Intrinsics.csv';
+  AlgoDataFilename = 'AlgoData.txt';
 
   QuicheCoreFilename = 'Assembler/QuicheCore.asm';
   PlatformsBaseFolder = 'Platforms';
@@ -259,7 +267,7 @@ end;
 
 procedure ClearDeploy;
 begin
-  Deploy.Clear;
+  DeployData.Clear;
 end;
 
 function SetDeploy(const DeployName: String): Boolean;
@@ -274,15 +282,21 @@ begin
   else
     Name := DeployName + DeployExtension;
 
+{$ifdef fpc}
+  Name := ConcatPaths([GetDeployFolder, Name]);
+{$else}
+  Name := TPath.Combine(GetDeployFolder, Name);
+{$endif}
+
   Result := FileExists(Name);
   if not Result then
     EXIT;
 
   ClearDeploy;
 {$ifdef fpc}
-  Deploy.LoadFromFile(ConcatPaths([GetDeployFolder, Name]));
+  DeployData.LoadFromFile(Name);
 {$else}
-  Deploy.LoadFromFile(TPath.Combine(GetDeployFolder, Name));
+  DeployData.LoadFromFile(Name);
 {$endif}
 end;
 
@@ -321,7 +335,6 @@ begin
 end;
 
 procedure DefaultInitFolders;
-var Folder: String;
 begin
 {$ifdef fpc}
 //<Base>/redist/bin
@@ -340,88 +353,6 @@ begin
 
   //TODO
   IDE.Compiler.OutputFolder := 'C:\RetroTools\Quiche';
-end;
-
-//====Initialisation
-
-function CodeGenCallback: Boolean;
-var Scope: PScope;
-begin
-  Scope := GetCurrentScope;
-  Result := CodeGenBlock(Scope, btDefault);
-end;
-
-procedure LoadFragmentsLibrary(Filename: String);
-begin
-  CG.Fragments.LoadFragmentsFile(Filename);
-end;
-
-procedure DoInitDirectives;
-begin
-  optVarAutoCreate := Config.AllowAutoCreation;
-  optOverflowChecks := Config.OverflowChecks;
-  optRangeChecks := Config.RangeChecks;
-  optDefaultVarStorage := Config.DefaultVarStorage;
-  optDefaultCallingConvention := Config.DefaultCallingConvention;
-  optDefaultSignedInteger := True;
-  optDefaultSmallestInteger := False;
-end;
-
-procedure Initialise(InitDirectives, WarmInit: Boolean);
-begin
-  ParseErrorNo := 0;
-  LastError := qeNone;
-  Parse.OnScopeDone := CodeGenCallback;
-  if InitDirectives then
-    DoInitDirectives;
-
-  InitialiseSkipMode;
-  InitialiseConsts;
-  InitialiseVars;
-  InitialiseScopes;
-
-  if not WarmInit then
-  begin
-{$ifdef fpc}
-    LoadErrorData(ConcatPaths([BinFolder, ErrorsFilename]));
-{$else}
-    LoadErrorData(TPath.Combine(BinFolder, ErrorsFilename));
-{$endif}
-    InitialiseOperators;
-{$ifdef fpc}
-    LoadOperatorsFile(ConcatPaths([BinFolder, OperatorsFilename]));
-{$else}
-    LoadOperatorsFile(TPath.Combine(BinFolder, OperatorsFilename));
-{$endif}
-    InitialiseFragments;
-{$ifdef fpc}
-    LoadFragmentsLibrary(ConcatPaths([BinFolder, FragmentsFilename]));
-{$else}
-    LoadFragmentsLibrary(TPath.Combine(BinFolder, FragmentsFilename));
-{$endif}
-    InitialisePrimitives;
-{$ifdef fpc}
-    LoadPrimitivesFile(ConcatPaths([BinFolder, PrimitivesFilename]));
-{$else}
-    LoadPrimitivesFile(TPath.Combine(BinFolder, PrimitivesFilename));
-{$endif}
-  end;
-  //Intrinsics are owned by the root Scope which is always cleared, so we must
-  //reload for every run
-  InitialiseIntrinsics;
-{$ifdef fpc}
-  LoadIntrinsicsFile(ConcatPaths([BinFolder, IntrinsicsFilename]));
-{$else}
-  LoadIntrinsicsFile(TPath.Combine(BinFolder, IntrinsicsFilename));
-{$endif}
-
-{$ifdef fpc}
-  InitialiseCodeGen(ConcatPaths([GetPlatformFolder, 'Assembler/', Config.PlatformName + '.asm']),
-    ConcatPaths([QuicheFolder, QuicheCoreFilename]));
-{$else}
-  InitialiseCodeGen(TPath.Combine(GetPlatformFolder, 'Assembler/' + Config.PlatformName + '.asm'),
-    TPath.Combine(QuicheFolder, QuicheCoreFilename));
-{$endif}
 end;
 
 procedure LoadSourceFile(Filename: String);
@@ -443,30 +374,24 @@ end;
 
 //Parse the code which has been loaded
 //Returns True if parsing was successful, otherwise consult LastErrorNo and LastErrorString
-function DoParse(BlockType: TBlockType;ParseType: TParseType): Boolean;
+function DoParse(BlockType: TBlockType;ParseMode: TParseMode): Boolean;
+//var ParseMode: TParseMode;
 begin
   LastError := qeNone;
-  try
-
-  //Declaration level
-  case ParseType of
-    ptDeclarations:
-      case BlockType of
-        btDefault: LastError := ParseDeclarations(True, True, optDefaultVarStorage);
-        btStatic:  LastError := ParseDeclarations(True, True, vsStatic);
-        btStack:   LastError := ParseDeclarations(True, True, vsStack);
-      end;
-    ptCode:
-    //Block level
-    while (LastError = qeNone) and not ParserEOF do
-      case BlockType of
-        btDefault: LastError := ParseStatements(eaEOF, optDefaultVarStorage);
-        btStack: LastError := ParseStatements(eaEOF, vsStack);
-        btStatic: LastError := ParseStatements(eaEOF, vsStatic);
-      else
-        raise Exception.Create('Unknown compile scope in Compiler.Parse');
-      end;
+(*  case ParseType of
+    ptDeclarations: ParseMode := pmProgram;
+    ptCode: ParseMode := pmRootUnknown;
+  else
+    Assert(False);
+    ParseMode := pmRootUnknown;
   end;
+*)
+  try
+    case BlockType of
+      btDefault: LastError := ParseQuiche(ParseMode, optDefaultAddrMode);
+      btStatic:  LastError := ParseQuiche(ParseMode, amStatic);
+      btStack:   LastError := ParseQuiche(ParseMode, amStack);
+    end;
   except
     on E:Exception do
       LastError := ErrBUG('(Exception/Assertion):'+#13+E.Message);
@@ -482,10 +407,26 @@ function DoCodeGen(BlockType: TBlockType): Boolean;
 var Scope: PScope;
 begin
   Scope := GetCurrentScope;
-  Result := CodeGenBlock(Scope, BlockType);
+  if optCleverPuppy then
+  begin
+    Scope.CleverPuppy := TCleverPuppy.Create;
+    Scope.CleverPuppy.ProcessSection;
+  end;
+
+  Result := CodeGenSection(Scope, BlockType);
 //  LastErrorNo := Integer(LastError);
 end;
 
+function CodeGenCallback: Boolean;
+begin
+  Result := DoCodeGen(btDefault);
+end;
+(*var Scope: PScope;
+begin
+  Scope := GetCurrentScope;
+  Result := CodeGenSection(Scope, btDefault);
+end;
+*)
 procedure GetObjectCode(S: TStrings);
 var Scope: PScope;
 begin
@@ -518,10 +459,12 @@ begin
 end;
 
 //Compile source in parser
-function Compile(BlockType: TBlockType;ParseType: TParseType): Boolean;
+function Compile(BlockType: TBlockType;ParseMode: TParseMode): Boolean;
+var Start: Double;
 begin
-  //CodeGen
-  Result := IDE.Compiler.DoParse(BlockType, ParseType);
+  CompileTime := 0;
+  Start := Now;
+  Result := IDE.Compiler.DoParse(BlockType, ParseMode);
   if not Result then
     EXIT;
 
@@ -536,30 +479,40 @@ begin
 
   //Assemble
   Result := IDE.Compiler.Assemble(AssemblerFileName);
+
+  CompileTime := Now - Start;
 end;
 
-function CompileStrings(SL: TStrings;BlockType: TBlockType;ParseType: TParseType;
+function CompileStrings(SL: TStrings;BlockType: TBlockType;ParseMode: TParseMode;
   InitDirectives, WarmInit: Boolean): Boolean;
+var Start: Double;
 begin
+  Start := Now;
   Initialise(InitDirectives, WarmInit);
   LoadSourceStrings(SL);
 
-  Result := Compile(BlockType, ParseType);
+  Result := Compile(BlockType, ParseMode);
+
+  CompileTime := Now-Start;
 end;
 
-function CompileString(S: String;BlockType: TBlockType;ParseType: TParseType;
+function CompileString(S: String;BlockType: TBlockType;ParseMode: TParseMode;
   InitDirectives, WarmInit: Boolean): Boolean;
+var Start: Double;
 begin
+  Start := Now;
   //Initialise
   Initialise(InitDirectives, WarmInit);
 
   //Parse
   LoadSourceString(S);
 
-  Result := Compile(BlockType, ParseType);
+  Result := Compile(BlockType, ParseMode);
+
+  CompileTime := Now-Start;
 end;
 
-//====Interpreter (deprecated) and Emulator
+//==============================Deployments
 
 procedure RunInterpreter;
 begin
@@ -571,41 +524,47 @@ begin
   S.Assign(ExecOutput);
 end;
 
-{$ifdef EMULATOR}
-function Emulate(Filename: String): Boolean;
-const //For inbuilt emulator
-  StackBase = $f000;
-  StackFrameSize = 4; //Return address and previous IX
+function Deploy(Filename: String): Boolean;
+//const //For inbuilt emulator
+//  StackBase = $f000;
+//  StackFrameSize = 4; //Return address and previous IX
 begin
-  if Deploy.Run = '' then
+  if DeployData.Executable = '' then
   begin //Use inbuilt emulator
-    IDE.Emulator.Initialise(Deploy.GetConfigFile);
+    {$ifdef EMULATOR}
+    IDE.Emulator.Initialise(DeployData.GetConfigFile);
     IDE.Emulator.RunToHalt;
     IDE.Emulator.TryReadByte('LAST_ERROR_CODE', RunTimeError);
     IDE.Emulator.TryReadWord('LAST_ERROR_ADDR', RunTimeErrorAddress);
     IDE.Emulator.GetVarData(VarGetParamsByteSize + StackFrameSize);
+    Result := True;
+    {$else}
+    Result := False;
+    DeployError := 'Inbuilt emulator is currently unavailable in the command line compiler';
+    {$endif}
   end
   else
-  begin
-{$ifdef fpc}
-    raise Exception.Create('Shelling to an emulator is currently unsupported');
-{$else}
-    IDE.Shell.Emulate(Deploy.Run, 'C:\');
-{$endif}
+  begin //Shell to an external emulator
+    DeployError := IDE.Shell.DoDeploy(DeployData);
+    Result := DeployError = '';
 {
     WriteBuffer :=  Variables.LoadVarsFromMemoryDump(TPath.Combine(OutputFolder, scRAMDump),
       StackBase - StackFrameSize, RunTimeError, RunTimeErrorAddress);
 }  end;
-
-  Result := True;
 end;
-{$endif}
 
 //====Query data (after compiling)
 
 procedure GetILText(S: TStrings);
+var Scope: PScope;
 begin
   ILToStrings(S);
+  Scope := GetCurrentScope;
+  if Assigned(Scope.CleverPuppy) then
+  begin
+    S.Add(Scope.CleverPuppy.ToString);
+    S.Add(Scope.CleverPuppy.Log.Text);
+  end;
 end;
 
 procedure GetScopeList(S: TStrings);
@@ -633,13 +592,100 @@ end;
 procedure GetFunctionsText(S: TStrings);
 begin
   FunctionsToStrings(S);
+  S.Add(#13#13'Types');
+  S.Add(Types.ToString);
+end;
+
+
+//====Initialisation
+
+procedure LoadFragmentsLibrary(Filename: String);
+begin
+  LoadFragmentsFile(Filename);
+end;
+
+procedure DoInitDirectives;
+begin
+  optVarAutoCreate := Config.AllowAutoCreation;
+  optOverflowChecks := Config.OverflowChecks;
+  optRangeChecks := Config.RangeChecks;
+  optDefaultAddrMode := Config.DefaultAddrMode;
+  optDefaultCallingConvention := Config.DefaultCallingConvention;
+  optDefaultSignedInteger := True;
+  optDefaultSmallestInteger := False;
+  optCleverPuppy := False;
+end;
+
+procedure Initialise(InitDirectives, WarmInit: Boolean);
+begin
+  ParseErrorNo := 0;
+  LastError := qeNone;
+  Parse.OnScopeDone := CodeGenCallback;
+  if InitDirectives then
+    DoInitDirectives;
+
+  InitialiseSkipMode;
+  InitialiseConsts;
+  InitialiseTypes;
+  InitialiseVars;
+  InitialiseScopes;
+
+  if not WarmInit then
+  begin
+{$ifdef fpc}
+    LoadErrorData(ConcatPaths([BinFolder, ErrorsFilename]));
+{$else}
+    LoadErrorData(TPath.Combine(BinFolder, ErrorsFilename));
+{$endif}
+    InitialiseOperators;
+{$ifdef fpc}
+    LoadOperatorsFile(ConcatPaths([BinFolder, OperatorsFilename]));
+{$else}
+    LoadOperatorsFile(TPath.Combine(BinFolder, OperatorsFilename));
+{$endif}
+    InitialiseFragments;
+{$ifdef fpc}
+    LoadFragmentsLibrary(ConcatPaths([BinFolder, FragmentsFilename]));
+{$else}
+    LoadFragmentsLibrary(TPath.Combine(BinFolder, FragmentsFilename));
+{$endif}
+    InitialisePrimitives;
+{$ifdef fpc}
+    LoadPrimitivesFile(ConcatPaths([BinFolder, PrimitivesFilename]));
+{$else}
+    LoadPrimitivesFile(TPath.Combine(BinFolder, PrimitivesFilename));
+{$endif}
+
+    Z80.GenProcs.Initialise;
+  end;
+  //Intrinsics are owned by the root Scope which is always cleared, so we must
+  //reload for every run
+  InitialiseIntrinsics;
+{$ifdef fpc}
+  LoadIntrinsicsFile(ConcatPaths([BinFolder, IntrinsicsFilename]));
+{$else}
+  LoadIntrinsicsFile(TPath.Combine(BinFolder, IntrinsicsFilename));
+{$endif}
+
+{$ifdef fpc}
+  InitialiseCodeGen(ConcatPaths([GetPlatformFolder, 'Assembler/', Config.PlatformName + '.asm']),
+    ConcatPaths([QuicheFolder, QuicheCoreFilename]));
+{$else}
+  InitialiseCodeGen(TPath.Combine(GetPlatformFolder, 'Assembler/' + Config.PlatformName + '.asm'),
+    TPath.Combine(QuicheFolder, QuicheCoreFilename));
+{$endif}
+{$ifdef fpc}
+  LoadAlgoData(ConcatPaths([BinFolder, AlgoDataFilename]));
+{$else}
+  LoadAlgoData(TPath.Combine(BinFolder, AlgoDataFilename));
+{$endif}
 end;
 
 initialization
   //Default values for compiler options
   Config.AllowAutoCreation := False;
   Config.OverflowChecks := True;
-  Config.DefaultVarStorage := vsStack;//vsAbsolute;
+  Config.DefaultAddrMode := amStack;//vsAbsolute;
   Config.DefaultCallingConvention := ccStack;
 end.
 

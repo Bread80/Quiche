@@ -29,8 +29,7 @@ uses Classes, Generics.Collections, SysUtils,
   Lib.CPUState,
   Parse.Source,
   CG.Data,
-  CG.CPUState.Z80,
-  Z80.Hardware, Z80.Assembler, Z80.GenProcs, CG.Load.Z80;
+  Z80.CPUState, Z80.Hardware, Z80.Assembler, Z80.GenProcs, Z80.Load;
 
 //==============================SUBSTITUTIONS
 
@@ -41,7 +40,7 @@ end;
 
 function ImmHighByte(const Param: TILParam): String;
 begin
-  Assert(IsIntegerType(Param.Imm.VarType));
+  Assert(IsIntegerVarType(Param.Imm.VarType));
   Result := ByteToStr(hi(Param.Imm.IntValue));
 end;
 
@@ -54,7 +53,7 @@ function CodeOffset(const Param: TILParam;out Comment: String): String;
 var Variable: PVariable;
 begin
   Variable := Param.ToVariable;
-  Assert(Variable.Storage = vsStack);
+  Assert(Variable.AddrMode = amStack);
   Result := OffsetToStr(rIX, Variable);
   Comment := Variable.Name;
 end;
@@ -63,7 +62,7 @@ function CodeOffsetHigh(const Param: TILParam;out Comment: String): String;
 var Variable: PVariable;
 begin
   Variable := Param.ToVariable;
-  Assert(Variable.Storage = vsStack);
+  Assert(Variable.AddrMode = amStack);
   Result := OffsetToStr(rIX, Variable, 1);
   Comment := Variable.Name;
 end;
@@ -72,7 +71,7 @@ function CodeRawOffset(const Param: TILParam;out Comment: String): String;
 var Variable: PVariable;
 begin
   Variable := Param.ToVariable;
-  Assert(Variable.Storage = vsStack);
+  Assert(Variable.AddrMode = amStack);
   Result := '';
   if Variable.Offset < 0 then
     Result := Result + '0-';
@@ -84,7 +83,7 @@ function CodeVarName(const Param: TILParam;out Comment: String): String;
 var Variable: PVariable;
 begin
   Variable := Param.ToVariable;
-  Assert(Variable.Storage = vsStatic);
+  Assert(Variable.AddrMode = amStatic);
   Result := Variable.GetAsmName;
   Comment := Variable.Name;
 end;

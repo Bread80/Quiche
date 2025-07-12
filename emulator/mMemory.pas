@@ -6,29 +6,17 @@ uses SysUtils, mHardware;
 type TRAM = class(TMemory)
   private
     FRAM: array[0..$ffff] of byte;
-//    FHookRead: TFunc<Word, Byte, Byte>;
-//    FHookWrite: TProc<Word, Byte, Byte>;
   protected
-    class function GetClassName: String;
+    //Reads data from memory - hook the HookRead property if you want to see what
+    //is being read and/or modify it.
+    function DoTryWriteByte(Addr: Word;Data: Byte): Boolean;override;
+    function DoTryReadByte(Addr: Word;var Data: Byte): Boolean;override;
   public
     procedure LoadBin(Filename: String;Addr: Word);
 
     procedure Reset;override;
 
-    //Reads data from memory - hook the HookRead property if you want to see what
-    //is being read and/or modify it.
-    function TryWriteByte(Addr: Word;Data: Byte): Boolean;override;
-    function TryReadByte(Addr: Word;var Data: Byte): Boolean;override;
-
     procedure DumpMemory(AFilename: String);override;
-
-    //Sends Address, Old (existing) data byte at that address and
-    //New byte being written to the address
-//    property HookWrite: TProc<Word,Byte,Byte> read FHookWrite write FHookWrite;
-    //Sends Address and memory data byte at that address
-    //Returns data byte to be read by the z80 - this could be the original byte
-    //or data modified by the hooking routine.
-//    property HookRead: TFunc<Word,Byte,Byte> read FHookRead write FHookRead;
 
 //    property Data[Addr: Word]: Byte read Read8 write Write8;default;
   end;
@@ -67,11 +55,6 @@ begin
 {$else}
   TFile.WriteAllBytes(AFilename, Bytes);
 {$endif}
-end;
-
-class function TRAM.GetClassName: String;
-begin
-  Result := 'RAM';
 end;
 
 function LoadByteArray(const AFileName: string): TBytes;
@@ -126,14 +109,13 @@ begin
   //Do nothing
 end;
 
-function TRAM.TryReadByte(Addr: Word; var Data: Byte): Boolean;
+function TRAM.DoTryReadByte(Addr: Word; var Data: Byte): Boolean;
 begin
-  Result := True;
   Data := FRAM[Addr];
-//  Data := $80;
+  Result := True;
 end;
 
-function TRAM.TryWriteByte(Addr: Word; Data: Byte): Boolean;
+function TRAM.DoTryWriteByte(Addr: Word; Data: Byte): Boolean;
 begin
   Result := True;
   FRam[Addr] := Data;
@@ -154,5 +136,5 @@ begin
 end;
 }
 initialization
-  Hardware.RegisterDevice(TRam.GetClassName, TRam);
+  Hardware.RegisterDevice(TRam.GetTypeID, TRam);
 end.

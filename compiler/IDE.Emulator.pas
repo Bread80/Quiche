@@ -18,7 +18,7 @@ uses SysUtils,
   mHardware,
   //Include hardware so it is registered
   mMemory,
-  Def.QTypes, Def.Consts, Def.Variables;
+  Def.QTypes, Def.Consts, Def.Variables, Def.UserTypes;
 
 var CurrConfigFile: String;
 
@@ -163,28 +163,49 @@ begin
   for I := 0 to VarGetCount-1 do
   begin
     V := VarIndexToData(I);
-    case V.Storage of
-      vsStatic:
+    case V.AddrMode of
+      amStatic:
         case V.VarType of
-          vtByte, vtChar, vtBoolean: V.Value := TImmValue.CreateTyped(V.VarType, ReadByte(V.GetAsmName));
-          vtWord, vtPointer: V.Value := TImmValue.CreateTyped(V.VarType, ReadWord(V.GetAsmName));
-          vtInt8: V.Value := TImmValue.CreateTyped(vtInt8, ReadInt8(V.GetAsmName));
-          vtInteger: V.Value := TImmValue.CreateTyped(vtInteger, ReadInteger(V.GetAsmName));
+          vtByte, vtChar, vtBoolean: V.Value := TImmValue.CreateTyped(V.UserType, ReadByte(V.GetAsmName));
+          vtWord, vtPointer, vtTypedPointer: V.Value := TImmValue.CreateTyped(V.UserType, ReadWord(V.GetAsmName));
+          vtInt8: V.Value := TImmValue.CreateTyped(V.UserType, ReadInt8(V.GetAsmName));
+          vtInteger: V.Value := TImmValue.CreateTyped(V.UserType, ReadInteger(V.GetAsmName));
           vtString: V.Value := TImmValue.CreateString(ReadMemoryString(ReadWord(V.GetAsmName)));
           vtReal, vtFlag, vtTypeDef, vtUnknown: ;//TODO?
+          vtEnumeration: V.Value := TImmValue.CreateEnumItem(V.UserType, ReadByte(V.GetAsmName));
+          vtSubRange:
+            case GetTypeSize(V.UserType) of
+              1: V.Value := TImmValue.CreateTyped(V.UserType, ReadByte(V.GetAsmName));
+              2: V.Value := TImmValue.CreateTyped(V.UserType, ReadWord(V.GetAsmName));
+            else
+              raise Exception.Create('Invalid SubRange size');
+            end;
+          vtSetMem: V.Value := TImmValue.CreateString('TODO: SetMem type');
+          vtArray, vtList: V.Value := TImmValue.CreateString('TODO: Read List data');
+          vtFunction: V.Value := TImmValue.CreateString('TODO: Function types');
         else
           Assert(False);
         end;
-      vsStack:
+      amStack:
       begin
         Addr := (IX + V.Offset) and $ffff;
         case V.VarType of
-          vtByte, vtChar, vtBoolean: V.Value := TImmValue.CreateTyped(V.VarType, Hardware.ReadMemoryByte(Addr));
-          vtWord, vtPointer: V.Value := TImmValue.CreateTyped(V.VarType, Hardware.ReadMemoryWord(Addr));
-          vtInt8: V.Value := TImmValue.CreateTyped(vtInt8, ReadMemoryInt8(Addr));
-          vtInteger: V.Value := TImmValue.CreateTyped(vtInteger, ReadMemoryInteger(Addr));
+          vtByte, vtChar, vtBoolean: V.Value := TImmValue.CreateTyped(V.UserType, Hardware.ReadMemoryByte(Addr));
+          vtWord, vtPointer, vtTypedPointer: V.Value := TImmValue.CreateTyped(V.UserType, Hardware.ReadMemoryWord(Addr));
+          vtInt8: V.Value := TImmValue.CreateTyped(V.UserType, ReadMemoryInt8(Addr));
+          vtInteger: V.Value := TImmValue.CreateTyped(V.UserType, ReadMemoryInteger(Addr));
           vtString: V.Value := TImmValue.CreateString(ReadMemoryString(Hardware.ReadMemoryWord(Addr)));
           vtReal, vtFlag, vtTypeDef, vtUnknown: ;//TODO?
+          vtEnumeration: V.Value := TImmValue.CreateEnumItem(V.UserType, Hardware.ReadMemoryByte(Addr));
+          vtSubRange:
+            case GetTypeSize(V.UserType) of
+              1: V.Value := TImmValue.CreateTyped(V.UserType, Hardware.ReadMemoryByte(Addr));
+              2: V.Value := TImmValue.CreateTyped(V.UserType, Hardware.ReadMemoryWord(Addr));
+            else
+              raise Exception.Create('Invalid SubRange size');
+            end;
+          vtArray, vtList: V.Value := TImmValue.CreateString('TODO: Read List data');
+          vtFunction: V.Value := TImmValue.CreateString('TODO: Function types');
         end;
       end;
     else

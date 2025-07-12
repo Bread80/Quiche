@@ -22,17 +22,17 @@
 ;,addr,const,Variable,Any,,,,,,,Pointer,"Returns the memory address of Variable (TODO: Const, function, return a typed pointer (vs generic pointer)",
 ,hi,val,Value,AnyInteger,,,,,,,Byte,"Returns high byte of Value. Value must be a 16-bit integer-type (Word, Pointer or Integer)",
 ;,,,,,,,,,,,,,Has hard coded validation in ParseArgList in Def.FuncCall
-,high,const,Type,TypeDef,,,,,,,Parameterized,Returns the highest value of an enumerable type,
+,high,const,Type,TypeDef,,,,,,,Parameterized,Returns the highest value of an ordinal type,
 ;,high,const,Variable,Array,,,,,,,Word,Highest index of array,
 ,inp,val,Port,Word,,,,,,,Byte,"Read data from an I/O port. Currently always uses IN C,(C) opcode. IN A,(n) is not yet supported",
 ,lo,val,Value,AnyInteger,,,,,,,Byte,"Returns low byte of Value. Value must be a 16-bit integer-type (Word, Pointer or Integer)",
 ;,,,,,,,,,,,,,Has hard coded validation in ParseArgList in Def.FuncCall
-,low,const,Type,TypeDef,,,,,,,Parameterized,Returns the lowest value of an enumerable type,
+,low,const,Type,TypeDef,,,,,,,Parameterized,Returns the lowest value of an ordinal type,
 ;,low,const,Variable,Array,,,,,,,Word,Lowest index of array,
 ,ord,val,Item,Ordinal,,,,,,,Integer,Returns the ordinal value of the item,
 ,out,val,Port,Word,,val,Data,Ordinal,,,None,Write Data to the given I/O port,
-,peek,val,Address,Word,,val,Type,TypeDef,Byte,,Parameterized,"Read from memory. Result type is that of second parameter, Byte if not specified",
-,poke,val,Address,Word,,const,Data,Any,,,None,"Writes Data to the given memory address. NOTE: If Data is a numeric type, always writes a single byte (otherwise data size could be unclear).",
+,peek,val,Address,Pointer,,val,Type,TypeDef,Byte,,Parameterized,"Read from memory. Result type is that of second parameter, Byte if not specified",
+,poke,val,Address,Pointer,,const,Data,Any,,,None,"Writes Data to the given memory address. NOTE: If Data is a numeric type, always writes a single byte (otherwise data size could be unclear).",
 ;,,,,,,,,,,,,,Has hard coded validation in ParseArgList in Def.FuncCall
 ,pred,val,Value,Ordinal,,val,Count,Integer,1,,Param1,Returns the Count'th previous value to the parameter. If used with Count=1 and Overflow checks off generates DEC opcodes.,
 ;,ptr,val,Value,Numeric,,,,,,,Pointer,Converts the value to a pointer,

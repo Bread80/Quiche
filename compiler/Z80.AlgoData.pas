@@ -127,8 +127,7 @@ var Parser: TGenericReader;
   end;
 
 
-var Ident: String;
-  Algo: TAlgo;
+var Algo: TAlgo;
 begin
   Algo := agUnspecified;
   Parser := TGenericReader.Create;

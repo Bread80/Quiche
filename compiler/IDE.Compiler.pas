@@ -13,7 +13,7 @@ unit IDE.Compiler;
 interface
 uses Classes,
   Def.Globals,
-  Parse.Errors,
+  Parse, Parse.Errors,
   Z80.GenProcs,
   IDE.Config;
 
@@ -30,11 +30,15 @@ function ParseErrorHelp: String;
 var AssemblerLog: String;
   AssembleError: Boolean;
 
-//Emulator
+//If an error occured during deployment
+var DeployError: String;
+
+//Built in emulator
 var WriteBuffer: String;    //Text written to output
 var RunTimeError: Byte;
 var RunTimeErrorAddress: Word;
 
+var CompileTime: Double;  //Time taken to compile
 
 //==================Config
 
@@ -76,31 +80,27 @@ procedure DefaultInitFolders;
 //  data files (operators, primitives etc).
 procedure Initialise(InitDirectives, WarmInit: Boolean);
 
-type TParseType = (
-  //Parse at the declarations level. Allows functions and globals. Requires BEGIN...END. block
-  ptDeclarations,
-  //Parse at the code level. Doesn't allow functions or globals. Doesn't require a block of any kind
-  ptCode);
-
-const ParseTypeStrings: array[low(TParseType)..high(TParseType)] of String = (
-  'Declarations', 'Code');
+//These are intended for self tests *only* - they expose the parser to the tester
+procedure LoadSourceFile(Filename: String);
+procedure LoadSourceStrings(SL: TStrings);
+procedure LoadSourceString(Source: String);
 
 //'One click' compile to binary
 //Returns False if there was an error
-function CompileStrings(SL: TStrings;BlockType: TBlockType;ParseType: TParseType;
+//ParseMode should be ptProgram or ptRootUnknown. Other values are only (potentially)
+//useful for testing
+function CompileStrings(SL: TStrings;BlockType: TBlockType;ParseMode: TParseMode;
   InitDirectives, WarmInit: Boolean): Boolean;
-function CompileString(S: String;BlockType: TBlockType;ParseType: TParseType;
+function CompileString(S: String;BlockType: TBlockType;ParseMode: TParseMode;
   InitDirectives, WarmInit: Boolean): Boolean;
 
 //Run the interpreter (no longer used or updated)
 procedure RunInterpreter;
 procedure GetInterpreterOutput(S: TStrings);
 
-//Run the emulator
-//Returns False if there was an error whilst trying to run the emulator
-{$ifdef EMULATOR}
-function Emulate(Filename: String): Boolean;
-{$endif}
+//Deploy the compiled binary
+//Returns False if there was an error.
+function Deploy(Filename: String): Boolean;
 
 //====Query compiler data
 
@@ -119,6 +119,8 @@ procedure GetVarsText(S: TStrings;TypeSummary: Boolean);
 
 procedure GetFunctionsText(S: TStrings);
 
+procedure GetTypesText(S: TStrings);
+
 procedure GetObjectCode(S: TStrings);
 
 procedure SaveObjectCode(Filename: String);
@@ -126,8 +128,8 @@ procedure SaveObjectCode(Filename: String);
 implementation
 uses SysUtils, {$ifdef fpc}FileUtil,{$else}IOUtils,{$endif}
   Def.Functions, Def.IL, Def.Intrinsics, Def.Operators, Def.Scopes,
-  Def.Variables, Def.Consts, Def.QTypes,
-  Parse, Parse.Base,
+  Def.Variables, Def.Consts, Def.QTypes, Def.UserTypes,
+  Parse.Base,
   Lib.Data, Lib.Primitives,
   CodeGen, CG.Data,
   CleverPuppy, Z80.AlgoData,
@@ -173,9 +175,9 @@ var BinaryFileName: String;
 const DeployFolderName = 'Deploy';
   DeployExtension = '.deploy';
 
-var Deploy: TDeploy;
+var DeployData: TDeployment;
 const
-  DefaultPlatformName = 'Default';
+  DefaultPlatformName = 'quiche';
 
   ErrorsFilename = 'Errors.txt';
   FragmentsFilename = 'Fragments.txt';
@@ -263,7 +265,7 @@ end;
 
 procedure ClearDeploy;
 begin
-  Deploy.Clear;
+  DeployData.Clear;
 end;
 
 function SetDeploy(const DeployName: String): Boolean;
@@ -290,9 +292,9 @@ begin
 
   ClearDeploy;
 {$ifdef fpc}
-  Deploy.LoadFromFile(Name);
+  DeployData.LoadFromFile(Name);
 {$else}
-  Deploy.LoadFromFile(Name);
+  DeployData.LoadFromFile(Name);
 {$endif}
 end;
 
@@ -331,7 +333,6 @@ begin
 end;
 
 procedure DefaultInitFolders;
-var Folder: String;
 begin
 {$ifdef fpc}
 //<Base>/redist/bin
@@ -371,22 +372,23 @@ end;
 
 //Parse the code which has been loaded
 //Returns True if parsing was successful, otherwise consult LastErrorNo and LastErrorString
-function DoParse(BlockType: TBlockType;ParseType: TParseType): Boolean;
-var ParseMode: TParseMode;
+function DoParse(BlockType: TBlockType;ParseMode: TParseMode): Boolean;
+//var ParseMode: TParseMode;
 begin
   LastError := qeNone;
-  case ParseType of
+(*  case ParseType of
     ptDeclarations: ParseMode := pmProgram;
     ptCode: ParseMode := pmRootUnknown;
   else
     Assert(False);
+    ParseMode := pmRootUnknown;
   end;
-
+*)
   try
     case BlockType of
-      btDefault: LastError := ParseQuiche(ParseMode, optDefaultVarStorage);
-      btStatic:  LastError := ParseQuiche(ParseMode, vsStatic);
-      btStack:   LastError := ParseQuiche(ParseMode, vsStack);
+      btDefault: LastError := ParseQuiche(ParseMode, optDefaultAddrMode);
+      btStatic:  LastError := ParseQuiche(ParseMode, amStatic);
+      btStack:   LastError := ParseQuiche(ParseMode, amStack);
     end;
   except
     on E:Exception do
@@ -455,10 +457,12 @@ begin
 end;
 
 //Compile source in parser
-function Compile(BlockType: TBlockType;ParseType: TParseType): Boolean;
+function Compile(BlockType: TBlockType;ParseMode: TParseMode): Boolean;
+var Start: Double;
 begin
-  //CodeGen
-  Result := IDE.Compiler.DoParse(BlockType, ParseType);
+  CompileTime := 0;
+  Start := Now;
+  Result := IDE.Compiler.DoParse(BlockType, ParseMode);
   if not Result then
     EXIT;
 
@@ -473,30 +477,40 @@ begin
 
   //Assemble
   Result := IDE.Compiler.Assemble(AssemblerFileName);
+
+  CompileTime := Now - Start;
 end;
 
-function CompileStrings(SL: TStrings;BlockType: TBlockType;ParseType: TParseType;
+function CompileStrings(SL: TStrings;BlockType: TBlockType;ParseMode: TParseMode;
   InitDirectives, WarmInit: Boolean): Boolean;
+var Start: Double;
 begin
+  Start := Now;
   Initialise(InitDirectives, WarmInit);
   LoadSourceStrings(SL);
 
-  Result := Compile(BlockType, ParseType);
+  Result := Compile(BlockType, ParseMode);
+
+  CompileTime := Now-Start;
 end;
 
-function CompileString(S: String;BlockType: TBlockType;ParseType: TParseType;
+function CompileString(S: String;BlockType: TBlockType;ParseMode: TParseMode;
   InitDirectives, WarmInit: Boolean): Boolean;
+var Start: Double;
 begin
+  Start := Now;
   //Initialise
   Initialise(InitDirectives, WarmInit);
 
   //Parse
   LoadSourceString(S);
 
-  Result := Compile(BlockType, ParseType);
+  Result := Compile(BlockType, ParseMode);
+
+  CompileTime := Now-Start;
 end;
 
-//====Interpreter (deprecated) and Emulator
+//==============================Deployments
 
 procedure RunInterpreter;
 begin
@@ -508,35 +522,37 @@ begin
   S.Assign(ExecOutput);
 end;
 
-{$ifdef EMULATOR}
-function Emulate(Filename: String): Boolean;
+function Deploy(Filename: String): Boolean;
 const //For inbuilt emulator
-  StackBase = $f000;
+//  StackBase = $f000;
   StackFrameSize = 4; //Return address and previous IX
 begin
-  if Deploy.Run = '' then
+  if DeployData.Executable = '' then
   begin //Use inbuilt emulator
-    IDE.Emulator.Initialise(Deploy.GetConfigFile);
+    {$ifdef EMULATOR}
+    IDE.Emulator.Initialise(DeployData.GetConfigFile);
     IDE.Emulator.RunToHalt;
     IDE.Emulator.TryReadByte('LAST_ERROR_CODE', RunTimeError);
     IDE.Emulator.TryReadWord('LAST_ERROR_ADDR', RunTimeErrorAddress);
     IDE.Emulator.GetVarData(VarGetParamsByteSize + StackFrameSize);
+    {$ifdef fpc}
+    writeln('Emulation successful');
+    {$endif}
+    Result := True;
+    {$else}
+    Result := False;
+    DeployError := 'Inbuilt emulator is currently unavailable in the command line compiler';
+    {$endif}
   end
   else
-  begin
-{$ifdef fpc}
-    raise Exception.Create('Shelling to an emulator is currently unsupported');
-{$else}
-    IDE.Shell.Emulate(Deploy.Run, 'C:\');
-{$endif}
+  begin //Shell to an external emulator
+    DeployError := IDE.Shell.DoDeploy(DeployData);
+    Result := DeployError = '';
 {
     WriteBuffer :=  Variables.LoadVarsFromMemoryDump(TPath.Combine(OutputFolder, scRAMDump),
       StackBase - StackFrameSize, RunTimeError, RunTimeErrorAddress);
 }  end;
-
-  Result := True;
 end;
-{$endif}
 
 //====Query data (after compiling)
 
@@ -577,8 +593,16 @@ end;
 procedure GetFunctionsText(S: TStrings);
 begin
   FunctionsToStrings(S);
+  S.Add(#13#13'Types');
+  S.Add(Types.ToString);
 end;
 
+procedure GetTypesText(S: TStrings);
+begin
+  TypesToStrings(S);
+  S.Add(#13#13'Types');
+  S.Add(Types.ToString);
+end;
 
 //====Initialisation
 
@@ -592,7 +616,7 @@ begin
   optVarAutoCreate := Config.AllowAutoCreation;
   optOverflowChecks := Config.OverflowChecks;
   optRangeChecks := Config.RangeChecks;
-  optDefaultVarStorage := Config.DefaultVarStorage;
+  optDefaultAddrMode := Config.DefaultAddrMode;
   optDefaultCallingConvention := Config.DefaultCallingConvention;
   optDefaultSignedInteger := True;
   optDefaultSmallestInteger := False;
@@ -609,6 +633,7 @@ begin
 
   InitialiseSkipMode;
   InitialiseConsts;
+  InitialiseTypes;
   InitialiseVars;
   InitialiseScopes;
 
@@ -667,7 +692,7 @@ initialization
   //Default values for compiler options
   Config.AllowAutoCreation := False;
   Config.OverflowChecks := True;
-  Config.DefaultVarStorage := vsStack;//vsAbsolute;
+  Config.DefaultAddrMode := amStack;//vsAbsolute;
   Config.DefaultCallingConvention := ccStack;
 end.
 

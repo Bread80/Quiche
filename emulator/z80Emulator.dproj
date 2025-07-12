@@ -354,8 +354,8 @@
             <Form>RegView</Form>
             <FormType>fmx</FormType>
         </DCCReference>
-        <DCCReference Include="..\Z80Disassembler\MDisassembler.pas"/>
-        <DCCReference Include="..\Z80Disassembler\MZ80Data.pas"/>
+        <DCCReference Include="..\..\Z80Disassembler\MDisassembler.pas"/>
+        <DCCReference Include="..\..\Z80Disassembler\MZ80Data.pas"/>
         <DCCReference Include="devRC2014SIO2.pas"/>
         <DCCReference Include="mHardware.pas"/>
         <DCCReference Include="vTerminal.pas">
@@ -376,6 +376,7 @@
             <FormType>fmx</FormType>
         </DCCReference>
         <DCCReference Include="..\TextEditor\EditableText.pas"/>
+        <DCCReference Include="..\TextEditor\ViewableText.pas"/>
         <DCCReference Include="..\TextEditor\TextBrowser.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>

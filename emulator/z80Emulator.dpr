@@ -10,8 +10,8 @@ uses
   mSymbols in 'mSymbols.pas',
   mz80Tester in 'mz80Tester.pas',
   vRegView in 'vRegView.pas' {RegView},
-  MDisassembler in '..\Z80Disassembler\MDisassembler.pas',
-  MZ80Data in '..\Z80Disassembler\MZ80Data.pas',
+  MDisassembler in '..\..\Z80Disassembler\MDisassembler.pas',
+  MZ80Data in '..\..\Z80Disassembler\MZ80Data.pas',
   devRC2014SIO2 in 'devRC2014SIO2.pas',
   mHardware in 'mHardware.pas',
   vTerminal in 'vTerminal.pas' {TerminalForm},
@@ -22,6 +22,7 @@ uses
   mMapFile in 'mMapFile.pas',
   vSourceFileView in 'vSourceFileView.pas' {SourceFileView},
   EditableText in '..\TextEditor\EditableText.pas',
+  ViewableText in '..\TextEditor\ViewableText.pas',
   TextBrowser in '..\TextEditor\TextBrowser.pas';
 
 {$R *.res}

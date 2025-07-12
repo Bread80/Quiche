@@ -34,7 +34,7 @@ type TSourcePuppy = class
 
 implementation
 uses Def.IL,
-  Z80.Hardware, Z80.Algos, Z80.AlgoData, CG.CPUState.Z80;
+  Z80.Hardware, Z80.Algos, Z80.AlgoData, Z80.CPUState;
 
 { TSourcePuppy }
 
@@ -71,8 +71,8 @@ var
   Param: PILParam;
   I: Integer;
   Reg: TCPUReg;
-  NewCombo: TChunkSequence;
-  StepIndex: Integer;
+//  NewCombo: TChunkSequence;
+//  StepIndex: Integer;
   Algo: TAlgo;
 begin
   //Reg state at end of penultimate chunk
@@ -175,7 +175,7 @@ begin
   if Step.SourceCount = 2 then
     EXIT(SetSourceOrderingPair(Combo, Step));
 
-  assert(False, 'TODO: More than two params');
+  Assert(False, 'TODO: More than two params');
 end;
 
 (*

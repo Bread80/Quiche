@@ -10,8 +10,8 @@ const
   csIdentOther = ['0'..'9','A'..'Z','a'..'z',{'.',}'_'];
   csDecimalFirst = ['0'..'9'];
   csHexChars = ['0'..'9','a'..'f','A'..'F'];
-  csSymbolFirst = ['*','/','+','-','=','<','>'];
-  csSymbolOther = ['=','>'];  //For <= and <>
+  csSymbolFirst = ['*','/','+','-','=','<','>','.'];
+  csSymbolOther = ['=','>','.'];  //For <= and <> and ..
 
 type TParseState = (psCode, psCurlyComment, psBraceComment);
 
@@ -261,6 +261,7 @@ begin
   end
   else
     FEOF := True;
+  Result := not FEOF;
 end;
 
 function TBaseReader.OpenFile(AFilename: String): Boolean;
@@ -314,6 +315,7 @@ end;
 procedure TBaseReader.SetCursor(const Cursor: TParseCursor);
 begin
   Assert(Filename = Cursor.Filename, 'Can''t set cursor into a different file');
+  FMarkLineNo := -1;
   FLineNo := Cursor.LineNo;
   FColumn := Cursor.Column;
   FIndent := Cursor.Indent;
@@ -387,21 +389,20 @@ begin
 end;
 
 function TGenericReader.ReadNumber: String;
-var Chars: set of Char;
-  Ch: Char;
+var Ch: Char;
 begin
   Result := '';
   if TestChar = '$' then
-  begin
+  begin //Hexadecimal
     Result := '$';
-    Chars := ['0'..'9','a'..'f','A'..'F'];
+    while CharInSet(TestChar, ['0'..'9','a'..'f','A'..'F']) do
+      if ReadChar(Ch) then
+        Result := Result + Ch;
   end
-  else
-    Chars := ['0'..'9'];
-
-  while CharInSet(TestChar, Chars) do
-    if ReadChar(Ch) then
-      Result := Result + Ch;
+  else  //Decimal
+    while CharInSet(TestChar, ['0'..'9']) do
+      if ReadChar(Ch) then
+        Result := Result + Ch;
 end;
 
 function TGenericReader.SkipWhiteNL: Boolean;
@@ -480,7 +481,10 @@ begin
           EXIT(qeNone);
         end
         else
+        begin
           SetCursor(Cursor);
+          EXIT(qeNone);
+        end;
       end;
       '\':  //Line continuation
       begin

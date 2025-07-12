@@ -45,6 +45,7 @@ type
   PCompilerConfig = ^TCompilerConfig;
   TCompilerConfig = record
     PlatformName: String;
+    DeployName: String;
 
     //CompilerOptions
 
@@ -63,7 +64,7 @@ type
     //Use the ($R} compiler directive
     RangeChecks: Boolean;
 
-    DefaultVarStorage: TVarStorage;
+    DefaultAddrMode: TAddrMode;
     DefaultCallingConvention: TCallingConvention;
 
     IDESettings: TIDESettings;
@@ -73,13 +74,15 @@ type
     procedure LoadFromFile(const Filename: String);
   end;
 
-  TDeploy = record
+  TDeployment = record
     //Deploy folder
     Folder: String;
 
     //Shell command to run the output
-    Run: String;
-    //ConfigFile for emulator
+    Executable: String;
+    //To pass to the executable
+    Parameters: TArray<String>;
+    //ConfigFile for emulator (if using)
     ConfigFile: String;
 
     procedure Clear;
@@ -93,6 +96,7 @@ uses SysUtils, {$ifdef fpc}LazFileUtils {$else}IOUtils{$endif};
 
 const
   scPlatform = 'Platform';
+  scDeploy = 'Deploy';
   scAllowautoCreation = 'AllowAutoCreation';
   scOverflowChecks = 'OverflowChecks';
   scRangeChecks = 'RangeChecks';
@@ -125,12 +129,13 @@ begin
   SL := TStringList.Create;
   try
     WriteString(SL, scPlatform, PlatformName);
+    WriteString(SL, scDeploy, DeployName);
     WriteBool(SL, scAllowAutoCreation, AllowAutoCreation);
     WriteBool(SL, scOverflowChecks, OverFlowChecks);
     WriteBool(SL, scRangeChecks, RangeChecks);
-    case DefaultVarStorage of
-      vsStatic: WriteString(SL, scDefaultVarStorage, scStorageAbsolute);
-      vsStack: WriteString(SL, scDefaultVarStorage, scStorageRelative);
+    case DefaultAddrMode of
+      amStatic: WriteString(SL, scDefaultVarStorage, scStorageAbsolute);
+      amStack: WriteString(SL, scDefaultVarStorage, scStorageRelative);
     else
       Assert(True);
     end;
@@ -182,6 +187,8 @@ begin
 
       if Option = scPlatform then
         PlatformName := Value
+      else if Option = scDeploy then
+        DeployName := Value
       else if Option = scAllowAutoCreation then
         AllowAutoCreation := ValueToBoolean(Value)
       else if Option = scOverflowChecks then
@@ -191,9 +198,9 @@ begin
       else if Option = scDefaultVarStorage then
       begin
         if Value = scStorageAbsolute then
-          DefaultVarStorage := vsStatic
+          DefaultAddrMode := amStatic
         else if Value = scStorageRelative then
-          DefaultVarStorage := vsStack
+          DefaultAddrMode := amStack
         else
           Exception.Create('Unknown value in compiler config line: ' + Line)
       end
@@ -208,19 +215,21 @@ begin
 end;
 
 
-{ TDeploy }
+{ TDeployment }
 
 const
-  scRun = 'Run';
+  scExecutable = 'Executable';
+  scParameter = 'Parameter';
   scConfigFile = 'ConfigFile';
 
-procedure TDeploy.Clear;
+procedure TDeployment.Clear;
 begin
+  Executable := '';
+  SetLength(Parameters, 0);
   ConfigFile := '';
-  Run := '';
 end;
 
-function TDeploy.GetConfigFile: String;
+function TDeployment.GetConfigFile: String;
 begin
 {$ifdef fpc}
   Result := ConcatPaths([Folder, ConfigFile]);
@@ -229,7 +238,7 @@ begin
 {$endif}
 end;
 
-procedure TDeploy.LoadFromFile(const Filename: String);
+procedure TDeployment.LoadFromFile(const Filename: String);
 var SL: TStringList;
   Line: String;
   Option: String;
@@ -251,8 +260,13 @@ begin
       if not SplitLine(Line, Option, Value) then
         raise Exception.Create('Error in Deploy file in line: ' + Line);
 
-      if Option = scRun then
-        Run := Value
+      if Option = scExecutable then
+        Executable := Value
+      else if Option = scParameter then
+      begin
+        SetLength(Parameters, Length(Parameters)+1);
+        Parameters[Length(Parameters)-1] := Value;
+      end
       else if Option = scConfigFile then
         ConfigFile := value
       else

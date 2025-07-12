@@ -413,24 +413,23 @@
         <DCCReference Include="IDE.Emulator.pas"/>
         <DCCReference Include="Def.Intrinsics.pas"/>
         <DCCReference Include="CG.VarMap.pas"/>
-        <DCCReference Include="CG.CPUState.Z80.pas"/>
+        <DCCReference Include="Z80.CPUState.pas"/>
         <DCCReference Include="IDE.OptionsForm.pas">
             <Form>Options</Form>
             <FormType>fmx</FormType>
         </DCCReference>
-        <DCCReference Include="CG.Z80.pas"/>
-        <DCCReference Include="CG.LoadStoreMove.Z80.pas"/>
+        <DCCReference Include="Z80.CG.pas"/>
+        <DCCReference Include="Z80.LoadStoreMove.pas"/>
         <DCCReference Include="..\TextEditor\ViewableText.pas"/>
-        <DCCReference Include="CG.LoadStoreMove.Z80.Test.pas"/>
-        <DCCReference Include="CG.Load.Z80.pas"/>
-        <DCCReference Include="CG.Store.Z80.pas"/>
-        <DCCReference Include="CG.Validation.Z80.pas"/>
+        <DCCReference Include="Z80.LoadStoreMove.Test.pas"/>
+        <DCCReference Include="Z80.Load.pas"/>
+        <DCCReference Include="Z80.Store.pas"/>
+        <DCCReference Include="Z80.Validation.pas"/>
         <DCCReference Include="IDE.SelfTest.pas"/>
         <DCCReference Include="IDE.SelfTestForm.pas">
             <Form>SelfTestF</Form>
-            <FormType>fmx</FormType>
         </DCCReference>
-        <DCCReference Include="CG.RegAlloc.Z80.pas"/>
+        <DCCReference Include="Z80.RegAlloc.pas"/>
         <DCCReference Include="Def.Consts.pas"/>
         <DCCReference Include="Parse.Directives.pas"/>
         <DCCReference Include="CG.Data.pas"/>
@@ -443,6 +442,13 @@
         <DCCReference Include="Lib.CPUState.pas"/>
         <DCCReference Include="Puppy.Source.pas"/>
         <DCCReference Include="Lib.Data.pas"/>
+        <DCCReference Include="Def.UserTypes.pas"/>
+        <DCCReference Include="Def.TypeData.pas"/>
+        <DCCReference Include="Parse.TypeDefs.pas"/>
+        <DCCReference Include="Parse.VarDefs.pas"/>
+        <DCCReference Include="Parse.Literals.pas"/>
+        <DCCReference Include="Parse.Pointers.pas"/>
+        <DCCReference Include="IDE.CommandLine.pas"/>
         <None Include="Tests.txt"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>

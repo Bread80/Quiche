@@ -1,8 +1,121 @@
+(*
+# Intermediate Language in the Quiche Compiler
+
+The intermediate language (IL) is the core of the Quiche compiler. The parser
+takes the source code and converts it to IL. The code generator takes the IL and
+converts it to assembly code.
+
+Each IL record stores an operation and up the three parameters. Some operations
+extend over multiple IL records, for example when making function calls. The
+three parameters are referred to as Param1, Param2 and Dest. Dest can also be
+referred to as Param3 when using some of the system operations.
+
+Operations (or operators) divide into two main classes: system operations and
+other (non-system) operations. System operations are generally those which move
+data without transforming it. For example, initialising variables, branching
+and dispatching function calls.
+
+The non-system operations are usually those which do transform data. These are
+operations such as maths, comparisons, and logic as well as intrinsics (basic
+operations which use function syntax but which (often) result in simple inline
+code in the output).
+
+## IL Format for Non-system Operations
+
+The non-system operations are represented in the IL using a common format
+whereas the non-system operations use the IL in a more flexible fashion.
+
+The IL for non-system operations takes the form:
+Dest Operation Param1 [Param2]
+Ie. the Operation takes in one or two parameters - referred to as source
+parameters - and stores the result in the dest(ination) parameter.
+
+Thus the souce code:
+B := A + 1
+is represented in IL as
+Operation: Add
+Param1: Source the value from the A variable
+Param2: An immediate (literal) value of 1
+Dest: Store the result to the B variable
+
+## Parameter Kinds
+
+Each parameter has a 'kind' which specifies where the value is being sourced
+from or stored to, and what sort of value is required. Some of the key params
+kinds are:
+Immediate: an immediate (literal) value.
+VarSource: Reading value from variable.
+VarDest: Storing the result to a variable.
+VarAddr: The address of a variable.
+VarPtr: The value pointed to by a variable (ie dereferencing a pointer).
+Branch: Data for an unconditional branch.
+CondBranch: Data for a conditional branch.
+
+Some parameter kinds are only valid when used with specific operations, for
+example the Branch and CondBranch can only be used in branching operations.
+
+## Extending IL Items
+
+As mentioned above some operations can extend over multiple IL records. The
+operations which allow this come in pairs, one of which has the word Extended
+appended. Thus the IL for a function call uses the operations FuncCall and
+FuncCallExtended.
+
+The Extended form of the operation indicates that the data extends into the
+following IL record. There can be multiple of these extended operation IL items
+but they must end with a non extended operation of the same type.
+
+Thus a function call which takes four arguments will require two IL records. The
+first will contain data relating to the first three parameters and be of type
+FuncCallExtended. The second will contain data for the fourth parameter and be
+of type FuncCall.
+
+Note that the exact formatting of the data for a function call within the IL
+will depend on the calling convention in use. (And in general the formatting of
+IL data for system operations, including extended operations, is specified by
+the operations and is not dictated by the IL format).
+
+## Other IL Data
+
+Various other pieces of data are also stored within the intermediate language
+record. These include:
+* The index of the current code block (a code block is a section of code with no
+branches).
+* Information about data types.
+* Data relating to the source code (eg line number).
+* Compiler flags in effect at that position in the source code (eg overflow
+and range checking status).
+
+Parameters include extra information such as the CPU register which the data
+needs to be placing in (or in which the result will be found). Much
+of this data is added by, and used by, the code generator.
+
+## IL Data Storage
+
+IL data is stored in a list format. This allows any IL item to be referenced
+through it's index position in the list and allows the IL data to be easily
+traversed. The index position is the data stored by the Branch and CondBranch
+param kinds, with the value pointing to the destination IL item.
+
+## IL Functions
+
+The IL has functions to append a new IL item to the IL list, insert and IL item
+into a list (a function which is rarely used), and to retrieve an item given
+it's index.
+
+## Links
+
+Given the core nature of the IL it has relevance to large swathes of the code
+base. Key areas of relevance would be the Parser, the Operators, Types, and the
+code generator.
+*)
+
+
 unit Def.IL;
 
 interface
 uses Generics.Collections, Classes,
-  Def.Functions, Def.Operators, Def.QTypes, Def.Consts, Def.Variables,
+  Def.Functions, Def.Operators, Def.QTypes, Def.Consts, Def.Variables, Def.UserTypes,
   Lib.Data,
   Z80.Hardware, Z80.Algos;
 
@@ -17,6 +130,7 @@ type TILParamKind = (
     pkVarSource,    //Read from variable
     pkVarDest,      //Write to variable
     pkVarAddr,      //Address of a variable - only valid where Op is OpAddrOf
+    pkVarPtr,       //Reference to data pointed /to/ by the value (a pointer dereference)
     pkPop,          //The stack
     pkPopByte,      //Single byte on the stack
     pkPush,
@@ -109,12 +223,15 @@ type
     procedure SetVarSourceAndVersion(AVariable: PVariable; AVersion: Integer);
     //Obtains Version from AVariable
     procedure SetVarSource(AVariable: PVariable);
+    procedure SetVarAddr(AVariable: PVariable);
+    procedure SetVarPtr(AVariable: PVariable);
     procedure SetVarDestAndVersion(AVariable: PVariable; AVersion: Integer);
     procedure SetCondBranch;
 
     function ToVariable: PVariable;
 
     function GetVarType: TVarType;
+    function GetUserType: PUserType;
 
     //For error messages
     function ImmValueToString: String;
@@ -136,11 +253,9 @@ type
       pkPhiVarDest: (
         PhiVar: PVariable;
         PhiDestVersion: Integer; );
-      pkVarSource, pkVarDest: (
+      pkVarSource, pkVarDest, pkVarAddr, pkVarPtr: (
         Variable: PVariable;  //The variable
         VarVersion: Integer; );   //Current version of the variable
-      pkVarAddr: (
-        AddrVar: PVariable; );
       pkPop: ();           //Currently invalid for input params
       pkPopByte: ();       //Currently invalid for input params
       pkPush, pkPushByte: (
@@ -168,7 +283,7 @@ type
     Comments: String;       //For debugging <g>. Current only used if BlockID <> -1
 
     Op: TOperator;          //The operation
-    ResultType: TVarType;   //CURRENT: The type which will be output by the Operation
+    ResultType: PUserType;   //CURRENT: The type which will be output by the Operation
                             //OLD: If overflow checking is on, specifies the output type
                             //May also be used by typecasts to change/reduce value size
     Func: PFunction;        //If OpIndex is OpFuncCall this contains details of the function
@@ -196,13 +311,16 @@ type
     CPUState: TCPUState;    //The state of the CPU /after/ this step has been executed
     }
 
+    //Gets the VarType from ResultType
+    function ResultVarType: TVarType;
+
     //Where Op = dtBranch
     function GetBranchBlockID: Integer;
     procedure SetBranchBlockID(BlockID: Integer);
 
     //Creates a hidden variable of the given type, sets it as the Dest,
     //and sets DestType to dtData using SetDestType
-    function AssignToHiddenVar(VarType: TVarType): PVariable;
+    function AssignToHiddenVar(UserType: PUserType): PVariable;
 
     procedure SwapParams;   //For Operations. Swap order of Param1 and Param2
     function ToString: String;  //For debugging
@@ -405,7 +523,7 @@ begin
     Result.Flags := Result.Flags + [cgOverflowCheck];
   Result.Prim := nil;
 
-  Result.ResultType := vtUnknown;
+  Result.ResultType := nil;
   Result.Func := nil;
 
   Result.Param1.Initialise;
@@ -581,12 +699,11 @@ begin
   PhiSourceVersion := AVarVersion;
 end;
 
-procedure TILParam.SetVarSourceAndVersion(AVariable: PVariable;AVersion: Integer);
+procedure TILParam.SetVarAddr(AVariable: PVariable);
 begin
-//  Assert(Kind = pkNone);
-  Kind := pkVarSource;
+  Kind := pkVarAddr;
   Variable := AVariable;
-  VarVersion := AVersion;
+  VarVersion := AVariable.Version;
 end;
 
 procedure TILParam.SetVarDestAndVersion(AVariable: PVariable;
@@ -598,26 +715,57 @@ begin
   VarVersion := AVersion;
 end;
 
+procedure TILParam.SetVarPtr(AVariable: PVariable);
+begin
+  Kind := pkVarPtr;
+  Variable := AVariable;
+  VarVersion := AVariable.Version;
+end;
+
 procedure TILParam.SetVarSource(AVariable: PVariable);
 begin
    SetVarSourceAndVersion(AVariable, AVariable.Version);
 end;
 
-function TILParam.GetVarType: TVarType;
+procedure TILParam.SetVarSourceAndVersion(AVariable: PVariable;AVersion: Integer);
+begin
+//  Assert(Kind = pkNone);
+  Kind := pkVarSource;
+  Variable := AVariable;
+  VarVersion := AVersion;
+end;
+
+function TILParam.GetUserType: PUserType;
 begin
   case Kind of
-    pkNone, pkPhiVarSource, pkPhiVarDest: EXIT(vtUnknown);
+    pkNone, pkPhiVarSource, pkPhiVarDest: EXIT(nil);
     pkImmediate:
-      Result := Imm.VarType;
+      Result := Imm.UserType;
     pkVarSource, pkVarDest:
-      Result := Variable.VarType;
+      Result := Variable.UserType;
     pkVarAddr: //TODO: Make this a typed pointer
-      Result := vtPointer;
+      if IsPointeredType(Variable.VarType) then
+        Result := Variable.UserType
+      else
+        Result := GetPointerToType(Variable.UserType);
+    pkVarPtr:
+      case UTToVT(Variable.UserType) of
+        vtTypedPointer: Result := Variable.UserType.OfType;
+        vtPointer: Result := GetSystemType(vtByte);
+      else
+        Assert(False);
+      end;
     pkPush, pkPushByte, pkPop, pkPopByte:
-      Result := PushType;
+      Result := GetSystemType(PushType);
+//      Result := PushType;
   else
-    raise Exception.Create('Unknown parameter kind');
+    raise Exception.Create('Unknown ParamKind');
   end;
+end;
+
+function TILParam.GetVarType: TVarType;
+begin
+  Result := UTToVT(GetUserType);
 end;
 
 function TILParam.ImmValueToString: String;
@@ -654,14 +802,14 @@ begin
     pkNone: EXIT(True);
     pkImmediate: EXIT(False);   //This is a cop out. Fill out if required
     pkPhiVarSource, pkPhiVarDest: EXIT(False);  //Always False(??)
-    pkVarSource, pkVarDest:
+    pkVarSource, pkVarDest, pkVarAddr, pkVarPtr:
       EXIT((Variable = AParam.Variable) and (VarVersion = AParam.VarVersion));
-    pkVarAddr: EXIT(AddrVar = AParam.AddrVar);
     pkPop, pkPopByte: EXIT(False);
     pkPush, pkPushByte: EXIT(PushType = AParam.PushType);
     pkBranch, pkCondBranch: EXIT(False);  //It makes no sense to compare these
   else
     Assert(False);
+    Result := False;
   end;
 end;
 
@@ -692,11 +840,15 @@ begin
       Assert(Assigned(PhiVar));
       Result := '%' + PhiVar.Name + '_' + IntToStr(PhiDestVersion);
     end;
-    pkVarSource:
+    pkVarSource, pkVarAddr, pkVarPtr:
     begin
       Assert(Assigned(Variable));
-      Result := '%' + Variable.Name + '_' + IntToStr(VarVersion) +
-        ':' + VarTypeToName(Variable.VarType);
+      Result := '%' + Variable.Name + '_' + IntToStr(VarVersion);
+      case Kind of
+        pkVarAddr: Result := '@' + Result;
+        pkVarPtr: Result := Result + '^';
+      end;
+      Result := Result + ':' + Variable.UserType.Description;
       if Reg <> rNone then
         Result := Result + '->' + CPURegStrings[Reg]
       else if SourceLoc = plRegister then
@@ -706,22 +858,17 @@ begin
     begin
       Assert(Assigned(Variable));
       Result := '%' + Variable.Name + '_' + IntToStr(VarVersion) +
-        ':' + VarTypeToName(Variable.VarType);
+        ':' + Variable.UserType.Description;
 
       if Reg <> rNone then
         Result := CPURegStrings[Reg] + '->' + Result
       else if ResultLoc = plRegister then
         Result := CPURegSetToString(ResultRegs) + '->' + Result;
     end;
-    pkVarAddr:
-    begin
-      Assert(Assigned(AddrVar));
-      Result := Result + '@' + AddrVar.Name;
-    end;
     pkPush:
-      Result := Result + 'PUSH /' + CPURegStrings[Reg] + VarTypeToName(Imm.VarType);
+      Result := Result + 'PUSH /' + CPURegStrings[Reg] + Imm.UserType.Description;
     pkPushByte:
-      Result := Result + 'PUSHBYTE /' + CPURegStrings[Reg] + VarTypeToName(Imm.VarType);
+      Result := Result + 'PUSHBYTE /' + CPURegStrings[Reg] + Imm.UserType.description;
     pkBranch:
     begin
 //      Assert(Param = @ILItem.Param1, 'pkBranch must be Param1');
@@ -761,8 +908,8 @@ end;
 function TILParam.ToVariable: PVariable;
 begin
   case Kind of
-    pkVarSource, pkVarDest: Result := Variable;
-    pkVarAddr: Result := AddrVar;
+    pkVarSource, pkVarDest, pkVarAddr, pkVarPtr:
+      Result := Variable;
   else
     Assert(False);
     Result := nil;
@@ -772,9 +919,9 @@ end;
 
 { TILItem }
 
-function TILItem.AssignToHiddenVar(VarType: TVarType): PVariable;
+function TILItem.AssignToHiddenVar(UserType: PUserType): PVariable;
 begin
-  Result := VarCreateHidden(VarType);
+  Result := VarCreateHidden(UserType);
   Dest.SetVarDestAndVersion(Result, Result.Version);
 end;
 
@@ -787,6 +934,11 @@ begin
   else
     raise Exception.Create('Invalid index');
   end;
+end;
+
+function TILItem.ResultVarType: TVarType;
+begin
+  Result := UTToVT(ResultType);
 end;
 
 function TILItem.GetBranchBlockID: Integer;
@@ -822,10 +974,9 @@ begin
     pkVarDest:
       Result := #13';VarDest    ' + Param.ToString + ' := ' + CPURegStrings[Param.Reg];
     pkVarAddr:
-    begin
-      Assert(Assigned(Param.AddrVar));
-      Result := CPURegStrings[Param.Reg] + ' := @' + Param.AddrVar.Name;
-    end;
+      Result := #13';VarAddr    ' + CPURegStrings[Param.Reg] + ' := @' + Param.ToString;
+    pkVarPtr:
+      Result := #13';VarPtr    ' + CPURegStrings[Param.Reg] + ' := ' + Param.ToString + '^';
     pkCondBranch:
     begin
       Result := 'CondBranch ';
@@ -879,9 +1030,9 @@ begin
         Result := Result + #13';    CALL: ' + Func.ToString;
     end;
   else //General operation types
-    Assert(Param1.Kind in [pkNone, pkImmediate, pkVarSource, pkVarAddr, pkPhiVarSource]);
+    Assert(Param1.Kind in [pkNone, pkImmediate, pkVarSource, pkVarAddr, pkVarPtr, pkPhiVarSource]);
     Assert(Param2.Kind in [pkNone, pkImmediate, pkVarSource, pkVarAddr, pkPhiVarSource]);
-    Assert(Dest.Kind in [pkNone, pkCondBranch, pkBranch, pkVarDest, pkPhiVarDest, pkPush, pkPushByte]);
+    Assert(Dest.Kind in [pkNone, pkCondBranch, pkBranch, pkVarDest, pkVarAddr, pkPhiVarDest, pkPush, pkPushByte]);
     Result := Result + Param3.ToString;
 
     if Dest.Kind in [pkVarDest, pkPhiVarDest, pkCondbranch, pkPush, pkPushByte] then
@@ -889,8 +1040,8 @@ begin
     if Op <> opUnknown then
     begin
       Result := Result + OpStrings[Op];
-      if not (Dest.Kind in [pkNone, pkPhiVarDest]) then
-        Result := Result + ':' + VarTypeToName(ResultType);
+      if not (Dest.Kind in [pkNone, pkPhiVarDest, pkBranch, pkCondBranch]) then
+        Result := Result + ':' + ResultType.Description;
       Result := Result + ' ';
     end;
     Result := Result + Param1.ToString + ', ';

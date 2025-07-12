@@ -2,7 +2,7 @@ unit Def.Functions;
 
 interface
 uses Classes, Generics.Collections,
-  Def.Operators, Def.QTypes, Def.Consts, Def.Variables,
+  Def.Operators, Def.QTypes, Def.Consts, Def.Variables, Def.UserTypes,
   Z80.Hardware;
 
 //Maximum number of parameters which can be specified for a routine, including results
@@ -40,7 +40,7 @@ type
 
     Reg: TCPUReg;       //If the parameter is passed via a register, otherwise rNone
                           //Ignored for Intrinsics
-    VarType: TVarType;    //Parameter type
+    UserType: PUserType;   //Parameter type
     SuperType: TSuperType;  //Only for intrinsics. Only valid where VarType is vtUnknown.
 
     HasDefaultValue: Boolean;
@@ -84,8 +84,8 @@ type
     function FindResult: PParameter;
 
     //Returns variable storage (specified by the calling convention)
-    function GetParamStorage: TVarStorage;
-    function GetLocalStorage: TVarStorage;
+    function GetParamAddrMode: TAddrMode;
+    function GetLocalAddrMode: TAddrMode;
 
     //Returns the assembly instruction to call this function.
     //(Could be a CALL or an RST, or something fancier).
@@ -123,6 +123,8 @@ function IdentToFuncDirective(const Ident: String): TFuncDirective;
 //if not returns False and Access returns paVal
 function IdentToAccessSpecifier(const Ident: String;out Access: TVarAccess): Boolean;
 
+function FunctionToFunctionHandle(Func: PFunction): TFunctionHandle;
+function FunctionHandleToFunction(Handle: TFunctionHandle): PFunction;
 
 procedure FunctionsToStrings(S: TStrings);
 
@@ -153,14 +155,12 @@ begin
 end;
 
 function FuncFindAllScopes(Name: String): PFunction;
-var IdentType: TIdentType;
+var IdentData: TIdentData;
   Scope: PScope;
-  Item: Pointer;
 begin
-  Item := SearchScopes(Name,IdentType,Scope);
-  if Assigned(Item) then
-    if IdentType = itFunction then
-      EXIT(PFunction(Item));
+  IdentData := SearchScopes(Name, Scope);
+  if IdentData.IdentType = itFunction then
+    EXIT(IdentData.F);
 
   Result := nil;
 end;
@@ -174,7 +174,7 @@ begin
   Result := nil;
 end;
 
-function FuncCreate(NameSpace, Name: STring): PFunction;
+function FuncCreate(NameSpace, Name: String): PFunction;
 var I: Integer;
 begin
   New(Result);
@@ -196,7 +196,7 @@ begin
   begin
     Result.Params[I].Name := '';
     Result.Params[I].Reg := rNone;
-    Result.Params[I].VarType := vtUnknown;
+    Result.Params[I].UserType := nil;
 //    Result.Params[I].VarTypes := [];
     Result.Params[I].Access := vaNone;
     Result.Params[I].HasDefaultValue := False;
@@ -263,8 +263,8 @@ begin
     Result := Result + ' as ';
   end;
 
-  if VarType <> vtUnknown then
-    Result := Result + VarTypeToName(VarType)
+  if UserType <> nil then
+    Result := Result + UserType.Description
   else
     Result := Result + SuperTypeToString(SuperType);
 
@@ -313,24 +313,24 @@ begin
   end;
 end;
 
-function TFunction.GetLocalStorage: TVarStorage;
+function TFunction.GetLocalAddrMode: TAddrMode;
 begin
   case CallingConvention of
-    ccRegister: Result := vsStatic;
-    ccStack: Result := vsStack;
+    ccRegister: Result := amStatic;
+    ccStack: Result := amStack;
   else
     raise Exception.Create('Undefined Calling Convention');
   end;
 end;
 
-function TFunction.GetParamStorage: TVarStorage;
+function TFunction.GetParamAddrMode: TAddrMode;
 begin
   case CallingConvention of
     ccRegister:
       //Params are passed in registers. Storage will be alocated in global (static)
       //memory space but may (hopefully will) be optimised away into registers
-      Result := vsStatic;
-    ccStack: Result := vsStack;
+      Result := amStatic;
+    ccStack: Result := amStack;
   else
     raise Exception.Create('Undefined Calling Convention');
   end;
@@ -401,6 +401,17 @@ begin
     end;
     S.Add(Func.ToString);
   end;
+end;
+
+
+function FunctionToFunctionHandle(Func: PFunction): TFunctionHandle;
+begin
+  Result := TFunctionHandle(Func);
+end;
+
+function FunctionHandleToFunction(Handle: TFunctionHandle): PFunction;
+begin
+  Result := PFunction(Handle);
 end;
 
 initialization

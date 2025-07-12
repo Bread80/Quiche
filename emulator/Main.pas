@@ -63,6 +63,8 @@ type
     FMemView: TMemView;
     FBreakpoints: TBreakpoints;
 
+    Z80TestManager: TZ80TestManager;
+
     Log: TStringList;
   protected
     procedure EmbedForm(AParent: TControl; AForm: TCustomForm);
@@ -93,7 +95,13 @@ end;
 
 procedure TForm1.btnTestClick(Sender: TObject);
 begin
-//  Z80TestManager.TestAll;
+  Z80TestManager := TZ80TestManager.Create;
+  try
+    Z80TestManager.TestAll;
+    Z80TestManager.Log.SaveToFile('Z80TestLog.txt');
+  finally
+    Z80TestManager.Free;
+  end;
 end;
 
 procedure TForm1.cbQuietChange(Sender: TObject);
@@ -112,7 +120,7 @@ end;
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
-  edConfigFile.Text := 'C:\Dropbox\Delphi\Quiche\Platforms\TestCase\Deploy\EmulateStep.emulator';
+  edConfigFile.Text := 'C:\Dropbox\Delphi\Quiche\redist\Platforms\quiche\Deploy\quiche.emulator';
 
   if not Assigned(FSourceFileView) then
   begin

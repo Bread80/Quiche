@@ -65,13 +65,13 @@ type
                   //Param1 is a pkBranch (TODO: Move this to Dest for consistency)
     opBoolVarBranch,   //Conditional branch - use for a Branch where the branch depends
                   //on the value of a boolean variable. Ie IF BOOLVAR THEN ...
-    opNOTUSED1,    //NOTUSED. Retained here to keep OpStrings (and possibly other)
-                  //constants aligned?
+    opPtrLoad,    //Dereference a pointer (ie. load the data it points at)
+    opPtrStore,   //Assign to a derefenced pointer
     opPhi,        //Phi function
                   //Currently Param1 and Param2 are pkPhiVarSource and Dest is pkPhiVarDest.
                   //Needs expanding to allow more sources for code where more than two paths
                   //can converge.
-    opRegLoad,   //Load data from variables or constants into registers and/or
+    opRegLoad,    //Load data from variables or constants into registers and/or
                   //from registers into variables.
                   //Used for function calls.
                   //One to three source params (Param1, Param2, Param3)
@@ -114,7 +114,7 @@ type
     opNegate, //Unary minus
     //Note: Unary addition is skipped by parser
     opComplement,    //Unary NOT
-    opAddrOf,  //@ (address of)
+    opAddrOf,  //@ (address of), or address of array element
 
     //Typecasts
     //These have one input/source parameter (Param1) and an output/dest/result value (Dest/Param3)
@@ -188,7 +188,9 @@ function StringToBoolean(S: String): Boolean;
 const OpStrings : array[low(TOperator)..high(TOperator)] of String = (
   //System operators
   'UNKNOWN','Move','StoreImm',
-  'Branch','BoolVarBranch','NOTUSED1','Phi',
+  'Branch','BoolVarBranch',
+  'PtrLoad','PtrStore',
+  'Phi',
   'RegLoad','RegLoadEx',
   'RegStore','RegStoreEx',
   'FuncCall','FuncCallEx',
@@ -202,7 +204,7 @@ const OpStrings : array[low(TOperator)..high(TOperator)] of String = (
 
   //Unary operators
   'Negate', 'Complement',
-   'AddrOf',
+  'AddrOf', {'Deref',}
 
   //Typecasts
   'Int8', 'Integer', 'Byte', 'Word', 'Pointer', {Real,}

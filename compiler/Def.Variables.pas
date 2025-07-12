@@ -2,12 +2,25 @@ unit Def.Variables;
 
 interface
 uses Classes, Generics.Collections,
-  Def.QTypes, Def.Consts;
+  Def.QTypes, Def.UserTypes, Def.Consts;
 
 type
-  TVarStorage = (
-    vsStatic,   //Absolute, permanent memory location
-    vsStack);   //Relative, offset from a base address (i.e in stack frame)
+  TAddrMode = ( //Addressing mode for variable storage
+    amStatic,   //Absolute, permanent memory location
+                //VarAddr := <label>
+                //VarValue := (<label>)
+    amStack,    //Relative, offset from a base address (i.e in stack frame)
+                //VarAddr := IX+<offset>
+                //VarValue := (IX+<offset>)
+    amPtrStatic,//The address of the variable data is stored at an absolute (static)
+                //location
+                //VarAddr := (<label>)
+                //VarValue := <addr> := (<label>). <value> := (<addr>)
+    amPtrStack  //The address of the variable data is stored on the stack at a location
+                //relative to the stack pointer (IX)
+                //VarAddr := (IX+<offset>)
+                //VarValue := <addr> := (IX+<offset>). <value> := (<addr>)
+    );
 
 type  //Controls accessibility of variables and function parameters
   TVarAccess = (
@@ -39,14 +52,14 @@ type
   PVariable = ^TVariable;
   TVariable = record
     Name: String;
-    VarType: TVarType;
+    UserType: PUserType;  //Replaces VarType
     InScope: Boolean; //If False the variable has gone out of scope and should be ignored
     Depth: Integer;   //The block depth within the current scope.
                       //Every time we encounted a BEGIN the scopes depth is increased.
                       //Every time a variable is declared the scope depth is recorded here.
                       //Every time we encounter an END the scope's depth is decreased...
                       //...and any variable which are too deep are marked as out of scope.
-    Storage: TVarStorage; //Fixed or offset location?
+    AddrMode: TAddrMode; //Addressing mode - where is the data stored and how to access it
     Access: TVarAccess; //Access type for parameters (paValue for locals)
     Offset: Integer;  //If the Storage is:
                       //vsOffset, this is the offset from the stack base address
@@ -73,10 +86,13 @@ type
     //assigned immediately after.
     procedure SetName(AName: String);
 
+    //You probably want to read UserType instead
+    function VarType: TVarType;
+
     //Set the variables type. Only allowed in the variale is the last on the list.
     //*Only* to be used where the variable needs to be created where the eventual type
     //is unknown, and the type is assigned immediately after.
-    procedure SetType(VType: TVarType);
+    procedure SetType(AUserType: PUserType);
 
     //Incremenents the Version of a variable and returns the new value
     //Does not increment if SkipMode is enabled
@@ -107,14 +123,14 @@ procedure VarRollback;
 
 //Creates a new, uniquely named variable. If a variable with that name already exists
 //returns nil. Uses storage type for current Scope (and/or Func)
-function VarCreate(AName: String;VarType: TVarType): PVariable;
+function VarCreate(AName: String;UserType: PUserType): PVariable;
 //Creates a variable with no name. The name *must* be assigned as soon as they
 //are known.
-function VarCreateUnknown(VarType: TVarType): PVariable;
-function VarCreateHidden(VarType: TVarType): PVariable;
+function VarCreateUnnamed(UserType: PUserType): PVariable;
+function VarCreateHidden(UserType: PUserType): PVariable;
 //Creates a parameter for a function. Sets the access specifier and also
 //initialises the stack offset (if Storage is vsRelative)
-function VarCreateParameter(AName: String;VarType: TVarType;Storage: TVarStorage;
+function VarCreateParameter(AName: String;UserType: PUserType;AddrMode: TAddrMode;
   Access: TVarAccess): PVariable;
 
 
@@ -175,9 +191,6 @@ procedure VarClearAdjust;
 
 //Mark a variable as 'touched'
 procedure VarTouch(Variable: PVariable);
-
-
-
 
 implementation
 uses SysUtils, {IOUtils,}
@@ -256,14 +269,12 @@ begin
 end;
 
 function VarFindByNameAllScopes(AName: String): PVariable;
-var IdentType: TIdentType;
+var IdentData: TIdentData;
   Scope: PScope;
-  Item: Pointer;
 begin
-  Item := SearchScopes(AName,IdentType,Scope);
-  if Assigned(Item) then
-    if IdentType = itVar then
-      EXIT(PVariable(Item));
+  IdentData := SearchScopes(AName, Scope);
+  if IdentData.IdentType = itVar then
+    EXIT(IdentData.V);
 
   Result := nil;
 end;
@@ -307,14 +318,14 @@ begin
 end;
 
 //Doesn't check whether a variable with that name already exists!
-function VarCreateInt(AName: String;VType: TVarType;Storage: TVarStorage): PVariable;
+function VarCreateInt(AName: String;UserType: PUserType;AddrMode: TAddrMode): PVariable;
 begin
   New(Result);
   Result.Name := AName;
-  Result.VarType := VType;
+  Result.UserType := UserType;
   Result.Depth := GetCurrentScope.Depth;
   Result.InScope := True;
-  Result.Storage := Storage;
+  Result.AddrMode := AddrMode;
   Result.FuncParamIndex := -1;
   Result.Version := 0;
   Result.Touched := False;
@@ -322,29 +333,28 @@ begin
   Result.Access := vaLocal;
   Vars.Add(Result);
 
-  Result.Value.CreateTyped(VType, 0);
+  Result.Value.CreateTyped(UserType, 0);
 end;
 
-function VarCreateHidden(VarType: TVarType): PVariable;
+function VarCreateHidden(UserType: PUserType): PVariable;
 begin
-  Result := VarCreateInt('',VarType, GetCurrentScope.GetLocalStorage);
+  Result := VarCreateInt('',UserType, GetCurrentScope.GetLocalAddrMode);
   Result.Name := '_temp' + Vars.IndexOf(Result).ToString;
 //  Result.SetName('%'+IntToStr(Index));
 end;
 
-function VarCreate(AName: String;VarType: TVarType): PVariable;
-var IdentType: TIdentType;
+function VarCreate(AName: String;UserType: PUserType): PVariable;
 begin
   Assert(AName <> '');
-  if SearchCurrentScope(AName, IdentType) <> nil then
+  if SearchCurrentScope(AName).IdentType <> itUnknown then
     Result := nil
   else
-    Result := VarCreateInt(AName, VarType, GetCurrentScope.GetLocalStorage);
+    Result := VarCreateInt(AName, UserType, GetCurrentScope.GetLocalAddrMode);
 end;
 
-function VarCreateUnknown(VarType: TVarType): PVariable;
+function VarCreateUnnamed(UserType: PUserType): PVariable;
 begin
-  Result := VarCreateInt('', VarType, GetCurrentScope.GetLocalStorage);
+  Result := VarCreateInt('', UserType, GetCurrentScope.GetLocalAddrMode);
 end;
 
 //Adds a variable for a function parameter. To be called at the beginning of a function
@@ -353,7 +363,7 @@ end;
 //of the variable initialised (unless Access is vsResult)
 //If Access is vsResult: Results are parsed as local variable to the function. The
 //Offset property for them will be initiated to -1.
-function VarCreateParameter(AName: String;VarType: TVarType;Storage: TVarStorage;
+function VarCreateParameter(AName: String;UserType: PUserType;AddrMode: TAddrMode;
   Access: TVarAccess): PVariable;
 var Offset: Integer;  //Offset to the /previous/ stack variable (parameter)
   PrevIndex: Integer; //Indesx of last Parameter added to the variable list
@@ -361,7 +371,7 @@ begin
   //If variable is being stored on the stack we need to ascertain the offset of
   //the variable from SP. Otherwise we set offset to -1 to signify no offset has
   //yet been calculated.
-  if (Storage = vsStatic) or (Access = vaResult) then
+  if (AddrMode = amStatic) or (Access = vaResult) then
     Offset := -1
   else  //vsRelative
   begin
@@ -380,11 +390,11 @@ begin
       //Offsets for 'regular' variables are assigned later. Offsets for parameters
       //are assigned here. If previous variable does not have an offset assigned we have a bug.
       Assert(Offset <> -1,'Adding a parameter variable, but previous variable is NOT a parameter variable');
-      Offset := Offset + GetTypeSize(Vars[PrevIndex].VarType);
+      Offset := Offset + GetTypeSize(Vars[PrevIndex].UserType);
     end;
   end;
 
-  Result := VarCreateInt(AName, VarType, Storage);
+  Result := VarCreateInt(AName, UserType, AddrMode);
   Result.Offset := Offset;
   Result.Access := Access;
 end;
@@ -395,11 +405,11 @@ begin
   Name := AName;
 end;
 
-procedure TVariable.SetType(VType: TVarType);
+procedure TVariable.SetType(AUserType: PUserType);
 begin
   //Last item in current list??
   Assert(@Self = Vars[Vars.Count-1], 'VarSetType must only be called when it is the last in the VarList');
-  VarType := VType;
+  UserType := AUserType;
 end;
 
 function VarInList(AVar: PVariable): Boolean;
@@ -454,24 +464,9 @@ begin
 end;
 
 function VarIndexToData(Index: Integer): PVariable;
-//var Scope: PScope;
 begin
   Result := Vars[Index];
-{  Scope := GetCurrentScope;
-
-  //Recurse up parent Scopes until we find it
-  repeat
-    if Index >= GetVarCount then
-    begin
-      Result := Vars[Index - VarsFirstIndex];
-      SetCurrentScope(Scope);
-      EXIT;
-    end;
-  until not SetParentScope;
-
-  Result := nil;
-  SetCurrentScope(Scope);
-}end;
+end;
 
 procedure VarTouch(Variable: PVariable);
 begin
@@ -504,9 +499,9 @@ begin
   begin
     //Ignore parameters (which already have offsets assigned)
     //Ignore variable with global/absoluate storage addresses
-    if (V.Offset = -1) and (V.Storage = vsStack) then
+    if (V.Offset = -1) and (V.AddrMode = amStack) then
     begin //TODO: Ignore if optimised away
-      Offset := Offset - GetTypeSize(V.VarType);
+      Offset := Offset - GetTypeSize(V.UserType);
       //If local var and requires storage
       V.Offset := Offset;
     end;
@@ -519,7 +514,7 @@ begin
   Result := 0;
   for V in Vars do
     if V.Access in [vaLocal, vaResult] then
-      Result := Result + GetTypeSize(V.VarType);
+      Result := Result + GetTypeSize(V.UserType);
 end;
 
 function VarGetParamsByteSize: Integer;
@@ -528,7 +523,7 @@ begin
   Result := 0;
   for V in Vars do
     if not (V.Access in [vaLocal, vaResult]) then
-      Result := Result + GetTypeSize(V.VarType);
+      Result := Result + GetTypeSize(V.UserType);
 end;
 
 
@@ -542,16 +537,22 @@ function TVariable.ToString(TypeSummary: Boolean): String;
 begin
   if TypeSummary then
     Result := ''
-  else if Storage = vsStatic then
+  else if AddrMode = amStatic then
     Result := '@'+IntToHex(Offset, 4).Tolower
   //vsOffset
   else if Offset < 0 then
     Result := '-' + IntToHex(0-Offset, 2) + ' '
   else
     Result := '+' + IntToHex(Offset, 2) + ' ';
-  Result := Result + GetAsmName + ': ' + VarTypeToName(VarType);
+  Result := Result + GetAsmName + ': ' + UserType.Description;
   if not TypeSummary then
     Result := Result + ' = ' + Value.ToString;
+end;
+
+function TVariable.VarType: TVarType;
+begin
+  Assert(Assigned(UserType));
+  Result := UserType.VarType;
 end;
 
 procedure VarsToStrings(S: TStrings;TypeSummary: Boolean);
@@ -573,7 +574,7 @@ begin
   for V in Vars do
   begin
     V.Value := TImmValue.CreateInteger(0);
-    V.VarType := vtUnknown;
+    V.UserType := nil;
     V.Version := 0;
   end;
 end;

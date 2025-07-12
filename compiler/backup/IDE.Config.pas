@@ -42,6 +42,7 @@ type
     procedure AppendToStringlist(SL: TStringList);
   end;
 
+  PCompilerConfig = ^TCompilerConfig;
   TCompilerConfig = record
     PlatformName: String;
 
@@ -62,7 +63,7 @@ type
     //Use the ($R} compiler directive
     RangeChecks: Boolean;
 
-    DefaultVarStorage: TVarStorage;
+    DefaultAddrMode: TAddrMode;
     DefaultCallingConvention: TCallingConvention;
 
     IDESettings: TIDESettings;
@@ -72,13 +73,15 @@ type
     procedure LoadFromFile(const Filename: String);
   end;
 
-  TDeploy = record
+  TDeployment = record
     //Deploy folder
     Folder: String;
 
     //Shell command to run the output
-    Run: String;
-    //ConfigFile for emulator
+    Executable: String;
+    //To pass to the executable
+    Parameters: TArray<String>;
+    //ConfigFile for emulator (if using)
     ConfigFile: String;
 
     procedure Clear;
@@ -127,9 +130,9 @@ begin
     WriteBool(SL, scAllowAutoCreation, AllowAutoCreation);
     WriteBool(SL, scOverflowChecks, OverFlowChecks);
     WriteBool(SL, scRangeChecks, RangeChecks);
-    case DefaultVarStorage of
-      vsStatic: WriteString(SL, scDefaultVarStorage, scStorageAbsolute);
-      vsStack: WriteString(SL, scDefaultVarStorage, scStorageRelative);
+    case DefaultAddrMode of
+      amStatic: WriteString(SL, scDefaultVarStorage, scStorageAbsolute);
+      amStack: WriteString(SL, scDefaultVarStorage, scStorageRelative);
     else
       Assert(True);
     end;
@@ -190,9 +193,9 @@ begin
       else if Option = scDefaultVarStorage then
       begin
         if Value = scStorageAbsolute then
-          DefaultVarStorage := vsStatic
+          DefaultAddrMode := amStatic
         else if Value = scStorageRelative then
-          DefaultVarStorage := vsStack
+          DefaultAddrMode := amStack
         else
           Exception.Create('Unknown value in compiler config line: ' + Line)
       end
@@ -207,19 +210,21 @@ begin
 end;
 
 
-{ TDeploy }
+{ TDeployment }
 
 const
-  scRun = 'Run';
+  scExecutable = 'Executable';
+  scParameter = 'Parameter';
   scConfigFile = 'ConfigFile';
 
-procedure TDeploy.Clear;
+procedure TDeployment.Clear;
 begin
+  Executable := '';
+  SetLength(Parameters, 0);
   ConfigFile := '';
-  Run := '';
 end;
 
-function TDeploy.GetConfigFile: String;
+function TDeployment.GetConfigFile: String;
 begin
 {$ifdef fpc}
   Result := ConcatPaths([Folder, ConfigFile]);
@@ -228,14 +233,14 @@ begin
 {$endif}
 end;
 
-procedure TDeploy.LoadFromFile(const Filename: String);
+procedure TDeployment.LoadFromFile(const Filename: String);
 var SL: TStringList;
   Line: String;
   Option: String;
   Value: String;
 begin
 {$ifdef fpc}
-  Folder := GetPath(Filename);
+  Folder := ExtractFilePath(Filename);
 {$else}
   Folder := TPath.GetDirectoryName(Filename);
 {$endif}
@@ -250,8 +255,13 @@ begin
       if not SplitLine(Line, Option, Value) then
         raise Exception.Create('Error in Deploy file in line: ' + Line);
 
-      if Option = scRun then
-        Run := Value
+      if Option = scExecutable then
+        Executable := Value
+      else if Option = scParameters then
+      begin
+        SetLength(Parameters, Length(Parameters)+1);
+        Parameters[Length(Parameters)-1] := Value;
+      end
       else if Option = scConfigFile then
         ConfigFile := value
       else
