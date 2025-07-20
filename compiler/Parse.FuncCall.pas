@@ -91,12 +91,12 @@ begin
       ILItem.ResultType := Arg.UserType;
       //Slug to ILItem
       case GetTypeSize(Arg.UserType) of
-        1: ILItem.Dest.Kind := pkPushByte;//ILItem to PUSHBYTE
-        2: ILItem.Dest.Kind := pkPush;//ILItem to PUSH
+        1: ILItem.Dest.Kind := pkPushByte;
+        2: ILItem.Dest.Kind := pkPush;
       else
         Assert(False, 'Item too large for stack - needs to be passed by reference');
       end;
-      ILItem.Dest.PushType := UTToVT(Arg.UserType);
+      ILItem.Dest.PushType := Arg.UserType;
     end;
   else
     Assert(False, 'Invalid calling convention');

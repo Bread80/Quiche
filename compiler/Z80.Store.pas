@@ -536,7 +536,7 @@ begin
       pkVarDest:
         GenRangeCheck(Reg, FromType, Param.Variable.UserType, nil, []);
       pkPush, pkPushByte:
-        GenRangeCheck(Reg, FromType, GetSystemType(Param.PushType), nil, []);
+        GenRangeCheck(Reg, FromType, Param.PushType, nil, []);
     else
       Assert(False);
     end;
@@ -547,8 +547,8 @@ begin
       //RangeCheck here signifies that the value has /been/ range checked, which
       //may allow simplification of a sign extend operation
       GenStoreRegVarValue(Reg, UTToVT(FromType), Param.Variable, Param.VarVersion, RangeCheck, Options);
-    pkPush: GenPush16(Reg, UTToVT(FromType), Param.PushType, RangeCheck, Options);
-    pkPushByte: GenPush8(Reg, UTToVT(FromType), Param.PushType, RangeCheck, Options);
+    pkPush: GenPush16(Reg, UTToVT(FromType), UTToVT(Param.PushType), RangeCheck, Options);
+    pkPushByte: GenPush8(Reg, UTToVT(FromType), UTToVT(Param.PushType), RangeCheck, Options);
   else
     System.Assert(False, 'Invalid param kind for param store');
   end;
@@ -573,7 +573,7 @@ begin
   VarType := vtUnknown;
   case ILItem.Dest.Kind of
     pkVarDest: VarType := ILItem.Dest.Variable.VarType;
-    pkPush, pkPushByte: VarType := ILItem.Dest.PushType;
+    pkPush, pkPushByte: VarType := UTToVT(ILItem.Dest.PushType);
   end;
   RangeCheckProc := GetOptimisedRangeCheckProc(Prim, VarType);
 

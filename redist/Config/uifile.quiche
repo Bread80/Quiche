@@ -1,3 +1,16 @@
+type X = low(Byte)..high(Integer)
+
   type TColour = (Red, Green, Blue)
-  var Colour: TColour
-  Colour := high(Colour)
+
+  function Loop(Colour: TColour): TColour;register;
+  begin
+    if Colour = high(TColour) then
+      Result := low(Colour)
+    else
+      Result := succ(Colour)
+  end
+
+  var Col1 := Green
+  var Col2 := Blue
+  Col1 := Loop(Col1)
+  Col2 := Loop(Col2)

@@ -25,7 +25,7 @@ procedure GenLibraryProc(const ProcName: String;ILItem: PILItem);
 implementation
 uses Classes, Generics.Collections, SysUtils,
   IDE.Compiler, //For meta commentary
-  Def.QTypes, Def.Consts, Def.Variables,
+  Def.QTypes, Def.Consts, Def.Variables, Def.UserTypes,
   Lib.CPUState,
   Parse.Source,
   CG.Data,
@@ -77,6 +77,17 @@ begin
     Result := Result + '0-';
   Result := Result + Variable.GetAsmName;
   Comment := Variable.Name + ' offset';
+end;
+
+function CodeTypeHigh8(const Param: TILParam;out Comment: String): String;
+var UT: PUserType;
+begin
+  UT := Param.GetUserType;
+  Assert(UT <> nil);
+  Assert(UT.High < 255);  //Code will fail if enum has 256 elements (!) TODO
+                          //(will need to use a different fragment)
+  Result := ByteToStr(UT.High);
+  Comment := UT.Description + ' (high)';
 end;
 
 function CodeVarName(const Param: TILParam;out Comment: String): String;
@@ -153,8 +164,11 @@ begin
         else if CompareText(PName, 'offsethigh') = 0 then
           Sub := CodeOffsetHigh(Param, Comment)
         else if CompareText(PName, 'rawoffset') = 0 then
-          Sub := CodeRawOffset(Param, Comment)        ;
+          Sub := CodeRawOffset(Param, Comment)
+        else if CompareText(PName, 'typehigh_u8') = 0 then
+          Sub := CodeTypeHigh8(Param, Comment)
 
+        ; // - Leave this here
         if Sub = '' then
         begin
           if ThrowErrors then

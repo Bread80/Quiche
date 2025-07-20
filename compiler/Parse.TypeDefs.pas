@@ -16,6 +16,8 @@ uses Def.UserTypes,
 //part of a declaration
 function ParseTypeDefinition(out TheType: PUserType;SimpleTypesOnly: Boolean = False): TQuicheError;
 
+//Parse a TYPE statement
+//
 //<type-declaration> :== <identifier> = <type-definition>
 //<type-definition> :== <type-identifier>
 //                      | ( <identifier-list> )
@@ -163,6 +165,8 @@ begin
   //Create type
   TheType := Types.Add('', vtEnumeration);
   TheType.EnumItems := Items;
+  TheType.Low := 0;
+  TheType.High := Length(Items)-1;
 end;
 
 function ParseSetDefinition(out TheType: PUserType): TQuicheError;
@@ -347,7 +351,7 @@ begin
 
   TheType := Types.AddOfType('', ListType, OfType);
   case ListType of
-    vtVector: TheType.Length := Size;
+    vtVector: TheType.VecLength := Size;
     vtList:   TheType.Capacity := Size;
   else
     assert(False);  //Invalid type
@@ -365,7 +369,7 @@ begin
   BaseType := GetBaseType(FromType);
   TheType := Types.AddOfType('', BaseType.VarType, BaseType.OfType);
   case TheType.VarType of
-    vtVector: TheType.Length := Size;
+    vtVector: TheType.VecLength := Size;
     vtList:   TheType.Capacity := Size;
   else
     Assert(False);  //Invalid type
@@ -539,25 +543,28 @@ begin
       keyUNKNOWN:
       begin //Not a keyword
         IdentData := SearchScopes(Ident, Scope, True);
-        if IdentData.IdentType = itType then
-        begin
-          //If identifier is the name of a type we'll assume it's a type synonym
-          //(or pointer)...
-          if IsPointed then
-            TheType := Types.AddOfType('', vtTypedPointer, IdentData.T)
-          else if (Parser.TestChar = '[') and (IdentData.T.VarType in [vtVector, vtList]) then
-            Result := BakeArrayType(IdentData.T, TheType)
-          else
-            TheType := IdentData.T;
-        end
-        else if IsPointed and (IdentData.IdentType <> itType) then
-          EXIT(Err(qePointedTypeNameExpected))
-        else  //...otherwise we'll assume it's a range declaration
-        begin
-          Parser.SetCursor(Cursor); //Reset cursor. Messy but easy
-          Result := ParseSubRangeDefinition(TheType);
-          if Result = qeConstantExpressionExpected then
-            EXIT(Err(qeInvalidTypeDefinition));
+        case IdentData.IdentType of
+          itType:
+          begin
+            //If identifier is the name of a type we'll assume it's a type synonym
+            //(or pointer)...
+            if IsPointed then
+              TheType := Types.AddOfType('', vtTypedPointer, IdentData.T)
+            else if (Parser.TestChar = '[') and (IdentData.T.VarType in [vtVector, vtList]) then
+              Result := BakeArrayType(IdentData.T, TheType)
+            else
+              TheType := IdentData.T;
+          end
+        else
+          if IsPointed and (IdentData.IdentType <> itType) then
+            EXIT(Err(qePointedTypeNameExpected))
+          else  //...otherwise we'll assume it's a range declaration
+          begin
+            Parser.SetCursor(Cursor); //Reset cursor. Messy but easy
+            Result := ParseSubRangeDefinition(TheType);
+            if Result = qeConstantExpressionExpected then
+              EXIT(ErrSub(qeUndeclaredTypeOrInvalidTypeDef, Ident));
+          end;
         end;
       end;
     else  //Any other reserved word

@@ -102,6 +102,8 @@
 	TYPE <identifier> = <type-definition>
 =InvalidTypeDefinition
 	Type specifier, type name, enumeration or constant range expression expected
+=UndeclaredTypeOrInvalidTypeDef
+	Undeclared type name, of invalid type declaration ('%s')
 =PointedTypeNameExpected
     Type name expected after ^
 =RangeOperatorExpected

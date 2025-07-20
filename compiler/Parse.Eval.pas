@@ -5,6 +5,12 @@ uses SysUtils,
   Def.IL, Def.Operators, Def.QTypes, Def.Consts,
   Parse.Errors;
 
+////////////////////////////////////////////////////////////////////////////////
+//For all of these functions the types of the parameter(s) in relation to the
+//operator *must* have been validated in advance (ie via Lib.Primitives).
+//No validation is performed by these routines.
+////////////////////////////////////////////////////////////////////////////////
+
 //Evaulate an operator with two parameters
 function EvalBi(Op: TOperator;Param1, Param2: PILParam;
   out Value: TImmValue): TQuicheError;
@@ -392,15 +398,15 @@ begin
     opHigh:
     begin
       case P.VarType of
-        vtInteger, vtInt8, vtByte, vtWord, vtPointer: Value.CreateTyped(P.VarType, GetMaxValue(P.VarType));
-        vtChar:     Value.CreateChar(#255);
-        vtBoolean:  Value.CreateBoolean(True);
-        vtTypeDef:
+        vtInteger, vtInt8, vtByte, vtWord, vtPointer,
+        vtChar, vtEnumeration, vtSubRange, vtTypeDef:
         begin
-          Result := GetTypeHighValue(P.UserType, Value);
-          if Result <> qeNone then
-            EXIT;
-        end
+          Assert(P.UserType <> nil);
+          Assert(P.UserType.Low <= P.UserType.High);  //Invalid type creation -
+              //Low must differ from High for any meaningful ordinal type
+          Value.CreateTyped(P.UserType, P.UserType.High);
+        end;
+        vtBoolean:  Value.CreateBoolean(True);
       else
         Error := True;
       end;
@@ -418,15 +424,15 @@ begin
     opLow:
     begin
       case P.VarType of
-        vtInteger, vtInt8, vtByte, vtWord, vtPointer: Value.CreateTyped(P.VarType, GetMinValue(P.VarType));
-        vtChar:     Value.CreateChar(#0);
-        vtBoolean:  Value.CreateBoolean(False);
-        vtTypeDef:
+        vtInteger, vtInt8, vtByte, vtWord, vtPointer,
+        vtChar, vtEnumeration, vtSubRange, vtTypeDef:
         begin
-          Result := GetTypeLowValue(P.UserType, Value);
-          if Result <> qeNone then
-            EXIT;
-        end
+          Assert(P.UserType <> nil);
+          Assert(P.UserType.Low <= P.UserType.High);  //Invalid type creation -
+              //Low must differ from High for any meaningful ordinal type
+          Value.CreateTyped(P.UserType, P.UserType.Low);
+        end;
+        vtBoolean:  Value.CreateBoolean(False);
       else
         Error := True;
       end;
@@ -445,13 +451,13 @@ begin
               Value.CreateTyped(vtByte, 1)
             else
               Value.CreateTyped(vtByte, 0);
-          vtChar:
-            Value.CreateTyped(vtByte, ord(P.CharValue));
-          vtEnumeration:
+          vtChar, vtEnumeration:
+            Value.CreateTyped(vtByte, P.ToInteger);
+          vtSubRange:
           begin
             Assert(P.UserType <> nil);
-            Value.CreateTyped(vtInteger, IdentToEnumIndex(P.UserType, P.StringValue));
-            Assert(Value.IntValue <> -1, 'Enum item not found in enum??');
+            Assert(Assigned(P.UserType.OfType));
+            Value.CreateTyped(P.UserType.OfType, P.ToInteger);
           end;
         else
           Error := True;
@@ -467,7 +473,11 @@ begin
       begin
         case P.VarType of
           vtBoolean: Value.CreateBoolean(pred(P.BoolValue));
-          vtChar: Value.CreateChar(pred(P.CharValue));
+          vtChar, vtEnumeration, vtSubRange:
+          begin
+            Assert(P.UserType <> nil);
+            Value.CreateTyped(P.UserType, P.ToInteger -1);
+          end;
         else
           Error := True;
         end;
@@ -496,7 +506,11 @@ begin
       begin
         case P.VarType of
           vtBoolean: Value.CreateBoolean(succ(P.BoolValue));
-          vtChar: Value.CreateChar(succ(P.CharValue));
+          vtChar, vtEnumeration, vtSubRange:
+          begin
+            Assert(P.UserType <> nil);
+            Value.CreateTyped(P.UserType, P.ToInteger + 1);
+          end;
         else
           Error := True;
         end;
@@ -609,7 +623,11 @@ begin
         begin
           case P1.VarType of
             vtBoolean: Value.CreateBoolean(False);
-            vtChar: Value.CreateChar(chr(ord(P1.CharValue)-P2.IntValue));
+            vtChar, vtEnumeration, vtSubRange:
+            begin
+              Assert(P1.UserType <> nil);
+              Value.CreateTyped(P1.UserType, P1.ToInteger - P2.ToInteger);
+            end;
           else
             Error := True;
           end;
@@ -628,7 +646,11 @@ begin
         begin
           case P1.VarType of
             vtBoolean: Value.CreateBoolean(True);
-            vtChar: Value.CreateChar(chr(ord(P1.CharValue)+P2.IntValue));
+            vtChar, vtEnumeration, vtSubRange:
+            begin
+              Assert(P1.UserType <> nil);
+              Value.CreateTyped(P1.UserType, P1.ToInteger + P2.ToInteger);
+            end;
           else
             Error := True;
           end;

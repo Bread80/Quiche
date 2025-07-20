@@ -175,7 +175,10 @@ begin
   if Prim <> nil then
     if cgOverflowCheck in ILItem.Flags then
       if Prim.OverflowCheckProcName <> '' then
-        GenLibraryProc(Prim.OverflowCheckProcName, ILItem);
+        GenLibraryProc(Prim.OverflowCheckProcName, ILItem)
+      else
+        Assert(False);  //All primitives which allow overflow checking must specify
+                        //an overflow check routine (Primitives.csv)
 end;
 
 procedure GenPrimitiveOLD(var ILItem: TILItem;ILIndex: Integer);

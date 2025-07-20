@@ -15,7 +15,7 @@ uses Def.IL, Def.Operators, Def.QTypes, Def.Variables, Def.UserTypes,
 //Searches the available list of primitives for the Operator to find a suitable
 //match based on the supplied operand types.
 //If a routine is found which consumes LType and RType -> selects it.
-//If not not the types will be 'expanded' (if that is an option for the given
+//If not the types will be 'expanded' (if that is an option for the given
 //types) until a suitably matching routine is found.
 //Returns the result type that the selected routine will return.
 //If no suitable routine was found returns vtUnknown
@@ -313,6 +313,12 @@ var
   SwapParams: Boolean;
   Prim: PPrimitive;
 begin
+  //If both sides are enumerations then both types must be the same type, or OfType
+  if (SearchRec.LType = vtEnumeration) then
+    if SearchRec.LType = SearchRec.RType then
+      if GetOfType(SearchRec.LUserType) <> GetOfType(SearchRec.RUserType) then
+        EXIT(False);
+
   SearchRec.ReturnLUserType := nil;
   SearchRec.ReturnRUserType := nil;
   SearchRec.ReturnResultUserType := nil;

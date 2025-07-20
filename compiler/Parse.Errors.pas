@@ -48,6 +48,7 @@ type TQuicheError = (
   qeEqualExpectedInTYPE,
 //  qeTypeNameOrRangeExpected,
   qeInvalidTypeDefinition,
+  qeUndeclaredTypeOrInvalidTypeDef,
   qePointedTypeNameExpected,  //Type definition ^SomeType but identifier is invalid
 
   qeRangeOperatorExpected,    //'..' operator

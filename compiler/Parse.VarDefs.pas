@@ -121,10 +121,10 @@ begin
         vtUnboundArray:
           EXIT(ErrSub2(qeInstantiateUnboundedArray, UserType.Name, UserType.Name));
         vtVector:
-          if UserType.Length = iUnboundedArray then
+          if UserType.VecLength = iUnboundedArray then
             EXIT(ErrSub2(qeInstantiateUnboundedArray, UserType.Name, UserType.Name));
         vtList:
-          if UserType.Length = iUnboundedArray then
+          if UserType.VecLength = iUnboundedArray then
             EXIT(ErrSub2(qeInstantiateUnboundedArray, UserType.Name, UserType.Name));
       else
         //No probs

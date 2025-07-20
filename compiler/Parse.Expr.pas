@@ -511,10 +511,12 @@ begin
     EXIT;
 
   //Update types for constants
-  if (Left.ILItem = nil) and (Left.Operand.Kind = pkImmediate) then
-    Left.Operand.Imm.UpdateUserType(LType);
-  if (Right.ILItem = nil) and (Right.Operand.Kind = pkImmediate) then
-    Right.Operand.Imm.UpdateUserType(RType);
+  if LType <> nil then
+    if (Left.ILItem = nil) and (Left.Operand.Kind = pkImmediate) then
+      Left.Operand.Imm.UpdateUserType(LType);
+  if RType <> nil then
+    if (Right.ILItem = nil) and (Right.Operand.Kind = pkImmediate) then
+      Right.Operand.Imm.UpdateUserType(RType);
 
   Left.ResultType := ResultType;
   Left.ImplicitType := Left.ResultType;
@@ -596,8 +598,8 @@ begin
       //Modifies operand types and result type based on available primitives
       if not AssignSlugTypes(Left, Right) then
         EXIT(ErrOpUsageSub2(qeOpIncompatibleTypes,
-          VarTypeToName(Left.Operand.GetVarType),
-          VarTypeToName(Right.Operand.GetVarType), Left.Op));
+          Left.Operand.GetUserType.Description,
+          Right.Operand.GetUserType.Description, Left.Op));
 
       //Add current operation to list.
       //Dest info will be added by later

@@ -20,6 +20,8 @@ type
                             //Sets: The element type
                             //Arrays (etc): The element type
                             //Typed pointers: the type of the pointed to data
+    Low: Integer;           //Specified for any ordinal type. High must be > Low.
+    High: Integer;          //Ditto
 
     EnumItems: TArray<String>;  //For enumeration *only*
 
@@ -27,6 +29,9 @@ type
 
     //Clones From *except* Name, VarType and BaseType.
     procedure CloneTypeData(From: PUserType);
+
+    //Where VarType is vtEnumeration
+    function EnumItemToString(Index: Integer): String;
 
     //Returns the name, if the type had one. Otherwise returns the DefinitionString
     function Description: String;
@@ -36,12 +41,7 @@ type
 
     case VarType: TVarType of
       vtSubRange: (
-        //Compile time, so these are compile-time Integers
-        //Run-time values are unsigned offests from Low. This allows us to use the
-        //smallest available unsigned type to store the indices.
         //OfType contains the base type (numeric, enumeration, etc).
-        Low: Integer;
-        High: Integer;
       );
 (*      vtSparseSet: (
         //BaseType
@@ -54,7 +54,7 @@ type
         BoundsType: PUserType;  //nil if unbounded
       );
       vtVector: (
-        Length: Integer;  //iUnboundedArray if unbounded
+        VecLength: Integer;  //iUnboundedArray if unbounded
       );
       vtList: (
         Capacity: Integer;  //iUnboundedArray if unbounded
@@ -111,6 +111,10 @@ function IsIntegerType(UserType: PUserType): Boolean;
 //BaseType. Will recurse up BaseTypes if necessary
 //For all other cases returns UserType
 function GetBaseType(UserType: PUserType): PUSerType;
+
+//If UserType has an Of type returns it, otherwise returns UserType.
+//Intended to use with SubRanges to find the basic type
+function GetOfType(UserType: PUserType): PUserType;
 
 //Returns an anonymous type which is a typed pointer to the UserType
 //The anonymous type will be created if it does not exist
@@ -192,7 +196,7 @@ begin
     end;
     vtVector:
     begin
-      Length := From.Length;
+      VecLength := From.VecLength;
       OfType := From.OfType;
     end;
     vtList:
@@ -271,8 +275,8 @@ begin
     begin
       Assert(Assigned(OfType));
       Result := VarTypeToName(VarType);
-      if Length > 0 then
-        Result := Result + '[' + Length.ToString + ']';
+      if VecLength > 0 then
+        Result := Result + '[' + VecLength.ToString + ']';
       Result := Result + ' of ' + OfType.Description;
     end;
     vtList:
@@ -303,6 +307,15 @@ begin
     Result := DefinitionString;
 end;
 
+function TUserType.EnumItemToString(Index: Integer): String;
+begin
+  Assert(VarType = vtEnumeration);
+  if (Index >= 0) and (Index < length(EnumItems)) then
+    Result := EnumItems[Index]
+  else
+    Result := '<Enumeration value out of range>';
+end;
+
 procedure TUserType.Initialise;
 begin
   Name := '';
@@ -310,6 +323,8 @@ begin
   OfType := nil;
   VarType := vtUnknown;
   BoundsType := nil;
+  Low := -1;
+  High := -2;
 end;
 
 function TUserType.RecordDefToString: String;
@@ -378,6 +393,14 @@ begin
   if Assigned(Result) then
     while Assigned(Result.ParentType) do
       Result := Result.ParentType
+end;
+
+function GetOfType(UserType: PUserType): PUserType;
+begin
+  if UserType <> nil then
+    if UserType.OfType <> nil then
+      EXIT(UserType.OfType);
+  Result := UserType;
 end;
 
 function GetPointerToType(UserType: PUserType): PUserType;
@@ -454,8 +477,8 @@ begin
     vtArray: Result := 0; //No meta data
     vtVector:
     begin
-      Assert(UserType.Length <> iUnboundedArray);
-      if UserType.Length < 256 then
+      Assert(UserType.VecLength <> iUnboundedArray);
+      if UserType.VecLength < 256 then
         Result := 1   //One byte
       else
         Result := 2;  //One word
@@ -509,9 +532,9 @@ begin
 //    vtUnboundArray: Assert(False);  //Not available
     vtVector: //Meta size + Length * element size
     begin
-      Assert(UserType.Length <> iUnboundedArray);
+      Assert(UserType.VecLength <> iUnboundedArray);
       Result := GetArrayMetaSize(UserType) +
-        UserType.Length * GetTypeSize(UserType.OfType);
+        UserType.VecLength * GetTypeSize(UserType.OfType);
     end;
     vtList:   //Meta size + Capacity * element size
     begin
@@ -521,7 +544,7 @@ begin
     end;
 //  vtWideDynArray, //Max 65535 elements
 //  vtWideList,     //Max 65535 elements
-    vtRecord: Assert(False);
+     vtRecord: Assert(False);
 //  vtStream,       //Readble or writeable sequence of bytes or chars
   vtFunction: Result := 2;   //Code as data.
   else

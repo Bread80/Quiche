@@ -28,6 +28,7 @@
 ;offsethigh	- IX based offset to the high byte of a stack variable (IX+/-name+1)
 ;varname	- Fully qualified name of the variable
 ;rawoffset  - Offset to a stack variable - just the offset
+;typehigh_u8- The 'high' value of the UserType, as an 8-bit immediate
 
 ;Variables and stackframe data
 ;paramsbytesize	- number of bytes allocated on the stack for parameters by the current function
@@ -140,6 +141,14 @@
   ld a,h
   and a
   jp nz,raise_overflow
+
+;Error if carry set (from the operation) or the result is > High value of the type
+=enum_overflow -corrupts f
+  -exit cf:0	;Z flag is /probably/ set, but not (quite) guaranteed
+  -bytes 8 -cycles 27
+  jp c,raise_overflow
+  cp <p1.typehigh_u8> + $01
+  jp nc,raise_overflow
   
 ;==================================SINGLE PARAM ALGOS
 

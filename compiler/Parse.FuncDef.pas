@@ -47,7 +47,7 @@ implementation
 uses SysUtils,
   Def.Globals, Def.IL, Def.Operators, Def.QTypes, Def.Scopes, Def.Variables,
   Def.UserTypes,
-  Parse, Parse.Expr, Parse.Literals, Parse.Source,
+  Parse, Parse.Expr, Parse.Literals, Parse.Source, Parse.TypeDefs,
   Z80.Hardware;
 
 //Parse a parameter name and add it to the function definition
@@ -146,54 +146,60 @@ end;
 //Register type definitions may only use the following parameter specifiers:
 //value (default), out, and result
 function ParseParamType(Func: PFunction;FirstParam, ParamIndex: Integer): TQuicheError;
-var Ident: String;
+var
+  Cursor: TParseCursor;
+  Ident: String;
   Reg: TCPUReg;
-  VarType: TVarType;
+  UserType: PUserType;
   P: Integer;
 begin
   Parser.SkipWhiteNL;
-  //Read type name or register name
-  Result := ParseIdentifier(#0, Ident);
-  if Result <> qeNone then
-    EXIT;
+  Cursor := Parser.GetCursor;
+  UserType := nil;
 
-(*  Parser.SkipWhiteNL;
-*)  //Is a Z80 register (or flag!) specified?
-  Reg := IdentToCPUReg(Ident);
-  if Reg <> rNone then
-  begin
-    //Registers have to be unique. So list parameters are an error
-    if FirstParam <> ParamIndex then
-      EXIT(ErrSub(qeRegisterParamRedeclared, Ident));
-    Result := ValidateRegParam(Func, ParamIndex, Reg);
+  if TestIdentFirst then
+  begin //Identifier
+    //Read type name or register name
+    Result := ParseIdentifier(#0, Ident);
     if Result <> qeNone then
       EXIT;
+
+    //Is a Z80 register (or flag!) specified?
+    Reg := IdentToCPUReg(Ident);
+    if Reg <> rNone then
+    begin
+      //Registers have to be unique. So list parameters are an error
+      if FirstParam <> ParamIndex then
+        EXIT(ErrSub(qeRegisterParamRedeclared, Ident));
+      Result := ValidateRegParam(Func, ParamIndex, Reg);
+      if Result <> qeNone then
+        EXIT;
     //TODO: Validate all params are reg params ?At end of definition?
 
-    Result := Parser.SkipWhite;
-    if Result <> qeNone then
-      EXIT;
-    if TestForIdent('as') then
-    begin //Type specified
       Result := Parser.SkipWhite;
       if Result <> qeNone then
         EXIT;
-
-      //REWRITE TO USE TYPE PARSER
-      Result := ParseVarTypeName(VarType);
-      if Result <> qeNone then
-        EXIT;
-      if VarType = vtUnknown then
-        EXIT(ErrSub(qeUnknownType, Ident));
+      if TestForIdent('as') then
+      begin //Type specified
+        Result := Parser.SkipWhite;
+        if Result <> qeNone then
+          EXIT;
+        //Type will be parsed below
+      end
+      else //Default types: Reg to Byte, Pair to Word, Flag to Boolean
+        UserType := GetSystemType(CPURegToVarType[Reg])
     end
-    else //Default types: Reg to Byte, Pair to Word, Flag to Boolean
-      VarType := CPURegToVarType[Reg]
-  end
-  else
-  begin //Not a Reg definition
-    VarType := StringToVarType(Ident);
-    if VarType = vtUnknown then
-      EXIT(ErrSub(qeUnknownType, Ident));
+    else  //Identifier is not a register
+      //Restore to start of identifier
+      Parser.SetCursor(Cursor);
+  end;
+
+  //If no type was assigned above then we need to parse one
+  if UserType = nil then
+  begin
+    Result := ParseTypeDefinition(UserType, False);
+    if Result <> qeNone then
+      EXIT;
   end;
 
   //Set (or check) the parameter(s) data
@@ -203,15 +209,13 @@ begin
     begin
       if (Func.Params[P].Reg <> Reg) or
         //TODO: AreTypesCompatible()
-        (Func.Params[P].UserType <> GetSystemType(VarType)) then
-//        (Func.Params[P].VarTypes <> [VarType]) then
-        EXIT(Err(qeFuncDecDoesntMatch));
+        (Func.Params[P].UserType <> UserType) then
+          EXIT(Err(qeFuncDecDoesntMatch));
     end
     else
     begin
       Func.Params[P].Reg := Reg;
-      Func.Params[P].UserType := GetSystemType(VarType);
-//      Func.Params[P].VarTypes := [VarType];
+      Func.Params[P].UserType := UserType;
     end;
   end;
 end;

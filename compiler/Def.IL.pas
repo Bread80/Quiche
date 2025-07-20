@@ -259,7 +259,7 @@ type
       pkPop: ();           //Currently invalid for input params
       pkPopByte: ();       //Currently invalid for input params
       pkPush, pkPushByte: (
-        PushType: TVarType; );  //Type of the value to be pushed
+        PushType: PUserType; );  //Type of the value to be pushed
       pkBranch: (           //For unconditional branches.
         BranchBlockID: Integer; );  //Block number to branch to
       pkCondBranch: (        //For conditional branches
@@ -756,8 +756,7 @@ begin
         Assert(False);
       end;
     pkPush, pkPushByte, pkPop, pkPopByte:
-      Result := GetSystemType(PushType);
-//      Result := PushType;
+      Result := PushType;
   else
     raise Exception.Create('Unknown ParamKind');
   end;
@@ -866,9 +865,9 @@ begin
         Result := CPURegSetToString(ResultRegs) + '->' + Result;
     end;
     pkPush:
-      Result := Result + 'PUSH /' + CPURegStrings[Reg] + Imm.UserType.Description;
+      Result := Result + 'PUSH /' + CPURegStrings[Reg] + PushType.Description;
     pkPushByte:
-      Result := Result + 'PUSHBYTE /' + CPURegStrings[Reg] + Imm.UserType.description;
+      Result := Result + 'PUSHBYTE /' + CPURegStrings[Reg] + PushType.Description;
     pkBranch:
     begin
 //      Assert(Param = @ILItem.Param1, 'pkBranch must be Param1');

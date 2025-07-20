@@ -290,6 +290,11 @@ begin
       Result := FStringConstList.Strings[FStringIndex];
     end;
     vtChar: Result := CharValue;
+    vtEnumeration:
+    begin
+      Assert(Assigned(FUserType));
+      Result := UserType.EnumItemToString(FIntValue);
+    end;
   else
     Assert(False);
   end;
@@ -369,7 +374,7 @@ function TImmValue.ToString: String;
       vtEnumeration:
       begin
         Assert(Assigned(FUserType));
-        Result := AUserType.EnumItems[FIntValue] + '(' + FIntValue.ToString + ')';
+        Result := AUserType.EnumItemToString(FIntValue) + '(' + FIntValue.ToString + ')';
       end;
     else
       Result := ToVarTypedString(UTToVT(AUserType));
