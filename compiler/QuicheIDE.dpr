@@ -65,7 +65,8 @@ uses
   Parse.VarDefs in 'Parse.VarDefs.pas',
   Parse.Literals in 'Parse.Literals.pas',
   Parse.Pointers in 'Parse.Pointers.pas',
-  IDE.CommandLine in 'IDE.CommandLine.pas';
+  IDE.CommandLine in 'IDE.CommandLine.pas',
+  Parse.TypeChecker in 'Parse.TypeChecker.pas';
 
 {$R *.res}
 

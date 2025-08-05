@@ -673,8 +673,6 @@ procedure TTest.TestVarValue(Step: PTestStep);
   end;
 
 var V: PVariable;
-  I: Integer;
-  C: Char;
   ExprType: PUserType;
   Value: TImmValue;
 begin

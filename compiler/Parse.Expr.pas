@@ -12,10 +12,6 @@ uses Def.IL, Def.Operators, Def.QTypes, Def.UserTypes, Def.Consts, Def.Variables
 procedure AssignSlugToDest(const Slug: TExprSlug;var Variable: PVariable;
   AsType: PUserType);
 
-//Tests whether the expression returned by Slug is compatible with the type
-//given in ExprType. If it is returns errNone, otherwise returns a suitable error code
-function ValidateExprType(ExprType: PUserType;const Slug: TExprSlug): TQuicheError;
-
 function ParseExprToSlug(var Slug: TExprSlug;var ExprType: PUserType): TQuicheError;
 
 //Parses an expression to an ILItem with a single parameter and no operation
@@ -52,7 +48,8 @@ implementation
 uses SysUtils,
   Def.Globals, Def.Functions, Def.Scopes,
   Lib.Primitives,
-  Parse.Base, Parse.Eval, Parse.FuncCall, Parse.Source, Parse.Pointers;
+  Parse.Base, Parse.Eval, Parse.FuncCall, Parse.Source, Parse.Pointers,
+  Parse.TypeChecker;
 
 
 procedure AssignSlugToDest(const Slug: TExprSlug;var Variable: PVariable;
@@ -149,7 +146,7 @@ begin
     itEnumItem:
     begin
       Slug.SetImmediate(IdentData.T);
-      Slug.Operand.Imm := TImmValue.CreateEnumItem(IdentData.T, IdentData.Index);
+      Slug.Operand.Imm := TImmValue.CreateTyped(IdentData.T, IdentData.Index);
       Slug.ParamOrigin := poExplicit;
       Slug.ResultType := IdentData.T;
       Slug.implicitType := IdentData.T;
@@ -404,92 +401,7 @@ begin
   Result := ParseInfixOperator(Slug);
 end;
 
-
 //==============================Expressions
-
-//Tests whether the expression returned by Slug is compatible with the type
-//given in ExprType. If it is returns errNone, otherwise returns a suitable error code
-function ValidateExprType(ExprType: PUserType;const Slug: TExprSlug): TQuicheError;
-var Valid: Boolean;
-  BaseType: PUserType;
-begin
-  Assert(Assigned(ExprType));
-
-  ///We need to be able to validate the slug type against the base type
-  if ExprType.VarType = vtSubRange then
-    BaseType := ExprType.OfType
-  else
-    BaseType := ExprType;
-
-  if Slug.Op = OpUnknown then
-  begin //Single value, no expression
-    if Slug.Operand.Kind = pkImmediate then
-    begin
-      if IsIntegerType(BaseType) and IsIntegerVarType(Slug.Operand.Imm.VarType) then
-      begin //Integer value in range
-        Valid := (Slug.Operand.Imm.IntValue >= ExprType.Low) and
-          (Slug.Operand.Imm.IntValue <= ExprType.High);
-        if not Valid then
-          EXIT(ErrSub2(qeConstantAssignmentOutOfRange, Slug.Operand.ImmValueToString,
-            ExprType.Description));
-      end
-      else if IsOrdinalType(UTToVT(BaseType)) and IsOrdinalType(Slug.Operand.Imm.VarType) then
-      begin //Other enumerated types
-        Valid := ValidateAssignmentType(BaseType, Slug.ResultType);
-
-        if not Valid then
-          EXIT(ErrSub2(qeTypeMismatch, Slug.ResultType.Description,
-            ExprType.Description));
-
-        if ExprType.VarType = vtSubRange then
-        begin //Check value is in range
-          Valid := (Slug.Operand.Imm.ToInteger >= ExprType.Low) and
-            (Slug.Operand.Imm.ToInteger <= ExprType.High);
-          if not Valid then
-            EXIT(ErrSub2(qeConstantAssignmentOutOfRange, Slug.Operand.ImmValueToString,
-              ExprType.Description));
-        end;
-      end;
-    end
-    else  //Not an immediate
-      Valid := ValidateAssignmentType(ExprType, Slug.ResultType);
-  end
-  else //We have a Slug Op
-  begin
-    Valid := ValidateAssignmentType(ExprType, Slug.ResultType);
-(*
-    if ExprType.VarType = vtSubRange then
-      if ExprType.Low <> 0 then
-      begin //Generate IL to convert between the Slug type and SubRange
-        if ExprType.Low < 0 then
-        begin  //Addition
-          ILItem := ILAppend(opAdd);
-          ILItem.Param2.SetImmediate(-ExprType.Low);
-        end
-        else // ExprType.Low > 0
-        begin  //Subtraction
-          ILItem := ILAppend(opSubtract);
-          ILItem.Param2.SetImmediate(ExprType.Low);
-        end;
-
-        if Slug.ILItem <> nil then
-        begin
-          V := AssignSlugToTempVar(Slug);
-          ILItem.Param1.SetVar(V);
-        end
-        else
-          ILItem.Param1 := Slug.Operand;
-          todo
-        Assert(False);
-*)
-  end;
-
-  if not Valid then
-    Result := ErrSub2(qeTypeMismatch, Slug.ResultType.Description,
-      ExprType.Description)
-  else
-    Result := qeNone;
-end;
 
 //Sets the types in the left slug (ResultType, OpType fields) for the operation when
 //used with the given input operands: Slug.Operand <Slug.Operation> RightSlug.Operand
@@ -636,16 +548,14 @@ end;
 //literal value or a variable/identifier
 //Updates the Slug's data as appropriate
 function FixupSlugNoOperation(var Slug: TExprSlug;var ExprType: PUserType): TQuicheError;
-var BaseType: PUserType;
 begin
   if Slug.ResultType = nil then
     Slug.ResultType := GetSystemType(Slug.Operand.GetVarType);
 
   if Assigned(ExprType) then
   begin
-    //Find the base type for synoymns and subranges
-    BaseType := GetBaseType(ExprType);
-    Result := ValidateExprType(BaseType, Slug);
+//    Result := ValidateExprType(GetBaseType(ExprType), Slug);
+    Result := ValidateAssignment(ExprType, Slug);
     if Result <> qeNone then
       EXIT;
   end
@@ -695,7 +605,7 @@ begin
   begin
     if Assigned(ExprType) then
     begin
-      Result := ValidateExprType(ExprType, Slug);
+      Result := ValidateAssignment(ExprType, Slug);
       if Result <> qeNone then
         EXIT;
     end;
@@ -771,7 +681,7 @@ begin
   //implicit typing rules
   if not Assigned(AsType) then
   begin
-    Result := ValidateExprType(ExprType, Slug);
+    Result := ValidateAssignment(ExprType, Slug);
     if Result <> qeNone then
       EXIT;
   end;
@@ -783,7 +693,6 @@ end;
 // <varname> := <assignment-expression>
 function ParseAssignment(Variable: PVariable): TQuicheError;
 var UserType: PUserType;
-  ParamKind: TILParamKind;
 begin
   Assert(Assigned(Variable));
 
@@ -791,7 +700,6 @@ begin
     EXIT(ParseAssignPtrSuffixStore(Variable));
 
   //Normal assignment
-  ParamKind := pkVarDest;
   UserType := Variable.UserType;
 
   if not TestAssignment then

@@ -454,7 +454,6 @@ end;
 //If IsProc True we're parsing a PROCEDURE, otherwise we're parsing a FUNCTION
 function ParseFuncDefinition(IsProc: Boolean;out TheType: PUserType): TQuicheError;
 var
-  PrevScope: PScope;
   Func: PFunction;
 begin
   Result := DoFUNCTION(IsProc, fptTypeDef, Func);

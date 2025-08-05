@@ -42,9 +42,7 @@ uses IDE.Compiler, IDE.Config;
 {$R *.fmx}
 
 procedure TOptions.btnSaveClick(Sender: TObject);
-var Config: PCompilerConfig;
 begin
-  Config := IDE.Compiler.GetConfig;
   with IDE.Compiler.GetConfig.CodeGen do
   begin
     BlockInfo := cbBlockInfo.IsChecked;

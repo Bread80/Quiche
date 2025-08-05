@@ -15,7 +15,7 @@ implementation
 uses SysUtils,
   Def.IL, Def.Operators, Def.Variables, Def.UserTypes, Def.TypeData,
   Lib.Primitives,
-  Parse.Base, Parse.Eval,
+  Parse.Base, Parse.Eval, Parse.TypeChecker,
   Z80.Hardware;
 
 type TSlugArray= array[0..MaxFunctionParams] of TExprSlug;
@@ -150,7 +150,7 @@ begin
           if (Slugs[ArgIndex].ILItem = nil) and (Slugs[ArgIndex].Operand.Kind = pkImmediate) then
             if IsIntegerVarType(Slugs[ArgIndex].Operand.Imm.VarType) then
             begin
-              if ValidateExprType(GetSystemType(vtByte), Slugs[ArgIndex]) <> qeNone then
+              if ValidateAssignment(GetSystemType(vtByte), Slugs[ArgIndex]) <> qeNone then
                 EXIT(errFuncCall(qeConstantOutOfRange, Func));
               if Result <> qeNone then
                 EXIT;
@@ -299,7 +299,7 @@ begin
           Slugs[I].ResultType := ResultType;
           //Convert the TypeDef value to be the type. The actual value is ignored and irrelevent
           //Prim search plays havoc with constants. Here we force the Range value
-          if IsSignedType(UTToVT(ResultType)) then
+          if IsSignedType(ResultType) then
             Result := GetTypeLowValue(ResultType, Slugs[I].Operand.Imm)
 (*            Slugs[I].Operand.Imm.CreateTyped(ResultType, GetMinValue(ResultType))
 *)          else

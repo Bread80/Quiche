@@ -107,14 +107,17 @@ function UTToVT(UserType: PUserType): TVarType;
 //Any integer numeric type, or subrange of one
 function IsIntegerType(UserType: PUserType): Boolean;
 
+function IsSignedType(UserType: PUserType): Boolean;
+
 //If the UserType is a subtype - either a SubRange or Synonym, returns the
 //BaseType. Will recurse up BaseTypes if necessary
 //For all other cases returns UserType
 function GetBaseType(UserType: PUserType): PUSerType;
 
-//If UserType has an Of type returns it, otherwise returns UserType.
+//If UserType is a SubRange returns it's 'Of' type,
+//otherwise returns UserType
 //Intended to use with SubRanges to find the basic type
-function GetOfType(UserType: PUserType): PUserType;
+function RemoveSubRange(UserType: PUserType): PUserType;
 
 //Returns an anonymous type which is a typed pointer to the UserType
 //The anonymous type will be created if it does not exist
@@ -146,10 +149,6 @@ function GetSystemType(VarType: TVarType): PUserType;
 
 function IdentToType(const Ident: String): PUserType;
 
-
-//Validates whether the ExprType can be assigned to the variable (etc)
-//with type of AssignType
-function ValidateAssignmentType(AssignType, ExprType: PUserType): Boolean;
 
 var Types: PTypeList;
 
@@ -383,8 +382,14 @@ begin
   if not Assigned(UserType) then
     EXIT(False);
   if UserType.VarType = vtSubRange then
-    EXIT(IsIntegerType(UserType.OfType));
+    UserType := RemoveSubRange(UserType);
   Result := IsIntegerVarType(UserType.VarType);
+end;
+
+function IsSignedType(UserType: PUserType): Boolean;
+begin
+  UserType := RemoveSubRange(UserType);
+  Result := IsSignedVarType(UserType.VarType);
 end;
 
 function GetBaseType(UserType: PUserType): PUserType;
@@ -395,12 +400,15 @@ begin
       Result := Result.ParentType
 end;
 
-function GetOfType(UserType: PUserType): PUserType;
+function RemoveSubRange(UserType: PUserType): PUserType;
 begin
-  if UserType <> nil then
-    if UserType.OfType <> nil then
-      EXIT(UserType.OfType);
-  Result := UserType;
+  if (UserType.VarType = vtSubRange) and (UserType <> nil) then
+  begin
+    Result := UserType.OfType;
+    Assert(Result <> nil);
+  end
+  else
+    Result := UserType;
 end;
 
 function GetPointerToType(UserType: PUserType): PUserType;
@@ -726,52 +734,7 @@ begin
   Result := IdentData.T;
 end;
 
-function ValidateAssignmentType(AssignType, ExprType: PUserType): Boolean;
-var AssignVT: TVarType;
-  ExprVT: TVarType;
-begin
-  Assert(Assigned(AssignType));
-  Assert(Assigned(ExprType));
-
-  if AssignType = ExprType then
-    EXIT(True);
-
-  //Establish the base types
-  if AssignType.VarType = vtSubRange then
-  begin
-    AssignType := AssignType.OfType;
-    Assert(Assigned(AssignType));
-  end;
-  if ExprType.VarType = vtSubRange then
-  begin
-    ExprType := ExprType.OfType;
-    Assert(Assigned(ExprType));
-  end;
-
-  if AssignType = ExprType then
-    EXIT(True);
-
-  AssignVT := UTToVT(AssignType);
-  ExprVT := UTToVT(ExprType);
-
-  //Numeric types
-  if IsNumericType(AssignVT) and IsNumericType(ExprVT) then
-    EXIT(ExprVT <> vtReal);
-  case AssignVT of
-    vtString: EXIT(ExprVT in [vtChar, vtString]);
-    vtChar: //TODO: if AssignType = vtChar we can assign a string of length one to it
-      if ExprVT = vtString then
-        raise Exception.Create('TODO: Add code to allow assigning string of length one to a Char');
-    vtPointer:  //Typed pointers can be assigned to untyped pointers
-      if ExprVT = vtTypedPointer then
-        EXIT(True);
-  end;
-
-  Result := False;
-end;
-
 procedure TypesToStrings(S: TStrings);
-var UT: PUserType;
 begin
   S.Clear;
   S.Text := Types.ToString;

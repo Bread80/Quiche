@@ -307,7 +307,7 @@ end;
 
 //Stores an 8-bit value to a 16-bit variable, either sign extending or zero extending
 //as necessary
-procedure GenStoreReg8BitToVar16Bit(Reg: TCPUReg;FromType: TVarType;
+procedure GenStoreReg8BitToVar16Bit(Reg: TCPUReg;FromType: PUserType;
   Variable: PVariable;VarVersion: Integer;RangeChecked: Boolean;Options: TMoveOptionSet);
 var ViaA: Boolean;
 begin
@@ -322,7 +322,7 @@ begin
 
   if IsSignedType(FromType) and
   //If we'e been range checked, and the destination is unsigned then zero extend
-    not (RangeChecked and not IsSignedType(Variable.VarType)) then
+    not (RangeChecked and not IsSignedType(Variable.UserType)) then
   begin //Sign extend
     Assert(not (moPreserveA in Options));
 
@@ -341,7 +341,7 @@ end;
 //If RangeChecked is True it signifies the value has been range check. If so the
 //store routine may be able to simplify the conversion (ie a signed value may be able to
 //be zero extended rather than requiring sign extending
-procedure GenStoreRegVarValue(Reg: TCPUReg;FromType: TVarType;
+procedure GenStoreRegVarValue(Reg: TCPUReg;FromType: PUserType;
   Variable: PVariable;VarVersion: Integer;RangeChecked: Boolean;Options: TMoveOptionSet);
 begin
   case Reg of
@@ -546,7 +546,7 @@ begin
     pkVarDest:
       //RangeCheck here signifies that the value has /been/ range checked, which
       //may allow simplification of a sign extend operation
-      GenStoreRegVarValue(Reg, UTToVT(FromType), Param.Variable, Param.VarVersion, RangeCheck, Options);
+      GenStoreRegVarValue(Reg, FromType, Param.Variable, Param.VarVersion, RangeCheck, Options);
     pkPush: GenPush16(Reg, UTToVT(FromType), UTToVT(Param.PushType), RangeCheck, Options);
     pkPushByte: GenPush8(Reg, UTToVT(FromType), UTToVT(Param.PushType), RangeCheck, Options);
   else

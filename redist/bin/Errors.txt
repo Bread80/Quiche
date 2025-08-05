@@ -256,11 +256,20 @@
 =TypeNameNotValidHere
 	Type name not valid here: '%s'
 =TypeMismatch
-	Type mismatch: from %s to %s
+	Type mismatch
+	A value of type %s can't be assigned to a variable or passed as an argument of type %s.
+=TypeMismatchImplicitReal
+	Type mismatch
+	Real values can't be implicitly converted to integer types.	Try using Trunc().
+=TypeMismatchNoOverlap
+	Type mismatch
+	There is no overlap in the range of values of the types %s and %s.
 =EnumItemNotValidHere
-	Enumeation item not valid here: '%s'
+	Enumeration item not valid here: '%s'
 =InstantiateUnboundedArray
 	Attempting to instantiate (create a variable which is) an unbounded array ('%s'). Did you mean to create a pointer to an unbounded array type ('^%s')?
+
+	
 ;Expressions
 =Expression
 	Expression error
@@ -277,7 +286,8 @@
 =ConstantOutOfRange
 	Constant expression out of range
 =ConstantAssignmentOutOfRange
-	Constant expression out of range. Can't assign value '%s' to variable of type %s
+	Constant expression out of range
+	Can't assign value '%s' to variable of type '%s'.
 =DivByZero
 	Division by zero
 =InvalidDecimalNumber

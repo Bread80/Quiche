@@ -259,11 +259,11 @@ begin
   //We want a pointer result so bias the result against signed result types
   if SearchRec.IsPointer then
   begin
-    if IsSignedType(Prim.ResultType) then
+    if IsSignedVarType(Prim.ResultType) then
       Result := Result + 10;
   end
   else if SearchRec.IsSigned then
-    if not IsSignedType(Prim.ResultType) then
+    if not IsSignedVarType(Prim.ResultType) then
       Result := Result + 10;
 
   //Validate any other param compatibility issues
@@ -316,7 +316,7 @@ begin
   //If both sides are enumerations then both types must be the same type, or OfType
   if (SearchRec.LType = vtEnumeration) then
     if SearchRec.LType = SearchRec.RType then
-      if GetOfType(SearchRec.LUserType) <> GetOfType(SearchRec.RUserType) then
+      if RemoveSubRange(SearchRec.LUserType) <> RemoveSubRange(SearchRec.RUserType) then
         EXIT(False);
 
   SearchRec.ReturnLUserType := nil;
@@ -430,11 +430,11 @@ begin
       'as immediates - use compile time evaluation for that!');
 
     if SearchRec.LIsRange then
-      SearchRec.IsSigned := (SearchRec.LRange in SignedRanges) or IsSignedType(SearchRec.RType)
+      SearchRec.IsSigned := (SearchRec.LRange in SignedRanges) or IsSignedVarType(SearchRec.RType)
     else if SearchRec.RIsRange then
-      SearchRec.IsSigned := IsSignedType(SearchRec.LType) or (SearchRec.RRange in SignedRanges)
+      SearchRec.IsSigned := IsSignedVarType(SearchRec.LType) or (SearchRec.RRange in SignedRanges)
     else
-      SearchRec.IsSigned := IsSignedType(SearchRec.LType) or IsSignedType(SearchRec.RType);
+      SearchRec.IsSigned := IsSignedVarType(SearchRec.LType) or IsSignedVarType(SearchRec.RType);
   end
   else
     SearchRec.IsSigned := False;
@@ -508,7 +508,7 @@ begin
   if SearchRec.LIsRange then
     SearchRec.IsSigned := SearchRec.LRange in SignedRanges
   else
-    SearchRec.IsSigned := IsSignedType(SearchRec.LType);
+    SearchRec.IsSigned := IsSignedVarType(SearchRec.LType);
   SearchRec.IsPointer := not SearchRec.LIsRange and (SearchRec.LType in [vtPointer, vtTypedPointer]);
 
   Result := PrimSearch(SearchRec);
@@ -559,7 +559,7 @@ begin
   SearchRec.RUserType := ILItem.Param2.GetUserType;
   SearchRec.RType := ILItem.Param2.GetVarType;
   SearchRec.RIsRange := False;
-  SearchRec.IsSigned := Operations[ILItem.Op].SignCombine and (IsSignedType(SearchRec.LType) or IsSignedType(SearchRec.RType));
+  SearchRec.IsSigned := Operations[ILItem.Op].SignCombine and (IsSignedVarType(SearchRec.LType) or IsSignedVarType(SearchRec.RType));
   SearchRec.IsPointer := Operations[ILItem.Op].SignCombine and
     ((SearchRec.LType in [vtPointer, vtTypedPointer]) or (SearchRec.RType in [vtPointer, vtTypedPointer]));
   //Do we need a boolean result in a flag (for a jump) or register (for assigning)?

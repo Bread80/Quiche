@@ -815,7 +815,33 @@ compare_s16_u16:
 	sbc hl,de				;CF must be clear from rotate
 	ret
 
+;==================================RANGE CHECKING
 
+;Check flags after a signed magnitude comparison (ie subtract, compare)
+;Tests flags and raises range error depending on flags
+;Has no effect of registers of flags
+less_than_signed_range:
+	jp m,.neg
+	ret po
+	jr .error
+.neg:
+	ret pe
+.error
+	jp raise_range
+
+;Check flags after a signed magnitude comparison (ie subtract, compare)
+;Tests flags and raises range error depending on flags
+;If overflow detected never returns,
+;otherwise preserves all registers and flags
+greater_than_equal_signed_range:
+	jp m,.neg
+	ret pe
+	jr .error
+.neg:
+	ret po
+.error
+	jp raise_range
+	
 ;;============================================
 ;Numbers to strings
 

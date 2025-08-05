@@ -261,7 +261,7 @@ begin
 
   IsTypecast := Kind <> rskVarValue;
   if Assigned(ToType) then
-    ChangeSigned := IsSignedType(Variable.VarType) <> IsSignedType(ToType.VarType)
+    ChangeSigned := IsSignedType(Variable.UserType) <> IsSignedType(ToType)
   else
     ChangeSigned := False;
 
@@ -313,7 +313,7 @@ begin
 
   IsTypecast := Kind <> rskVarValue;
   if Assigned(ToType) then
-    SignedLoss := IsSignedType(Variable.VarType) and not IsSignedType(ToType.VarType)
+    SignedLoss := IsSignedType(Variable.UserType) and not IsSignedType(ToType)
   else
     SignedLoss := False;
 
@@ -377,8 +377,8 @@ begin
     //              N     Zero
     //Byte Word     Y     Zero
     //              N     Zero
-    if IsSignedType(Variable.VarType) and
-      (IsSignedType(UTToVT(ToType)) or (not IsSignedType(UTToVT(ToType)) and not RangeCheck)) then
+    if IsSignedType(Variable.UserType) and
+      (IsSignedType(ToType) or (not IsSignedType(ToType) and not RangeCheck)) then
     begin
       //Sign extend
       GenSignExtend(Via, CPURegPairToHigh[ToReg], Options);
@@ -389,13 +389,123 @@ begin
   end;
 end;
 
-//Load a 16-bit variable into an 8-bit register
-procedure GenLoadVar16BitToReg8Bit(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
-  LoadType: TLoadParamType;ToType: PUserType;RangeCheck: Boolean;Options: TMoveOptionSet);
-var ChangeSigned: Boolean;
+//Sub to GetLoadVar16BitToReg8Bit
+procedure GenLoadVar16BitToReg8BitVarValue(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
+  ToType: PUserType;RangeCheck: Boolean;Options: TMoveOptionSet);
+var OriginalToType: PUserType;
+  ChangeSigned: Boolean;
   Kind: TRegStateKind;
   Scavenge: TCPUReg;
   ViaA: Boolean;
+begin
+  //For SubRanges we can test the high byte (9-bits if signed to signed) in
+  //the usual way and apply sub-range checks to the low byte only.
+  //Here we fetch the base ToType and preserve the SubRange ToType for later
+  OriginalToType := ToType;
+  ToType := RemoveSubRange(ToType);
+
+  //We just need low byte of the 16-bit value, but high byte might need
+  //range checking
+  ChangeSigned := Assigned(ToType) and
+    (IsSignedType(Variable.UserType) <> IsSignedType(ToType));
+
+  //Can we scavenge as 16-bit?
+  Scavenge := RegStateFindVariable16(Variable, VarVersion, rskVarValue);
+  if Scavenge = rNone then
+    //If not can we scavenge low byte as 8-bit?
+    Scavenge := RegStateFindVariable8(Variable, VarVersion, rskVarValueLow);
+
+  if RangeCheck and IsSignedType(ToType) and not ChangeSigned then
+  (*******************************************************************************
+  TODO: When we load a 16-bit signed to an 8-bit signed we need to check all
+  9 high bits are equal (if range checking). To do that we need to get bit 7 of
+  the low byte into the carry flag, which means that we must load the low byte
+  first. This is a PITA!
+  *******************************************************************************)
+  begin
+    if Scavenge in CPURegPairs then
+    begin //We already have the full value in registers, do regular range check
+      GenRangeCheck(Scavenge, Variable.UserType, ToType, nil, Options);
+      GenRegMove(CPURegPairToLow[Scavenge], ToReg, False, Options);
+    end
+    else
+    begin
+      //Load low byte into both target reg and A (if different)
+      ViaA := GenVarLoad16Low(Variable, VarVersion, ToReg, rskVarValueLow, Options);
+      if not ViaA and (ToReg <> rA) then
+        GenRegMove(ToReg, rA, False, Options);
+      //First part of the range check (RLA)
+      GenRangeCheckIntegerToInt8Part1;
+//-->          Low byte to Carry flag (RLA)
+      //Load the high byte
+      GenVarLoad16High(Variable, VarVersion, rA, rskVarValueHigh, Options + [moPreserveCF]);
+      //Second part of the range check (ADC A,$00:JP NZ,RAISE_RANGE)
+      GenRangeCheckIntegerToInt8Part2;
+      //Reload the trashed low byte into A
+      if ToReg = rA then
+        GenVarLoad16Low(Variable, VarVersion, ToReg, rskVarValueLow, Options);
+    end;
+  end
+  else
+  begin
+    //Load and range check the high byte
+    if RangeCheck then
+    begin //And we need to range check the shrink
+      if Scavenge in CPURegPairs then
+        GenRangeCheckHighByte(CPURegPairToHigh[Scavenge], Variable.UserType, ToType, Options)
+      else
+      begin
+        Assert(not (moPreserveA in Options));
+        GenVarLoad16High(Variable, VarVersion, rA, rskVarValueHigh, Options);
+        //...and range check it
+        GenRangeCheckHighByte(rA, Variable.UserType, ToType, Options);
+      end;
+    end;
+
+    //NOTE: Changing types and scavenging
+    //Try and help the scavenger here, but being cautious. We could argue that
+    //the variable value is guaranteed to be in the register, since the value
+    //here must be within range. BUT if code paths merge (eg if this code is
+    //part of conditionally executed code, when the paths merge the allocator
+    //and scavenger may not know what we've done.
+    if ChangeSigned then
+      Kind := rskUnknown
+    else
+      Kind := rskVarValueLow;
+
+    //Load the low byte
+    if Scavenge <> rNone then
+    begin
+      if Scavenge in CPURegPairs then
+        Scavenge := CPURegPairToLow[Scavenge];
+      if Scavenge <> ToReg then
+        GenRegMove(Scavenge, ToReg, False, Options);
+      ViaA := Scavenge = rA;
+    end
+    else
+      ViaA := GenVarLoad16Low(Variable, VarVersion, ToReg, Kind, Options);
+
+    //Range check
+    //Don't range check typecasts
+    if RangeCheck then
+    begin
+      if ViaA then
+        ToReg := rA;
+      //Low byte of a 16-bit value
+      if OriginalToType.VarType = vtSubRange then
+        GenSubRangeCheckLowByte(ToReg, Variable.UserType, OriginalToType, Options)
+      else
+        GenRangeCheckLowByte(ToReg, Variable.UserType, ToType, Options);
+    end;
+  end;
+end;
+
+
+//Load a 16-bit variable into an 8-bit register
+procedure GenLoadVar16BitToReg8Bit(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
+  LoadType: TLoadParamType;ToType: PUserType;RangeCheck: Boolean;Options: TMoveOptionSet);
+var  Kind: TRegStateKind;
+  Scavenge: TCPUReg;
 begin
   Assert(ToReg in CPUReg8Bit);
   Assert(GetTypeSize(Variable.UserType) = 2);
@@ -426,98 +536,8 @@ begin
         GenVarLoad16Low(Variable, VarVersion, ToReg, Kind, Options);
     end;
     rskVarValue:
-    begin //We just need low byte of the 16-bit value, but high byte might need
-          //range checking
-      ChangeSigned := Assigned(ToType) and
-        (IsSignedType(Variable.VarType) <> IsSignedType(UTToVT(ToType)));
-
-      //Can we scavenge as 16-bit?
-      Scavenge := RegStateFindVariable16(Variable, VarVersion, Kind);
-      if Scavenge = rNone then
-        //If not can we scavenge low byte as 8-bit?
-        Scavenge := RegStateFindVariable8(Variable, VarVersion, rskVarValueLow);
-
-      if RangeCheck and IsSignedType(UTToVT(ToType)) and not ChangeSigned then
-      (*******************************************************************************
-      TODO: When we load a 16-bit signed to an 8-bit signed we need to check all
-      9 high bits are equal (if range checking). To do that we need to get bit 7 of
-      the low byte into the carry flag, which means that we must load the low byte
-      first. This is a PITA!
-      *******************************************************************************)
-      begin
-        if Scavenge in CPURegPairs then
-        begin //We already have the full value in registers, do regular range check
-          GenRangeCheck(Scavenge, Variable.UserType, ToType, nil, Options);
-          GenRegMove(CPURegPairToLow[Scavenge], ToReg, False, Options);
-        end
-        else
-        begin
-          //Load low byte into both target reg and A (if different)
-          ViaA := GenVarLoad16Low(Variable, VarVersion, ToReg, rskVarValueLow, Options);
-          if not ViaA and (ToReg <> rA) then
-            GenRegMove(ToReg, rA, False, Options);
-          //First part of the range check (RLA)
-          GenRangeCheckIntegerToInt8Part1;
-//-->          Low byte to Carry flag (RLA)
-          //Load the high byte
-          GenVarLoad16High(Variable, VarVersion, rA, rskVarValueHigh, Options + [moPreserveCF]);
-          //Second part of the range check (ADC A,$00:JP NZ,RAISE_RANGE)
-          GenRangeCheckIntegerToInt8Part2;
-          //Reload the trashed low byte into A
-          if ToReg = rA then
-            GenVarLoad16Low(Variable, VarVersion, ToReg, rskVarValueLow, Options);
-        end;
-      end
-      else
-      begin
-        //Load and range check the high byte
-        if RangeCheck then
-        begin //And we need to range check the shrink
-          if Scavenge in CPURegPairs then
-            GenRangeCheckHighByte(CPURegPairToHigh[Scavenge], Variable.UserType, ToType, Options)
-          else
-          begin
-            Assert(not (moPreserveA in Options));
-            GenVarLoad16High(Variable, VarVersion, rA, rskVarValueHigh, Options);
-            //...and range check it
-            GenRangeCheckHighByte(rA, Variable.UserType, ToType, Options);
-          end;
-        end;
-
-        //NOTE: Changing types and scavenging
-        //Try and help the scavenger here, but being cautious. We could argue that
-        //the variable value is guaranteed to be in the register, since the value
-        //here must be within range. BUT if code paths merge (eg if this code is
-        //part of conditionally executed code, when the paths merge the allocator
-        //and scavenger may not know what we've done.
-        if ChangeSigned then
-          Kind := rskUnknown
-        else
-          Kind := rskVarValueLow;
-
-        //Load the low byte
-        if Scavenge <> rNone then
-        begin
-          if Scavenge in CPURegPairs then
-            Scavenge := CPURegPairToLow[Scavenge];
-          if Scavenge <> ToReg then
-            GenRegMove(Scavenge, ToReg, False, Options);
-          ViaA := Scavenge = rA;
-        end
-        else
-          ViaA := GenVarLoad16Low(Variable, VarVersion, ToReg, Kind, Options);
-
-        //Range check
-        //Don't range check typecasts
-        if RangeCheck then
-        begin
-          if ViaA then
-            ToReg := rA;
-          //Low byte of a 16-bit value
-          GenRangeCheckLowByte(ToReg, Variable.UserType, ToType, Options);
-        end;
-      end;
-    end;
+      GenLoadVar16BitToReg8BitVarValue(Variable, VarVersion, ToReg, ToType,
+        RangeCheck, Options);
   else
     Assert(False);
   end;
@@ -586,7 +606,7 @@ begin
     end;
     rskVarValue:
     begin
-      ChangeSigned := Assigned(ToType) and (IsSignedType(Variable.VarType) <> IsSignedType(UTToVT(ToType)));
+      ChangeSigned := Assigned(ToType) and (IsSignedType(Variable.UserType) <> IsSignedType(ToType));
 
       Scavenge := RegStateFindVariable16(Variable, VarVersion, Kind);
 

@@ -45,8 +45,7 @@ uses SysUtils,
 
 function ParseVarDeclaration(VarStatus: TVarStatus; AssignStatus: TAssignStatus;const Ident: String;
   out Variable: PVariable;AddrMode: TAddrMode): TQuicheError;
-var Ch: Char;
-  VarName: String;
+var VarName: String;
   UserType: PUserType;  //nil if we're using type inference
   HaveAssign: Boolean;  //True if we're assigning a value
   Creating: Boolean;
@@ -135,7 +134,6 @@ begin
       if Result <> qeNone then
         EXIT;
 
-      Ch := Parser.TestChar;
       HaveAssign := Parser.TestChar = '=';
 
       if (AssignStatus = asAssignRequired) and not HaveAssign then

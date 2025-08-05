@@ -32,7 +32,7 @@ function GetOptimisedRangeCheckProc(Prim: PPrimitive;FromType: TVarType): TRange
 //  will be raised. (This parmeter si mainly for validation of the code generator/regiser allocater);
 procedure GenRangeCheck(Reg: TCPUReg;FromType, ToType: PUserType;Prim: PPrimitive;Options: TMoveOptionSet);
 
-//These two routines operate the same as the above, but operate on individual bytes
+//These routines operate the same as the above, but operate on individual bytes
 //of a 16-bit value. They can be used to optimise range checking the loading of a
 //16-bit value into an 8-bit register by allowing the two bytes to be loaded and tested
 //separately.
@@ -42,6 +42,12 @@ procedure GenRangeCheck(Reg: TCPUReg;FromType, ToType: PUserType;Prim: PPrimitiv
 //* Prim is not needed here - that is only required when checking Stores
 procedure GenRangeCheckHighByte(Reg: TCPUReg;FromType, ToType: PUserType;Options: TMoveOptionSet);
 procedure GenRangeCheckLowByte(Reg: TCPUReg;FromType, ToType: PUserType;Options: TMoveOptionSet);
+
+//Used when loading a 16-bit value into an 8-bit value
+//!!!On entry the high byte/bits have been validated as within range for the OfType (Byte or Int8)
+//This routine valdates that the Low byte (in Reg) is within range of ToType
+procedure GenSubRangeCheckLowByte(Reg: TCPUReg;FromType, ToType: PUserType;Options: TMoveOptionSet);
+
 
 //These two routines perform a High9NEQRangeCheck in two parts - useful when bytes
 //are being loded separately, eg when loading a 16-bit value into an 8-bit register.
@@ -54,6 +60,7 @@ procedure GenRangeCheckIntegerToInt8Part2;
 implementation
 uses SysUtils,
   CG.Data,
+  Lib.GenFragments,
   Z80.CPUState, Z80.Assembler;
 
 //===================================Range Checking
@@ -288,6 +295,384 @@ begin
     Assert(False, 'Unknown Range Check proc name')
 end;
 
+//================================SubRanges
+
+//As SubRangeCheck for unsigned 8-bit variable to SubRange
+procedure GenSubRangeCheckU8(Reg: TCPUReg;FromType, ToType: PUserType;Options: TMoveOptionSet);
+var AMoved: Boolean;
+begin
+  Assert(Reg in CPUReg8Bit);
+  Assert(GetTypeSize(FromType) = 1);
+  Assert(not IsSignedType(FromType));
+  Assert(Options * [moPreserveA, moPreserveCF, moPreserveOtherFlags] = []);
+
+  AMoved := False;
+
+  //Lower bound
+  if ToType.Low > FromType.Low then
+  begin
+    //Move Reg to rA
+    if (Reg <> rA) and not AMoved then
+    begin
+      GenRegMove(Reg, rA, False, Options);
+      AMoved := True;
+    end;
+
+    Assert((ToType.Low >= 0) and (ToType.Low <= 255)); //Byte values only
+    AsmInstr('cp ' + ByteToStr(ToType.Low));
+    AsmInstr('jp c,raise_range');
+    RegStateSetUnknown(rFlags);
+    RegStateSetLiteral(rCF, 0);
+  end;
+
+  //Upper bound
+  if ToType.High < FromType.High then
+  //Test value in A <= ToType.High
+  begin
+    //Move Reg to rA
+    if (Reg <> rA) and not AMoved then
+      GenRegMove(Reg, rA, False, Options);
+
+     //(Test code errors out if ToType.High = Max(Byte))
+    Assert((ToType.High >= 0) and (ToType.High < 255)); //Byte values only
+    AsmInstr('cp ' + ByteToStr(ToType.High+1));
+    AsmInstr('jp nc,raise_range');
+    RegStateSetUnknown(rFlags);
+    RegStateSetLiteral(rCF, 1);
+  end;
+end;
+
+//As SubRangeCheck for signed 8-bit variable to SubRange
+procedure GenSubRangeCheckS8(Reg: TCPUReg;FromType, ToType: PUserType;Options: TMoveOptionSet);
+var AMoved: Boolean;
+begin
+  Assert(Reg in CPUReg8Bit);
+  Assert(GetTypeSize(FromType) = 1);
+  Assert(IsSignedType(FromType));
+  Assert(Options * [moPreserveA, moPreserveCF, moPreserveOtherFlags] = []);
+
+  AMoved := False;
+
+  //Lower bound
+  if ToType.Low > FromType.Low then
+  begin
+    //Move Reg to rA
+    if (Reg <> rA) and not AMoved then
+    begin
+      GenRegMove(Reg, rA, False, Options);
+      AMoved := True;
+    end;
+
+    //Test value if rA >= ToType.Low
+    if ToType.Low = 0 then
+    begin //Special case - error if negative
+      AsmInstr('and a');
+      AsmInstr('jp m,raise_range');
+    end
+    else
+    begin
+      Assert((ToType.Low >= -128) and (ToType.Low <= 127)); //Int8 values only
+      AsmInstr('cp ' + ByteToStr(ToType.Low));
+      GenLibraryProc(':less_than_signed_range', nil);
+    end;
+    RegStateSetUnknown(rFlags);
+  end;
+
+  //Upper bound
+  if ToType.High < FromType.High then
+  begin
+    //Move Reg to rA
+    if (Reg <> rA) and not AMoved then
+      GenRegMove(Reg, rA, False, Options);
+
+    //Test value in A <= ToType.High
+    //(Test code errors out if ToType.High = Max(Int8))
+    Assert((ToType.High >= -128) and (ToType.High < 127)); //Byte values only
+    AsmInstr('cp ' + ByteToStr(ToType.High+1));
+    GenLibraryProc(':greater_than_equal_signed_range', nil);
+    RegStateSetUnknown(rFlags);
+  end;
+end;
+
+//As SubRangeCheck for unsigned 16-bit variable to SubRange
+procedure GenSubRangeCheckU16(Reg: TCPUReg;FromType, ToType: PUserType;Options: TMoveOptionSet);
+begin
+  //****************************************
+  //There's probably easier ways to do this but the rest of the code generator
+  //allows us to corrupt A and F and nothing else. Therefore we can't do a subtraction
+  //or call a subroutine with value in register. So we'll do it the long way
+  //and test bytes individually
+  //****************************************
+  Assert(Reg in CPURegPairs);
+  Assert(GetTypeSize(FromType) = 2);
+  Assert(not IsSignedType(FromType));
+  Assert(Options * [moPreserveA, moPreserveCF, moPreserveOtherFlags] = []);
+
+  //Lower bound
+  if ToType.Low > FromType.Low then
+  begin //Test value in Reg >= ToType.Low
+    Assert((ToType.Low >= 0) and (ToType.Low <= 65535)); //Byte values only
+    GenRegMove(CPURegPairToHigh[Reg], rA, False, Options);  //High byte of value to A
+    if hi(ToType.Low) = 0 then  //If SubRange.Low <= 255 we need Hi byte to be zero
+    begin //SubRange.Low in [$0000..$00ff]
+      AsmInstr('and a');              //If high byte if non-zero...
+      AsmInstr('jr nz,.lowpass');        //...can't be an error
+
+      GenRegMove(CPURegPairToLow[Reg], rA, False, Options);  //Low byte of value to A
+      AsmInstr('cp ' + ByteToStr(Lo(ToType.Low)));  //Test low byte
+      AsmInstr('jp c,raise_range');   //Error if too low
+      AsmInstr('.lowpass');
+      RegStateSetUnknown(rFlags);
+    end
+    else  //SubRange.Low >= $0100
+    begin
+      AsmInstr('cp ' + ByteToStr(Hi(ToType.Low)));  //Test high byte
+      if Lo(ToType.Low) <> 0 then //If Lo byte of SubRange is zero we only need test high byte
+      begin
+        AsmInstr('jr nz,.testcarry');                 //If non-zero we can ignore low byte
+        GenRegMove(CPURegPairToLow[Reg], rA, False, Options);  //Low byte of value to A
+        AsmInstr('cp ' + ByteToStr(Lo(ToType.Low)));  //Test low byte
+        AsmInstr('.testcarry');
+      end;
+      AsmInstr('jp c,raise_range');
+      RegStateSetUnknown(rFlags);
+      RegStateSetLiteral(rCF, 0);
+    end;
+  end;
+
+  //Upper bound
+  if ToType.High < FromType.High then
+  begin
+    //(Test code errors out if ToType.High = Max(Word))
+    Assert(ToType.High >= 0);
+    if ToType.High < 65535 then  //MaxWord can't be out of range
+    begin
+      GenRegMove(CPURegPairToHigh[Reg], rA, False, Options);  //High byte of value to A
+      if hi(ToType.High) = 0 then  //If SubRange.High <= 255 we need Hi byte to be zero
+      begin //SubRange.High in [$0000..$00ff]
+        AsmInstr('and a');              //If high byte is non-zero...
+        AsmInstr('jp nz,raise_range');  //...error
+        RegStateSetUnknown(rFlags);
+        if lo(ToType.High) = $ff then
+          //SubRange.High = $00ff
+          RegStateSetLiteral(rZF, 1)
+        else  //SubRange.High < $00ff
+        begin
+          GenRegMove(CPURegPairToLow[Reg], rA, False, Options);  //Low byte of value to A
+          AsmInstr('cp ' + ByteToStr(Lo(ToType.High)+1));  //Test low byte
+          AsmInstr('jp nc,raise_range');   //Error if too high
+          RegStateSetLiteral(rCF, 1);
+        end;
+      end
+      else  //SubRange.High >= $0100
+      begin
+        if Lo(ToType.High) = $ff then
+        begin //If lo byte is $ff we only need to test high byte
+          AsmInstr('cp ' + ByteToStr(Hi(ToType.High)+1));  //Test high byte
+          AsmInstr('jp nc,raise_range');
+          RegStateSetUnknown(rFlags);
+          RegStateSetLiteral(rCF, 1);
+        end
+        else  //Otherwise test both bytes
+        begin
+          AsmInstr('cp ' + ByteToStr(Hi(ToType.High)));  //Test high byte
+          AsmInstr('jr c,.highpass');     //Guaranteed pass
+          AsmInstr('jp nz,raise_range');  //Guaranteed fail
+
+          GenRegMove(CPURegPairToLow[Reg], rA, False, Options);  //Low byte of value to A
+          AsmInstr('cp ' + ByteToStr(Lo(ToType.High)+1));  //Test low byte
+          AsmInstr('jp nc,raise_range');
+          AsmInstr('.highpass');
+          RegStateSetUnknown(rFlags);
+          RegStateSetLiteral(rCF, 1);
+        end;
+      end;
+    end;
+  end;
+end;
+
+//As SubRangeCheck for unsigned 16-bit variable to SubRange
+procedure GenSubRangeCheckS16(Reg: TCPUReg;FromType, ToType: PUserType;Options: TMoveOptionSet);
+begin
+  //****************************************
+  //There's probably easier ways to do this but the rest of the code generator
+  //allows us to corrupt A and F and nothing else. Therefore we can't do a subtraction
+  //or call a subroutine with value in register. So we'll do it the long way
+  //and test bytes individually
+  //****************************************
+  Assert(Reg in CPURegPairs);
+  Assert(GetTypeSize(FromType) = 2);
+  Assert(IsSignedType(FromType));
+  Assert(Options * [moPreserveA, moPreserveCF, moPreserveOtherFlags] = []);
+
+  //Lower bound
+  if ToType.Low > FromType.Low then
+  begin
+    //Test sign of Value. Either ->
+    //  * shortcut tests (depending on range bounds),
+    //  * or jump to only generate unsigned tests
+
+    Assert((ToType.Low >= -32768) and (ToType.Low <= 32767)); //Integer values only
+    GenRegMove(CPURegPairToHigh[Reg], rA, False, Options);  //High byte of value to A
+    AsmInstr('and a');              //Test high byte
+    RegStateSetUnknown(rFlags);
+    if ToType.Low >= 0 then
+    begin
+      //Error if value is negative
+      AsmInstr('jp m,raise_range');
+      //We're testing a positve value against a positive literal
+      //We can reuse unsigned lower bound test!!!
+      //...
+      if hi(ToType.Low) = 0 then  //If SubRange.Low <= 255 we need Hi byte to be zero
+      begin //SubRange.Low in [$0000..$00ff]
+                                          //If high byte if non-zero...
+        AsmInstr('jp nz,.lowpass');       //...can't be an error
+
+        GenRegMove(CPURegPairToLow[Reg], rA, False, Options);  //Low byte of value to A
+        AsmInstr('cp ' + ByteToStr(Lo(ToType.Low)));  //Test low byte
+        AsmInstr('jp c,raise_range');   //Error if too low
+        AsmInstr('.lowpass');
+        RegStateSetLiteral(rCF, 0);
+      end
+      else  //SubRange.Low >= $0100
+      begin
+        AsmInstr('cp ' + ByteToStr(Hi(ToType.Low)));  //Test high byte
+        if Lo(ToType.Low) <> 0 then //If Lo byte of SubRange is zero we only need test high byte
+        begin
+          AsmInstr('jr nz,.testcarry');                 //If non-zero we can ignore low byte
+          GenRegMove(CPURegPairToLow[Reg], rA, False, Options);  //Low byte of value to A
+          AsmInstr('cp ' + ByteToStr(Lo(ToType.Low)));  //Test low byte
+          AsmInstr('.testcarry');
+        end;
+        AsmInstr('jp c,raise_range');
+        RegStateSetUnknown(rFlags);
+        RegStateSetLiteral(rCF, 0);
+      end;
+    end
+    else  //ToType.Low < 0
+    begin
+      //Guaranteed pass if Value is positive
+      AsmInstr('jp p,.lowpass_p');       //...can't be an error
+      //Testing negative value against a negative literal
+      //Can we do this unsigned???
+      //...
+
+      begin
+        AsmInstr('cp ' + ByteToStr(Hi(ToType.Low)));  //Test high byte
+        if Lo(ToType.Low) <> 0 then //If Lo byte of SubRange is zero we only need test high byte
+        begin
+          AsmInstr('jr nz,.testcarry');                 //If non-zero we can ignore low byte
+          GenRegMove(CPURegPairToLow[Reg], rA, False, Options);  //Low byte of value to A
+          AsmInstr('cp ' + ByteToStr(Lo(ToType.Low)));  //Test low byte
+          AsmInstr('.testcarry');
+        end;
+        AsmInstr('jp c,raise_range');
+        RegStateSetUnknown(rFlags);
+        RegStateSetLiteral(rCF, 0);
+      end;
+
+      AsmInstr('.lowpass_p');
+    end;
+  end;
+
+  //Upper Bound
+  if ToType.High < FromType.High then
+  begin
+    //Test sign of Value. Either ->
+    //  * shortcut tests (depending on range bounds),
+    //  * or jump to only generate unsigned tests
+
+    Assert((ToType.Low >= -32768) and (ToType.Low <= 32767)); //Integer values only
+    GenRegMove(CPURegPairToHigh[Reg], rA, False, Options);  //High byte of value to A
+    AsmInstr('and a');              //Test high byte
+    RegStateSetUnknown(rFlags);
+    if ToType.High >= 0 then
+    begin
+      //Guaranteed pass if value is negative
+      AsmInstr('jp m,.highpass_m');
+      //We're testing a positive value against a positive literal
+      //We can reuse unsigned lower bound test!!!
+      //...
+
+      if Lo(ToType.High) = $ff then
+      begin //If lo byte is $ff we only need to test high byte
+        AsmInstr('cp ' + ByteToStr(Hi(ToType.High)+1));  //Test high byte
+        AsmInstr('jp nc,raise_range');
+        RegStateSetUnknown(rFlags);
+        RegStateSetLiteral(rCF, 1);
+      end
+      else  //Otherwise test both bytes
+      begin
+        AsmInstr('cp ' + ByteToStr(Hi(ToType.High)));  //Test high byte
+        AsmInstr('jr c,.highpass');     //Guaranteed pass
+        AsmInstr('jp nz,raise_range');  //Guaranteed fail
+
+        GenRegMove(CPURegPairToLow[Reg], rA, False, Options);  //Low byte of value to A
+        AsmInstr('cp ' + ByteToStr(Lo(ToType.High)+1));  //Test low byte
+        AsmInstr('jp nc,raise_range');
+        AsmInstr('.highpass');
+        RegStateSetUnknown(rFlags);
+        RegStateSetLiteral(rCF, 1);
+      end;
+
+      AsmInstr('.highpass_m');
+    end
+    else  //ToType.High < 0
+    begin
+      //Fail if value >= 0
+      AsmInstr('jp p,raise_range');
+      //Testing negative value against a negative literal
+      //Can we do this unsigned???
+      //...
+
+      if Lo(ToType.High) = $ff then
+      begin //If lo byte is $ff we only need to test high byte
+        AsmInstr('cp ' + ByteToStr(Hi(ToType.High)+1));  //Test high byte
+        AsmInstr('jp nc,raise_range');
+        RegStateSetUnknown(rFlags);
+        RegStateSetLiteral(rCF, 1);
+      end
+      else  //Otherwise test both bytes
+      begin
+        AsmInstr('cp ' + ByteToStr(Hi(ToType.High)));  //Test high byte
+        AsmInstr('jr c,.highpass');     //Guaranteed pass
+        AsmInstr('jp nz,raise_range');  //Guaranteed fail
+
+        GenRegMove(CPURegPairToLow[Reg], rA, False, Options);  //Low byte of value to A
+        AsmInstr('cp ' + ByteToStr(Lo(ToType.High)+1));  //Test low byte
+        AsmInstr('jp nc,raise_range');
+        AsmInstr('.highpass');
+        RegStateSetUnknown(rFlags);
+        RegStateSetLiteral(rCF, 1);
+      end;
+    end;
+  end;
+end;
+
+//Where ToType is a SubRange. Generate code to range check it's assignment from ToType
+//Parameters as GenRangeCheck
+procedure GenSubRangeCheck(Reg: TCPUReg;FromType, ToType: PUserType;Options: TMoveOptionSet);
+begin
+  Assert(Assigned(FromType));
+  Assert(Assigned(ToType));
+  Assert(ToType.VarType = vtSubRange);
+  Assert(Assigned(ToType.OfType));
+
+  //We're testing an 8-bit value
+  if Reg in CPUReg8Bit then
+    if IsSignedType(FromType) then
+      GenSubRangeCheckS8(Reg, FromType, ToType, Options)
+    else
+      GenSubRangeCheckU8(Reg, FromType, ToType, Options)
+  else  //16-bit value
+      if IsSignedType(FromType) then
+      GenSubRangeCheckS16(Reg, FromType, ToType, Options)
+    else
+      GenSubRangeCheckU16(Reg, FromType, ToType, Options);
+end;
+
+//===================================
+
 //If the Primitive specifies an optimised range check procedure for the
 //required conversion this routine will return the Proc.
 //If not, or if this routine is not relevant (e.g due to the primitives Result type
@@ -322,52 +707,6 @@ begin
     Result := nil;
 end;
 
-//Where ToType is a SubRange. Generate code to range check it's assignment from ToType
-//Parameters as GenRangeCheck
-procedure GenSubRangeCheck(Reg: TCPUReg;FromType, ToType: PUserType;Prim: PPrimitive;Options: TMoveOptionSet);
-begin
-  Assert(Assigned(FromType));
-  Assert(Assigned(ToType));
-  Assert(Assigned(ToType.OfType));
-  Assert(FromType.VarType = vtSubRange);
-(*
-  ToBaseType := ToType.OfType;
-
-//TODO: **** All Ordinal types to specify Low and High value in their type
-  if ToType.Low <> FromType.Low then
-    case FromType.VarType of
-      vtByte:
-        if ToType.Low <> 0 then
-        begin
-          if Reg <> rA then
-            //LD A,Reg && State
-          //CP A,ToType.Low-1
-          //JP NC,range_error
-
-
-
-    //Special case.
-    Assert(False)
-{
-If From Unsigned -> Do nothing
-If From Signed -> Error is negative
-}
-  else
-    Assert(False)
-{
-If From Unsigned -> Check low value
-If From Signed -> Check low value
-}
-  end;
-  if ToType.High <> FromType.High then
-{
-If From Unsigned -> Check high value
-If From Signed -> Check high value
-*)
-
-
-  Assert(False);
-end;
 
 (*const //Routine names to keep the table source code size reasonable
   //Error if bit 7 set
@@ -417,7 +756,7 @@ begin
     EXIT;
   if TType = vtSubRange then
   begin //Process conversions to SubRange
-    GenSubRangeCheck(Reg, FromType, ToType, Prim, Options);
+    GenSubRangeCheck(Reg, FromType, ToType, Options);
     EXIT;
   end;
   if not IsNumericType(FType) then
@@ -439,6 +778,7 @@ begin
     Proc(Reg, Options);
 end;
 
+//Note: Subrange types should have already been removed from FromType and ToType
 procedure GenRangeCheckHighByte(Reg: TCPUReg;FromType, ToType: PUserType;Options: TMoveOptionSet);
 var FType, TType: TVarType;
 begin
@@ -473,6 +813,86 @@ begin
   end;
 end;
 
+
+//Used when loading a 16-bit value into an 8-bit value
+//!!!On entry the high byte/bits have been validated as within range for the OfType (Byte or Int8)
+//This routine valdates that the Low byte (in Reg) is within range of ToType
+procedure GenSubRangeCheckLowByte(Reg: TCPUReg;FromType, ToType: PUserType;Options: TMoveOptionSet);
+var FType, TType: TVarType;
+begin
+  Assert(Assigned(FromType));
+  Assert(Assigned(ToType));
+
+  //Filter out anything we don't need to range check.
+  //This will need to be updated at some point for array, enumeration, etc.
+  if FromType = ToType then
+    EXIT;
+
+  FType := FromType.VarType;
+  TType := ToType.VarType;
+  if not IsOrdinalType(FType) then
+    EXIT;
+  if not IsOrdinalType(TType) then
+    EXIT;
+
+  Assert(Reg in CPUReg8Bit);
+//  Assert(RemoveSubRange(FromType).VarType in [vtInteger, vtWord, vtPointer, vtEnumeration]);
+//  Assert(RemoveSubRange(ToType).VarType in [vtInt8, vtByte, vtEnumeration]);
+//???  Assert(not ((FType = vtInteger) and (TType = vtInt8)), 'Use specialises routines');
+
+  //Move Reg to rA
+  if Reg <> rA then
+    GenRegMove(Reg, rA, False, Options);
+
+  //Lower bound
+  if ToType.Low > FromType.Low then
+    if IsSignedType(FromType) then
+    begin //Signed comparison
+      //Test value if rA >= ToType.Low
+      if ToType.Low = 0 then
+      begin //Special case - error if negative
+        AsmInstr('and a');
+        AsmInstr('jp m,raise_range');
+      end
+      else
+      begin
+        Assert(ToType.Low >= -128); //Int8 values only
+        if ToType.Low < 127 then
+        begin
+          AsmInstr('cp ' + ByteToStr(ToType.Low));
+          GenLibraryProc(':less_than_signed_range', nil);
+        end;
+      end;
+    end
+    else //Unsigned comparison
+    begin
+      Assert((ToType.Low >= 0) and (ToType.Low <= 255)); //Byte values only
+      AsmInstr('cp ' + ByteToStr(ToType.Low));
+      AsmInstr('jp c,raise_range');
+    end;
+
+  //Upper bound
+  if ToType.High < FromType.High then
+    //Test value in A <= ToType.High
+    if IsSignedType(FromType) then
+    begin //Signed comparison
+      //(Test code errors out if ToType.High = Max(Int8))
+      Assert((ToType.High >= -128) and (ToType.High < 127)); //Byte values only
+      AsmInstr('cp ' + ByteToStr(ToType.High+1));
+      GenLibraryProc(':greater_than_equal_signed_range', nil);
+    end
+    else //Unsigned comparison
+    begin
+      //(Test code errors out if ToType.High = Max(Byte))
+      Assert(ToType.High >= 0); //Byte values only
+      if ToType.High < 255 then
+      begin
+        AsmInstr('cp ' + ByteToStr(ToType.High+1));
+        AsmInstr('jp nc,raise_range');
+      end;
+    end;
+end;
+
 procedure GenRangeCheckLowByte(Reg: TCPUReg;FromType, ToType: PUserType;Options: TMoveOptionSet);
 var FType, TType: TVarType;
 begin
@@ -503,7 +923,7 @@ begin
   //Word    Byte  No
   //If both types have the same signed/unsigned status, no need for checks
   //If both types have different signed/unsigned status we require bit 7 to be clear
-  if IsSignedType(TType) and not IsSignedType(FType) then
+  if IsSignedVarType(TType) and not IsSignedVarType(FType) then
     GenBit7SetRangeCheck(Reg, Options);
 end;
 

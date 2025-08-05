@@ -121,6 +121,8 @@ type TQuicheError = (
   //Types
   qeTypeNameNotValidHere,
   qeTypeMismatch,
+  qeTypeMismatchImplicitReal,
+  qeTypeMismatchNoOverlap,
   qeEnumItemNotValidHere,
   qeInstantiateUnboundedArray,  //Attempting to instantiate an unbounded array variable
 
@@ -273,6 +275,7 @@ function DoErrSub(ErrClass: TQuicheError;const HelpEx, Sub: String): TQuicheErro
 begin
   Result := DoErr(ErrClass, HelpEx);
   LastErrorMessage := Format(LastErrorMessage, [Sub]);
+  LastErrorHelp := Format(LastErrorHelp, [Sub]);
   if LastErrorMessage = '' then
     raise Exception.Create('ERROR WHILE REPORTING AN ERROR: Nothing to substitute! (in error message)');
 end;
@@ -281,6 +284,7 @@ function DoErrSub2(ErrClass: TQuicheError;const HelpEx, Sub1, Sub2: String): TQu
 begin
   Result := DoErr(ErrClass, HelpEx);
   LastErrorMessage := Format(LastErrorMessage, [Sub1, Sub2]);
+  LastErrorHelp := Format(LastErrorHelp, [Sub1, Sub2]);
   if LastErrorMessage = '' then
     raise Exception.Create('ERROR WHILE REPORTING AN ERROR: Nothing to substitute! (in error message)');
 end;
@@ -289,6 +293,7 @@ function DoErrSub3(ErrClass: TQuicheError;const HelpEx, Sub1, Sub2, Sub3: String
 begin
   Result := DoErr(ErrClass, HelpEx);
   LastErrorMessage := Format(LastErrorMessage, [Sub1, Sub2, Sub3]);
+  LastErrorHelp := Format(LastErrorHelp, [Sub1, Sub2, Sub3]);
   if LastErrorMessage = '' then
     raise Exception.Create('ERROR WHILE REPORTING AN ERROR: Nothing to substitute! (in error message)');
 end;

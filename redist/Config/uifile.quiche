@@ -1,16 +1,5 @@
-type X = low(Byte)..high(Integer)
-
-  type TColour = (Red, Green, Blue)
-
-  function Loop(Colour: TColour): TColour;register;
-  begin
-    if Colour = high(TColour) then
-      Result := low(Colour)
-    else
-      Result := succ(Colour)
-  end
-
-  var Col1 := Green
-  var Col2 := Blue
-  Col1 := Loop(Col1)
-  Col2 := Loop(Col2)
+  type TNumber = -2560..-655
+  var x: TNumber
+  var y: Integer
+  y := -654
+  x := y

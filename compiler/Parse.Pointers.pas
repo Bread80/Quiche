@@ -51,6 +51,7 @@ begin
 
   Slug.ILItem.ResultType := Slug.ResultType;
   Slug.ImplicitType := Slug.ResultType;
+  Result := qeNone;
 end;
 
 //Parse array array reference.
@@ -176,11 +177,7 @@ begin
 end;
 
 function ParseAssignPtrStore(V: PVariable): TQuicheError;
-var VT: TVarType;
-  Dest: PVariable;
-  Slug: TExprSlug;
-  ILItem: PILItem;
-  ExprType: PUserType;
+var ExprType: PUserType;
 begin
   Assert(Assigned(V));
   Assert(Parser.TestChar = '^');

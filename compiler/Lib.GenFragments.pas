@@ -344,7 +344,7 @@ end;
 procedure GenLibraryProc(const ProcName: String;ILItem: PILItem);
 begin
   if ProcName.Chars[0] = ':' then
-    AsmInstr('call ' + ProcName.SubString(1) + ' ;Call')
+    AsmInstr('call ' + ProcName.SubString(1))
   else
     GenFragmentItemName(ProcName, ILItem);
 end;

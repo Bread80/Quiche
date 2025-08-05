@@ -449,6 +449,7 @@
         <DCCReference Include="Parse.Literals.pas"/>
         <DCCReference Include="Parse.Pointers.pas"/>
         <DCCReference Include="IDE.CommandLine.pas"/>
+        <DCCReference Include="Parse.TypeChecker.pas"/>
         <None Include="Tests.txt"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>

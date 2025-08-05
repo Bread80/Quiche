@@ -99,7 +99,7 @@ function IsIntegerVarType(VarType: TVarType): Boolean;
 
 //Returns True if the type is a signed numeric type. Returns False for *all* other
 //types
-function IsSignedType(VarType: TVarType): Boolean;
+function IsSignedVarType(VarType: TVarType): Boolean;
 
 //Any type which only occupies a single byte
 function IsByteType(VarType: TVarType): Boolean;
@@ -299,7 +299,7 @@ begin
     [vtInt8, vtByte, vtInteger, vtWord, vtPointer, vtTypedPointer];
 end;
 
-function IsSignedType(VarType: TVarType): Boolean;
+function IsSignedVarType(VarType: TVarType): Boolean;
 begin
   Result := VarType in [vtInt8, vtInteger, vtReal];
 end;
@@ -481,7 +481,7 @@ begin
 
   if LType = RType  then
     Result := LType
-  else if IsSignedType(LType) and IsSignedType(RType) then
+  else if IsSignedVarType(LType) and IsSignedVarType(RType) then
     Result := vtInteger
   else if (LType = vtPointer) or (RType = vtPointer) then
     Result := vtPointer

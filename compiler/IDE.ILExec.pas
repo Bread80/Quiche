@@ -15,8 +15,7 @@ uses Generics.Collections, SysUtils,
 const
   ValueToBool: array[valueTrue..valueFalse] of Boolean = (True, False);
 
-var CurrBlock: Integer;
-  CurrIL: Integer;
+var CurrIL: Integer;
   Trace: Boolean;
 
 procedure RaiseError(Msg: String);
@@ -55,10 +54,10 @@ begin
   else
     Result := TempVars[Index];
 end;
-
+(*
 function TempVarCreate(Index: Integer): PVariable;
 begin
-(*  Result := nil;
+  Result := nil;
   if TempVars.Count <= Index then
     while TempVars.Count <= Index do
     begin
@@ -74,7 +73,8 @@ begin
     Result.Value := TImmValue.CreateTyped(vtInteger, 0);
     Result.VarType := vtUnknown;
   end;
-*)end;
+end;
+*)
 
 function GetValue(ILItem: PILItem;Param: PILParam;var ValueType: TVarType;out SubMismatch: Boolean): Integer;
 var Variable: PVariable;

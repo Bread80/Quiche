@@ -49,6 +49,7 @@ procedure GenLoadRegLiteral(Reg: TCPUReg;const Value: TImmValue;Options: TMoveOp
 //Currently only allows 'main' registers (ABCDEHL)
 //Can sign extend a value moving from an 8-bit to a 16-bit register. When doing so
 //  the A register will be trashed (and the Flags register cannot be preserved)
+//Updates RegState
 procedure GenRegMove(FromReg, ToReg: TCPUReg;Signed: Boolean;Options: TMoveOptionSet);
 
 //A procedure to generate code for an ILItem's Op
@@ -809,7 +810,6 @@ procedure Proc_AddrOfArrayElemStaticVarSource(ILItem: PILItem);
 var V: PVariable; //The array
   ElementSize: Integer;
   IndexVT: TVarType;
-  Index: Integer;
 begin
   Assert(ILItem.Param1.Kind = pkVarAddr);
   Assert(ILItem.Param2.Kind = pkVarSource);

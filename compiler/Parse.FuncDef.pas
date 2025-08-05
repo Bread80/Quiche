@@ -218,6 +218,7 @@ begin
       Func.Params[P].UserType := UserType;
     end;
   end;
+  Result := qeNone;
 end;
 
 //Parse the parameter list of a function definition - I.e. the section in parentheses

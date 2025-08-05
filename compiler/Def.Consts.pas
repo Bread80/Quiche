@@ -29,7 +29,6 @@ type PConstList = ^TConstList;
 
     constructor CreateChar(AValue: Char);
     constructor CreateBoolean(AValue: Boolean);
-    constructor CreateEnumItem(AUserType: PUserType;Index: Integer);
     constructor CreateTypeDef(AValue: PUserType);
 
     constructor CreateString(AString: String);
@@ -51,7 +50,7 @@ type PConstList = ^TConstList;
     function BlobValue: String;
 
     //For (mostly) code generation
-    //Only applicable to enumerated types
+    //Only applicable to ordinal types
     function ToInteger: Integer;
 
     //Where data the stored as a pointer (ie Strings etc), returns a label for the
@@ -182,14 +181,6 @@ begin
   FVarType := vtChar;
   FUserType := GetSystemType(FVarType);
   FCharValue := AValue;
-end;
-
-constructor TImmValue.CreateEnumItem(AUserType: PUserType; Index: Integer);
-begin
-  Assert(AUserType.VarType = vtEnumeration);
-  FUserType := AUserType;
-  FVarType := vtEnumeration;
-  FIntValue := Index;
 end;
 
 constructor TImmValue.CreateInteger(AValue: Integer);
@@ -383,7 +374,7 @@ function TImmValue.ToString: String;
 
 begin
   if Assigned(FUserType) then
-    if FVarType = vtSubRange then
+    if UTToVT(FUserType) = vtSubRange then
       Result := ToUserTypedString(FUserType.OfType)
     else
       Result := ToUserTypedString(FUserType)
@@ -535,3 +526,4 @@ end;
 initialization
   Consts := nil;
 end.
+
