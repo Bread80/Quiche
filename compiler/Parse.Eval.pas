@@ -399,7 +399,7 @@ begin
     begin
       case P.VarType of
         vtInteger, vtInt8, vtByte, vtWord, vtPointer,
-        vtChar, vtEnumeration, vtSubRange, vtTypeDef:
+        vtChar, vtEnumeration, vtTypeDef:
         begin
           Assert(P.UserType <> nil);
           Assert(P.UserType.Low <= P.UserType.High);  //Invalid type creation -
@@ -425,7 +425,7 @@ begin
     begin
       case P.VarType of
         vtInteger, vtInt8, vtByte, vtWord, vtPointer,
-        vtChar, vtEnumeration, vtSubRange, vtTypeDef:
+        vtChar, vtEnumeration, vtTypeDef:
         begin
           Assert(P.UserType <> nil);
           Assert(P.UserType.Low <= P.UserType.High);  //Invalid type creation -
@@ -453,12 +453,6 @@ begin
               Value.CreateTyped(vtByte, 0);
           vtChar, vtEnumeration:
             Value.CreateTyped(vtByte, P.ToInteger);
-          vtSubRange:
-          begin
-            Assert(P.UserType <> nil);
-            Assert(Assigned(P.UserType.OfType));
-            Value.CreateTyped(P.UserType.OfType, P.ToInteger);
-          end;
         else
           Error := True;
         end;
@@ -473,7 +467,7 @@ begin
       begin
         case P.VarType of
           vtBoolean: Value.CreateBoolean(pred(P.BoolValue));
-          vtChar, vtEnumeration, vtSubRange:
+          vtChar, vtEnumeration:
           begin
             Assert(P.UserType <> nil);
             Value.CreateTyped(P.UserType, P.ToInteger -1);
@@ -506,7 +500,7 @@ begin
       begin
         case P.VarType of
           vtBoolean: Value.CreateBoolean(succ(P.BoolValue));
-          vtChar, vtEnumeration, vtSubRange:
+          vtChar, vtEnumeration:
           begin
             Assert(P.UserType <> nil);
             Value.CreateTyped(P.UserType, P.ToInteger + 1);
@@ -623,7 +617,7 @@ begin
         begin
           case P1.VarType of
             vtBoolean: Value.CreateBoolean(False);
-            vtChar, vtEnumeration, vtSubRange:
+            vtChar, vtEnumeration:
             begin
               Assert(P1.UserType <> nil);
               Value.CreateTyped(P1.UserType, P1.ToInteger - P2.ToInteger);
@@ -646,7 +640,7 @@ begin
         begin
           case P1.VarType of
             vtBoolean: Value.CreateBoolean(True);
-            vtChar, vtEnumeration, vtSubRange:
+            vtChar, vtEnumeration:
             begin
               Assert(P1.UserType <> nil);
               Value.CreateTyped(P1.UserType, P1.ToInteger + P2.ToInteger);

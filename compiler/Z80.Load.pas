@@ -392,17 +392,13 @@ end;
 //Sub to GetLoadVar16BitToReg8Bit
 procedure GenLoadVar16BitToReg8BitVarValue(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
   ToType: PUserType;RangeCheck: Boolean;Options: TMoveOptionSet);
-var OriginalToType: PUserType;
-  ChangeSigned: Boolean;
+var ChangeSigned: Boolean;
   Kind: TRegStateKind;
   Scavenge: TCPUReg;
   ViaA: Boolean;
 begin
   //For SubRanges we can test the high byte (9-bits if signed to signed) in
   //the usual way and apply sub-range checks to the low byte only.
-  //Here we fetch the base ToType and preserve the SubRange ToType for later
-  OriginalToType := ToType;
-  ToType := RemoveSubRange(ToType);
 
   //We just need low byte of the 16-bit value, but high byte might need
   //range checking
@@ -492,8 +488,8 @@ begin
       if ViaA then
         ToReg := rA;
       //Low byte of a 16-bit value
-      if OriginalToType.VarType = vtSubRange then
-        GenSubRangeCheckLowByte(ToReg, Variable.UserType, OriginalToType, Options)
+      if ToType.IsSubRange then
+        GenSubRangeCheckLowByte(ToReg, Variable.UserType, ToType, Options)
       else
         GenRangeCheckLowByte(ToReg, Variable.UserType, ToType, Options);
     end;

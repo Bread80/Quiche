@@ -5,16 +5,13 @@ uses Def.UserTypes,
   Parse.Errors;
 
 //Parses a type definition*
-//If SimpleTypesOnly is true will raise an error if the result is not any of:
-//an enumeration, a Subrange, a scalar type which can be enumerated (Integer,
-//Char, Boolean, etc).
-//(Simple types are suitable for use in subranges, sets and as array bounds)
+//If OrdinalTypesOnly is true will raise an error if the result is not an ordinal type
 //Returns the created type.
 //* - As opposed to a declaration. A declaration is part of a TYPE statement and includes
 //a name for the type. A definition is the section after the = in a declaration and
 //is unnamed. A name will be applied on return from this function if it is called as
 //part of a declaration
-function ParseTypeDefinition(out TheType: PUserType;SimpleTypesOnly: Boolean = False): TQuicheError;
+function ParseTypeDefinition(out TheType: PUserType;OrdinalTypesOnly: Boolean = False): TQuicheError;
 
 //Parse a TYPE statement
 //
@@ -72,7 +69,7 @@ begin
 
   Assert(Assigned(ExprTypeLow));
   if not IsOrdinalType(UTToVT(ExprTypeLow)) then
-    EXIT(Err(qeSimpleConstExprExpected));
+    EXIT(Err(qeOrdinalConstExprExpected));
 
   Result := Parser.SkipWhiteNL;
   if Result <> qeNone then
@@ -82,13 +79,13 @@ begin
   ExprTypeHigh := nil;
   Result := ParseConstantExpr(ValueHigh, ExprTypeHigh);
   if Result = qeConstantExpressionExpected then
-    EXIT(Err(qeSimpleConstExprExpected));
+    EXIT(Err(qeOrdinalConstExprExpected));
   if Result <> qeNone then
     EXIT;
 
   Assert(Assigned(ExprTypeHigh));
   if not IsOrdinalType(UTToVT(ExprTypeHigh)) then
-    EXIT(Err(qeSimpleConstExprExpected));
+    EXIT(Err(qeOrdinalConstExprExpected));
 
   //Validate, and find a common type if required (ie for numeric types)
   CommonType := ExprTypeLow;
@@ -136,7 +133,9 @@ begin
     //Left value must be < Right value
     EXIT(ErrSub2(qeRangeValuesMisordered, ValueLow.ToString, ValueHigh.ToString));
 
-  TheType := Types.AddOfType('', vtSubRange, CommonType);
+  TheType := Types.AddOfType(CommonType.VarType, CommonType);
+//  TheType := Types.AddOfType('', vtSubRange, CommonType);
+  TheType.IsSubRange := True;
   TheType.Low := ValueLow.ToInteger;
   TheType.High := ValueHigh.ToInteger;
 end;
@@ -163,7 +162,7 @@ begin
   Parser.SkipChar;
 
   //Create type
-  TheType := Types.Add('', vtEnumeration);
+  TheType := Types.Add(vtEnumeration);
   TheType.EnumItems := Items;
   TheType.Low := 0;
   TheType.High := Length(Items)-1;
@@ -186,7 +185,7 @@ begin
   //TODO: When we implement data for sets we'll need to establish
   //whether the element count is suitable, and which internal set type to use
 
-  TheType := Types.AddOfType('', vtSetMem, OfType);
+  TheType := Types.AddOfType(vtSetMem, OfType);
 end;
 
 //Parses an array definition.
@@ -222,7 +221,7 @@ function ParseArrayDefinition(out TheType: PUserType;InBounds: Boolean = False):
     if Result <> qeNone then
       EXIT;
 
-    TheType := Types.AddOfType('', vtArray, OfType);
+    TheType := Types.AddOfType(vtArray, OfType);
     TheType.BoundsType := Bounds;
   end;
 
@@ -283,7 +282,7 @@ begin
 
   if not InBounds then
   begin //Unbounded array
-    TheType := Types.AddOfType('', vtUnboundArray, OfType);
+    TheType := Types.AddOfType(vtUnboundArray, OfType);
     TheType.BoundsType := nil;
   end
   else  //Element
@@ -349,7 +348,7 @@ begin
   if Result <> qeNone then
     EXIT;
 
-  TheType := Types.AddOfType('', ListType, OfType);
+  TheType := Types.AddOfType(ListType, OfType);
   case ListType of
     vtVector: TheType.VecLength := Size;
     vtList:   TheType.Capacity := Size;
@@ -367,7 +366,7 @@ begin
     EXIT;
 
   BaseType := GetBaseType(FromType);
-  TheType := Types.AddOfType('', BaseType.VarType, BaseType.OfType);
+  TheType := Types.AddOfType(BaseType.VarType, BaseType.OfType);
   case TheType.VarType of
     vtVector: TheType.VecLength := Size;
     vtList:   TheType.Capacity := Size;
@@ -447,7 +446,7 @@ begin
   SetCurrentScope(PrevScope);
 
   //Create the type
-  TheType := Types.Add('', vtRecord);
+  TheType := Types.Add(vtRecord);
   TheType.Scope := ScopeToScopeHandle(Scope);
 end;
 
@@ -460,18 +459,11 @@ begin
   if Result <> qeNone then
     EXIT;
 
-  TheType := Types.Add('', vtFunction);
+  TheType := Types.Add(vtFunction);
   TheType.Func := TFunctionHandle(Func);
 end;
 
-//Parses a type definition.
-//If the definition is simply the name of an already declared type,
-//returns the existing type definition.
-//Otherwise creates a new type definition.
-//In the former case the type returned will have a Name, in the latter
-//the Name will be empty. The caller can use this fact to determine how
-//to process the returned value (ie. if the caller is a TYPE declaration).
-function ParseTypeDefinition(out TheType: PUserType;SimpleTypesOnly: Boolean = False): TQuicheError;
+function ParseTypeDefinition(out TheType: PUserType;OrdinalTypesOnly: Boolean = False): TQuicheError;
 var Ch: Char;
   IsPointed: Boolean;
   Ident: String;
@@ -489,8 +481,8 @@ begin
   IsPointed := Ch = '^';
   if IsPointed then
   begin
-    if SimpleTypesOnly then
-      EXIT(Err(qeSimpleTypeExpected));
+    if OrdinalTypesOnly then
+      EXIT(Err(qeOrdinalTypeExpected));
     Parser.SkipChar;
     Ch := Parser.TestChar;
   end;
@@ -505,38 +497,38 @@ begin
     Keyword := IdentToKeyword(Ident);
     case Keyword of
       keyARRAY:
-        if SimpleTypesOnly then
-          EXIT(Err(qeSimpleTypeExpected))
+        if OrdinalTypesOnly then
+          EXIT(Err(qeOrdinalTypeExpected))
         else
           Result := ParseArrayDefinition(TheType);
       keyFUNCTION:
-        if SimpleTypesOnly then
-          EXIT(Err(qeSimpleTypeExpected))
+        if OrdinalTypesOnly then
+          EXIT(Err(qeOrdinalTypeExpected))
         else
           Result := ParseFuncDefinition(False, TheType);
       keyLIST:
-        if SimpleTypesOnly then
-          EXIT(Err(qeSimpleTypeExpected))
+        if OrdinalTypesOnly then
+          EXIT(Err(qeOrdinalTypeExpected))
         else
           Result := ParseVectorOrListDefinition(vtList, TheType);
       keyPROCEDURE:
-        if SimpleTypesOnly then
-          EXIT(Err(qeSimpleTypeExpected))
+        if OrdinalTypesOnly then
+          EXIT(Err(qeOrdinalTypeExpected))
         else
           Result := ParseFuncDefinition(True, TheType);
       keyRECORD:
-        if SimpleTypesOnly then
-          EXIT(Err(qeSimpleTypeExpected))
+        if OrdinalTypesOnly then
+          EXIT(Err(qeOrdinalTypeExpected))
         else
           Result := ParseRecordDefinition(TheType);
       keySET:
-        if SimpleTypesOnly then
-          EXIT(Err(qeSimpleTypeExpected))
+        if OrdinalTypesOnly then
+          EXIT(Err(qeOrdinalTypeExpected))
         else
           Result := ParseSetDefinition(TheType);
       keyVECTOR:
-        if SimpleTypesOnly then
-          EXIT(Err(qeSimpleTypeExpected))
+        if OrdinalTypesOnly then
+          EXIT(Err(qeOrdinalTypeExpected))
         else
           Result := ParseVectorOrListDefinition(vtVector, TheType);
       keyUNKNOWN:
@@ -548,7 +540,7 @@ begin
             //If identifier is the name of a type we'll assume it's a type synonym
             //(or pointer)...
             if IsPointed then
-              TheType := Types.AddOfType('', vtTypedPointer, IdentData.T)
+              TheType := Types.AddOfType(vtTypedPointer, IdentData.T)
             else if (Parser.TestChar = '[') and (IdentData.T.VarType in [vtVector, vtList]) then
               Result := BakeArrayType(IdentData.T, TheType)
             else
@@ -597,9 +589,9 @@ begin
   if Result <> qeNone then
     EXIT;
 
-  if SimpleTypesOnly then
+  if OrdinalTypesOnly then
     if not IsOrdinalType(UTToVT(TheType)) then
-      EXIT(Err(qeSimpleTypeExpected));
+      EXIT(Err(qeOrdinalTypeExpected));
 end;
 
 function DoTYPE(const Ident: String): TQuicheError;

@@ -17,39 +17,25 @@ uses Def.QTypes;
 function GetTypeLowValue(UserType: PUserType;var Value: TImmValue): TQuicheError;
 begin
   if not Assigned(UserType) then
-    EXIT(ErrSub(qeSimpleTypeExpected, 'nil'));
+    EXIT(ErrSub(qeOrdinalTypeExpected, 'nil'));
 
-  if IsOrdinalType(UserType.VarType) then
-  begin
-    case UserType.VarType of
-      vtEnumeration: Value.CreateTyped(UserType, 0);
-      vtSubRange: Value.CreateTyped(UserType, UserType.Low);
-    else
-      Value.CreateTyped(UserType, GetMinValue(UserType.VarType));
-    end;
-    Result := qeNone;
-  end
-  else
-    EXIT(ErrSub(qeSimpleTypeExpected, UserType.Name));
+  if not IsOrdinalType(UserType.VarType) then
+    EXIT(ErrSub(qeOrdinalTypeExpected, UserType.Name));
+
+  Value.CreateTyped(UserType, UserType.Low);
+  Result := qeNone;
 end;
 
 function GetTypeHighValue(UserType: PUserType;var Value: TImmValue): TQuicheError;
 begin
   if not Assigned(UserType) then
-    EXIT(ErrSub(qeSimpleTypeExpected, 'nil'));
+    EXIT(ErrSub(qeOrdinalTypeExpected, 'nil'));
 
-  if IsOrdinalType(UserType.VarType) then
-  begin
-    case UserType.VarType of
-      vtEnumeration: Value.CreateTyped(UserType, Length(UserType.EnumItems));
-      vtSubRange: Value.CreateTyped(UserType, UserType.High);
-    else
-      Value.CreateTyped(UserType, GetMaxValue(UserType.VarType));
-    end;
-    Result := qeNone;
-  end
-  else
-    EXIT(ErrSub(qeSimpleTypeExpected, UserType.Name));
+  if not IsOrdinalType(UserType.VarType) then
+    EXIT(ErrSub(qeOrdinalTypeExpected, UserType.Name));
+
+  Value.CreateTyped(UserType, UserType.High);
+  Result := qeNone;
 end;
 
 end.

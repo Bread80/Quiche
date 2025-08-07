@@ -155,7 +155,6 @@ end;
 procedure GetVarData(IXOffsetHack: Integer);
 var I: Integer;
   V: PVariable;
-  UserType: PUserType;
   Addr: Word;
   IX: Word;
 begin
@@ -164,10 +163,9 @@ begin
   for I := 0 to VarGetCount-1 do
   begin
     V := VarIndexToData(I);
-    UserType := RemoveSubRange(V.UserType);
     case V.AddrMode of
       amStatic:
-        case UserType.VarType of
+        case V.VarType of
           vtByte, vtChar, vtBoolean, vtEnumeration:
             V.Value := TImmValue.CreateTyped(V.UserType, ReadByte(V.GetAsmName));
           vtWord, vtPointer, vtTypedPointer: V.Value := TImmValue.CreateTyped(V.UserType, ReadWord(V.GetAsmName));
@@ -184,7 +182,7 @@ begin
       amStack:
       begin
         Addr := (IX + V.Offset) and $ffff;
-        case UserType.VarType of
+        case V.VarType of
           vtByte, vtChar, vtBoolean, vtEnumeration:
             V.Value := TImmValue.CreateTyped(V.UserType, Hardware.ReadMemoryByte(Addr));
           vtWord, vtPointer, vtTypedPointer: V.Value := TImmValue.CreateTyped(V.UserType, Hardware.ReadMemoryWord(Addr));

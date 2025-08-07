@@ -59,7 +59,7 @@ type
     //Use the {$Q} compiler directive
     OverflowChecks: Boolean;
     //If enabled string and array expressions will be verified to be within the
-    //defined bounds, and assignments to numeric and enumerated types will be
+    //defined bounds, and assignments to numeric and ordinal types will be
     //checked to be within range.
     //Use the ($R} compiler directive
     RangeChecks: Boolean;

@@ -9,7 +9,7 @@ it to account for and mitigate for any register corruption or other side-effects
 which may happen as a result of a piece of code.
 
 Essentially, Primitives enumerate operations which have meaning to the programmer
-whereas Algo enumerated operations which the compiler needs to be able generate
+whereas Algos enumerate operations which the compiler needs to be able generate
 alongside Primitives to enable the final code to function and be efficient.
 *)
 unit Z80.Algos;

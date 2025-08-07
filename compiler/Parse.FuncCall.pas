@@ -88,7 +88,6 @@ begin
       ILItem := Slug.ToILItemNoDest;
       if ILItem.Op = OpUnknown then
         ILItem.Op := OpMove;
-      ILItem.ResultType := Arg.UserType;
       //Slug to ILItem
       case GetTypeSize(Arg.UserType) of
         1: ILItem.Dest.Kind := pkPushByte;

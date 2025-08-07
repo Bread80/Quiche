@@ -28,8 +28,8 @@ begin
   if ToType = ExprType then
     EXIT(qeNone);
 
-  ToVT := UTToVT(RemoveSubRange(ToType));
-  ExprVT := UTToVT(RemoveSubRange(ExprType));
+  ToVT := ToType.VarType;
+  ExprVT := ExprType.VarType;
 
   if IsOrdinalType(ToVT) then
   begin
@@ -87,18 +87,16 @@ begin
     EXIT(qeNone);
   end
   else if IsOrdinalType(UTToVT(ToType)) and IsOrdinalType(Imm.VarType) then
-  begin //Other enumerated types
+  begin //Other ordinal types
     //Are the types compatible?
     Result := ValidateAssignmentType(ToType, Imm.UserType);//ExprType);
     if Result <> qeNone then
       EXIT;
 
     //Is the value in range?
-    if ToType.VarType = vtSubRange then
-    begin //Check value is in range
+    if ToType.VarType <> vtBoolean then //(Boolean ranges are different)
       if not ((Imm.ToInteger >= ToType.Low) and (Imm.ToInteger <= ToType.High)) then
         EXIT(ErrSub2(qeConstantAssignmentOutOfRange, Imm.ToString, ToType.Description));
-    end;
     EXIT(qeNone);
   end
   else

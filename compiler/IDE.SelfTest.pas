@@ -656,9 +656,11 @@ begin
   V := VarFindByNameAllScopes(Step.Name);
   if not Assigned(V) then
     Error(Step, 'ERROR: No such variable: ''' + Step.Name + ''''#13)
+  else if V.UserType = nil then
+    Error(Step, 'ERROR: No UserType assigned for variable: ''' + Step.Name + ''''#13)
   else
-    Check(CompareText(VarTypeToName(V.VarType), Step.Value) = 0, Step, 'VarType mismatch on ' + V.Name +
-      ', wanted ' + Step.Value + ' got ' + VarTypeToName(V.VarType) + #13);
+    Check(CompareText(V.UserType.Name, Step.Value) = 0, Step, 'VarType mismatch on ' + V.Name +
+      ', wanted ' + Step.Value + ' got ' + V.UserType.Name + #13);
 end;
 
 procedure TTest.TestVarValue(Step: PTestStep);

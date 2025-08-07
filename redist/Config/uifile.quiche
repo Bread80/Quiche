@@ -1,5 +1,4 @@
-  type TNumber = -2560..-655
-  var x: TNumber
-  var y: Integer
-  y := -654
-  x := y
+  type TNumber = -20..100
+  var a: TNumber = 20
+  var b := a
+  var c := a+10

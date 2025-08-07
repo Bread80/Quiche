@@ -134,7 +134,6 @@ begin
     if Result <> qeNone then
       EXIT;
     Result := ParseTypeDefinition(UT);
-//    Result := ParseVarTypeName(VT);
   end
   else
   begin

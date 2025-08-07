@@ -54,9 +54,9 @@ type TQuicheError = (
   qeRangeOperatorExpected,    //'..' operator
   qeRangeBoundsTypeMismatch,  //x..y
 
-  qeSimpleTypeExpected,
-  qeSimpleConstExprExpected,  //Expression must evaluate to a value which is a
-                              //member of a simple type
+  qeOrdinalTypeExpected,
+  qeOrdinalConstExprExpected,  //Expression must evaluate to a value which is a
+                              //member of an ordinal type
   qeRangeExprValuesTooWide,   //Numeric range bounds values won't fit into any available type
   qeRangeValuesMisordered,    //The left value >= the right value
   qeOFExpected,

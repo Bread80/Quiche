@@ -20,6 +20,10 @@ type
                             //Sets: The element type
                             //Arrays (etc): The element type
                             //Typed pointers: the type of the pointed to data
+    IsSubRange: Boolean;    //True if this type is a SubRange of another enumerard type.
+                            //If so, if it's a subrange of a user created type
+                            //(ie. an enumartion) then OfType will point to the base type,
+                            //otherwise VarType will contain the base type
     Low: Integer;           //Specified for any ordinal type. High must be > Low.
     High: Integer;          //Ditto
 
@@ -27,7 +31,7 @@ type
 
     procedure Initialise;
 
-    //Clones From *except* Name, VarType and BaseType.
+    //Clones From *except* Name
     procedure CloneTypeData(From: PUserType);
 
     //Where VarType is vtEnumeration
@@ -40,9 +44,6 @@ type
     function ToString: String;
 
     case VarType: TVarType of
-      vtSubRange: (
-        //OfType contains the base type (numeric, enumeration, etc).
-      );
 (*      vtSparseSet: (
         //BaseType
         RangeItems: PSparseRangeItems; //(Or TImmValue?)
@@ -83,12 +84,11 @@ type
     procedure Initialise;
     procedure Clear;
 
-    function Add(const AName: String;AVarType: TVarType): PUserType;
-    function AddChildType(const AName: String;AVarType: TVarType;AParentType: PUserType): PUserType;
-    function AddOfType(const AName: String;AVarType: TVarType;AOfType: PUserType): PUserType;
+    function Add(AVarType: TVarType): PUserType;
+    function AddOfType(AVarType: TVarType;AOfType: PUserType): PUserType;
     //Creates a new type as a copy of FromType with name AName.
     //The new types BaseType will be FromType
-    function AddSynonym(const AName: String;FromType: PUserType): PUserType;
+    function AddSynonym(const AName: String;AParentType: PUserType): PUserType;
 
     function FindByNameInScope(const AName: String): PUserType;
     //Searches enumeration types. If AName is a member of an enumeration
@@ -162,51 +162,30 @@ uses SysUtils,
 
 procedure TUserType.CloneTypeData(From: PUserType);
 begin
-  Assert(VarType = From.VarType);
+  VarType := From.VarType;
+  ParentType := From.ParentType;
+  OfType := From.OfType;
+  IsSubRange := From.IsSubRange;
+  Low := From.Low;
+  High := From.High;
   case VarType of
     vtReal,
     vtBoolean, vtFlag,
     vtTypeDef,
-    vtString: ; //Nothing to do
-
+    vtString,
     vtInt8, vtInteger, vtByte, vtWord, vtPointer,
-    vtChar:
-    begin
-      Low := From.Low;
-      High := From.High;
-      EnumItems := From.EnumItems;
-    end;
-    vtEnumeration:
-    begin
-      Low := From.Low;
-      High := From.High;
-      EnumItems := From.EnumItems;
-    end;
+    vtChar,
+    vtSetByte, vtSetWord, vtSetMem,
+    vtUnknown: ; //Nothing to do
+    vtEnumeration: EnumItems := From.EnumItems;
 (*    vtSparseRange: ;*)
 (*    vtRange: ;*)
-    vtSetByte, vtSetWord, vtSetMem:
-      OfType := From.OfType;
-    vtArray:
-    begin
-      Low := From.Low;
-      High := From.High;
-      BoundsType := From.BoundsType;
-      OfType := From.OfType;
-    end;
-    vtVector:
-    begin
-      VecLength := From.VecLength;
-      OfType := From.OfType;
-    end;
-    vtList:
-    begin
-      Capacity := From.Capacity;
-      OfType := From.OfType;
-    end;
+    vtArray:  BoundsType := From.BoundsType;
+    vtVector: VecLength := From.VecLength;
+    vtList:   Capacity := From.Capacity;
     vtRecord: Assert(False);  //TODO
 (*    vtStream: ;*)
     vtFunction: Assert(False);  //TODO
-    vtUnknown: ;  //Nothing to do
   else
     Assert(False);
   end;
@@ -223,6 +202,15 @@ begin
   if Assigned(OfType) then
     Assert(OfType.ParentType = nil);
 
+  if IsSubRange then
+  begin
+    if Assigned(OfType) and (OfType.VarType = vtEnumeration) then
+      Result := Result + OfType.EnumItems[Low] + '(' + Low.ToString + ')..' +
+        OfType.EnumItems[High] + '(' + High.ToString + ')'
+    else  //TODO: Non integer types??
+      Result := Result + Low.ToString + '..' + High.ToString;
+  end
+  else
   case VarType of
     vtInt8, vtInteger, vtByte, vtWord, vtPointer,
     vtReal,
@@ -243,15 +231,6 @@ begin
         Result := Result + S;
       end;
       Result := '(' + Result + ')';
-    end;
-    vtSubRange:
-    begin
-      Assert(Assigned(OfType));
-      if OfType.VarType = vtEnumeration then
-        Result := Result + OfType.EnumItems[Low] + '(' + Low.ToString + ')..' +
-          OfType.EnumItems[High] + '(' + High.ToString + ')'
-      else  //TODO: Non integer types??
-        Result := Result + Low.ToString + '..' + High.ToString;
     end;
     vtSetByte, vtSetWord, vtSetMem:
     begin
@@ -309,7 +288,9 @@ end;
 function TUserType.EnumItemToString(Index: Integer): String;
 begin
   Assert(VarType = vtEnumeration);
-  if (Index >= 0) and (Index < length(EnumItems)) then
+  if IsSubRange then
+    Result := OfType.EnumItemToString(Index)
+  else if (Index >= 0) and (Index < length(EnumItems)) then
     Result := EnumItems[Index]
   else
     Result := '<Enumeration value out of range>';
@@ -322,6 +303,7 @@ begin
   OfType := nil;
   VarType := vtUnknown;
   BoundsType := nil;
+  IsSubRange := False;
   Low := -1;
   High := -2;
 end;
@@ -381,14 +363,11 @@ function IsIntegerType(UserType: PUserType): Boolean;
 begin
   if not Assigned(UserType) then
     EXIT(False);
-  if UserType.VarType = vtSubRange then
-    UserType := RemoveSubRange(UserType);
   Result := IsIntegerVarType(UserType.VarType);
 end;
 
 function IsSignedType(UserType: PUserType): Boolean;
 begin
-  UserType := RemoveSubRange(UserType);
   Result := IsSignedVarType(UserType.VarType);
 end;
 
@@ -402,13 +381,15 @@ end;
 
 function RemoveSubRange(UserType: PUserType): PUserType;
 begin
-  if (UserType.VarType = vtSubRange) and (UserType <> nil) then
+  Result := UserType;
+  if UserType = nil then
+    EXIT;
+
+  if UserType.IsSubRange then
   begin
     Result := UserType.OfType;
     Assert(Result <> nil);
-  end
-  else
-    Result := UserType;
+  end;
 end;
 
 function GetPointerToType(UserType: PUserType): PUserType;
@@ -416,7 +397,7 @@ begin
   Result := SearchScopesForAnonTypedPointer(UserType);
   if not Assigned(Result) then
   begin
-    Result := Types.AddOfType('', vtTypedPointer, UserType);
+    Result := Types.AddOfType(vtTypedPointer, UserType);
   end;
 end;
 
@@ -424,8 +405,11 @@ function GetTypeItemCount(UserType: PUserType): Integer;
 begin
   Assert(UserType <> nil);
 
+  if IsOrdinalType(UserType.VarType) then
+    Result := UserType.High-UserType.Low+1
+  else
   case UserType.VarType of
-    vtInt8, vtByte, vtChar: Result := 128;
+(*    vtInt8, vtByte, vtChar: Result := 128;
     vtInteger, vtPointer, vtWord, vtTypedPointer: Result := 65536;
       //Or: Result := GetMaxValue(UserType.VarType) - GetMinValue(UserType.VarType) + 1;
 //    vtReal  //Not enumerable
@@ -441,7 +425,7 @@ begin
     //User types
     vtEnumeration:  Result := Length(UserType.EnumItems);
     vtSubRange: Result := UserType.High - UserType.Low + 1;
-//  vtSparseSet //TODO
+*)//  vtSparseSet //TODO
 //  vtRange     //TODO
 //  vtSet,      //TODO
 
@@ -463,14 +447,6 @@ begin
   else
     raise Exception.Create('Enumerable type expected');
   end;
-end;
-
-function GetSubRangeByteSize(UserType: PUserType): Integer;
-begin
-  Assert(Assigned(UserType));
-  Assert(UserType.VarType = vtSubRange);
-
-  Result := GetTypeSize(UserType.OfType);
 end;
 
 //Where UserType is an array based type, returns the bytecount of the types
@@ -510,7 +486,8 @@ begin
   Assert(UserType <> nil);
 
   case UserType.VarType of
-    vtInt8, vtByte, vtChar, vtBoolean: Result := 1;
+    vtInt8, vtByte, vtChar, vtBoolean, vtEnumeration:
+      Result := 1;
     vtInteger, vtWord, vtPointer, vtTypedPointer:
       Result := 2;
     vtReal: Result := iRealSize;
@@ -519,9 +496,6 @@ begin
     vtString,       //aka List of Char
 
     //User types
-    vtEnumeration: Result := 1;
-    vtSubRange: //Number of bytes required to store the subrange
-      Result := GetSubRangeByteSize(UserType);
 (*  vtSparseSet,  //Parse time only  - contains values and ranges
   vtRange,        //Run time
 *)
@@ -576,7 +550,8 @@ var SystemTypes: array[low(TVarType)..high(TVarType)] of PUserType;
 
 function CreateSystemType(const Name: String;VarType: TVarType): PUserType;
 begin
-  Result := Types.Add(Name, VarType);
+  Result := Types.Add(VarType);
+  Result.Name := Name;
   SystemTypes[VarType] := Result;
 end;
 
@@ -613,49 +588,35 @@ end;
 
 { TTypeList }
 
-function TTypeList.Add(const AName: String; AVarType: TVarType): PUserType;
+function TTypeList.Add(AVarType: TVarType): PUserType;
 begin
   Result := New(PUserType);
   Items.Add(Result);
   Result.Initialise;
-  Result.Name := AName;
   Result.VarType := AVarType;
-  Result.ParentType := nil;
-  Result.OfType := nil;
-  Result.BoundsType := nil;
 end;
 
-function TTypeList.AddChildType(const AName: String; AVarType: TVarType;
-  AParentType: PUserType): PUserType;
-begin
-  Result := New(PUserType);
-  Items.Add(Result);
-  Result.Initialise;
-  Result.Name := AName;
-  Result.VarType := AVarType;
-  Result.ParentType := AParentType;
-  Result.OfType := nil;
-  Result.BoundsType := nil;
-end;
-
-function TTypeList.AddOfType(const AName: String; AVarType: TVarType;
+function TTypeList.AddOfType(AVarType: TVarType;
   AOfType: PUserType): PUserType;
 begin
   Result := New(PUserType);
   Items.Add(Result);
   Result.Initialise;
-  Result.Name := AName;
   Result.VarType := AVarType;
-  Result.ParentType := nil;
   Result.OfType := AOfType;
-  Result.BoundsType := nil;
 end;
 
 function TTypeList.AddSynonym(const AName: String;
-  FromType: PUserType): PUserType;
+  AParentType: PUserType): PUserType;
 begin
-  Result := AddChildType(AName, FromType.VarType, FromType);
-  Result.CloneTypeData(FromType);
+  Result := New(PUserType);
+  Items.Add(Result);
+  Result.Initialise;
+  Result.CloneTypeData(AParentType);
+
+  Result.Name := AName;
+  Result.VarType := AParentType.VarType;
+  Result.ParentType := AParentType;
 end;
 
 procedure TTypeList.Clear;

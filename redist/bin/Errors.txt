@@ -111,10 +111,14 @@
 =RangeBoundsTypeMismatch
 	Range low and high values must be of the same type ('%s', '%s')
 
-=SimpleTypeExpected
-	Simple type expected ('%s')
-=SimpleConstExprExpected
-	Expecting a constant expression which evaluates to a member of a simple type
+=OrdinalTypeExpected
+	Ordinal type expected ('%s')
+	An ordinal type is one with an ordered set of values with a defined first and last value. 
+	These are the integer numeric types, chars, booleans, enumerations and subranges.
+=OrdinalConstExprExpected
+	Expecting a constant expression which evaluates to a member of an ordinal type
+	An ordinal type is one with an ordered set of values with a defined first and last value. 
+	These are the integer numeric types, chars, booleans, enumerations and subranges.
 =RangeExprValuesTooWide
 	The range bounds values are too wide to fit into any available type ('%s', '%s')
 =RangeValuesMisordered

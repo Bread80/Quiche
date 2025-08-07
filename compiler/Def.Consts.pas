@@ -71,7 +71,7 @@ type PConstList = ^TConstList;
     FUserType: PUserType;
 
     case FVarType: TVarType of
-      vtInt8, vtInteger, vtByte, vtWord, vtPointer, vtEnumeration, vtSubRange:
+      vtInt8, vtInteger, vtByte, vtWord, vtPointer, vtEnumeration:
         (FIntValue: Integer);
       vtReal: (); //TODO
       vtBoolean, vtFlag: (FBoolValue: Boolean);
@@ -165,7 +165,7 @@ end;
 
 function TImmValue.CharValue: Char;
 begin
-  Assert((FVarType = vtChar) or ((FVarType = vtSubRange) and (FUserType.OfType.VarType = vtChar)));
+  Assert(FVarType = vtChar);
   Result := FCharValue;
 end;
 
@@ -205,7 +205,7 @@ begin
   FVarType := AType;
   case AType of
     vtInt8, vtInteger, vtByte, vtWord, vtPointer,
-      vtTypedPointer, vtEnumeration, vtSubRange: FIntValue := AValue;
+      vtTypedPointer, vtEnumeration: FIntValue := AValue;
     vtReal: Assert(False); //TODO
     vtBoolean, vtFlag: FBoolValue:= AValue <> 0;
     vtChar: FCharValue := chr(AValue);
@@ -230,7 +230,7 @@ begin
   FVarType := AType.VarType;
   case FVarType of
     vtInt8, vtInteger, vtByte, vtWord, vtPointer,
-      vtEnumeration, vtSubRange, vtSetByte, vtSetWord,
+      vtEnumeration, vtSetByte, vtSetWord,
       vtTypedPointer, vtFunction:
       FIntValue := AValue;
     vtReal: Assert(False); //TODO
@@ -295,7 +295,7 @@ function TImmValue.ToInteger: Integer;
 begin
   case FVarType of
     vtInt8, vtInteger, vtByte, vtWord, vtPointer,
-      vtEnumeration, vtSubRange:
+      vtEnumeration:
         Result := FIntValue;
     vtBoolean:
       if BoolValue then
@@ -343,7 +343,6 @@ function TImmValue.ToString: String;
         Result := TypeDefValue.Name
       else
         Result := 'nil';
-      vtSubRange: Result := ToInteger.ToString;
       vtString:
         if (FStringConstList = nil) or (FStringIndex = -1) then
           Result := '<<UNASSIGNED>>'
@@ -374,10 +373,7 @@ function TImmValue.ToString: String;
 
 begin
   if Assigned(FUserType) then
-    if UTToVT(FUserType) = vtSubRange then
-      Result := ToUserTypedString(FUserType.OfType)
-    else
-      Result := ToUserTypedString(FUserType)
+    Result := ToUserTypedString(FUserType)
   else
     Result := ToVarTypedString(FVarType);
 end;

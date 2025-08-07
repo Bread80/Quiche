@@ -48,7 +48,6 @@ type TVarType = (
   //========== Types which require a full declaration to instantiate
   //User types
   vtEnumeration,
-  vtSubRange,
 (*  vtSparseSet,  //Parse time only  - contains values and ranges
   vtRange,        //Run time
 *)
@@ -118,7 +117,7 @@ function IsOrdinalType(VarType: TVarType): Boolean;
 //Any arrayed type. Array, vector, list, string etc.
 function IsArrayType(VarType: TVarType): Boolean;
 
-//For Integer and enumerated types only: Returns True if Value is in range for type VarType
+//For Integer and system ordinal types only: Returns True if Value is in range for type VarType
 function TryIntegerToVarType(Value: Integer;out VarType: TVarType): Boolean;
 
 //===================Type fitness
@@ -211,7 +210,7 @@ const VarTypeNames: array[low(TVarType)..high(TVarType)] of String = (
   'Boolean', '<Flag>',
   'Char', 'TypeDef',
   'String',
-  'Enumeration', 'SubRange', (*'<SparseRange>', 'Range',*)
+  'Enumeration', (*'<SparseRange>', 'Range',*)
   'Set','Set','Set',  //SetByte, SetWord, SetMem
   'Array','Array',
   'Vector',
@@ -249,7 +248,7 @@ const VarTypeSizes: array[low(TVarType)..high(TVarType)] of Integer = (
   1,0,      //Char, TypeDef
 
   0,        //String, WideString
-  1, 0,    //Enumeration, SubRange
+  1,        //Enumeration
 (*-1, 2,*)  //SparseRange, Range
   1, 2, 0,  //SetByte, SetWord, SetMem
   0, 0,     //Array, UnboundArray
@@ -273,7 +272,7 @@ const VarTypeIsPointered: array[low(TVarType)..high(TVarType)] of Boolean = (
   False, False, //Booleans
   False, False, //Char, TypeDef (?)
   True,         //Strings
-  False, False, (* True, True, *) //Misc
+  False, (* True, True, *) //Misc
   False, False, True, //SetByte, SetWord, SetMem
   True, True,   //Arrays
   True,         //Vectors
@@ -322,7 +321,7 @@ end;
 function IsOrdinalType(VarType: TVarType): Boolean;
 begin
   Result := VarType in [vtWord, vtByte, vtPointer, vtInt8, vtInteger,
-    vtChar, vtBoolean, vtEnumeration, vtSubRange];
+    vtChar, vtBoolean, vtEnumeration];
 end;
 
 function IsArrayType(VarType: TVarType): Boolean;

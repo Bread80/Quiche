@@ -554,7 +554,6 @@ begin
 
   if Assigned(ExprType) then
   begin
-//    Result := ValidateExprType(GetBaseType(ExprType), Slug);
     Result := ValidateAssignment(ExprType, Slug);
     if Result <> qeNone then
       EXIT;
@@ -580,7 +579,6 @@ begin
   //We'll populate the operation data, but the dest data will be added by the caller
   if Slug.Op = opUnknown then
     EXIT(FixupSlugNoOperation(Slug, ExprType));
-
 
   //If the slug returned an ILItem then we need to set it's Dest to a temp var
   if Slug.ILItem <> nil then

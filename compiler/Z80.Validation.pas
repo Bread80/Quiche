@@ -655,20 +655,26 @@ procedure GenSubRangeCheck(Reg: TCPUReg;FromType, ToType: PUserType;Options: TMo
 begin
   Assert(Assigned(FromType));
   Assert(Assigned(ToType));
-  Assert(ToType.VarType = vtSubRange);
+  Assert(ToType.IsSubRange);
   Assert(Assigned(ToType.OfType));
 
   //We're testing an 8-bit value
-  if Reg in CPUReg8Bit then
+  case GetTypeSize(FromType) of
+  1:
+//  if Reg in CPUReg8Bit then
     if IsSignedType(FromType) then
       GenSubRangeCheckS8(Reg, FromType, ToType, Options)
     else
-      GenSubRangeCheckU8(Reg, FromType, ToType, Options)
-  else  //16-bit value
+      GenSubRangeCheckU8(Reg, FromType, ToType, Options);
+  2:
+//  else  //16-bit value
       if IsSignedType(FromType) then
       GenSubRangeCheckS16(Reg, FromType, ToType, Options)
     else
       GenSubRangeCheckU16(Reg, FromType, ToType, Options);
+  else
+    Assert(False);
+  end;
 end;
 
 //===================================
@@ -754,7 +760,7 @@ begin
   //This will need to be updated at some point for array, enumeration, etc.
   if FromType = ToType then
     EXIT;
-  if TType = vtSubRange then
+  if ToType.IsSubRange then
   begin //Process conversions to SubRange
     GenSubRangeCheck(Reg, FromType, ToType, Options);
     EXIT;
@@ -836,9 +842,6 @@ begin
     EXIT;
 
   Assert(Reg in CPUReg8Bit);
-//  Assert(RemoveSubRange(FromType).VarType in [vtInteger, vtWord, vtPointer, vtEnumeration]);
-//  Assert(RemoveSubRange(ToType).VarType in [vtInt8, vtByte, vtEnumeration]);
-//???  Assert(not ((FType = vtInteger) and (TType = vtInt8)), 'Use specialises routines');
 
   //Move Reg to rA
   if Reg <> rA then

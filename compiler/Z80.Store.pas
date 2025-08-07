@@ -374,8 +374,6 @@ end;
 
 procedure GenPush16(Reg: TCPUReg;FromType, ToType: TVarType;RangeChecked: Boolean;Options: TMoveOptionSet);
 begin
-  Assert((FromType = ToType) or (FromType = vtUnknown), 'PUSHes can''t do type conversions');
-
 //  case GetTypeSize(FromType) of
 //    1: Assert(False, 'TODO: Push 8 to 16');
     {2:} OpPUSH(Reg);
@@ -386,8 +384,6 @@ end;
 
 procedure GenPush8(Reg: TCPUReg;FromType, ToType: TVarType;RangeChecked: Boolean;Options: TMoveOptionSet);
 begin
-  Assert((FromType = ToType) or (FromType = vtUnknown), 'PUSHes can''t do type conversions');
-
   //If the value is a boolean, and it's in a flag (or in a register but needs processing)
   //this call will do than and put the value in A
   case Reg of
@@ -421,14 +417,12 @@ end;
 procedure GenCondJump(const Param: TILParam;Reverse: Boolean;BlockID: Integer);
 var F: String;
 begin
-//  Reverse := Reverse xor ILItem.BranchInvert;
   Assert(Param.Kind = pkCondBranch);
 
   case Param.Reg of
     rA:
     begin
-//      if ILItem.OpType <> rtBoolean then
-        GenFragmentParamName('atozf', Param, 'd');
+      GenFragmentParamName('atozf', Param, 'd');
       if Reverse then
         F := 'z'
       else
@@ -562,7 +556,8 @@ end;
 // * generates code to handle the type conversion (if necessary)
 procedure StoreAfterPrim(ILItem: PILItem;Prim: PPrimitive);
 var RangeCheckProc: TRangeCheckProc;
-  VarType: TVarType;
+  ToType: PUserType;
+  FromType: PUserType;
 begin
   //Update CPU state but ignore kinds which don't have a Variable
   if (ILItem.Dest.Reg <> rNone) and not (ILItem.Dest.Kind in [pkCondBranch, pkPush, pkPushByte]) then
@@ -570,14 +565,20 @@ begin
 
   //If we have an optimised range check proc for the primitive & type conversion
   //find it and pass to the store routine
-  VarType := vtUnknown;
+  ToType := nil;
   case ILItem.Dest.Kind of
-    pkVarDest: VarType := ILItem.Dest.Variable.VarType;
-    pkPush, pkPushByte: VarType := UTToVT(ILItem.Dest.PushType);
+    pkVarDest: ToType := ILItem.Dest.Variable.UserType;
+    pkPush, pkPushByte: ToType := ILItem.Dest.PushType;
   end;
-  RangeCheckProc := GetOptimisedRangeCheckProc(Prim, VarType);
+  RangeCheckProc := nil;
+  if ToType <> nil then
+    if not ToType.IsSubRange then
+      RangeCheckProc := GetOptimisedRangeCheckProc(Prim, ToType.VarType);
 
-  GenDestParam(ILItem.Dest, ILItem.ResultType, cgRangeCheck in ILItem.Dest.Flags, RangeCheckProc, []);
+  //We assume the result of an expression is a generic value - NOT a subrange and
+  //therefore needs range checking into the DestType (if range checks are on).
+  FromType := RemoveSubRange(ILItem.ResultType);
+  GenDestParam(ILItem.Dest, FromType, cgRangeCheck in ILItem.Dest.Flags, RangeCheckProc, []);
 end;
 
 end.
