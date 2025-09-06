@@ -4,7 +4,9 @@ interface
 uses Generics.Collections;
 
 type
+  //Does this option accept or require a data value?
   TCLOptionData = (sdNone, sdRequired, sdOptional);
+  //Is this option required? Can it be specified multiple times?
   TCLOptionFlags = set of (sfRequired, sfAllowMultiple);
 
 type

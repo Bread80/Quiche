@@ -122,7 +122,7 @@ type TTestable = class
     FEmulateError: Boolean;
 
     FRunTimeErrorAddress: Word;
-    FWriteBuffer: String;
+    FConsoleLog: String;
     FRunTimeError: Byte;
     FTestLog: String;
     //If we had an unwanted compile or runtime error
@@ -185,7 +185,7 @@ type TTestable = class
     property AssembleError: Boolean read FAssembleError;
 
     //Emulator
-    property WriteBuffer: String read FWriteBuffer;    //Text written to output
+    property ConsoleLog: String read FConsoleLog;    //Text written to output
     property RunTimeError: Byte read FRunTimeError;
     property RunTimeErrorAddress: Word read FRunTimeErrorAddress;
 
@@ -438,16 +438,16 @@ end;
 
 function TTest.Emulate: Boolean;
 begin
-  FWRiteBuffer := '';
+  FConsoleLog := '';
   FRuntimeError := 0;
 
-  Result := IDE.Compiler.Deploy(IDE.Compiler.GetBinaryFileName);
+  Result := IDE.Compiler.Deploy(IDE.Compiler.GetBinaryFileName, False);
   FEmulateError := not Result;
   if FEmulateError then
     FErrorReport := 'ERROR: Unexpected runtime error '#13
   else
   begin
-    FWriteBuffer := IDE.Compiler.WriteBuffer;
+    FConsoleLog := IDE.Compiler.ConsoleLog;
     FRunTimeError := IDE.Compiler.RunTimeError;
   end;
 end;
@@ -721,7 +721,7 @@ begin
   FAssembleError := False;
   FAssemblerLog := '';
 
-  FWriteBuffer := '';
+  FConsoleLog := '';
   FRunTimeError := 0;
   FRunTimeErrorAddress := 0;
 end;

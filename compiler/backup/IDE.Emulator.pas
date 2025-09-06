@@ -83,7 +83,7 @@ begin
 *){$endif}
   else
   begin
-    if ConsoleInputPtr >= length(ConsoleInput) then
+    if ConsoleInputPtr >= length(COnsoleInput) then
       Result := #0
     else
     begin
@@ -116,7 +116,7 @@ end;
 
 const OpcodeRET = $c9;
 
-//For CPM emulation - based on V2.2
+//For CPM emulation
 function HookOpcodeCPM(Addr: Word;Opcode: Byte): Byte;
 begin
   case Addr of
@@ -125,7 +125,7 @@ begin
       //BDOS function is in the C register
       case Hardware.Z80.Z80.C of
         1:  //Console input. Waits until a char is available.
-            //Returns A=L=character. Echos to console.
+            //Returns A=L=character. Echos to console (but see function 30)
         begin
           Hardware.Z80.Z80.A := ord(CPMWaitChar);
           Hardware.Z80.Z80.L := Hardware.Z80.Z80.A;
@@ -145,7 +145,10 @@ begin
             Hardware.Z80.Z80.A := 0;
           Hardware.Z80.Z80.L := Hardware.Z80.Z80.A;
         end;
-      else
+(*        30: //Set echo mode for function 1. E=0 turn echo on. E<>0 turn echo off
+            //Original CPM *only*
+          ConsoleEcho := Hardware.Z80.Z80.A = 0;
+*)      else
         //Invalid or non-emulated
       end;
 

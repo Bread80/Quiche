@@ -46,7 +46,7 @@ function AreAnyForwardsUnsatisfied: TQuicheError;
 implementation
 uses SysUtils,
   Def.Globals, Def.IL, Def.Operators, Def.QTypes, Def.Scopes, Def.Variables,
-  Def.UserTypes,
+  Def.UserTypes, Def.Consts,
   Parse, Parse.Expr, Parse.Literals, Parse.Source, Parse.TypeDefs,
   Z80.Hardware;
 
@@ -221,6 +221,20 @@ begin
   Result := qeNone;
 end;
 
+function ReadDefaultValue(var Param: TParameter): TQuicheError;
+var Value: TImmValue;
+  ExprType: PUSerType;
+begin
+  ExprType := Param.UserType;
+  Result := ParseConstantExpr(Value, ExprType);
+  if Result <> qeNone then
+    EXIT;
+
+  Param.DefaultValue := Value;
+  Param.HasDefaultValue := True;
+end;
+
+
 //Parse the parameter list of a function definition - I.e. the section in parentheses
 //Assumes the caller has consumed the '(' before a parameter definition list.
 //Returns having consumed the trailing ')' after the parameter list
@@ -234,8 +248,10 @@ var
   Ident: String;
   Access: TVarAccess;
   Ch: Char;
+  HaveDefaultValue: Boolean;  //True if we've read a param with a default value
 begin
   ParamIndex := 0;
+  HaveDefaultValue := False;
 
   //Loop until we hit the trailing brace or an error
   repeat
@@ -301,9 +317,28 @@ begin
 
     Parser.SkipWhiteNL;
 
+    Ch := Parser.TestChar;
+    if Ch = '=' then
+    begin
+      if ListStart < ParamIndex then
+        //Error - Can't assign default value multiple parameters
+        EXIT(Err(qeDefaultValueMulti));
+
+      Parser.SkipChar;
+      Result := ReadDefaultValue(Func.Params[ParamIndex]);
+      if Result <> qeNone then
+        EXIT;
+      HaveDefaultValue := True;
+
+      Parser.SkipWhiteNL;
+      Ch := Parser.TestChar;
+    end
+    else
+      if HaveDefaultValue then
+        EXIT(Err(qeDefaultValueNotLast));
+
     //We want either a semicolon to start another parameter definition, or a
     //closing brace to end
-    Ch := Parser.TestChar;
     Parser.SkipChar;
     if not CharInSet(Ch, [';',')']) then
       EXIT(Err(qeSemicolonOrCloseBraceExpectedFuncDecl));

@@ -312,13 +312,13 @@ end;
 
 procedure TForm1.btnEmulateClick(Sender: TObject);
 begin
-  EmulateGood := IDE.Compiler.Deploy(IDE.Compiler.GetBinaryFileName);
+  EmulateGood := IDE.Compiler.Deploy(IDE.Compiler.GetBinaryFileName, False);
   if EmulateGood then
   begin
     mmIL.Lines.Add('');
     IDE.Compiler.GetVarsText(mmEmulate.Lines, False);
-    mmEmulate.Lines.Add(#13'Write Buffer:');
-    mmEmulate.Lines.Add(IDE.Compiler.WriteBuffer);
+    mmEmulate.Lines.Add(#13'Console log:');
+    mmEmulate.Lines.Add(IDE.Compiler.ConsoleLog);
   end
   else
     mmEmulate.Lines.Add('Emulation failed or not available');

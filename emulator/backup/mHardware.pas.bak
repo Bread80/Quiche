@@ -3,27 +3,62 @@ unit mHardware;
 interface
 uses Generics.Collections, SysUtils, mZ80, mSymbols, mMapFile;
 
-type TAbstractDevice = class
+type TAbstractDevice = class;
+
+{$ifdef fpc}
+TReadHookProc = function(Device: TAbstractDevice;Addr: Word;Data: Byte): Byte;
+TWriteHookProc = function(Device: TAbstractDevice;Addr: Word;Data, Data2: Byte): Byte;
+{$else}
+  //Address, Value being read from the device, Value to be returned to the CPU.
+  //The latter may be the original value from the device or may be modified by
+  //the hooking process.
+  TReadHookProc = TFunc<TAbstractDevice, Word, Byte, Byte>;
+  //Address, Value being written by the CPU, and value to write to memory or the
+  //device.
+  //Returns the value to be written to the device, which may be the same as the
+  //data sent but could be modified by the hooking process
+  TWriteHookProc = TFunc<TAbstractDevice, Word, Byte, Byte, Byte>;
+{$endif}
+
+  TAbstractDevice = class
   private
     FIsEnabled: Boolean;
     FName: String;
-    function GetClassName: String;virtual;abstract;
+
+    FHookRead: TReadHookProc;
+    FHookWrite: TWriteHookProc;
+  protected
+    class function GetTypeID: String;virtual;
+    function DoTryWriteByte(Addr: Word;Data: Byte): Boolean;virtual;abstract;
+    function DoTryReadByte(Addr: Word;var Data: Byte): Boolean;virtual;abstract;
   public
     constructor Create(const AName, ASettings: String);virtual;
     destructor Destroy;override;
 
     procedure Reset;virtual;abstract;
 
-    property ClassName: String read GetClassName;
+    function TryWriteByte(Addr: Word;Data: Byte): Boolean;
+    function TryReadByte(Addr: Word;var Data: Byte): Boolean;
+
+    property TypeID: String read GetTypeID;
     property Name: String read FName;
     property IsEnabled: Boolean read FIsEnabled write FIsEnabled;
+
+    //Sends Address, and byte being written to the address
+    property HookWrite: TWriteHookProc read FHookWrite write FHookWrite;
+    //Sends Address and Returns data byte to be read by the z80 - this could be the original byte
+    //or data modified by the hooking routine.
+    property HookRead: TReadHookProc read FHookRead write FHookRead;
   end;
 
   TDeviceClass = class of TAbstractDevice;
 
 type TIODevice = class(TAbstractDevice)
-    function TryWriteIO(Addr: Word;Data: Byte): Boolean;virtual;
-    function TryReadIO(Addr: Word;var Data: Byte): Boolean;virtual;
+  protected
+    function DoTryWriteByte(Addr: Word;Data: Byte): Boolean;override;
+    function DoTryReadByte(Addr: Word;var Data: Byte): Boolean;override;
+  public
+    procedure Reset;override;
   end;
 
 type TMemory = class(TAbstractDevice)
@@ -36,17 +71,14 @@ type TMemory = class(TAbstractDevice)
   public
     constructor Create(const AName, ASettings: String);override;
     destructor Destroy;override;
-    function TryWriteByte(Addr: Word;Data: Byte): Boolean;virtual;abstract;
-    function TryReadByte(Addr: Word;var Data: Byte): Boolean;virtual;abstract;
     procedure DumpMemory(AFilename: String);virtual;abstract;
-
 
     property Symbols: TSymbols read FSymbols;
     property SourceFilename: String read FSourceFilename;
   end;
 
 type TDeviceData = class
-    Name: String;
+    TypeID: String;
     DeviceType: TDeviceClass;
   end;
 
@@ -85,7 +117,7 @@ type THardware = class
     FTerm1OutProc: TCharProc;
     FTerm1InProc: TIntegerFunc;
 
-    FBreakpointProc: procedure;
+    FBreakpointProc: TProcedure;
 
     //List of procedures (i.e. for viewers) to call every time we update something
     FUpdateProcs: TList<TUpdateProc>;
@@ -107,11 +139,11 @@ type THardware = class
 
     procedure LoadConfigFile(const Filename: String);
 
-    procedure RegisterDevice(const AName: String;AClass: TDeviceClass);
+    procedure RegisterDevice(const ATypeID: String;AClass: TDeviceClass);
 
-    procedure CreateMemoryDevice(const AClassName: String;const AName: String = '';
+    procedure CreateMemoryDevice(const ATypeID: String;const AName: String = '';
       const ASettings: String = '');
-    procedure CreateIODevice(const AClassName: String;const AName: String = '';
+    procedure CreateIODevice(const ATypeID: String;const AName: String = '';
       const ASettings: String = '');
 
     procedure UpdateViewers(AUpdateType: TUpdateType = utSystem);
@@ -163,6 +195,9 @@ type THardware = class
     procedure RunToHalt;
     procedure Pause;
 
+    property MemoryDevices: TObjectList<TMemory> read FMemoryDevices;
+    property IODevices: TObjectList<TIODevice> read FIODevices;
+
     property ExecStatus: TExecStatus read FExecStatus write SetExecStatus;
     property UpdateView: TUpdateView read FUpdateView write SetUpdateView;
 
@@ -195,16 +230,25 @@ begin
   inherited;
 end;
 
-{ TIODevice }
-
-function TIODevice.TryReadIO(Addr: Word; var Data: Byte): Boolean;
+class function TAbstractDevice.GetTypeID: String;
 begin
-  Result := False;
+  Result := ClassName.Substring(1, MaxInt);
 end;
 
-function TIODevice.TryWriteIO(Addr: Word; Data: Byte): Boolean;
+function TAbstractDevice.TryReadByte(Addr: Word; var Data: Byte): Boolean;
 begin
-  Result := False;
+  Result := DoTryReadByte(Addr, Data);
+
+  if Assigned(HookRead) then
+    Data := HookRead(Self, Addr, $ff);
+end;
+
+function TAbstractDevice.TryWriteByte(Addr: Word; Data: Byte): Boolean;
+begin
+  if Assigned(HookWrite) then
+    HookWrite(Self, Addr, $ff, Data);
+
+  Result := DoTryWriteByte(Addr, Data);
 end;
 
 { TMemory }
@@ -225,6 +269,24 @@ procedure TMemory.SetSourceFilename(const Value, ABuildSettings: String);
 begin
   FSourceFilename := Value;
   FBuildSettings := ABuildSettings;
+end;
+
+{ TIODevice }
+
+function TIODevice.DoTryReadByte(Addr: Word; var Data: Byte): Boolean;
+begin
+  Result := False;
+  Data := $ff;
+end;
+
+function TIODevice.DoTryWriteByte(Addr: Word; Data: Byte): Boolean;
+begin
+  Result := False;
+end;
+
+procedure TIODevice.Reset;
+begin
+  //Nothing to do
 end;
 
 { THardware }
@@ -262,18 +324,22 @@ begin
   FSymbols := TSymbols.Create;
 
   Z80Exec := TZ80Executor.Create;
+  Z80Exec.ReadMemoryByte := ReadMemoryByte;
+  Z80Exec.WriteMemoryByte := WriteMemoryByte;
+  Z80Exec.ReadIO := ReadIO;
+  Z80Exec.WriteIO := WriteIO;
 end;
 
-procedure THardware.CreateIODevice(const AClassName, AName, ASettings: String);
+procedure THardware.CreateIODevice(const ATypeID, AName, ASettings: String);
 var Device: TDeviceData;
   LName: String;
 begin
   if AName = '' then
-    LName := AClassName
+    LName := ATypeID
   else
     LName := AName;
   for Device in FRegisteredDevices do
-    if CompareText(AClassName, Device.Name) = 0 then
+    if CompareText(ATypeID, Device.TypeID) = 0 then
     begin
       if Device.DeviceType.InheritsFrom(TIODevice) then
         FIODevices.Add(TIODevice(Device.DeviceType.Create(LName, ASettings)))
@@ -285,16 +351,16 @@ begin
   raise Exception.Create('No I/O device found called ''' + AName + '''');
 end;
 
-procedure THardware.CreateMemoryDevice(const AClassName, AName, ASettings: String);
+procedure THardware.CreateMemoryDevice(const ATypeID, AName, ASettings: String);
 var Device: TDeviceData;
   LName: String;
 begin
   if AName = '' then
-    LName := AClassName
+    LName := ATypeID
   else
     LName := AName;
   for Device in FRegisteredDevices do
-    if CompareText(AClassName, Device.Name) = 0 then
+    if CompareText(ATypeID, Device.TypeID) = 0 then
     begin
       if Device.DeviceType.InheritsFrom(TMemory) then
         FMemoryDevices.Add(TMemory(Device.DeviceType.Create(LName, ASettings)))
@@ -359,7 +425,7 @@ begin
 
 //  if not FileExistsUTF8(AFileName) then exit;
 
-  AStream := TFileStream UTF8.Create(AFileName, fmOpenRead or fmShareDenyWrite);
+  AStream := TFileStream.Create(AFileName, fmOpenRead or fmShareDenyWrite);
   try
      AStream.Position := 0;
      SetLength(result, AStream.Size);
@@ -439,7 +505,7 @@ var
 begin
   for I := 0 to FIODevices.Count-1 do
     if FIODevices[I].IsEnabled then
-      if FIODevices[I].TryReadIO(Addr, Result) then
+      if FIODevices[I].TryReadByte(Addr, Result) then
         EXIT;
   //!!No I/O device on port
 end;
@@ -470,12 +536,12 @@ begin
   Result := 0;
 end;
 
-procedure THardware.RegisterDevice(const AName: String; AClass: TDeviceClass);
+procedure THardware.RegisterDevice(const ATypeID: String; AClass: TDeviceClass);
 var
   Data: TDeviceData;
 begin
   Data := TDeviceData.Create;
-  Data.Name := AName;
+  Data.TypeID := ATypeID;
   Data.DeviceType := AClass;
   FRegisteredDevices.Add(Data);
 end;
@@ -646,7 +712,7 @@ var
 begin
   for I := 0 to FIODEvices.Count-1 do
     if FIODevices[I].IsEnabled then
-      FIODevices[I].TryWriteIO(Addr, Data);
+      FIODevices[I].TryWriteByte(Addr, Data);
 end;
 
 procedure THardware.WriteMemoryByte(Addr: Word; Data: Byte);

@@ -99,7 +99,7 @@ end;
 function ParseOperand(var Slug: TExprSlug;UnaryOp: TUnaryOperator): TQuicheError; forward;
 
 //Parses identifiers as expression parameters.
-//Identifiers can be constants, variables or functions (or Types (TODO))
+//Identifiers can be constants, variables or functions or types
 function ParseOperandIdentifier(var Slug: TExprSlug;Ident: String): TQuicheError;
 var IdentData: TIdentData;
   Scope: PScope;
@@ -174,7 +174,10 @@ begin
   VType := nil;
   ResultType := nil;
   if not PrimFindParseUnary(Slug.Op, Slug, VType, ResultType) then
+  begin
+    Assert(Slug.ImplicitType <> nil);
     EXIT(ErrOpUsageSub(qeOpIncompatibleType, Slug.ImplicitType.Description, Slug.Op));
+  end;
 
   if (Slug.ILItem = nil) and (Slug.Operand.Kind = pkImmediate) then
   begin

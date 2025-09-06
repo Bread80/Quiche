@@ -80,6 +80,8 @@ type TQuicheError = (
   qeInvalidRegisterName,
   qeRegisterParamMismatch,  //Either all parameters must be register parameters, or none
   qeRegisterParamInvalidAccessType,
+  qeDefaultValueMulti,    //Can't assign a default value to multiple parameters (param list)
+  qeDefaultValueNotLast,  //A parameter without a default value follows one with
   qeFunctionResultExpected,
 
   qeNestedFuncsNotAllowed,
@@ -142,7 +144,6 @@ type TQuicheError = (
   qeUnterminatedString,
   qeInvalidCharLiteral,
   qeUnmatchedBrackets,
-  qeIntrinsicCantBeEvaluatedAtCompileTime,  //Used as a signal, not an error
   qeAt,                 //@ operator syntax
   qeBooleanExpressionExpected,  //For conditionals etc.
 

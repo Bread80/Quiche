@@ -34,7 +34,7 @@ var AssemblerLog: String;
 var DeployError: String;
 
 //Built in emulator
-var WriteBuffer: String;    //Text written to output
+var Consolelog: String;    //Text written to output
 var RunTimeError: Byte;
 var RunTimeErrorAddress: Word;
 
@@ -79,16 +79,12 @@ procedure DefaultInitFolders;
 //  WarmInit, if True (not recommended) skips various steps, such as loading various
 //  data files (operators, primitives etc).
 procedure Initialise(InitDirectives, WarmInit: Boolean);
-(*
-type TParseType = (
-  //Parse at the declarations level. Allows functions and globals. Requires BEGIN...END. block
-  ptDeclarations,
-  //Parse at the code level. Doesn't allow functions or globals. Doesn't require a block of any kind
-  ptCode);
 
-const ParseTypeStrings: array[low(TParseType)..high(TParseType)] of String = (
-  'Declarations', 'Code');
-*)
+//These are intended for self tests *only* - they expose the parser to the tester
+procedure LoadSourceFile(Filename: String);
+procedure LoadSourceStrings(SL: TStrings);
+procedure LoadSourceString(Source: String);
+
 //'One click' compile to binary
 //Returns False if there was an error
 //ParseMode should be ptProgram or ptRootUnknown. Other values are only (potentially)
@@ -104,7 +100,7 @@ procedure GetInterpreterOutput(S: TStrings);
 
 //Deploy the compiled binary
 //Returns False if there was an error.
-function Deploy(Filename: String): Boolean;
+function Deploy(Filename: String;Interactive: Boolean): Boolean;
 
 //====Query compiler data
 
@@ -122,6 +118,8 @@ function SelectScope(Name: String): Boolean;
 procedure GetVarsText(S: TStrings;TypeSummary: Boolean);
 
 procedure GetFunctionsText(S: TStrings);
+
+procedure GetTypesText(S: TStrings);
 
 procedure GetObjectCode(S: TStrings);
 
@@ -179,7 +177,7 @@ const DeployFolderName = 'Deploy';
 
 var DeployData: TDeployment;
 const
-  DefaultPlatformName = 'Default';
+  DefaultPlatformName = 'quiche';
 
   ErrorsFilename = 'Errors.txt';
   FragmentsFilename = 'Fragments.txt';
@@ -524,19 +522,24 @@ begin
   S.Assign(ExecOutput);
 end;
 
-function Deploy(Filename: String): Boolean;
-//const //For inbuilt emulator
+function Deploy(Filename: String;Interactive: Boolean): Boolean;
+const //For inbuilt emulator
 //  StackBase = $f000;
-//  StackFrameSize = 4; //Return address and previous IX
+  StackFrameSize = 4; //Return address and previous IX
 begin
   if DeployData.Executable = '' then
   begin //Use inbuilt emulator
     {$ifdef EMULATOR}
-    IDE.Emulator.Initialise(DeployData.GetConfigFile);
+    IDE.Emulator.Initialise(DeployData.GetConfigFile, Interactive, '');
     IDE.Emulator.RunToHalt;
     IDE.Emulator.TryReadByte('LAST_ERROR_CODE', RunTimeError);
     IDE.Emulator.TryReadWord('LAST_ERROR_ADDR', RunTimeErrorAddress);
     IDE.Emulator.GetVarData(VarGetParamsByteSize + StackFrameSize);
+    ConsoleLog := IDE.Emulator.ConsoleLog;
+    {$ifdef fpc}
+    writeln;
+    writeln('Emulation successful');
+    {$endif}
     Result := True;
     {$else}
     Result := False;
@@ -596,6 +599,12 @@ begin
   S.Add(Types.ToString);
 end;
 
+procedure GetTypesText(S: TStrings);
+begin
+  TypesToStrings(S);
+  S.Add(#13#13'Types');
+  S.Add(Types.ToString);
+end;
 
 //====Initialisation
 

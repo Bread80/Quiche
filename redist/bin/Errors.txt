@@ -161,7 +161,7 @@
 =ParamNameRedeclared
 	Parameter name redeclared: '%s'
 =RegisterParamRedeclared
-	Register has %s already been assigned
+	Register %s has already been assigned to a parameter
 =InvalidRegisterName
 	Invalid register '%s'
 =RegisterParamMismatch
@@ -169,6 +169,11 @@
 =RegisterParamInvalidAccessType
 	Invalid access specifier for a register parameter
 	Register parameters must use either value (none) or OUT access specifiers
+=DefaultValueMulti
+	Can't assign a default value to multiple parameters
+=DefaultValueNotLast
+	A parameter without a default value follows one with
+	Parameter(s) with default values must be the last in the parameter list
 =FunctionResultExpected
 	Function declaration must include a result declaration
 	
@@ -306,8 +311,6 @@
 	Incorrect character literal
 =UnmatchedBrackets
 	Unmatched brackets
-=IntrinsicCantBeEvaluatedAtCompileTime
-	Intrinsic can't be evaluated at compile time
 =At
 	@-able expression expected
 =BooleanExpressionExpected

@@ -272,36 +272,36 @@ begin
   for I := 1 to ParamCount do
   begin
     S := ParamStr(I);
-    writeln('ParamStr: ' + S);
+//    writeln('ParamStr: ' + S);
 
     if S.Chars[0] = '-' then
     begin
       Option := MakeOption(S.SubString(1, Maxint));
       Options.Add(Option);
-      writeln('Add Option');
+//      writeln('Add Option');
     end
     else if Option = nil then
     begin
       Option := MakeNoOption(S);
       Options.Add(Option);
       Option := nil;
-      writeln('Add non-option');
+//      writeln('Add non-option');
     end
     else
     begin
-      writeln('Add Value: ''' + S + '''');
+//      writeln('Add Value: ''' + S + '''');
       Assert(Option is TCLValue);
       TCLValue(Option).AddValue(S);
     end;
-    writeln(Options.Count);
+//    writeln(Options.Count);
   end;
 
   //Validate
   for Option in Options do
   begin
-    writeln(Option.ClassName);
-    if Assigned(Option.Meta) then
-      writeln('  ', Option.Meta.LongName);
+//    writeln(Option.ClassName);
+//    if Assigned(Option.Meta) then
+//      writeln('  ', Option.Meta.LongName);
     FErrorMsg := Option.Validate;
     if FErrorMsg <> '' then
       EXIT;
@@ -383,16 +383,16 @@ begin
     for Option in Options do
       if Assigned(Option.Meta) then
       begin
-        writeln(' ',Option.Meta.LongName);
+//        writeln(' ',Option.Meta.LongName);
         if Option.Meta = AMeta then
           inc(Count);
       end
       else if Option is AMeta.OptionClass then
       begin
-        writeln(' ',Option.Classname);
+//        writeln(' ',Option.Classname);
         inc(Count);
       end;
-    writeln(AMeta.LongName + ' ' + Count.ToString);
+//    writeln(AMeta.LongName + ' ' + Count.ToString);
 
     if (Count = 0) and (sfRequired in AMeta.flags) then
     begin

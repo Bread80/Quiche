@@ -20,12 +20,14 @@ function EvalUnary(Op: TOperator; Param: PILParam;
   out Value: TImmValue): TQuicheError;
 
 //Evaluate and intrinsic with a single parameter
+//Returns Evalled as False if the op can't be evalled at compile time
 function EvalIntrinsicUnary(Op: TOperator;const Param: TILParam;
-  out Value: TImmValue): TQuicheError;
+  out Value: TImmValue;out Evalled: Boolean): TQuicheError;
 
 //Evaulate an instrinsic with two parameters
+//Returns RunTimeOnly as True if the op can't be evalled at compile time
 function EvalIntrinsicBi(Op: TOperator;const Param1, Param2: TILParam;
-  out Value: TImmValue): TQuicheError;
+  out Value: TImmValue;out Evalled: Boolean): TQuicheError;
 
 implementation
 uses {$ifndef fpc}System.Character,{$endif}
@@ -313,7 +315,7 @@ end;
 
 //Evaluate and intrinsic with a single parameter
 function EvalIntrinsicUnary(Op: TOperator;const Param: TILParam;
-  out Value: TImmValue): TQuicheError;
+  out Value: TImmValue;out Evalled: Boolean): TQuicheError;
 var P: TImmValue;
   Error: Boolean;
   VarType: TVarType;
@@ -325,6 +327,7 @@ begin
   VarType := vtUnknown;
   Result := qeNone;
   IntValue := 0;
+  Evalled := True;
 
   case Op of
     //Typecasts
@@ -567,7 +570,8 @@ begin
 
     //----End
   else
-    EXIT(qeIntrinsicCantBeEvaluatedAtCompileTime);
+    Evalled := False;
+    EXIT;
   end;
 
   if VarType = vtUnknown then
@@ -591,7 +595,7 @@ end;
 
 //Evaulate an instrinsic with two parameters
 function EvalIntrinsicBi(Op: TOperator;const Param1, Param2: TILParam;
-  out Value: TImmValue): TQuicheError;
+  out Value: TImmValue;out Evalled: Boolean): TQuicheError;
 var P1, P2: TImmValue;
   Error: Boolean;
   VarType: TVarType;
@@ -606,6 +610,7 @@ begin
   P2 := Param2.Imm;
   VarType := vtUnknown;
   IntValue := 0;
+  Evalled := True;
 
   case Op of
     opPred:
@@ -655,7 +660,8 @@ begin
         Error := True;
     end;
   else
-    EXIT(qeIntrinsicCantBeEvaluatedAtCompileTime);
+    Evalled := False;
+    EXIT;
   end;
 
   if VarType = vtUnknown then

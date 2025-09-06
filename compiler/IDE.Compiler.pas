@@ -34,7 +34,7 @@ var AssemblerLog: String;
 var DeployError: String;
 
 //Built in emulator
-var WriteBuffer: String;    //Text written to output
+var Consolelog: String;    //Text written to output
 var RunTimeError: Byte;
 var RunTimeErrorAddress: Word;
 
@@ -100,7 +100,7 @@ procedure GetInterpreterOutput(S: TStrings);
 
 //Deploy the compiled binary
 //Returns False if there was an error.
-function Deploy(Filename: String): Boolean;
+function Deploy(Filename: String;Interactive: Boolean): Boolean;
 
 //====Query compiler data
 
@@ -522,7 +522,7 @@ begin
   S.Assign(ExecOutput);
 end;
 
-function Deploy(Filename: String): Boolean;
+function Deploy(Filename: String;Interactive: Boolean): Boolean;
 const //For inbuilt emulator
 //  StackBase = $f000;
   StackFrameSize = 4; //Return address and previous IX
@@ -530,13 +530,18 @@ begin
   if DeployData.Executable = '' then
   begin //Use inbuilt emulator
     {$ifdef EMULATOR}
-    IDE.Emulator.Initialise(DeployData.GetConfigFile);
+    {$ifdef fpc}
+    writeln('Emulating - Press CTRL-C to abort');
+    {$endif}
+    IDE.Emulator.Initialise(DeployData.GetConfigFile, Interactive, '');
     IDE.Emulator.RunToHalt;
     IDE.Emulator.TryReadByte('LAST_ERROR_CODE', RunTimeError);
     IDE.Emulator.TryReadWord('LAST_ERROR_ADDR', RunTimeErrorAddress);
     IDE.Emulator.GetVarData(VarGetParamsByteSize + StackFrameSize);
+    ConsoleLog := IDE.Emulator.ConsoleLog;
     {$ifdef fpc}
-    writeln('Emulation successful');
+    writeln;
+    writeln('Emulation completed');
     {$endif}
     Result := True;
     {$else}

@@ -59,18 +59,16 @@ begin
         writeln(StringOfChar(' ', ParseErrorPos), '^');
         writeln(ParseErrorString);
         writeln(ParseErrorHelp);
+        EXIT(False);
       end
       else if AssembleError then
       begin
         writeln('Assembler error:');
         writeln(AssemblerLog);
+        EXIT(False);
       end
       else
-      begin
         writeln('Compiled in ' + format('%.5f',[IDE.Compiler.CompileTime * 1000]), 'ms');
-        if not Deploy(IDE.Compiler.GetBinaryFilename) then
-          raise Exception.Create(IDE.Compiler.DeployError);
-      end;
     except
       on E:Exception do
       begin
@@ -103,6 +101,10 @@ begin
   writeln('  by Bread80 - http://bread80.com');
   writeln;
 
+(*  while True do
+    if KeyPressed then
+      write(ord(ReakKey),' ');
+*)
   CommandLine := TCommandLine.Create;
   try
     SetCommandLineOptions(CommandLine);
@@ -141,8 +143,8 @@ begin
     if SelectPlatform(CommandLine) then
       if SelectDeploy(CommandLine) then
         if Compile(CommandLine) then
-          //Deploy
-          ;
+          if not Deploy(IDE.Compiler.GetBinaryFilename, True) then
+            writeln('Deployment error: ', IDE.Compiler.DeployError);
 
   finally
     CommandLine.Free;
@@ -157,7 +159,17 @@ var Value: String;
   SL: TStringList;
   S: String;
 begin
-  if CommandLine.HasOption('deploy') then
+  if CommandLine.HasOption('run') then
+  begin
+    if CommandLine.HasOption('deploy') then
+    begin
+      writeln('Specify ''-run'' or ''-deploy'' but not both.');
+      EXIT(False);
+    end
+    else if IDE.Compiler.SetDeploy('quiche') then
+      writeln('Deploy: quiche');
+  end
+  else if CommandLine.HasOption('deploy') then
   begin
     Value := CommandLine.GetValueOption('deploy').Value;
     if (Value <> '') and IDE.Compiler.SetDeploy(Value) then
@@ -177,7 +189,9 @@ begin
       end;
       Exit(False);
     end;
-  end;
+  end
+  else
+    EXIT(False);
 
   Result := True;
 end;
@@ -187,7 +201,18 @@ var Value: String;
   SL: TStringList;
   S: String;
 begin
-  if CommandLine.HasOption('platform') then
+  if CommandLine.HasOption('run') then
+  begin
+    if CommandLine.HasOption('platform') then
+    begin
+      writeln('Specify either ''-run'' or ''-platform'' but not both.');
+      EXIT(False);
+    end
+    else
+      if IDE.Compiler.SetPlatform('quiche') then
+      writeln('Platform: quiche');
+  end
+  else if CommandLine.HasOption('platform') then
   begin
     Value := CommandLine.GetValueOption('platform').Value;
     if (Value <> '') and IDE.Compiler.SetPlatform(Value) then
@@ -207,7 +232,10 @@ begin
       end;
       EXIT(False);
     end;
-  end;
+  end
+  else
+    EXIT(False);
+
   Result := True;
 end;
 
@@ -221,6 +249,8 @@ begin
     'Select the target system. Leave value blank for a list of options', TCLValue);
   CommandLine.AddMeta('deploy','d',sdOptional, [],
       'Specify how to run the compiled code Leave value blank for a list of options', TCLValue);
+  CommandLine.AddMeta('run','r',sdNone, [],
+      'Compile the given source file then run in the built-in emulator', TCLValue);
 
   //Set command line options here
 end;

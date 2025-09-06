@@ -12,19 +12,23 @@ uses mZ80State, SysUtils{$ifndef fpc}, FMX.Dialogs{$endif};
 
 type TDir = -1..1;
 
-type TOpCodeProc = procedure(Opcode: Byte) of object;
+type
+  TOpCodeProc = procedure(Opcode: Byte) of object;
   POpcodePage = ^TOpcodePage;
   TOpcodePage = array[0..255] of TOpCodeProc;
 
 type
 {$ifdef fpc}
   THookProc = procedure(Addr: Word);
+  TReadByteProc = function(Addr: Word): Byte of object;
+  TWriteByteProc = procedure(Addr: Word;Data: Byte) of object;
+  THookOpcodeProc = function(Addr: Word;OpCode: Byte): Byte;
 {$else}
   THookProc = TProc<Word>;
-{$endif}
-
   TReadByteProc = TFunc<Word, Byte>;
   TWriteByteProc = TProc<Word, Byte>;
+  THookOpcodeProc = TFunc<Word, Byte, Byte>;
+  {$endif}
 
 type TZ80Executor = class
   private
@@ -51,6 +55,7 @@ type TZ80Executor = class
     FReadIOByte: TReadByteProc;
     FWriteIOByte: TWriteByteProc;
     FWriteMemoryByte: TWriteByteProc;
+    FHookOpcode: THookOpcodeProc;
 
     procedure InitBaseLUT;
     procedure InitIXIYLUTs;
@@ -283,6 +288,12 @@ type TZ80Executor = class
     property HookM1: THookProc read FHookM1 write FHookM1;
     property ReadMemoryByte: TReadByteProc read FReadMemoryByte write FReadMemoryByte;
     property WriteMemoryByte: TWriteByteProc read FWriteMemoryByte write FWriteMemoryByte;
+    //Called whenever an opcode is read. Can be used to create breakpoints.
+    //Addr is the PC address the opcode has been read from.
+    //Opcode is the opcode which has been read.
+    //The return value is the opcode which is to be executed. Normally this
+    //will be the same as the Opcode parameter but can be changed to alter execution.
+    property HookOpcode: THookOpcodeProc read FHookOpcode write FHookOpcode;
     property ReadIO: TReadByteProc read FReadIOByte write FReadIOByte;
     property WriteIO: TWriteByteProc read FWriteIOByte write FWriteIOByte;
   end;
@@ -508,10 +519,14 @@ end;
 
 procedure TZ80Executor.ExecOpcode;
 var Opcode: Byte;
+  Addr: Word;
 begin
   try
     DoM1Refresh;  //M1
-    Opcode := ReadMemoryByte(Z80.PCInc);
+    Addr := Z80.PCInc;
+    Opcode := ReadMemoryByte(Addr);
+    if Assigned(HookOpcode) then
+      Opcode := HookOpcode(Addr, Opcode);
     if Assigned(FCurPage[Opcode]) then
       FCurPage[Opcode](Opcode)
     else

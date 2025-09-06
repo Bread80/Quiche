@@ -5,6 +5,10 @@ uses Generics.Collections, SysUtils, mZ80, mSymbols, mMapFile;
 
 type TAbstractDevice = class;
 
+{$ifdef fpc}
+TReadHookProc = function(Device: TAbstractDevice;Addr: Word;Data: Byte): Byte;
+TWriteHookProc = function(Device: TAbstractDevice;Addr: Word;Data, Data2: Byte): Byte;
+{$else}
   //Address, Value being read from the device, Value to be returned to the CPU.
   //The latter may be the original value from the device or may be modified by
   //the hooking process.
@@ -14,6 +18,7 @@ type TAbstractDevice = class;
   //Returns the value to be written to the device, which may be the same as the
   //data sent but could be modified by the hooking process
   TWriteHookProc = TFunc<TAbstractDevice, Word, Byte, Byte, Byte>;
+{$endif}
 
   TAbstractDevice = class
   private
@@ -227,7 +232,11 @@ end;
 
 class function TAbstractDevice.GetTypeID: String;
 begin
+{$ifdef fpc}
+  Result := Copy(ClassName, 2, MaxInt);
+{$else}
   Result := ClassName.Substring(1, MaxInt);
+{$endif}
 end;
 
 function TAbstractDevice.TryReadByte(Addr: Word; var Data: Byte): Boolean;

@@ -117,9 +117,17 @@ begin
   ArgIndex := 0;
 
   Ch := Parser.TestChar;
+  //If there is a Brace we definitely have a parameter list. If not we could
+  //a parameter list without parenthesis. To test for this we need to examine
+  //next character. If it's the start of an identifier or literal then it's a
+  //parameter (or an error). If not then it must be a symbol or a marker which
+  //indicates the end of an expression such as end-of-line (#0) or  ; , )
+  //end of line, end of parameter, end of expression
   //Test for empty list
-  if ((not Brace) and not CharInSet(Ch, [#0,';',',',')'])) or  //No Brace and #0 (EOLN) -> no arguments
-    (Brace and (Ch <> ')')) then      //Bace and ')' -> no arguments
+  if ((not Brace) and (TestIdentFirst or TestLiteralFirst) and (Func.ParamCount > 0)) or
+//  (CharInSet(Ch, IdentFirst + LiteralFirst))) or
+  //not CharInSet(Ch, [#0,';',',',')'])) or  //No Brace and #0 (EOLN) -> no arguments
+    (Brace and (Ch <> ')')) then      //Brace and ')' -> no arguments
   repeat
     if ArgIndex >= Func.ParamCount then
       EXIT(ErrFuncCall(qeTooManyArgs, Func));
@@ -212,8 +220,10 @@ end;
 //(ie. write(ln), read(ln) etc).
 //Left, Right are the parameters (see ParamCount).
 //Slug is the slug to be returned.
+//  NOTE: Slug MUST have been initialised. Slug ResultType and ImplicitType should
+//    be set /before/ the call to this function
 procedure IntrinsicGenerateIL(Func: PFunction;OpOverride: TOperator;ParamCount: Integer;
-  const Left, Right: TExprSlug;out Slug: TExprSlug);
+  const Left, Right: TExprSlug;var Slug: TExprSlug);
 var V: PVariable;
 begin
   //Can we convert an existing ILItem to the intrinsic operation? (and save an IL step)
@@ -266,6 +276,59 @@ begin
     Slug.ILItem.ResultType := Slug.ResultType;
 end;
 
+//Slug must have been Initialised and a preliminary result type set.
+//No other data should have been set
+function TryEvalIntrinsic(Func: PFunction;const Arg0, Arg1: TExprSlug;
+  var Slug: TExprSlug;out Evalled: Boolean): TQuicheError;
+begin
+  Evalled := False;
+  Result := qeNone;
+
+  //Evaluate at compile time (if possible)
+  if not Assigned(Arg0.ILItem) and (Arg0.Operand.Kind = pkImmediate) then
+    if Func.ParamCount = 1 then
+    begin
+      Result := EvalIntrinsicUnary(Func.Op, Arg0.Operand,
+        Slug.Operand.Imm, Evalled);
+      if Result <> qeNone then
+        EXIT;
+      if Evalled then
+      begin
+        if Result <> qeNone then
+          EXIT;
+        Slug.ResultType := Slug.Operand.Imm.UserType;
+        Slug.ImplicitType := Slug.ResultType;
+        Slug.Operand.Kind := pkImmediate;
+      //TODO: We currently use the ResultType from the available Primitives.
+      //For constants we probably want to base the ResultType on the value, but
+      //two lines below are too blunt and need refining
+//      Slug.ResultType := Slug.Operand.ImmType;
+//      Slug.ImplicitType := Slug.ResultType;
+        EXIT;
+      end
+    end
+    else //Two parameters
+      if not Assigned(Arg1.ILItem) and (Arg1.Operand.Kind = pkImmediate) then
+      begin
+        Result := EvalIntrinsicBi(Func.Op, Arg0.Operand, Arg1.Operand,
+          Slug.Operand.Imm, Evalled);
+        if Result <> qeNone then
+          EXIT;
+        if Evalled then
+        begin
+          if Result <> qeNone then
+            EXIT;
+          Slug.ResultType := Slug.Operand.Imm.UserType;
+          Slug.ImplicitType := Slug.ResultType;
+          Slug.Operand.Kind := pkImmediate;
+        //TODO: As previous TODO
+//        Slug.ResultType := Slug.Operand.ImmType;
+//        Slug.ImplicitType := Slug.ResultType;
+          EXIT;
+        end;
+      end;
+end;
+
 function DispatchIntrinsic(Func: PFunction;var Slugs: TSlugArray;out Slug: TExprSlug): TQuicheError;
 var
   I: Integer;
@@ -276,10 +339,8 @@ var
   LType: PUserType;
   RType: PUserType;
   Msg: String;
+  Evalled: Boolean;
 begin
-  Result := qeNone;
-  Slug.Initialise;
-
   ResultType := nil;
   //Solidify a paramaterized intrinsic:
   //If ResultType is specified as Parameterized it's type is given via a parameter
@@ -300,34 +361,25 @@ begin
           //Prim search plays havoc with constants. Here we force the Range value
           if IsSignedType(ResultType) then
             Result := GetTypeLowValue(ResultType, Slugs[I].Operand.Imm)
-(*            Slugs[I].Operand.Imm.CreateTyped(ResultType, GetMinValue(ResultType))
-*)          else
+          else
             Result := GetTypeHighValue(ResultType, Slugs[I].Operand.Imm);
-(*            Slugs[I].Operand.Imm.CreateTyped(ResultType, GetMaxValue(ResultType));
-*)        if Result <> qeNone then
-            EXIT;
+          if Result <> qeNone then
+              EXIT;
         end;
   end;
   ResultTypeDebug := ResultType;
-(*
-  if Func.ParamCount > 0 then
-    LType := UTToVT(Slugs[0].ResultType)
-  else
-    LType := vtUnknown;
-  if Func.ParamCount > 1 then
-    RType := UTToVT(Slugs[1].ResultType)
-  else
-    RType := vtUnknown;
-  PrimResultType := UTToVT(ResultType);
-*)
+
   PrimResultType := ResultType;
+  Found := False;
   //Find a suitable Primitive - to validate these parameter types are suitable, and
   //establish the result type
   case Func.ParamCount of
     0:
-    begin
+    begin //No parameters - just return the functions return type
       LType := nil;
       RType := nil;
+      Found := True;
+      PrimResultType := Func.Params[0].UserType;
     end;
     1:
     begin
@@ -345,10 +397,6 @@ begin
     Assert(False);
   end;
 
-
-  Slug.ResultType := PrimResultType;
-  Slug.ImplicitType := Slug.ResultType;
-
   //No primitive found :(
   if not Found then
   begin
@@ -362,51 +410,19 @@ begin
     EXIT(errFuncCallSub(qeFuncPrimitivenotFound, Func.Name + Msg, Func));
   end;
 
-  //Evaluate at compile time (if possible)
-  if not Assigned(Slugs[0].ILItem) and (Slugs[0].Operand.Kind = pkImmediate) then
-    if Func.ParamCount = 1 then
-    begin
-      Result := EvalIntrinsicUnary(Func.Op, Slugs[0].Operand,
-        Slug.Operand.Imm);
-      if Result = qeIntrinsicCantBeEvaluatedAtCompileTime then
-        //Continue with IL code generatio
-        Result := qeNone
-      else
-      begin
-        if Result <> qeNone then
-          EXIT;
-        Slug.ResultType := Slug.Operand.Imm.UserType;
-        Slug.ImplicitType := Slug.ResultType;
-        Slug.Operand.Kind := pkImmediate;
-      //TODO: We currently use the ResultType from the available Primitives.
-      //For constants we probably want to base the ResultType on the value, but
-      //two lines below are too blunt and need refining
-//      Slug.ResultType := Slug.Operand.ImmType;
-//      Slug.ImplicitType := Slug.ResultType;
-        EXIT;
-      end
-    end
-    else //Two parameters
-      if not Assigned(Slugs[1].ILItem) and (Slugs[1].Operand.Kind = pkImmediate) then
-      begin
-        Result := EvalIntrinsicBi(Func.Op, Slugs[0].Operand, Slugs[1].Operand,
-          Slug.Operand.Imm);
-        if Result = qeIntrinsicCantBeEvaluatedAtCompileTime then
-          Result := qeNone
-        else
-        begin
-          if Result <> qeNone then
-            EXIT;
-          Slug.Operand.Kind := pkImmediate;
-        //TODO: As previous TODO
-//        Slug.ResultType := Slug.Operand.ImmType;
-//        Slug.ImplicitType := Slug.ResultType;
-          EXIT;
-        end;
-      end;
+  Slug.Initialise;
+  //Default value - might be modified by these functions below
+  Slug.ResultType := PrimResultType;
+  Slug.ImplicitType := PrimResultType;
 
-  //Generate the IL code :)
-  IntrinsicGenerateIL(Func, opUnknown, Func.ParamCount, Slugs[0], Slugs[1], Slug);
+  //Can we eval this at run time (and return an immediate value)?
+  Result := TryEvalIntrinsic(Func, Slugs[0], Slugs[1], Slug, Evalled);
+  if Result <> qeNone then
+    EXIT;
+
+  if not Evalled then
+    //Generate the IL code :)
+    IntrinsicGenerateIL(Func, opUnknown, Func.ParamCount, Slugs[0], Slugs[1], Slug);
 end;
 
 
@@ -447,6 +463,9 @@ begin
 
       //Generate the code.
       //NOTE: We need to pass in two slugs. Second will be ignored because of ParamCount value of 1
+      DummySlug.Initialise;
+      DummySlug.ResultType := nil;
+      DummySlug.ImplicitType := nil;
       IntrinsicGenerateIL(Func, opWrite, 1, Slug, Slug, DummySlug);
 
       Parser.SkipWhite;

@@ -1,0 +1,28 @@
+//CP/M BDOS Functions 
+//(Partial Implementation - for now)
+
+//Based on CP/M version 2.2
+//as documented at https://www.seasip.info/Cpm/bdosfunc.html
+
+//1. Console Input
+//Waits for a character (and echos it)
+[corrupts all]
+function C_READ(func:C = 1):A as Char;call $0005;
+
+//2. Console Output
+//Write a character
+[corrupts all]
+procedure C_WRITE(Ch:E as Char;func:C = 2);call $0005;
+
+//6. Direct Console I/O
+//If a character is available returns it, otherwise returns $00
+//Operation: $ff - No echo
+//           $00 - echo
+[corrupts all]
+function C_RAWIO(Operation:E = $ff;func:C=6):A as Char;call $0005;
+
+//11. Get Console Status
+//Tests whether a character is available.
+//Returns 0 if available, non zero if not.
+[corrupts all]
+function C_STAT(func:C = 11): A;call $0005;

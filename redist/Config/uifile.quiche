@@ -1,4 +1,10 @@
-  type TNumber = -20..100
-  var a: TNumber = 20
-  var b := a
-  var c := a+10
+
+writeln('Press ''X'' to exit');
+var Ch: Char = #0
+repeat
+  if KeyPressed then
+  begin
+    Ch := ReadKey
+    writeln('You pressed: ', Ch)
+  end
+until Ch = 'X'

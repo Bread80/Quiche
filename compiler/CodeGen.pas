@@ -57,7 +57,8 @@ begin
   InString := False;
   Result := '';
   for I := 0 to length(S)-1 do
-    if (S.Chars[I] >= #32) and (S.Chars[I] < #128) then
+    //Printable chars except single quotes
+    if CharInSet(S.Chars[I], [#32..#128] - ['''']) then
     begin
       if not InString then
       begin

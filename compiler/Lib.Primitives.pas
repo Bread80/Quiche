@@ -24,6 +24,8 @@ function PrimFindParse(Op: TOperator;const Left, Right: TExprSlug;
   out LeftType, RightType: PUserType;var ResultType: PUserType): Boolean;
 function PrimFindParseUnary(Op: TOperator;const Left: TExprSlug;
   out LeftType: PUserType;var ResultType: PUserType): Boolean;
+//Find the primitive for an operation
+//function PrimFindParseNone(Op: TOperator;var ResultType: PUserType): Boolean;
 
 //---Codegen time
 
@@ -722,7 +724,8 @@ begin
         //Primitive selection data
         Prim.Op := IdentToAnyOperator(Fields[fName]);
         if Prim.Op = opUnknown then
-          raise Exception.Create('Operation not found for primitive in ' + Line);
+          raise Exception.Create('Operation not found for primitive in ' + Line +
+            #10#13'Operations need to be defined in both Primitives.csv and Operations.csv');
         if Operations[Prim.Op].FirstPrimIndex < 0 then
           Operations[Prim.Op].FirstPrimIndex := PrimList.Count-1;
 

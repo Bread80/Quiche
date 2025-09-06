@@ -100,6 +100,10 @@ function TestForTypeSymbol(out UserType: PUserType): TQuicheError;
 //If Unique is True each must be undeclared in the current scope.
 function ParseIdentifierList(Unique: Boolean;out Items: TArray<String>): TQuicheError;
 
+//Is the next char to be consumed the first char of a literal.
+//Includes numbers, strings, chars, arrays, lists etc.
+function TestLiteralFirst: Boolean;
+
 //Attribute data
 var AttrPreserves: TCPURegSet;
 
@@ -454,6 +458,12 @@ begin
     if Result <> qeNone then
       EXIT;
   end;
+end;
+
+function TestLiteralFirst: Boolean;
+begin
+  //May need updating for reals
+  Result := CharInSet(Parser.TestChar, ['0'..'9','$','#','%','"','''','[','(']);
 end;
 
 //Called after '[Corrupts' has been parsed

@@ -128,7 +128,10 @@ type
     opAbs, opDec, opInc, opOdd,
     //System
     opHi, opHigh, opInp, opLo, opLow, opOrd, opOut, opPeek, opPoke, opPred,
-    opPtr, opSizeof, opSucc, opSwap, opRead, opReadln, opWrite, opWriteln,
+    opPtr, opSizeof, opSucc, opSwap,
+    //Keyboard and Screen (and other I/O)
+    opKeyPressed,
+    opRead, opReadKey, opReadln, opWrite, opWriteln,
     //Strings and Chars
     opChr, opDowncase, opLength, opUpcase
     );
@@ -213,7 +216,10 @@ const OpStrings : array[low(TOperator)..high(TOperator)] of String = (
   //Intrinsics
   'Abs', 'Dec', 'Inc', 'Odd',
   'Hi', 'High', 'Inp', 'Lo', 'Low', 'Ord', 'Out', 'Peek', 'Poke', 'Pred',
-  'Ptr', 'Sizeof', 'Succ', 'Swap', 'Read', 'Readln', 'Write', 'Writeln',
+  'Ptr', 'Sizeof', 'Succ', 'Swap',
+
+  'KeyPressed', 'Read', 'ReadKey', 'Readln', 'Write', 'Writeln',
+
   'Chr', 'Downcase', 'Length', 'Upcase'
   );
 
@@ -327,7 +333,8 @@ begin
 
         Op := IdentToOpData(Fields[fNGOpName]);
         if Op = nil then
-          raise Exception.Create('Operator not found: ' + Fields[fNGOpName]);
+          raise Exception.Create('Operator not found: ' + Fields[fNGOpName] +
+            #13#10'On reading the operators file and operator was found which is not definied within Quiche.');
 
         Op.FirstPrimIndex := -1;
         Op.Name := Fields[fNGOpName];
