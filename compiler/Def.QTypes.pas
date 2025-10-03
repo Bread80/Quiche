@@ -114,6 +114,10 @@ function IsLogicalType(VarType: TVarType): Boolean;
 //and subranges.
 function IsOrdinalType(VarType: TVarType): Boolean;
 
+//An enumerable type is one with an ordered set of values which can be 'enumerated'
+//over is sequence. This includes Ordinal types as well as array types.
+function IsEnumerableType(VarType: TVarType): Boolean;
+
 //Any arrayed type. Array, vector, list, string etc.
 function IsArrayType(VarType: TVarType): Boolean;
 
@@ -327,6 +331,11 @@ end;
 function IsArrayType(VarType: TVarType): Boolean;
 begin
   Result := VarType in [vtArray, vtVector, vtList, vtString];
+end;
+
+function IsEnumerableType(VarType: TVarType): Boolean;
+begin
+  Result := IsOrdinalType(VarType) or IsArrayType(VarType);
 end;
 
 function GetMaxValue(VarType: TVarType): Integer;

@@ -12,11 +12,11 @@ type
     amStack,    //Relative, offset from a base address (i.e in stack frame)
                 //VarAddr := IX+<offset>
                 //VarValue := (IX+<offset>)
-    amPtrStatic,//The address of the variable data is stored at an absolute (static)
+    amStaticPtr,//The address of the variable data is stored at an absolute (static)
                 //location
                 //VarAddr := (<label>)
                 //VarValue := <addr> := (<label>). <value> := (<addr>)
-    amPtrStack  //The address of the variable data is stored on the stack at a location
+    amStackPtr  //The address of the variable data is stored on the stack at a location
                 //relative to the stack pointer (IX)
                 //VarAddr := (IX+<offset>)
                 //VarValue := <addr> := (IX+<offset>). <value> := (<addr>)
@@ -65,7 +65,6 @@ type
                       //vsOffset, this is the offset from the stack base address
                       //vsFixed: the offset from the start of the Data segment
     FuncParamIndex: Integer;  //>= 0 if this is a function parameter, otherwise -1
-
     //Parse and execution time data
     Version: Integer; //Version is incremented every time the variable is written to
                       //This (along with phi vars) enable the optimiser and code generator
@@ -97,6 +96,12 @@ type
     //Incremenents the Version of a variable and returns the new value
     //Does not increment if SkipMode is enabled
     function IncVersion: Integer;
+
+    //Returns true if the variable requires storage, false if not.
+    //Varaibles don't require storage include:
+    // - those which have been optimised away
+    // - ShadowOf variables
+    function RequiresStorage: Boolean;
 
     //Returns the name of the variable used in Assemby code
     function GetAsmName: String;
@@ -463,6 +468,11 @@ begin
     Version := Result;
 end;
 
+function TVariable.RequiresStorage: Boolean;
+begin
+  Result := True;
+end;
+
 function VarIndexToData(Index: Integer): PVariable;
 begin
   Result := Vars[Index];
@@ -514,7 +524,8 @@ begin
   Result := 0;
   for V in Vars do
     if V.Access in [vaLocal, vaResult] then
-      Result := Result + GetTypeSize(V.UserType);
+      if V.RequiresStorage then
+        Result := Result + GetTypeSize(V.UserType);
 end;
 
 function VarGetParamsByteSize: Integer;
@@ -523,7 +534,8 @@ begin
   Result := 0;
   for V in Vars do
     if not (V.Access in [vaLocal, vaResult]) then
-      Result := Result + GetTypeSize(V.UserType);
+      if V.RequiresStorage then
+        Result := Result + GetTypeSize(V.UserType);
 end;
 
 

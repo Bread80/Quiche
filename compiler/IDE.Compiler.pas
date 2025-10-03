@@ -335,9 +335,11 @@ end;
 procedure DefaultInitFolders;
 begin
 {$ifdef fpc}
-//<Base>/redist/bin
-  BinFolder := ProgramDirectory;// ExtractFilePath(ParamStr(0)));
-//<Base>/redist
+//ProgramDirectory: <Base>/redist/bin/<platform>/
+//BinFolder: <Base>/redist/bin/
+  BinFolder := ProgramDirectory;
+  BinFolder := ExpandFileName(ConcatPaths([BinFolder, '..\']));
+//QuicheFolder: <Base>/redist
   SetQuicheFolder(ExpandFileName(ConcatPaths([BinFolder, '..\'])));
   ConfigFileName := ConcatPaths([GetQuicheFolder, 'Config','Compiler.cfg']);
 {$else}

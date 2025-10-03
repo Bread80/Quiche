@@ -1,0 +1,11 @@
+//for var x := -32768 to 32766
+//  for var y := -32768 to 32766
+//    for var z := -32768 to 32766
+//	  for var a := -32768 to 32766
+//        for var b := -32768 to 32766
+for var c := -32768 to 32767
+begin
+//  for var d := -32768 to 32767 do hi(d);
+  if lo(c) = 0 then
+    write c
+end

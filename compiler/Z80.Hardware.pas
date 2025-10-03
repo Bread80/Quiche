@@ -16,7 +16,13 @@ type
     //a location other than a CPU register
     plImmediate,  //The primitive can directly consume an immediate/literal, eg. LD r,n. Not valid as a result.
     plStaticVar,  //The primitive can read from/write to a static variable, eg. LD a,(nn)
-    plStackVar);  //The primitive can read from/write to a stack variable , eg. INC (IX+d)
+    plStackVar,   //The primitive can read from/write to a stack variable , eg. INC (IX+d)
+    plStaticPtrVar,  //Only valid for 'pointered types' - ie complex types which are
+                  //passed as pointers.
+                  //The pointer to the actual data is stored in a static variable.
+                  //The routine is capable of reading the value from this variable.
+    plStackPtrVar //As abive but location is in a var on the stack
+    );
 
 type
   //This list details the CPU-level places where primitives can find input data
@@ -182,16 +188,16 @@ end;
 function StrToCPURegAll(S: String;ForCorrupts: Boolean): TCPUReg;
 begin
   if Length(S) = 0 then
-    Result := rNone
+    EXIT(rNone)
   else if Length(S) = 1 then
-    Result := CharToCPUReg(S.Chars[0], ForCorrupts)
+    EXIT(CharToCPUReg(S.Chars[0], ForCorrupts))
   else
   begin
     for Result := low(TCPUReg) to high(TCPUReg) do
       if CompareText(CPURegAllStrings[Result], S) = 0 then
         EXIT;
-    Result := rNone;
   end;
+  raise Exception.Create('Invalid register: ' + S);
 end;
 
 function CPURegSetToString(Regs: TCPURegSet): String;

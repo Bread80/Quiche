@@ -540,7 +540,7 @@ begin
             //If identifier is the name of a type we'll assume it's a type synonym
             //(or pointer)...
             if IsPointed then
-              TheType := Types.AddOfType(vtTypedPointer, IdentData.T)
+              TheType := GetPointerToType(IdentData.T)
             else if (Parser.TestChar = '[') and (IdentData.T.VarType in [vtVector, vtList]) then
               Result := BakeArrayType(IdentData.T, TheType)
             else

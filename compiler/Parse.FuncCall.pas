@@ -329,9 +329,64 @@ begin
       end;
 end;
 
+//Apply any intrinsic flags and do crazy TypeDef stuff
+function MassageIntrinsicParameters(Func: PFunction;var Slugs: TSlugArray;
+  var ResultType: PUserType): TQuicheError;
+var I: Integer;
+  ArrayAsBounds: Boolean;
+begin
+  Result := qeNone;
+
+  for I := 0 to Func.ParamCount-1 do
+  begin
+    //If the parameter calls for a TypeDef and the expression did *not* result
+    //in a TypeDef then we need to convert the slugs value to an immediate TypeDef
+    if UTToVT(Func.Params[I].UserType) = vtTypeDef then
+      if UTToVT(Slugs[I].ResultType) <> vtTypeDef then
+        SlugToTypeDef(Slugs[I]);
+
+    ArrayAsBounds := ifArrayAsBounds in Func.Params[I].IntrinsicFlags;
+    if ArrayAsBounds then
+      if UTToVT(Func.Params[I].UserType) = vtTypeDef then
+        //Keep the value if we have an array type
+        ArrayAsBounds := IsArrayType(Slugs[I].Operand.Imm.TypeDefValue.VarType);
+
+    //Solidify a parameterized intrinsic:
+    //If ResultType is specified as Parameterized it's type is given via a parameter
+    //of type TypeDef. We need to find that parameter and 'solidify' the type of both
+    //that parameter and the result to the compile time value of that TypeDef parameter.
+    if Func.ResultCount > 0 then
+      if (Func.Params[Func.ParamCount].UserType = nil) and
+        (Func.Params[Func.ParamCount].SuperType = stParameterized) then
+        if UTToVT(Func.Params[I].UserType) = vtTypeDef then
+        begin
+          Assert((Slugs[I].ILItem = nil) and (Slugs[I].Operand.Kind = pkImmediate));
+
+          //Update the Result Type of the slug
+          if ArrayAsBounds then
+            //ResultType will the the OfType of the BoundsType
+            ResultType := Slugs[I].Operand.Imm.TypeDefValue.BoundsType.OfType
+
+          else if ifToType in Func.Params[I].IntrinsicFlags then
+          begin //Convert the TypeDef to an immediate of the given type...
+            ResultType := Slugs[I].Operand.Imm.TypeDefValue;
+
+            Slugs[I].ResultType := ResultType;
+            //...the value we'll use will be the extreme value of that type to force
+            //the prim selector to return a routine of that type
+            if IsSignedType(Slugs[I].ResultType) then
+              Result := GetTypeLowValue(Slugs[I].ResultType, Slugs[I].Operand.Imm)
+            else
+              Result := GetTypeHighValue(Slugs[I].ResultType, Slugs[I].Operand.Imm);
+            if Result <> qeNone then
+              EXIT;
+          end;
+        end;
+  end;
+end;
+
 function DispatchIntrinsic(Func: PFunction;var Slugs: TSlugArray;out Slug: TExprSlug): TQuicheError;
 var
-  I: Integer;
   ResultType: PUserType;
   ResultTypeDebug: PUserType; //Only used for error messaging
   PrimResultType: PUserType;
@@ -342,31 +397,10 @@ var
   Evalled: Boolean;
 begin
   ResultType := nil;
-  //Solidify a paramaterized intrinsic:
-  //If ResultType is specified as Parameterized it's type is given via a parameter
-  //of type TypeDef. We need to find that parameter and 'solidify' the type of both
-  //that parameter and the result to the compile time value of that TypeDef parameter.
-  if Func.ResultCount > 0 then
-  begin
-    if (Func.Params[Func.ParamCount].UserType = nil) and
-      (Func.Params[Func.ParamCount].SuperType = stParameterized) then
-      for I := 0 to Func.ParamCount-1 do
-        if UTToVT(Func.Params[I].UserType) = vtTypeDef then
-        begin
-          Assert((Slugs[I].ILItem = nil) and (Slugs[I].Operand.Kind = pkImmediate));
-          //Update the Result Type of the slug
-          ResultType := Slugs[I].Operand.Imm.TypeDefValue;
-          Slugs[I].ResultType := ResultType;
-          //Convert the TypeDef value to be the type. The actual value is ignored and irrelevent
-          //Prim search plays havoc with constants. Here we force the Range value
-          if IsSignedType(ResultType) then
-            Result := GetTypeLowValue(ResultType, Slugs[I].Operand.Imm)
-          else
-            Result := GetTypeHighValue(ResultType, Slugs[I].Operand.Imm);
-          if Result <> qeNone then
-              EXIT;
-        end;
-  end;
+  Result := MassageIntrinsicParameters(Func, Slugs, ResultType);
+  if Result <> qeNone then
+    EXIT;
+
   ResultTypeDebug := ResultType;
 
   PrimResultType := ResultType;

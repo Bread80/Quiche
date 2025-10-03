@@ -19,7 +19,7 @@ begin
   if not Assigned(UserType) then
     EXIT(ErrSub(qeOrdinalTypeExpected, 'nil'));
 
-  if not IsOrdinalType(UserType.VarType) then
+  if not IsEnumerableType(UserType.VarType) then
     EXIT(ErrSub(qeOrdinalTypeExpected, UserType.Name));
 
   Value.CreateTyped(UserType, UserType.Low);
@@ -31,8 +31,11 @@ begin
   if not Assigned(UserType) then
     EXIT(ErrSub(qeOrdinalTypeExpected, 'nil'));
 
-  if not IsOrdinalType(UserType.VarType) then
-    EXIT(ErrSub(qeOrdinalTypeExpected, UserType.Name));
+  if IsArrayType(UserType.VarType) then
+    UserType := UserType.BoundsType
+  else
+    if not IsEnumerableType(UserType.VarType) then
+      EXIT(ErrSub(qeOrdinalTypeExpected, UserType.Name));
 
   Value.CreateTyped(UserType, UserType.High);
   Result := qeNone;

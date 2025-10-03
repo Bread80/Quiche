@@ -335,9 +335,11 @@ end;
 procedure DefaultInitFolders;
 begin
 {$ifdef fpc}
-//<Base>/redist/bin
-  BinFolder := ProgramDirectory;// ExtractFilePath(ParamStr(0)));
-//<Base>/redist
+//ProgramDirectory: <Base>/redist/bin/<platform>/
+//BinFolder: <Base>/redist/bin/
+  BinFolder := ProgramDirectory;
+  BinFolder :=ExpandFileName(ConcatPaths([BinFolder, '..\']);
+//QuicheFolder: <Base>/redist
   SetQuicheFolder(ExpandFileName(ConcatPaths([BinFolder, '..\'])));
   ConfigFileName := ConcatPaths([GetQuicheFolder, 'Config','Compiler.cfg']);
 {$else}
@@ -530,6 +532,9 @@ begin
   if DeployData.Executable = '' then
   begin //Use inbuilt emulator
     {$ifdef EMULATOR}
+    {$ifdef fpc}
+    writeln('Emulating - Press CTRL-C to abort');
+    {$endif}
     IDE.Emulator.Initialise(DeployData.GetConfigFile, Interactive, '');
     IDE.Emulator.RunToHalt;
     IDE.Emulator.TryReadByte('LAST_ERROR_CODE', RunTimeError);
@@ -538,7 +543,7 @@ begin
     ConsoleLog := IDE.Emulator.ConsoleLog;
     {$ifdef fpc}
     writeln;
-    writeln('Emulation successful');
+    writeln('Emulation completed');
     {$endif}
     Result := True;
     {$else}

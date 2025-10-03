@@ -1,10 +1,2 @@
-
-writeln('Press ''X'' to exit');
-var Ch: Char = #0
-repeat
-  if KeyPressed then
-  begin
-    Ch := ReadKey
-    writeln('You pressed: ', Ch)
-  end
-until Ch = 'X'
+  var x:=10
+  type Sub1 = x..100

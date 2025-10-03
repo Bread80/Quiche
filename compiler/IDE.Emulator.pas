@@ -196,10 +196,25 @@ begin
     Data := Hardware.ReadMemoryWord(Addr);
 end;
 
+function TryReadOffsetByte(const Symbol: String;Offset: Integer;out Data: Byte): Boolean;
+var Addr: Word;
+begin
+  Result := Hardware.TrySymbolToAddr(Symbol, Addr);
+  if Result then
+    Data := Hardware.ReadMemoryByte((Addr + Offset) and $ffff);
+end;
+
 function ReadByte(const Symbol: String): Integer;
 var B: Byte;
 begin
   Assert(TryReadByte(Symbol, B), 'Global symbol not found: ' + Symbol);
+  Result := B;
+end;
+
+function ReadOffsetByte(const Symbol: String;Offset: Integer): Integer;
+var B: Byte;
+begin
+  Assert(TryReadOffsetByte(Symbol, Offset, B), 'Global symbol not found: ' + Symbol);
   Result := B;
 end;
 
@@ -228,6 +243,14 @@ begin
     Result := (-1 xor $ffff) or W
   else
     Result := W;
+end;
+
+function ReadBlob(const Symbol: String;Size: Integer): TBlob;
+var I: Integer;
+begin
+  SetLength(Result, Size);
+  for I := 0 to Size-1 do
+    Result[I] := ReadOffsetByte(Symbol, I);
 end;
 
 function ReadMemoryInt8(Addr: Word): Integer;
@@ -294,34 +317,26 @@ begin
   Result := Result + ')';
 end;
 
-procedure GetVarData(IXOffsetHack: Integer);
-var I: Integer;
-  V: PVariable;
-  Addr: Word;
-  IX: Word;
+function ValueToString(const AsmName: String;AddrMode: TAddrMode;UserType: PUserType): TImmValue;
 begin
-  IX := (Hardware.Z80.Z80.IX - IXOffsetHack) and $ffff;
-
-  for I := 0 to VarGetCount-1 do
-  begin
-    V := VarIndexToData(I);
-    case V.AddrMode of
-      amStatic:
-        case V.VarType of
-          vtByte, vtChar, vtBoolean, vtEnumeration:
-            V.Value := TImmValue.CreateTyped(V.UserType, ReadByte(V.GetAsmName));
-          vtWord, vtPointer, vtTypedPointer: V.Value := TImmValue.CreateTyped(V.UserType, ReadWord(V.GetAsmName));
-          vtInt8: V.Value := TImmValue.CreateTyped(V.UserType, ReadInt8(V.GetAsmName));
-          vtInteger: V.Value := TImmValue.CreateTyped(V.UserType, ReadInteger(V.GetAsmName));
-          vtString: V.Value := TImmValue.CreateString(ReadMemoryString(ReadWord(V.GetAsmName)));
+  case AddrMode of
+    amStatic:
+      case UTToVT(UserType) of
+        vtByte, vtChar, vtBoolean, vtEnumeration:
+          Result := TImmValue.CreateTyped(UserType, ReadByte(AsmName));
+        vtWord, vtPointer, vtTypedPointer: Result := TImmValue.CreateTyped(UserType, ReadWord(AsmName));
+          vtInt8: Result := TImmValue.CreateTyped(UserType, ReadInt8(AsmName));
+          vtInteger: Result := TImmValue.CreateTyped(UserType, ReadInteger(AsmName));
+          vtString: Result := TImmValue.CreateString(ReadMemoryString(ReadWord(AsmName)));
           vtReal, vtFlag, vtTypeDef, vtUnknown: ;//TODO?
-          vtSetMem: V.Value := TImmValue.CreateString('TODO: SetMem type');
-          vtArray, vtList: V.Value := TImmValue.CreateString('TODO: Read List data');
-          vtFunction: V.Value := TImmValue.CreateString('TODO: Function types');
+          vtSetMem: Result := TImmValue.CreateString('TODO: SetMem type');
+//          vtArray, vtList: Result := TImmValue.CreateArray(ArrayToString(AsmName, AddrMode, UserType));
+          vtArray, vtList: Result := TImmValue.CreateBlob(UserType, ReadBlob(AsmName, GetTypeSize(UserType)));
+          vtFunction: Result := TImmValue.CreateString('TODO: Function types');
         else
           Assert(False);
         end;
-      amStack:
+(*      amStack:
       begin
         Addr := (IX + V.Offset) and $ffff;
         case V.VarType of
@@ -336,9 +351,24 @@ begin
           vtFunction: V.Value := TImmValue.CreateString('TODO: Function types');
         end;
       end;
-    else
+*)
+    amStaticPtr: Result := TImmValue.CreateTyped(GetPointerToType(UserType), ReadWord(AsmName));
+  else
       Assert(False);
-    end;
+  end;
+end;
+
+procedure GetVarData(IXOffsetHack: Integer);
+var I: Integer;
+  V: PVariable;
+  IX: Word;
+begin
+  IX := (Hardware.Z80.Z80.IX - IXOffsetHack) and $ffff;
+
+  for I := 0 to VarGetCount-1 do
+  begin
+    V := VarIndexToData(I);
+    V.Value := ValueToString(V.GetAsmName, V.AddrMode, V.UserType);
   end;
 end;
 

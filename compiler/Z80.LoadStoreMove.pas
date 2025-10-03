@@ -52,7 +52,7 @@ implementation
 uses SysUtils,
   Def.Operators, Def.Variables, Def.UserTypes,
   CG.Data,
-  Z80.CG, Z80.Load, Z80.Store, Z80.CPUState, Z80.Hardware, Z80.GenProcs;
+  Z80.CG, Z80.Load, Z80.Store, Z80.CPUState, Z80.Hardware, Z80.GenProcs, Z80.Assembler;
 
 //=======================================DATA TYPES
 
@@ -66,6 +66,10 @@ type
     mtStatic16, //No side effects
     mtStatic8,  //Requires A reg (or HL)
     mtStack,    //No side effects
+    mtStaticPtr16,  //16 bit value loaded via static ptr. Requires HL
+    mtStaticPtr8,   //8 bit value loaded via static ptr. Requires A (or HL) and HL
+    mtStackPtr16, //16-bit value loaded via stack ptr. Requires HL
+    mtStackPtr8,  //8 bit value loaded via stack ptr. Requires A (or HL) and HL
 {TODO}  mtAddrStatic, //Static address - easy peasy
     mtAddrStack,  //Probably requires HL, DE and Flags. Possibly more!
     mtCopy,     //Value is already in a register and just needs moving
@@ -229,6 +233,37 @@ begin
         end;
       end;
     end;
+    pkVarPtr:
+    begin //We want to load the value pointed at by the variable
+      V := Param.ToVariable;
+      Assert(V.UserType.VarType in [vtPointer, vtTypedPointer]);
+
+      //TODO: Already in registers?
+      inc(MoveAnalysis.ToMoveCount);
+      case V.AddrMode of
+        amStatic, amStaticPtr:
+                  //LD HL,(v)     ;HL->pointer
+                  //LD r,(HL)     ;r->value
+          case GetTypeSize(V.UserType.OfType) of
+            1: Result := mtStaticPtr8;
+            2: Result := mtStaticPtr16;
+          else
+            System.Assert(False);
+          end;
+        amStack, amStackPtr:
+                  //LD L,(IX+)    ;HL->pointer
+                  //LD H,(IX+)
+                  //LD r,(HL)     ;r->value
+          case GetTypeSize(V.UserType.OfType) of
+            1: Result := mtStackPtr8;
+            2: Result := mtStackPtr16;
+          else
+            System.Assert(False);
+          end;
+      else
+        Assert(False);
+      end;
+    end;
   else
     System.Assert(False);
   end;
@@ -238,6 +273,7 @@ end;
 function AssessProcessType(Param: PILParam): TProcessType;
 var R: TCPUReg;
   V: PVariable;
+  UserType: PUserType;
 begin
   R := Param.Reg;
 
@@ -246,10 +282,14 @@ begin
 
   case Param.Kind of
     pkImmediate: ;  //Nothing
-    pkVarSource:
+    pkVarSource, pkVarPtr:
     begin
       V := Param.ToVariable;
-      case GetTypeSize(V.UserType) of
+      if Param.Kind = pkVarSource then
+        UserType := V.UserType
+      else
+        UserType := V.UserType.OfType;
+      case GetTypeSize(UserType) of
         1:  //8-bit to ??
           if (V.VarType = vtInt8) and (R in CPUReg16Bit) then
             Result := ptSignExtend;
@@ -264,7 +304,11 @@ begin
     pkVarDest:
     begin
       V := Param.ToVariable;
-      case GetTypeSize(V.UserType) of
+      if Param.Kind = pkVarDest then
+        UserType := V.UserType
+      else
+        UserType := V.UserType.OfType;
+      case GetTypeSize(UserType) of
         1: //?? to 8-bit
           if R in CPUReg8Bit then
             Result := ptShrink;
@@ -286,7 +330,7 @@ end;
 procedure CopyParamToMoveState(Param: PILParam;CheckType: PUserType);
 begin
   //Verify we're not double-loading any registers.
-  //(If the reg isnn't part of a pair etc the lookup will return rNone,
+  //(If the reg isn't part of a pair etc the lookup will return rNone,
   //And we shouldn't be loading anything into rNone!)
   System.Assert(Param.Reg <> rNone);
   System.Assert(MoveState[rNone].Param = nil);
@@ -399,10 +443,10 @@ begin
       pkVarAddr: ;  //Handled by the primitive
 
       //Loading
-      pkImmediate:
+      pkImmediate, pkVarRef:
         if Loading and (Param.Reg <> rNone) then
           CopyParamToMoveState(Param, CheckType);
-      pkVarSource,pkPop,pkPopByte:
+      pkVarSource,pkVarPtr,pkPop,pkPopByte:
         if Loading then
           CopyParamToMoveState(Param, CheckType);
 
@@ -590,6 +634,23 @@ begin
           end;
 end;
 
+//Preserves A if it requires preserving
+procedure PreserveA;
+begin
+  //TODO: Other strategies (move to another reg, reload etc)
+  if MoveAnalysis.PreserveA then
+    OpPUSH(rAF);
+  //TODO: CPU State
+end;
+
+//Restores A if it required preserving
+procedure RestoreA;
+begin
+  if MoveAnalysis.PreserveA then
+    OpPOP(rAF);
+  //TODO: CPUState
+end;
+
 function GenRegLoad(ILIndex: Integer;Prim: PPrimitive): Integer;
 begin
   InitMoveAnalysis;
@@ -606,8 +667,15 @@ begin
   //which might get trashed, and whether those registers will get trashed.
   AnalyseMove(True);
 
-    if DataMoveDone then
+  //If we need to preserve A then preserve A
+  PreserveA;
+
+  if DataMoveDone then
+  begin
+    RestoreA;
     EXIT;
+  end;
+
   //Load any stack address params - these usually require HL, DE and flags
   GenDataLoadParams([rBC, rDE, rHL, rIX, rIY],
     [mtAddrStack], [],
@@ -620,14 +688,20 @@ begin
                         //(it might Undo a move we've already done!)
 
   if DataMoveDone then
+  begin
+    RestoreA;
     EXIT;
+  end;
+
   //Load all values into registers other than A
   GenDataLoadParams([rB, rC, rD, rE, rH, rL, rBC, rDE, rHL, rIX, rIY],
     [mtStatic16, mtStack, mtAddrStatic, mtCopy, mtImm, mtImmCopy, mtLabel], [],
     [moPreserveHLDE{, moPreserveA, moPreserveCF, moPreserveOtherFlags}]); //<--- Mostly just error checking here
 
+  RestoreA;
   if DataMoveDone then
     EXIT;
+
   //Load values which will trash A register into A register
   GenDataLoadParams([rA], [mtStatic16, mtStatic8, mtStack, mtCopy, mtImm, mtImmCopy, mtLabel],
     [ptSignExtend, ptShrink, ptRangeCheck8, ptRangeCheck16], [moPreserveHLDE]);

@@ -46,6 +46,7 @@ procedure OpEXHLDE;
 
 procedure OpADD(RAcc, RAdd: TCPUReg);
 procedure OpINC(Reg: TCPUReg);
+procedure OpSBC(RAcc, rSub: TCPUReg);
 procedure OpDEC(Reg: TCPUReg);
 
 procedure OpcodeOR(Reg: TCPUReg);
@@ -169,6 +170,7 @@ begin
   AsmOpcode('ld', CPURegStrings[Dest], Source);
 end;
 
+//LD <dest>,(<source>) where dest is an 8-bit and source is a 16-bit
 procedure OpLDFromIndirect(Dest, Source: TCPUReg);
 var S: String;
 begin
@@ -180,6 +182,7 @@ begin
   AsmOpcode('ld', CPURegStrings[Dest], S);
 end;
 
+//LD (<dest>),<source> where dest is a 16-bit and source is an 8-bit
 procedure OpLDToIndirect(Dest, Source: TCPUReg);
 var D: String;
 begin
@@ -216,6 +219,11 @@ end;
 procedure OpINC(Reg: TCPUReg);
 begin
   AsmOpcode('inc',CPURegStrings[Reg]);
+end;
+
+procedure OpSBC(RAcc, RSub: TCPUReg);
+begin
+  AsmOpcode('sbc',CPURegStrings[RAcc],CPURegStrings[RSub]);
 end;
 
 procedure OpDEC(Reg: TCPUReg);

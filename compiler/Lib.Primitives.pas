@@ -109,6 +109,9 @@ begin
     plImmediate: Result := Kind = pkImmediate;
     plStaticVar: Result := AddrMode = amStatic;
     plStackVar:  Result := AddrMode = amStack;
+    plStaticPtrVar:  Result := AddrMode = amStaticPtr;
+    plStackPtrVar:  Result := AddrMode = amStackPtr;
+
     plRegister:  Result := (AvailableRegs * [rA..rE,rH..rL, rHL..rBC]) <> [];
   else
     raise Exception.Create('Undefined PrimLoc');
@@ -141,6 +144,8 @@ begin
         plRegister:  Result := True;
         plStaticVar: Result := V.AddrMode = amStatic;
         plStackVar:  Result := V.AddrMode = amStack;
+        plStaticPtrVar: Result := V.AddrMode = amStaticPtr;
+        plStackPtrVar:  Result := V.AddrMode = amStackPtr;
       else
         Assert(False);
       end;
@@ -373,11 +378,13 @@ begin
     SearchRec.ReturnResultUserType := SearchRec.LUserType
   else if Prim.ResultTypeIsRType then
     SearchRec.ReturnResultUserType := SearchRec.RUserType
-  else if Prim.ResultType <> vtUnknown then
+  else if (SearchRec.MatchResultType = vtUnknown) and (Prim.ResultType <> vtUnknown) then
+  //If we matched a Result Type then nowt to do, otherwise we need to set the result
+  //type to that of the prim
   begin
     SearchRec.ReturnResultUserType := GetSystemType(Prim.ResultType);
     Assert(Assigned(SearchRec.ReturnResultUserType));  //Unsuitable Prim.ResultType.
-          //For non-system types you probablu want to specify a ResultType of
+          //For non-system types you probably want to specify a ResultType of
           //LType or RType in Primitives.csv
   end;
 
@@ -575,6 +582,9 @@ begin
   begin
     V := ILItem.Param1.ToVariable;
     SearchRec.LAddrMode := V.AddrMode;
+    if V.VarType = vtTypedPointer then
+      if V.AddrMode = amStaticPtr then
+        SearchRec.LAddrMode := amStaticPtr;
   end;
 
   SearchRec.RKind := ILItem.Param2.Kind;
@@ -649,6 +659,10 @@ begin
     Loc := plStaticVar
   else if CompareText(S, 'stack') = 0 then
     Loc := plStackVar
+  else if CompareText(S, 'staticptr') = 0 then
+    Loc := plStaticPtrVar
+  else if CompareText(S, 'stackptr') = 0 then
+    Loc := plStackPtrVar
   else
   begin
     Loc := plRegister;

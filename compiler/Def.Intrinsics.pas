@@ -21,6 +21,17 @@ begin
   //Nothing
 end;
 
+function ParseIntrinsicFlags(const Field: String): TIntrinsicFlagSet;
+begin
+  Result := [];
+  if CompareText(Field, 'arrayasbounds') = 0 then
+    Result := Result + [ifArrayAsBounds]
+  else if CompareText(Field, 'totype') = 0 then
+    Result := Result + [ifToType]
+      else if Field <> '' then
+    raise Exception.Create('Invalid flag or flags for Intrinsic: ' + Field);
+end;
+
 const //Column indexes
   fName           = 1;
   fP1Access       = 2;
@@ -73,6 +84,8 @@ begin
           if Intrinsic.Op = opUnknown then
             raise Exception.Create('Operator not found: ' + Fields[fName]);
 
+          //================FIRST PARAMETER
+
           if Fields[fP1Access] = '' then
             Intrinsic.ParamCount := 0
           else
@@ -89,8 +102,10 @@ begin
               if not StringToSuperType(Fields[fP1VarType], Intrinsic.Params[0].SuperType) then
                 raise Exception.Create('Invalid P1VarType for Intrinsic: ' + Fields[fP1VarType]);
 
-            Assert(Fields[fP1Flags] = '');
-            //  fP1Flags    = 4;
+            Intrinsic.Params[0].IntrinsicFlags := ParseIntrinsicFlags(Fields[fP1Flags]);
+
+            //=================SECOND PARAMETER
+
             if Fields[fP2Access] = '' then
               Intrinsic.ParamCount := 1
             else
@@ -129,10 +144,13 @@ begin
                 end;
                 Intrinsic.Params[1].HasDefaultValue := True;
               end;
-              Assert(Fields[fP2Flags] = '');
-            //fP2Flags    = 7;
+
+              Intrinsic.Params[1].IntrinsicFlags := ParseIntrinsicFlags(Fields[fP2Flags]);
             end;
           end;
+
+          //=======================RESULT
+
           if CompareText(Fields[fResultType], 'None') <> 0 then
           begin
             Intrinsic.Params[Intrinsic.ParamCount].Access := vaResult;

@@ -400,19 +400,22 @@ begin
         Error := True;
     opHigh:
     begin
-      case P.VarType of
-        vtInteger, vtInt8, vtByte, vtWord, vtPointer,
-        vtChar, vtEnumeration, vtTypeDef:
-        begin
-          Assert(P.UserType <> nil);
-          Assert(P.UserType.Low <= P.UserType.High);  //Invalid type creation -
-              //Low must differ from High for any meaningful ordinal type
-          Value.CreateTyped(P.UserType, P.UserType.High);
-        end;
-        vtBoolean:  Value.CreateBoolean(True);
+      if P.VarType = vtTypeDef then
+      begin
+        if P.TypeDefValue.VarType = vtBoolean then
+          Value.CreateBoolean(True)
+        else if IsOrdinalType(P.TypeDefValue.VarType) then
+          Value.CreateTyped(P.TypeDefValue, P.TypeDefValue.High)
+        else
+          case P.TypeDefValue.VarType of
+            vtArray:
+              Value.CreateTyped(P.TypeDefValue.BoundsType.OfType, P.TypeDefValue.BoundsType.High);
+          else
+            Error := True;
+          end;
+      end
       else
         Error := True;
-      end;
       if not Error then
         EXIT;
     end;
@@ -426,19 +429,22 @@ begin
         Error := True;
     opLow:
     begin
-      case P.VarType of
-        vtInteger, vtInt8, vtByte, vtWord, vtPointer,
-        vtChar, vtEnumeration, vtTypeDef:
-        begin
-          Assert(P.UserType <> nil);
-          Assert(P.UserType.Low <= P.UserType.High);  //Invalid type creation -
-              //Low must differ from High for any meaningful ordinal type
-          Value.CreateTyped(P.UserType, P.UserType.Low);
-        end;
-        vtBoolean:  Value.CreateBoolean(False);
+      if P.VarType = vtTypeDef then
+      begin
+        if P.TypeDefValue.VarType = vtBoolean then
+          Value.CreateBoolean(False)
+        else if IsOrdinalType(P.TypeDefValue.VarType) then
+          Value.CreateTyped(P.TypeDefValue, P.TypeDefValue.Low)
+        else
+          case P.TypeDefValue.VarType of
+            vtArray:
+              Value.CreateTyped(P.TypeDefValue.BoundsType.OfType, P.TypeDefValue.BoundsType.Low);
+          else
+            Error := True;
+          end;
+      end
       else
         Error := True;
-      end;
       if not Error then
         EXIT;
     end;
@@ -551,6 +557,25 @@ begin
         Error := True;
       if not Error then
         EXIT;
+    end;
+    opLength:
+    begin
+      case P.VarType of
+        vtTypeDef:
+          case P.TypeDefValue.VarType of
+            vtArray:
+              Value.CreateTyped(vtWord, GetTypeItemCount(P.TypeDefValue.BoundsType));
+            //Extend for other array types
+          else
+            Error := True;
+          end;
+        //Extend for other array types
+      else
+        Error := True;
+      end;
+      if Error then
+        EXIT(ErrOpUsageSub(qeOpIncompatibleType, VarTypeToName(P.TypeDefValue.VarType), Op));
+      EXIT;
     end;
     opUpcase:
     begin

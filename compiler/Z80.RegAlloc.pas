@@ -125,18 +125,22 @@ end;
 procedure TEMPRegAllocMove(var ILItem: PILItem);
 begin
   Assert(ILItem.Op = opMove);
-  Assert(ILItem.Param1.Kind in [pkImmediate, pkVarSource, pkPop, pkPopByte]);
+  Assert(ILItem.Param1.Kind in [pkImmediate, pkVarSource, pkVarRef, pkPop, pkPopByte]);
   Assert(ILItem.Param2.Kind = pkNone);
-  Assert(ILItem.Param3.Kind in [pkVarDest, pkPush, pkPushByte]);
+  Assert(ILItem.Param3.Kind in [pkVarDest, pkVarRef, pkPush, pkPushByte]);
 
   if ILItem.Param1.Reg = rNone then
-    //If the Dest is 8-bit load it into A, if 16-bit load it into HL
-    case GetTypeSize(ILItem.Dest.GetUserType) of
-      1: ILItem.Param1.Reg := rA;
-      2: ILItem.Param1.Reg := rHL;
+    if ILItem.Param1.Kind = pkVarRef then
+      //A pointer
+      ILItem.Param1.Reg := rHL
     else
-      Assert(False);
-    end;
+      //If the Dest is 8-bit load it into A, if 16-bit load it into HL
+      case GetTypeSize(ILItem.Dest.GetUserType) of
+        1: ILItem.Param1.Reg := rA;
+        2: ILItem.Param1.Reg := rHL;
+      else
+        Assert(False);
+      end;
 
   if ILItem.Dest.Reg = rNone then
     ILItem.Dest.Reg := ILItem.Param1.Reg;
@@ -170,7 +174,7 @@ procedure TEMPRegAllocPtrStore(var ILItem: PILItem);
 var ByteCount: Integer;
 begin
   Assert(ILItem.Op = opPtrStore);
-  Assert(ILItem.Param1.Kind = pkVarPtr);
+  Assert(ILItem.Param1.Kind in [pkVarPtr, pkVarSource]);
   Assert(UTToVT(ILItem.Param1.Variable.UserType) in [vtPointer, vtTypedPointer]);
   Assert(ILItem.Param2.Kind <> pkNone);
   Assert(ILItem.Param3.Kind = pkNone);

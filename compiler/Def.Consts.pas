@@ -12,6 +12,9 @@ uses
 
 type PConstList = ^TConstList;
 
+  //Used to store binary data (for complex types)
+  TBlob = array of Byte;
+
 //===============TImmValue
 
 //Record to store a typed constant value. Used within ILParams and as default
@@ -32,6 +35,7 @@ type PConstList = ^TConstList;
     constructor CreateTypeDef(AValue: PUserType);
 
     constructor CreateString(AString: String);
+    constructor CreateBlob(AType: PUserType;ABlob: TBlob);
 
     //Can *only* be user for integer types (both new and current)
     procedure UpdateUserType(NewType: PUserType);
@@ -47,7 +51,7 @@ type PConstList = ^TConstList;
     //If VarType is vtString or vChar
     function StringValue: String;
     //If VarType is vtList ... More TODO
-    function BlobValue: String;
+    function BlobValue: TBlob;
 
     //For (mostly) code generation
     //Only applicable to ordinal types
@@ -108,6 +112,8 @@ type PConstList = ^TConstList;
     Items: TList<PConst>;
     MarkPosition: Integer;
     Strings: TStringList; //String literals defined within this scope
+    Blobs: TList<TBlob>;  //Binary literals defined within this scope
+                          //(for any complex type other than strings)
   public
     procedure Initialise;
     procedure Clear;
@@ -141,16 +147,16 @@ uses
 
 //----------------------TImmValue
 
-function TImmValue.BlobValue: String;
+function TImmValue.BlobValue: TBlob;
 begin
   case FVarType of
-    vtList:
+    vtArray, vtList, vtRecord:
     begin
       Assert(Assigned(FBlobConstList));
       Assert(FBlobIndex <> -1);
 
       Assert(False, 'TODO: Array blobs');
-//      Result := FBlobConstList.Blobs[FBlobIndex];
+      Result := FBlobConstList.Blobs[FBlobIndex];
     end;
   else
     Assert(False);
@@ -167,6 +173,15 @@ function TImmValue.CharValue: Char;
 begin
   Assert(FVarType = vtChar);
   Result := FCharValue;
+end;
+
+constructor TImmValue.CreateBlob(AType: PUserType; ABlob: TBlob);
+begin
+  FVarType := UTToVT(AType);
+  FUserType := AType;
+  FBlobConstList := GetCurrentScope.ConstList;
+  Assert(Assigned(FBlobConstList));
+  FBlobIndex := FBlobConstList.Blobs.Add(ABlob);
 end;
 
 constructor TImmValue.CreateBoolean(AValue: Boolean);
@@ -294,7 +309,7 @@ end;
 function TImmValue.ToInteger: Integer;
 begin
   case FVarType of
-    vtInt8, vtInteger, vtByte, vtWord, vtPointer,
+    vtInt8, vtInteger, vtByte, vtWord, vtPointer, vtTypedPointer,
       vtEnumeration:
         Result := FIntValue;
     vtBoolean:
@@ -319,25 +334,88 @@ begin
   end;
 end;
 
+function IntValueToString(AUserType: PUserType;Value: Integer): String;
+begin
+  case UTToVT(AUserType) of
+    vtByte: Result := '$' + IntToHex(Value, 2);
+    vtWord, vtPointer, vtTypedPointer:
+      Result := '$' + IntToHex(Value, 4);
+    vtInt8, vtInteger: Result := Value.ToString;
+    vtBoolean:
+      if Value = ValueFalse then
+        Result := 'False'
+      else
+        Result := 'True';
+    vtChar:
+      if Value in [32..126] then
+        if Value = ord('''') then
+          Result := ''''''
+        else
+          Result := ''''+Chr(Value)+''''
+      else
+        Result := '#' + Value.ToString;
+    vtEnumeration:
+    begin
+      Assert(Assigned(AUserType));
+      Result := AUserType.EnumItemToString(Value) + '(' + Value.ToString + ')';
+    end;
+  else
+    Assert(False);
+  end;
+end;
+
+function BlobArrayToString(const Blob: TBlob;AUserType: PUserType;Offset: Integer): String;
+var ElementSize: Integer;
+  Count: Integer;
+  I: Integer;
+  Value: Integer;
+begin
+  ElementSize := GetTypeSize(AUserType.OfType);
+  case AUserType.VarType of
+    vtArray: Count := AUserType.BoundsType.High-AUserType.BoundsType.Low+1;
+  else
+    Assert(False);
+  end;
+
+  Result := '[';
+
+  Offset := 0;
+  for I := 0 to Count-1 do
+  begin
+    case ElementSize of
+      1:
+      begin
+        Value := Blob[Offset];
+        if IsSignedType(AUserType.OfType) then
+          //SignExtend
+          if Value and $80 <> 0 then
+            Value := Value or (-1 xor $ff);
+      end;
+      2:
+      begin
+        Value := Blob[Offset] + (Blob[Offset+1] shl 8);
+        if IsSignedType(AUserType.OfType) then
+          //SignExtend
+          if Value and $8000 <> 0 then
+            Value := Value or (-1 xor $ffff);
+      end;
+    else
+      Assert(False);
+    end;
+    Result := Result + IntValueToString(AUserType.OfType, Value);
+    if I < Count-1 then
+      Result := Result + ',';
+
+    inc(Offset, ElementSize);
+  end;
+  Result := Result + ']';
+end;
+
 function TImmValue.ToString: String;
 
-  function ToVarTypedString(AVarType: TVarType): String;
+  function ToUserTypedString(AUserType: PUserType): String;
   begin
-    case AVarType of
-      vtByte: Result := '$' + IntToHex(IntValue, 2);
-      vtWord, vtPointer, vtTypedPointer:
-        Result := '$' + IntToHex(IntValue, 4);
-      vtInt8, vtInteger: Result := IntValue.ToString;
-      vtBoolean:
-        if BoolValue then
-          Result := 'True'
-        else
-          Result := 'False';
-      vtChar:
-        if CharInSet(CharValue, [#32..#126]) then
-          Result := ''''+CharValue+''''
-        else
-          Result := '#' + ord(CharValue).ToString;
+    case UTToVT(AUserType) of
       vtTypeDef:
       if TypeDefValue <> nil then
         Result := TypeDefValue.Name
@@ -352,22 +430,9 @@ function TImmValue.ToString: String;
         if (FBlobConstList = nil) or (FBlobIndex = -1) then
           Result := '<<UNASSIGNED>>'
         else
-          Result := BlobValue;
+          Result := BlobArrayToString(FBlobConstList.Blobs[FBlobIndex], AUserType, 0);
     else
-      Assert(False);
-    end;
-  end;
-
-  function ToUserTypedString(AUserType: PUserType): String;
-  begin
-    case UTToVT(AUserType) of
-      vtEnumeration:
-      begin
-        Assert(Assigned(FUserType));
-        Result := AUserType.EnumItemToString(FIntValue) + '(' + FIntValue.ToString + ')';
-      end;
-    else
-      Result := ToVarTypedString(UTToVT(AUserType));
+      Result := IntValueToString(AUserType, ToInteger);
     end;
   end;
 
@@ -375,7 +440,8 @@ begin
   if Assigned(FUserType) then
     Result := ToUserTypedString(FUserType)
   else
-    Result := ToVarTypedString(FVarType);
+    Assert(False);
+//    Result := ToVarTypedString(FVarType);
 end;
 
 function TImmValue.ToStringByte: String;
@@ -480,6 +546,7 @@ begin
   Items.Clear;
   MarkPosition := -1;
   Strings.Clear;
+  Blobs.Clear;
 end;
 
 function TConstList.FindByNameInScope(const AName: String): PConst;
@@ -497,6 +564,7 @@ begin
   Items := TList<PConst>.Create;
   MarkPosition := -1;
   Strings := TStringList.Create;
+  Blobs := TList<TBlob>.Create;
 end;
 
 procedure TConstList.ScopeDepthDecced(NewDepth: Integer);

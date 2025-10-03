@@ -74,7 +74,7 @@ implementation
 uses Generics.Collections, SysUtils,
   Def.Globals, Def.Operators, Def.Variables, Def.UserTypes,
   CG.Data,
-  Z80.CPUState, Z80.Assembler, Z80.AlgoData;
+  Z80.CPUState, Z80.Assembler, Z80.AlgoData, Z80.Validation;
 
 function GetOverflowAlgoForType(VarType: TVarType): TAlgo;
 begin
@@ -772,32 +772,57 @@ end;
 
 //=================================== ARRAYS
 
+//Calculate the addr of an array element where:
+// - the array is a static variable with addrmode of amStatic
+// - the index is an immediate value
 procedure Proc_AddrOfArrayElemStaticImm(ILItem: PILItem);
 var V: PVariable; //The array
   ElementSize: Integer;
-  Index: Integer;
+  Index: Integer; //of the item we want
+  FirstIndex: Integer;  //Low of first item in array
 begin
-  Assert(ILItem.Param1.Kind = pkVarAddr);
+  Assert(ILItem.Param1.Kind = pkVarRef);
   Assert(ILItem.Param2.Kind = pkImmediate);
   Assert(IsOrdinalType(UTToVT(ILItem.Param2.Imm.UserType)));
 
   V := ILItem.Param1.Variable;
-  Assert(V.AddrMode = amStatic);
+  Assert(V.AddrMode in [amStatic, amStaticPtr]);
   Assert(UTToVT(V.UserType) in [vtArray, vtVector, vtList]);
   Assert(Assigned(V.UserType.OfType));
 
   ElementSize := GetTypeSize(V.UserType.OfType);
   Index := ILItem.Param2.Imm.ToInteger;
-  Assert(Index >= 0, 'TODO - negative indexes');
 
   case UTToVT(V.UserType) of
     vtArray:
     begin
-      //TODO: Adjust Index for range low
+      FirstIndex := V.UserType.BoundsType.Low;
       //TODO: Validate array size
       //TODO: Check Reg State: is value already loaded?
-      OpLD(rHL, V.GetAsmName + ' + ' + WordToStr(ElementSize * Index));
-      //TODO: Update Reg State
+
+      case V.AddrMode of
+        amStatic: //Direct load of calculated address into register
+          OpLD(rHL, V.GetAsmName + ' + ' + WordToStr(ElementSize * (Index - FirstIndex)));
+          //TODO: Update Reg State
+        amStaticPtr:
+        begin
+          OpLD(rHL, V.GetAsmName);
+//          LD HL,V.GetAsmName  //Addr of variable into HL
+          OpLDFromIndirect(rE, rHL);
+//          LD E,(HL)           //Base address of array into DE
+          OpINC(rHL);
+//          INC HL
+          OpLDFromIndirect(rD, rHL);
+//          LD D,(HL)
+          OpLD(rHL, WordToStr(ElementSize * (Index - FirstIndex)));
+//          LD HL,<offset>      //Offset to element
+          OpADD(rHL,rDE);
+//          ADD HL,DE           //Element address onto HL
+          //TODO: Update Reg State
+        end;
+      else
+        Assert(False, 'TODO - AddrMode');
+      end;
     end;
 //    vtVector:
 {    vtList:
@@ -806,49 +831,104 @@ begin
   end;
 end;
 
+//Calc address of array element where:
+// - the array is in a static variable
+// - the index has been pre-loaded into the
+//   - HL register (16-bit value),
+//   - L register (unsigned 8-bit value)
 procedure Proc_AddrOfArrayElemStaticVarSource(ILItem: PILItem);
 var V: PVariable; //The array
+  ArrayType: PUserType; //Array type
+  IsPointerTo: Boolean; //If True V is a pointer to the actual data (static pointer)
+                        //If False V is the actual data (static)
   ElementSize: Integer;
-  IndexVT: TVarType;
+  IndexVT: TVarType;    //Index type
+  FirstIndex: Integer;  //First item of array
 begin
-  Assert(ILItem.Param1.Kind = pkVarAddr);
+  Assert(ILItem.Param1.Kind = pkVarRef);
+  Assert(ILItem.Param1.Variable.AddrMode = amStatic);
   Assert(ILItem.Param2.Kind = pkVarSource);
   Assert(IsOrdinalType(UTToVT(ILItem.Param2.Variable.UserType)));
 
   V := ILItem.Param1.Variable;
   Assert(V.AddrMode = amStatic);
-  Assert(UTToVT(V.UserType) in [vtArray, vtVector, vtList]);
-  Assert(Assigned(V.UserType.OfType));
+  ArrayType := V.UserType;
 
-  ElementSize := GetTypeSize(V.UserType.OfType);
-  //Index will be in L (for bytes) or HL (for words)
+  IsPointerTo := ArrayType.VarType = vtTypedPointer;
+  if IsPointerTo then
+    ArrayType := ArrayType.OfType;
+  Assert(UTToVT(ArrayType) in [vtArray, vtVector, vtList]);
+  Assert(Assigned(ArrayType.OfType));
+
+  //TODO: Only for vtArray - others use dynamic bounds checking
+  if cgRangeCheck in ILItem.Param2.Flags then
+    GenRangeCheck(ILItem.Param2.Reg, ILItem.Param2.GetUserType, ArrayType.BoundsType, nil, []);
+
+  ElementSize := GetTypeSize(ArrayType.OfType);
+  FirstIndex := ArrayType.BoundsType.Low;
+
+  //Index will be in L (for unsigned 8-bit) or HL (for 16-bit)
+  //If 8-bit then extend to 16-bit
   IndexVT := UTToVT(GetBaseType(ILItem.Param2.Variable.UserType));
-  case IndexVT of
-    vtByte, vtInt8: GenLoadRegLiteral(rH, TImmValue.CreateInteger(0), []);
-    vtWord, vtInteger, vtPointer: ; //Nothing to do
-  else
-    assert(False);  //Invalid index type
-  end;
+  if IndexVT = vtInt8 then
+    GenSignExtend(rL, rH, [])
+  else if GetVarTypeSize(IndexVT) = 1 then
+    GenLoadRegLiteral(rH, TImmValue.CreateInteger(0), []);
 
+  //Multiply index by element size
   case ElementSize of
     0: Assert(False);
     1: ;  //Nothing to do
-    2: OpADD(rHL, rHL); //Multiply by two
+    2:
+    begin
+      OpADD(rHL, rHL); //Multiply by two
+      RegStateSetUnknowns([rFlags, rCF, rZF]);
+    end;
   else
     GenLoadRegLiteral(rDE, TImmValue.CreateInteger(ElementSize), []);
     //HL := HL * DE
     GenLibraryProc(':mult16_u_u__u', nil);
+    RegStateSetUnknowns([rFlags, rCF, rZF]);
   end;
+  //HL -> Index * ElementSize (Offset from array base (ignoring low bound))
 
+  //Get array base address
   //Now add base address of the variable, and any offsets for Vector, List etc
-  case UTToVT(V.UserType) of
+  case UTToVT(ArrayType) of
     vtArray:
     begin
-      //TODO: Adjust Index for range low
       //TODO: Validate array size
       //TODO: Check Reg State: is value already loaded?
-      OpLD(rDE, V.GetAsmName);
-      //TODO: Update Reg State
+
+      if IsPointerTo then
+      begin //V is pointer to data
+        //Add/Subtract low bounds from offset
+        if ArrayType.BoundsType.Low > 0 then
+        begin
+          GenLoadRegLiteral(rDE, TImmValue.CreateInteger(abs(ArrayType.BoundsType.Low * ElementSize)), []);
+          GenLoadRegLiteral(rCF, TImmValue.CreateInteger(0), []);  //Clear carry
+          OpSBC(rHL, rDE);
+        end
+        else if ArrayType.BoundsType.Low < 0 then
+        begin
+          GenLoadRegLiteral(rDE, TImmValue.CreateInteger(abs(ArrayType.BoundsType.Low * ElementSize)), []);
+          OpADD(rHL, rDE);
+        end;
+        //HL -> Offset from array base
+
+        OpLD(rDE, V);  //DE->Base of array
+        //TODO: Update Reg State
+      end //HL -> Offset. DE -> array base
+      else
+      begin //V is static data
+        //Get static address of array less (or plus) offset of first element (due
+        //to Low bounds of array)
+        if FirstIndex > 0 then
+          OpLD(rDE, V.GetAsmName + ' - ' + WordToStr(ElementSize * FirstIndex))
+        else
+          OpLD(rDE, V.GetAsmName + ' + ' + WordToStr(ElementSize * -FirstIndex))
+        //TODO: Update Reg State
+      end;  //HL -> Offset, DE -> array base
     end;
 //    vtVector:
 {    vtList:
@@ -856,8 +936,11 @@ begin
     Assert(False);  //Must be array type
   end;
 
+  //Add array base and offset
+  //(ordering may be swapped depending on the path we took)
   OpADD(rHL, rDE);
-  //TODO: Update reg state
+  RegStateSetVariable(rHL, ILItem.Dest.Variable, ILItem.Dest.VarVersion, rskVarValue);
+  RegStateSetUnknowns([rDE, rFlags, rCF, rZF]);
 end;
 
 (*

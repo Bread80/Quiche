@@ -131,6 +131,8 @@ type TILParamKind = (
     pkVarDest,      //Write to variable
     pkVarAddr,      //Address of a variable - only valid where Op is OpAddrOf
     pkVarPtr,       //Reference to data pointed /to/ by the value (a pointer dereference)
+                    //ONLY for not pointered types
+    pkVarRef,       //Address of the data - ONLY for pointered types.
     pkPop,          //The stack
     pkPopByte,      //Single byte on the stack
     pkPush,
@@ -225,6 +227,7 @@ type
     procedure SetVarSource(AVariable: PVariable);
     procedure SetVarAddr(AVariable: PVariable);
     procedure SetVarPtr(AVariable: PVariable);
+    procedure SetVarRef(AVAriable: PVariable);
     procedure SetVarDestAndVersion(AVariable: PVariable; AVersion: Integer);
     procedure SetCondBranch;
 
@@ -253,7 +256,7 @@ type
       pkPhiVarDest: (
         PhiVar: PVariable;
         PhiDestVersion: Integer; );
-      pkVarSource, pkVarDest, pkVarAddr, pkVarPtr: (
+      pkVarSource, pkVarDest, pkVarAddr, pkVarPtr, pkVarRef: (
         Variable: PVariable;  //The variable
         VarVersion: Integer; );   //Current version of the variable
       pkPop: ();           //Currently invalid for input params
@@ -722,6 +725,13 @@ begin
   VarVersion := AVariable.Version;
 end;
 
+procedure TILParam.SetVarRef(AVAriable: PVariable);
+begin
+  Kind := pkVarRef;
+  Variable := AVariable;
+  VarVersion := AVariable.Version;
+end;
+
 procedure TILParam.SetVarSource(AVariable: PVariable);
 begin
    SetVarSourceAndVersion(AVariable, AVariable.Version);
@@ -749,12 +759,25 @@ begin
       else
         Result := GetPointerToType(Variable.UserType);
     pkVarPtr:
+    begin
       case UTToVT(Variable.UserType) of
         vtTypedPointer: Result := Variable.UserType.OfType;
         vtPointer: Result := GetSystemType(vtByte);
       else
         Assert(False);
       end;
+      Assert(not IsPointeredType(Result.VarType));
+    end;
+    pkVarRef:
+    begin
+      case UTToVT(Variable.UserType) of
+        vtTypedPointer: Result := Variable.UserType.OfType;
+        vtPointer: Result := GetSystemType(vtByte);
+      else
+        Result := Variable.UserType;
+      end;
+      Assert(IsPointeredType(Result.VarType));
+    end;
     pkPush, pkPushByte, pkPop, pkPopByte:
       Result := PushType;
   else
@@ -839,13 +862,14 @@ begin
       Assert(Assigned(PhiVar));
       Result := '%' + PhiVar.Name + '_' + IntToStr(PhiDestVersion);
     end;
-    pkVarSource, pkVarAddr, pkVarPtr:
+    pkVarSource, pkVarAddr, pkVarPtr, pkVarRef:
     begin
       Assert(Assigned(Variable));
       Result := '%' + Variable.Name + '_' + IntToStr(VarVersion);
       case Kind of
         pkVarAddr: Result := '@' + Result;
         pkVarPtr: Result := Result + '^';
+        pkVarRef: Result := Result + '!';
       end;
       Result := Result + ':' + Variable.UserType.Description;
       if Reg <> rNone then
@@ -921,6 +945,7 @@ end;
 function TILItem.AssignToHiddenVar(UserType: PUserType): PVariable;
 begin
   Result := VarCreateHidden(UserType);
+  Result.IncVersion;
   Dest.SetVarDestAndVersion(Result, Result.Version);
 end;
 
@@ -975,7 +1000,7 @@ begin
     pkVarAddr:
       Result := #13';VarAddr    ' + CPURegStrings[Param.Reg] + ' := @' + Param.ToString;
     pkVarPtr:
-      Result := #13';VarPtr    ' + CPURegStrings[Param.Reg] + ' := ' + Param.ToString + '^';
+      Result := #13';VarPtr     ' + CPURegStrings[Param.Reg] + ' := ' + Param.ToString + '^';
     pkCondBranch:
     begin
       Result := 'CondBranch ';
@@ -1029,7 +1054,7 @@ begin
         Result := Result + #13';    CALL: ' + Func.ToString;
     end;
   else //General operation types
-    Assert(Param1.Kind in [pkNone, pkImmediate, pkVarSource, pkVarAddr, pkVarPtr, pkPhiVarSource]);
+    Assert(Param1.Kind in [pkNone, pkImmediate, pkVarSource, pkVarAddr, pkVarPtr, pkVarRef, pkPhiVarSource]);
     Assert(Param2.Kind in [pkNone, pkImmediate, pkVarSource, pkVarAddr, pkPhiVarSource]);
     Assert(Dest.Kind in [pkNone, pkCondBranch, pkBranch, pkVarDest, pkVarAddr, pkPhiVarDest, pkPush, pkPushByte]);
     Result := Result + Param3.ToString;

@@ -134,34 +134,44 @@ begin
   for I := 0 to VarGetCount-1 do
   begin
     V := VarIndexToData(I);
-    case V.AddrMode of
-      amStatic:
-      begin
-        S := V.GetAsmName + ': ';
-        Bytes := GetTypeSize(V.UserType);
-        case Bytes of
-          0: ;  //TODO: ??
-          1: S := S + 'db 0';
-          2: S := S + '  dw 0';
-        else
-          S := S + 'db ';
-          for C := 1 to Bytes do
-          begin
-            if C <> 1 then
-              S := S + ',';
-            S := S + '0';
+    if V.RequiresStorage then
+    begin
+      case V.AddrMode of
+        amStatic:
+        begin
+          S := V.GetAsmName + ': ';
+          Bytes := GetTypeSize(V.UserType);
+          case Bytes of
+            0: ;  //TODO: ??
+            1: S := S + 'db 0';
+            2: S := S + '  dw 0';
+          else
+            S := S + 'db ';
+            for C := 1 to Bytes do
+            begin
+              if C <> 1 then
+                S := S + ',';
+              S := S + '0';
+            end;
           end;
         end;
+        amStack:
+        begin
+          S := V.GetAsmName + ' equ ' + abs(V.Offset).ToString;
+        end;
+        amStaticPtr:
+        begin
+          Assert(GetVarTypeSize(vtPointer) = 2);
+          S := V.GetAsmName + ': dw 0';
+        end;
+        amStackPtr:
+          S := V.GetAsmName + ' equ ' + abs(V.Offset).ToString;
+      else
+        Assert(False);
       end;
-      amStack:
-      begin
-        S := V.GetAsmName + ' equ ' + abs(V.Offset).ToString;
-      end;
-    else
-      Assert(False);
-    end;
 
-    AsmDataLine(S);
+      AsmDataLine(S);
+    end;
   end;
 end;
 
@@ -293,6 +303,7 @@ begin
     opPhi: RegStateInitialise; //Branches merge here. Clear cached data - we don't know what might be there
     opStoreImm: //Store a literal into a variable
       GenStoreImm(ILItem, []);
+    opTypecast: Assert(False, 'TODO');
     opMove: //Move a single value between variables or to/from the stack etc.
     begin //TODO: Rework this to be neater
       //When loading: load to type specified in Dest (extend, range check etc).

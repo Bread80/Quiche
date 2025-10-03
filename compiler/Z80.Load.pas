@@ -823,6 +823,7 @@ begin
   RegStateSetUnknown(ToReg);
 end;
 
+//Generate code to store the value of FromReg into memory addressed by PtrReg
 procedure GenStoreRegIndirect(PtrReg, FromReg: TCPUReg;Options: TMoveOptionSet);
 begin
   Assert(PtrReg in CPUReg16Bit);
@@ -832,7 +833,7 @@ begin
   begin
     OpLDToIndirect(PtrReg, CPURegPairToLow[FromReg]);
     OpINC(PtrReg);
-    OpLDFromIndirect(PtrReg, CPURegPairToHigh[FromReg]);
+    OpLDToIndirect(PtrReg, CPURegPairToHigh[FromReg]);
 
     //TODO: Add better meta data for this
     RegStateSetUnknown(PtrReg);
@@ -872,20 +873,17 @@ procedure GenPtrLoad(const Item: TILItem;Options: TMoveOptionSet);
 begin
   //Load address into Param1.Reg
   GenLoadParam(Item.Param1, GetSystemType(vtPointer), Options);  //Tweak Type(?)
-  RegStateSetVariable(Item.Param1.Reg, Item.Param1.Variable, Item.Param1.VarVersion, rskVarValue);
+  //Load value into Dest.Reg
   GenLoadRegIndirect(Item.Dest.Reg, Item.Param1.Reg, Options);
-  RegStateSetVariable(Item.Dest.Reg, Item.Dest.Variable, Item.Param1.VarVersion, rskVarValue);
 end;
 
 procedure GenPtrStore(const Item: TILItem;Options: TMoveOptionSet);
 begin
   //Load data - from Param2
   GenLoadParam(Item.Param2, Item.Param2.GetUserType, Options);
-  RegStateSetVariable(Item.Param2.Reg, Item.Param2.Variable, Item.Param2.VarVersion, rskVarValue);
 
   //Load address into Param1.Reg - we'll use Param2's VarType
   GenLoadParam(Item.Param1, GetSystemType(vtPointer), Options);  //Tweak type(?)
-  RegStateSetVariable(Item.Param1.Reg, Item.Param1.Variable, Item.Param1.VarVersion, rskVarValue);
 
   GenStoreRegIndirect(Item.Param1.Reg, Item.Param2.Reg, Options);
 end;

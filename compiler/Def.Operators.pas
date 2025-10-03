@@ -57,6 +57,8 @@ type
     //------------------------
     //Param Kinds for these are varied.
     opUnknown,    //Unassigned (error if it gets to codegen)
+    opTypecast,   //A cast from one type to another. Usually programmer driven.
+                  //Generally the data is unchanged and no validation is performed.
     opMove,       //Move data from one location to another (ie load+store)
                   //One parameter (Param1) and a Dest
     opStoreImm,   //Store an immediate value into a location
@@ -114,7 +116,7 @@ type
     opNegate, //Unary minus
     //Note: Unary addition is skipped by parser
     opComplement,    //Unary NOT
-    opAddrOf,  //@ (address of), or address of array element
+    opAddrOf,  //@ (address of), or address of data or an array element
 
     //Typecasts
     //These have one input/source parameter (Param1) and an output/dest/result value (Dest/Param3)
@@ -190,7 +192,8 @@ function StringToBoolean(S: String): Boolean;
 
 const OpStrings : array[low(TOperator)..high(TOperator)] of String = (
   //System operators
-  'UNKNOWN','Move','StoreImm',
+  'UNKNOWN','Typecast',
+  'Move','StoreImm',
   'Branch','BoolVarBranch',
   'PtrLoad','PtrStore',
   'Phi',

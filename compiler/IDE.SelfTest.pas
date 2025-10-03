@@ -27,7 +27,36 @@ type
 type
   TTestStatus = (tsNotRun, tsPassed, tsFailed, tsError);
 type
-  TTestAction = (taVarType, taCompileError, taUsesPrimitive, taVarValue, taRuntimeError);
+  TTestAction = (
+      //Assert <varname> has the appropriate type
+      //VarType <varname> <type-name>
+    taVarType,
+      //Test for the presence or absense of a Compilation error
+      //Compile <error-name>
+      //Compile noerror
+      //<error-name> is as given in the Errors.txt file
+    taCompileError,
+      //Assert the compiler used a given primitive
+      //(Not currently in use??)
+    taUsesPrimitive,
+      //Assert the value of the variable matches the given value
+      //VarValue <varname> <expr>
+      //<expr> can be any valid Quiche expression resulting in a suitable
+      //compile-time constant
+    taVarValue,
+      //Assert the that value of the variable, when converted to a string matches
+      //the given value
+      //VarValueString <varname> <string>
+      //The string must match the value parsed by TImmValue.ToString
+      //Note that this test depends on the value returned by the ToString mechanism
+      //which may not be stable over time. It is, however, useful for quickly establishing the
+      //value of complex types such as arrays and records.
+    taVarValueString,
+      //Assert the presence or absence of a runtime error
+      //RunTime error|noerror
+      //Note that the tester cannot, currently, distinguish the type of runtime error
+    taRuntimeError
+    );
 
   PTestStep = ^TTestStep;
   TTestStep = record
@@ -146,6 +175,9 @@ type TTestable = class
     function Compile: Boolean;
     function Emulate: Boolean;
 
+    //Utilities
+    function DequoteString(const S: String): String;
+
     //Test for errors
     //Set error status with given message
     procedure Error(Step: PTestStep;const Msg: String);
@@ -158,6 +190,7 @@ type TTestable = class
     procedure TestRunTimeError(Step: PTestStep);
     procedure TestUsesPrimitive(Step: PTestStep);
     procedure TestVarValue(Step: PTestStep);
+    procedure TestVarValueString(Step: PTestStep);
     procedure RunSteps;
 
   public
@@ -166,6 +199,7 @@ type TTestable = class
     function AddVarType(Fields: TArray<String>): String;
     function AddUsesPrimitive(Fields: TArray<String>): String;
     function AddVarValue(Fields: TArray<String>): String;
+    function AddVarValueString(Fields: TArray<String>): String;
     function AddRuntimeError(Fields: TArray<String>): String;
 
     procedure Run;override;
@@ -230,6 +264,8 @@ type TTestFile = class(TTestGroup)
   private
     FLastError: String;
   protected
+    //Intelligently split the line with proper parsing of string literals etc.
+    function SplitLine(const Line: String): TArray<String>;
     //Test options
     function ParseBlockType(Fields: TArray<String>): TBlockType;
     function ParseParseMode(Fields: TArray<String>): TParseMode;
@@ -275,7 +311,7 @@ uses Classes, IOUtils,
   Parse.Errors, Parse.Expr;
 
 const TestActionStrings: array[low(TTestAction)..high(TTestAction)] of String = (
-  'VarType', 'Compile', 'UsesPrimitive', 'VarValue', 'Runtime');
+  'VarType', 'Compile', 'UsesPrimitive', 'VarValue', 'VarValueString', 'Runtime');
 
 const StatusStrings: array[low(TTestStatus)..high(TTestStatus)] of String = (
   'Test not run',
@@ -397,6 +433,20 @@ begin
   //TODO: Decode the value field
 end;
 
+function TTest.AddVarValueString(Fields: TArray<String>): String;
+var Step: PTestStep;
+begin
+  if Length(Fields) <> 3 then
+    EXIT(errExpectedThreeFields);
+
+  Result := '';
+  Step := AddStep;
+  Step.Action := taVarValueString;
+  Step.Name := Fields[1];
+  Step.Value := Fields[2];
+  //TODO: Decode the value field
+end;
+
 procedure TTest.Check(Passed: Boolean; Step: PTestStep;const Msg: String);
 begin
   if Passed then
@@ -434,6 +484,23 @@ begin
   FParseErrorLine := IDE.Compiler.ParseErrorLine;
   FParseErrorString := IDE.Compiler.ParseErrorString;
   FAssemblerLog := IDE.Compiler.AssemblerLog;
+end;
+
+function TTest.DequoteString(const S: String): String;
+var PrevQuote: Boolean;
+  Ch: Char;
+begin
+  Result := '';
+  PrevQuote := False;
+  for Ch in S do
+    //Remove the second quote of every pair
+    if (Ch = '''') and not PrevQuote then
+      PrevQuote := False
+    else
+    begin
+      Result := Result + Ch;
+      PrevQuote := Ch = '''';
+    end;
 end;
 
 function TTest.Emulate: Boolean;
@@ -488,6 +555,8 @@ begin
     case Step.Action of
       taVarType, taVarValue:
         Result := Result + ' ' + Step.Name + ' ' + Step.Value + #13;
+      taVarValueString:
+        Result := Result + ' ' + Step.Name + ' ''' + Step.Value + ''''#13;
       taCompileError, taUsesPrimitive, taRuntimeError:
         Result := Result + ' ' + Step.Name + #13;
     else
@@ -596,6 +665,9 @@ begin
         taVarValue:
           if (ParseErrorNo = 0) and not FAssembleError and not FEmulateError then
             TestVarValue(Step);
+        taVarValueString:
+          if (ParseErrorNo = 0) and not FAssembleError and not FEmulateError then
+            TestVarValueString(Step);
         taRuntimeError:
           if (ParseErrorNo = 0) and not FAssembleError and not FEmulateError then
             TestRuntimeError(Step);
@@ -695,6 +767,21 @@ begin
     else
       Check(V.Value.ToString = Value.ToString, Step, 'VarValue mismatch on ' + V.Name +
           ', wanted ' + Value.ToString + ' got ' + V.Value.ToString + #13);
+  end;
+end;
+
+procedure TTest.TestVarValueString(Step: PTestStep);
+var V: PVariable;
+  Value: String;
+begin
+  V := VarFindByNameAllScopes(Step.Name);
+  if not Assigned(V) then
+    Error(Step, 'ERROR: No such variable: ''' + Step.Name + ''''#13)
+  else
+  begin
+    Value := V.Value.ToString;
+    Check(Value = DequoteString(Step.Value), Step, 'VarValue mismatch on ' + V.Name +
+      ', wanted ''' + Step.Value + ''' got ''' + Value + ''''#13);
   end;
 end;
 
@@ -889,7 +976,7 @@ begin
     else  //Not InCode
       if (Line.Trim.Length > 1) and (Line.Trim.Chars[0] <> ';') then
       begin
-        Fields := Line.Trim.Split([' ']);
+        Fields := SplitLine(Line.Trim);
         if CompareText(Fields[0], 'code') = 0 then
         begin
           InCode := True;
@@ -922,6 +1009,8 @@ begin
 
         else if CompareText(Fields[0], 'varvalue') = 0 then
           Error := Test.AddVarValue(Fields)
+        else if CompareText(Fields[0], 'varvaluestring') = 0 then
+          Error := Test.AddVarValueString(Fields)
         else if CompareText(Fields[0], 'runtime') = 0 then
           Error {:= Test.FWantRuntimeError} := Test.AddRuntimeError(Fields)
         else
@@ -997,6 +1086,104 @@ begin
   end;
 end;
 
+function TTestFile.SplitLine(const Line: String): TArray<String>;
+
+  //Append S to Result
+  procedure Append(const S: String);
+  begin
+    SetLength(Result, Length(Result)+1);
+    Result[Length(Result)-1] := S;
+  end;
+
+var S: String;
+  Ch: Char;
+  InString: Boolean;
+  PrevQuote: Boolean;
+begin
+  InString := False;
+  PrevQuote := False;
+  SetLength(Result, 0);
+  S := '';
+  for Ch in Line do
+    if not InString and (ord(Ch) <= 32) then
+    begin
+      if S <> '' then
+      begin
+        Append(S);
+        S := '';
+      end;
+    end
+    else
+    begin
+      S := S + Ch;
+      if ch = '''' then
+        InString := not InString;
+    end;
+
+  //TODO: If we're InString we have unterminated string error
+  if S <> '' then
+    Append(S);
+end;
+(*
+var S: String;
+  Ch: Char;
+  InString: Boolean;
+  PrevQuote: Boolean;
+begin
+  Result := Line.Split([' ']);
+  EXIT;
+
+  InString := False;
+  PrevQuote := False;
+  SetLength(Result, 0);
+  S := '';
+  for Ch in Line do
+  begin
+    if InString then
+      if Ch = '''' then
+      begin
+        if PrevQuote then //Literal quote
+          S := S + ''''
+        else
+          PrevQuote := True;  //Either end-of-string or literal quote
+      end
+      else  //Not a quote
+      begin
+        if PrevQuote then
+        begin //End-of-string
+          Append(S);
+          InString := False;
+        end
+        else  //Literal char
+          S := S + Ch;
+
+        PrevQuote := False;
+      end;
+
+
+    if not InString then  //(May be first char after ending quote)
+      if ord(Ch) <= 32 then
+      begin
+        if S <> '' then
+        begin
+          Append(S);
+          S := '';
+        end;
+      end
+      else if ch = '''' then
+      begin
+        if S <> '' then
+          Append(S);  //TODO: This should be an error
+        InString := True;
+      end
+      else
+        S := S + Ch;
+  end;
+  //TODO: If we're InString we have unterminated string error
+  if S <> '' then
+    Append(S);
+end;
+*)
 //;;================
 
 procedure ClearTestGroups;

@@ -33,6 +33,14 @@ const
   DefaultExternCallingConvention = ccRegister;
 
 type
+  //Flags for intrinsic parameters
+  TIntrinsicFlag = (
+    ifToType,       //If parameter is TypeDef will convert it the type in the TypeDef
+    ifArrayAsBounds //If the parameter is an array type, and the result is parameterised
+                    //then the ResultType will be the OfType of the array's BoundsType
+    );
+  TIntrinsicFlagSet = set of TIntrinsicFlag;
+
   PParameter = ^TParameter;
   TParameter = record
     Access: TVarAccess; //Ignored for Intrinsics
@@ -42,6 +50,7 @@ type
                           //Ignored for Intrinsics
     UserType: PUserType;   //Parameter type
     SuperType: TSuperType;  //Only for intrinsics. Only valid where VarType is vtUnknown.
+    IntrinsicFlags: TIntrinsicFlagSet;  //Flags for Intrinsic params
 
     HasDefaultValue: Boolean;
     DefaultValue: TImmValue;   //If the parameter is optional.

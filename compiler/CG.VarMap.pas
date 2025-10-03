@@ -137,6 +137,8 @@ begin
     pkVarPtr:
       AddVarMapRead(Param.Variable, Param.VarVersion, Step);
       //TODO: Also read (or write) memory(?)
+    pkVarRef:
+      AddVarMapRead(Param.Variable, Param.VarVersion, Step);
     pkPhiVarSource:
     begin
       Data := AddVarMapRead(Dest.PhiVar, Param.PhiSourceVersion, Step);
