@@ -52,6 +52,9 @@ procedure GenLoadRegLiteral(Reg: TCPUReg;const Value: TImmValue;Options: TMoveOp
 //Updates RegState
 procedure GenRegMove(FromReg, ToReg: TCPUReg;Signed: Boolean;Options: TMoveOptionSet);
 
+//Generate opTypecast
+procedure GenTypecast(ILItem: PILItem);
+
 //Generate code for opBlockCopy - copy data for a pointered type from one variable
 //to another.
 procedure GenBlockCopy(ILItem: PILItem);
@@ -692,8 +695,34 @@ begin
     System.Assert(False, 'Sorry, unable to handle that register move');
 end;
 
+procedure GenTypecast(ILItem: PILItem);
+begin
+  Assert(ILItem.Op = opTypecast);
+  Assert(ILItem.Param1.Kind = pkVarSource);
+
+  if ILItem.Dest.Reg <> ILItem.Param1.Reg then
+    if ILItem.Param1.Reg in CPURegPairs then
+    begin
+      if ILItem.Dest.Reg <> CPURegPairToLow[ILItem.Param1.Reg] then
+        Assert(False);  //Invalid register allocations
+    end
+    else if ILItem.Param1.Reg in CPUReg8Bit then
+      if ILItem.Dest.Reg = CPUReg8ToPair[ILItem.Param1.Reg] then
+      begin
+        //If we're casting from a signed type then signed extend it
+        if IsSignedType(ILItem.Param1.Variable.UserType) then
+          GenSignExtend(ILItem.Param1.Reg, CPURegPairToHigh[ILItem.Dest.Reg], [])
+        else
+          //Otherwise zero extend
+          GenLoadRegLiteral(CPURegPairToHigh[ILItem.Dest.Reg], TImmValue.CreateInteger(0), []);
+      end
+      else
+        Assert(False); //Invalid register allocations
+end;
+
 procedure GenBlockCopy(ILItem: PILItem);
 begin
+  Assert(ILItem.Op = opBlockCopy);
   OpLDIR;
   RegStateSetUnknowns([rHL, rDE]);
   RegStateSetLiteral(rBC, 0);

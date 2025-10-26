@@ -2,7 +2,7 @@ unit Parse.Eval;
 
 interface
 uses SysUtils,
-  Def.IL, Def.Operators, Def.VarTypes, Def.Consts,
+  Def.IL, Def.Operators, Def.VarTypes, Def.Consts, Def.UserTypes,
   Parse.Errors;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -29,9 +29,12 @@ function EvalIntrinsicUnary(Op: TOperator;const Param: TILParam;
 function EvalIntrinsicBi(Op: TOperator;const Param1, Param2: TILParam;
   out Value: TImmValue;out Evalled: Boolean): TQuicheError;
 
+//Typecast an ImmValue to the given type
+function EvalTypecast(var Value: TImmValue; ToType: PUserType): TQuicheError;
+
 implementation
 uses {$ifndef fpc}System.Character,{$endif}
-  Def.Globals, Def.UserTypes;
+  Def.Globals;
 
 function ValueToVarType(Value: Integer;out VarType: TVarType): TQuicheError;
 begin
@@ -707,6 +710,36 @@ begin
   if Error then
     EXIT(ErrOpUsageSub2(qeOpIncompatibleTypes, VarTypeToName(Param1.Imm.VarType),
       VarTypeToName(Param2.Imm.VarType), Op));
+end;
+
+function EvalTypecast(var Value: TImmValue; ToType: PUserType): TQuicheError;
+var NewValue: Integer;
+begin
+  if IsOrdinalType(UTToVT(ToType)) and (IsOrdinalType(Value.VarType)) then
+  begin
+    case GetTypeDataSize(ToType) of
+      1:
+      begin
+        NewValue := Value.ToInteger and $ff;
+        if IsSignedType(ToType) then
+          if NewValue >= $80 then
+            NewValue := NewValue or (-1 xor $ff);
+      end;
+      2:
+      begin
+        NewValue := Value.ToInteger and $ffff;
+        if IsSignedType(ToType) then
+          if NewValue >= $8000 then
+            NewValue := NewValue or (-1 xor $ffff);
+      end;
+    else
+      raise Exception.Create('Unknown type data size in EvalTypecast');
+    end;
+    Value.CreateTyped(ToType, NewValue);
+    Result := qeNone;
+  end
+  else
+    Assert(False, 'TODO: Typecasts for constant expression involving non-ordinal types');
 end;
 
 end.

@@ -129,6 +129,45 @@ end;
 
 //=================================Complex operands, and operators
 
+function ParseTypecast(ToType: PUserType;var Slug: TExprSlug): TQuicheError;
+var ExprType: PUserType;
+  ILItem: PILItem;
+begin
+  Assert(Parser.TestChar = '(');
+  Parser.SkipChar;
+
+  ExprType := nil;
+  Result := ParseExprToSlug(Slug, ExprType);
+  if Result <> qeNone then
+    EXIT;
+
+  if Parser.TestChar <> ')' then
+    EXIT(Err(qeUnmatchedBrackets));
+  Parser.SkipChar;
+
+  if (Slug.ILItem = nil) and (Slug.Operand.Kind = pkImmediate) then
+  begin //Convert Immediate to different type
+    Result := EvalTypecast(Slug.Operand.Imm, ToType);
+    if Result <> qeNone then
+      EXIT;
+    Slug.ResultType := ToType;
+    Slug.ImplicitType := ToType;
+  end
+  else
+  begin
+    //Insert OpTypecast
+    ILItem := ILAppend(opTypecast);
+    ILItem.Param1 := Slug.Operand;
+    ILItem.ResultType := ToType;
+    Slug.Initialise;
+    Slug.ILItem := ILItem;
+    Slug.ResultType := ToType;
+    Slug.ImplicitType := ToType;
+//    EXIT(ErrTODO('Typecasts at runtime not yet implemented'))
+    //Typecast TODO
+  end;
+end;
+
 function ParseOperand(var Slug: TExprSlug;UnaryOp: TUnaryOperator): TQuicheError; forward;
 
 //Parses identifiers as expression parameters.
@@ -165,8 +204,11 @@ begin
     itType:
       //If it is a typecast it will be followed by open bracket.
       if Parser.TestChar = '(' then
-        EXIT(ErrTODO('Typecasts for user types not yet implemented. Type names not allowed in expressions'))
-        //Typecast TODO
+      begin
+        Result := ParseTypecast(IdentData.T, Slug);
+        if Result <> qeNone then
+          EXIT;
+      end
       else
       begin //Not a typecast - return a TypeDef
         Slug.Operand.Kind := pkImmediate;

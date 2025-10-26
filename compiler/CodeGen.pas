@@ -299,7 +299,13 @@ begin
     opPhi: RegStateInitialise; //Branches merge here. Clear cached data - we don't know what might be there
     opStoreImm: //Store a literal into a variable
       GenStoreImm(ILItem, []);
-    opTypecast: Assert(False, 'TODO');
+    opTypecast:
+    begin
+      TEMPRegAllocTypecast(ILItem);
+      GenRegLoad(ILIndex, nil);
+      GenTypecast(ILItem);
+      GenRegStore(ILIndex);
+    end;
     opMove: //Move a single value between variables or to/from the stack etc.
     begin //TODO: Rework this to be neater
       //When loading: load to type specified in Dest (extend, range check etc).

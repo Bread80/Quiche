@@ -1,7 +1,6 @@
-  var a:=integer(16)
-  var b:=integer(-16)
-  var c:=integer(16000)
-  var d:=integer(-16000)
-  var e:=integer(65535)
-  var f:=integer('A')
-  var g:=integer(true)
+
+  type TNumber = 100..65535
+  var x: TNumber
+  var y: Word
+  y := 65535
+  x := y

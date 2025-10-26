@@ -14,6 +14,8 @@ procedure TEMPRegAllocPrim(var ILItem: TILItem;const Prim: PPrimitive);
 //for an opMove operation
 procedure TEMPRegAllocMove(var ILItem: PILItem);
 
+procedure TEMPRegAllocTypecast(var ILItem: PILItem);
+
 procedure TEMPRegAllocBlockCopy(var ILItem: PILItem);
 
 procedure TEMPRegAllocPtrLoad(var ILItem: PILItem);
@@ -146,6 +148,52 @@ begin
 
   if ILItem.Dest.Reg = rNone then
     ILItem.Dest.Reg := ILItem.Param1.Reg;
+end;
+
+procedure TEMPRegAllocTypecast(var ILItem: PILItem);
+var FromSize: Integer;
+  ToSize: Integer;
+begin
+  Assert(ILItem.Op = opTypecast);
+  Assert(ILItem.Param1.Kind = pkVarSource);
+  Assert(ILItem.Param2.Kind = pkNone);
+  Assert(ILItem.Dest.Kind = pkVarDest);
+  FromSize := GetTypeRegSize(ILItem.Param1.Variable.UserType);
+  ToSize := GetTypeRegSize(ILItem.ResultType);
+  case FromSize of
+    1:
+      case ToSize of
+        1:
+        begin
+          ILItem.Param1.Reg := rA;
+          ILItem.Dest.Reg := rA;
+        end;
+        2:
+        begin
+          ILItem.Param1.Reg := rL;
+          ILItem.Dest.Reg := rHL;
+        end;
+      else
+        raise Exception.Create('Unknown type size');
+      end;
+    2:
+      case ToSize of
+        1:
+        begin
+          ILItem.Param1.Reg := rHL;
+          ILItem.Dest.Reg := rL;
+        end;
+        2:
+        begin
+          ILItem.Param1.Reg := rHL;
+          ILItem.Dest.Reg := rHL;
+        end;
+      else
+        raise Exception.Create('Unknown type size');
+      end;
+  else
+    raise Exception.Create('Unknown type size');
+  end;
 end;
 
 procedure TEMPRegAllocBlockCopy(var ILItem: PILItem);
