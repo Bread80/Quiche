@@ -337,6 +337,7 @@ begin
           vtSetMem: Result := TImmValue.CreateString('TODO: SetMem type');
 //          vtArray, vtList: Result := TImmValue.CreateArray(ArrayToString(AsmName, AddrMode, UserType));
           vtArray, vtList: Result := TImmValue.CreateBlob(UserType, ReadBlob(AsmName, GetTypeSize(UserType)));
+          vtRecord: Result := TImmValue.CreateString('TODO: Record types');
           vtFunction: Result := TImmValue.CreateString('TODO: Function types');
         else
           Assert(False);

@@ -1,21 +1,7 @@
-program
-  type TArray = array[0..5] of Byte
-
-  var
-    TestOld: Byte
-    TestNew: Byte
-
-  procedure FillArray(A: TArray);register;
-  begin
-    TestOld := A[5]
-    for var I := 0 to 5 do
-      A[I] := I
-    TestNew := A[5]
-  end
-
-  var MyArray: TArray;
-  begin
-    for var I := 0 to 5 do
-      MyArray[I] := $ff
-    FillArray(MyArray)
-  end.
+  var a:=integer(16)
+  var b:=integer(-16)
+  var c:=integer(16000)
+  var d:=integer(-16000)
+  var e:=integer(65535)
+  var f:=integer('A')
+  var g:=integer(true)

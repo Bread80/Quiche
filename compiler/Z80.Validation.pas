@@ -396,6 +396,9 @@ end;
 
 //As SubRangeCheck for unsigned 16-bit variable to SubRange
 procedure GenSubRangeCheckU16(Reg: TCPUReg;FromType, ToType: PUserType;Options: TMoveOptionSet);
+var LowPass: String;  //Labels
+  TestCarry: String;
+  HighPass: String;
 begin
   //****************************************
   //There's probably easier ways to do this but the rest of the code generator
@@ -416,12 +419,13 @@ begin
     if hi(ToType.Low) = 0 then  //If SubRange.Low <= 255 we need Hi byte to be zero
     begin //SubRange.Low in [$0000..$00ff]
       AsmInstr('and a');              //If high byte if non-zero...
-      AsmInstr('jr nz,.lowpass');        //...can't be an error
+      LowPass := GetUniqueLabel;
+      AsmInstr('jr nz,'+LowPass);        //...can't be an error
 
       GenRegMove(CPURegPairToLow[Reg], rA, False, Options);  //Low byte of value to A
       AsmInstr('cp ' + ByteToStr(Lo(ToType.Low)));  //Test low byte
       AsmInstr('jp c,raise_range');   //Error if too low
-      AsmInstr('.lowpass');
+      AsmLabel(LowPass);
       RegStateSetUnknown(rFlags);
     end
     else  //SubRange.Low >= $0100
@@ -429,10 +433,11 @@ begin
       AsmInstr('cp ' + ByteToStr(Hi(ToType.Low)));  //Test high byte
       if Lo(ToType.Low) <> 0 then //If Lo byte of SubRange is zero we only need test high byte
       begin
-        AsmInstr('jr nz,.testcarry');                 //If non-zero we can ignore low byte
+        TestCarry := GetUniqueLabel;
+        AsmInstr('jr nz,'+TestCarry);                 //If non-zero we can ignore low byte
         GenRegMove(CPURegPairToLow[Reg], rA, False, Options);  //Low byte of value to A
         AsmInstr('cp ' + ByteToStr(Lo(ToType.Low)));  //Test low byte
-        AsmInstr('.testcarry');
+        AsmLabel(TestCarry);
       end;
       AsmInstr('jp c,raise_range');
       RegStateSetUnknown(rFlags);
@@ -476,13 +481,14 @@ begin
         else  //Otherwise test both bytes
         begin
           AsmInstr('cp ' + ByteToStr(Hi(ToType.High)));  //Test high byte
-          AsmInstr('jr c,.highpass');     //Guaranteed pass
+          HighPass := GetUniqueLabel;
+          AsmInstr('jr c,'+HighPass);     //Guaranteed pass
           AsmInstr('jp nz,raise_range');  //Guaranteed fail
 
           GenRegMove(CPURegPairToLow[Reg], rA, False, Options);  //Low byte of value to A
           AsmInstr('cp ' + ByteToStr(Lo(ToType.High)+1));  //Test low byte
           AsmInstr('jp nc,raise_range');
-          AsmInstr('.highpass');
+          AsmLabel(HighPass);
           RegStateSetUnknown(rFlags);
           RegStateSetLiteral(rCF, 1);
         end;
@@ -493,6 +499,11 @@ end;
 
 //As SubRangeCheck for unsigned 16-bit variable to SubRange
 procedure GenSubRangeCheckS16(Reg: TCPUReg;FromType, ToType: PUserType;Options: TMoveOptionSet);
+var LowPass: String;  //Labels
+  TestCarry: String;
+  LowPassP: String;
+  HighPassM: String;
+  HighPass: String;
 begin
   //****************************************
   //There's probably easier ways to do this but the rest of the code generator
@@ -526,12 +537,13 @@ begin
       if hi(ToType.Low) = 0 then  //If SubRange.Low <= 255 we need Hi byte to be zero
       begin //SubRange.Low in [$0000..$00ff]
                                           //If high byte if non-zero...
-        AsmInstr('jp nz,.lowpass');       //...can't be an error
+        LowPass := GetUniqueLabel;
+        AsmInstr('jp nz,'+LowPass);       //...can't be an error
 
         GenRegMove(CPURegPairToLow[Reg], rA, False, Options);  //Low byte of value to A
         AsmInstr('cp ' + ByteToStr(Lo(ToType.Low)));  //Test low byte
         AsmInstr('jp c,raise_range');   //Error if too low
-        AsmInstr('.lowpass');
+        AsmLabel(LowPass);
         RegStateSetLiteral(rCF, 0);
       end
       else  //SubRange.Low >= $0100
@@ -539,10 +551,11 @@ begin
         AsmInstr('cp ' + ByteToStr(Hi(ToType.Low)));  //Test high byte
         if Lo(ToType.Low) <> 0 then //If Lo byte of SubRange is zero we only need test high byte
         begin
-          AsmInstr('jr nz,.testcarry');                 //If non-zero we can ignore low byte
+          TestCarry := GetUniqueLabel;
+          AsmInstr('jr nz,'+TestCarry);                 //If non-zero we can ignore low byte
           GenRegMove(CPURegPairToLow[Reg], rA, False, Options);  //Low byte of value to A
           AsmInstr('cp ' + ByteToStr(Lo(ToType.Low)));  //Test low byte
-          AsmInstr('.testcarry');
+          AsmLabel(TestCarry);
         end;
         AsmInstr('jp c,raise_range');
         RegStateSetUnknown(rFlags);
@@ -552,7 +565,8 @@ begin
     else  //ToType.Low < 0
     begin
       //Guaranteed pass if Value is positive
-      AsmInstr('jp p,.lowpass_p');       //...can't be an error
+      LowPassP := GetUniqueLabel;
+      AsmInstr('jp p,'+LowPassP);       //...can't be an error
       //Testing negative value against a negative literal
       //Can we do this unsigned???
       //...
@@ -561,17 +575,17 @@ begin
         AsmInstr('cp ' + ByteToStr(Hi(ToType.Low)));  //Test high byte
         if Lo(ToType.Low) <> 0 then //If Lo byte of SubRange is zero we only need test high byte
         begin
-          AsmInstr('jr nz,.testcarry');                 //If non-zero we can ignore low byte
+          TestCarry := GetUniqueLabel;
+          AsmInstr('jr nz,'+TestCarry);                 //If non-zero we can ignore low byte
           GenRegMove(CPURegPairToLow[Reg], rA, False, Options);  //Low byte of value to A
           AsmInstr('cp ' + ByteToStr(Lo(ToType.Low)));  //Test low byte
-          AsmInstr('.testcarry');
+          AsmLabel(TestCarry);
         end;
         AsmInstr('jp c,raise_range');
         RegStateSetUnknown(rFlags);
         RegStateSetLiteral(rCF, 0);
       end;
-
-      AsmInstr('.lowpass_p');
+      AsmLabel(LowPassP);
     end;
   end;
 
@@ -589,7 +603,8 @@ begin
     if ToType.High >= 0 then
     begin
       //Guaranteed pass if value is negative
-      AsmInstr('jp m,.highpass_m');
+      HighPassM := GetUniqueLabel;
+      AsmInstr('jp m,'+HighPassM);
       //We're testing a positive value against a positive literal
       //We can reuse unsigned lower bound test!!!
       //...
@@ -604,18 +619,19 @@ begin
       else  //Otherwise test both bytes
       begin
         AsmInstr('cp ' + ByteToStr(Hi(ToType.High)));  //Test high byte
-        AsmInstr('jr c,.highpass');     //Guaranteed pass
+        HighPass := GetUniqueLabel;
+        AsmInstr('jr c,'+HighPass);     //Guaranteed pass
         AsmInstr('jp nz,raise_range');  //Guaranteed fail
 
         GenRegMove(CPURegPairToLow[Reg], rA, False, Options);  //Low byte of value to A
         AsmInstr('cp ' + ByteToStr(Lo(ToType.High)+1));  //Test low byte
         AsmInstr('jp nc,raise_range');
-        AsmInstr('.highpass');
+        AsmLabel(HighPass);
         RegStateSetUnknown(rFlags);
         RegStateSetLiteral(rCF, 1);
       end;
 
-      AsmInstr('.highpass_m');
+      AsmLabel(HighPassM);
     end
     else  //ToType.High < 0
     begin
@@ -635,13 +651,14 @@ begin
       else  //Otherwise test both bytes
       begin
         AsmInstr('cp ' + ByteToStr(Hi(ToType.High)));  //Test high byte
-        AsmInstr('jr c,.highpass');     //Guaranteed pass
+        HighPass := GetUniqueLabel;
+        AsmInstr('jr c,'+HighPass);     //Guaranteed pass
         AsmInstr('jp nz,raise_range');  //Guaranteed fail
 
         GenRegMove(CPURegPairToLow[Reg], rA, False, Options);  //Low byte of value to A
         AsmInstr('cp ' + ByteToStr(Lo(ToType.High)+1));  //Test low byte
         AsmInstr('jp nc,raise_range');
-        AsmInstr('.highpass');
+        AsmLabel(HighPass);
         RegStateSetUnknown(rFlags);
         RegStateSetLiteral(rCF, 1);
       end;

@@ -298,10 +298,18 @@ begin
   Assert(Scope <> nil, 'Scope not found (for variable)');
 
   if Name = '' then
-    LName := '_temp' + Index.ToString
+    LName := '_temp'
   else
     LName := Name;
   Result := '_v_' + Scope.Name + '_' + LName;
+
+  //Index allows us to uniquify the label name within the scope - important due
+  //to the ability to declare variables inline, which means we might end up with
+  //multiple variables with the same name.
+  //We mustn't do this for function argument variables because they are (very occasionally)
+  //used from outside out scope (ie by BlockCopy operations for Pointered types)
+  if FuncParamIndex = -1 then
+    Result := Result + Index.ToString;
 end;
 
 function TVariable.IncVersion: Integer;

@@ -483,6 +483,25 @@ begin
   end;
 end;
 
+function GetRecordTypeSize(UserType: PUserType): Integer;
+var Scope: PScope;
+  I: Integer;
+  V: PVariable;
+  NewSize: Integer;
+begin
+  Assert(UserType.VarType = vtRecord);
+  Scope := ScopeHandleToScope(UserType.Scope);
+  for I := 0 to Scope.VarList.GetCount-1 do
+  begin
+    V := Scope.VarList.IndexToData(I);
+    //V.Offset is set when we parse the VarDef. When we add variant records some
+    //fields will overlap (ie each offset will not be contiguous)
+    NewSize := V.Offset + GetTypeDataSize(V.UserType);
+    if NewSize > Result then
+      Result := NewSize;
+  end;
+end;
+
 function GetTypeSize(UserType: PUserType): Integer;
 var Size: Integer;
 begin
@@ -529,7 +548,8 @@ begin
     end;
 //  vtWideDynArray, //Max 65535 elements
 //  vtWideList,     //Max 65535 elements
-     vtRecord: Assert(False);
+     vtRecord:
+      Result := GetRecordTypeSize(UserType);
 //  vtStream,       //Readble or writeable sequence of bytes or chars
   vtFunction: Result := 2;   //Code as data.
   else

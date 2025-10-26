@@ -16,6 +16,8 @@ function GetCurrProcName: String;
 
 procedure SaveAssemblyFile(FileName: String);
 
+//AsmXXXX functions write assembler code to the output file
+
 //Write an entire instruction line
 
 procedure AsmLine(S: String);
@@ -32,6 +34,8 @@ function PeekAssembly: String;
 
 procedure AsmDataLine(S: String);
 
+procedure AsmLabel(Name: String);
+
 var
   CodeGenErrorString: String;
   CurrErrorCount: Integer;  //In current routine
@@ -43,7 +47,8 @@ procedure AsmError(const Msg: String);
 
 function GetCodeGenScope: PScope;
 
-procedure GenLabel(Name: String);
+//Returns a guaranteed unique label
+function GetUniqueLabel: String;
 
 procedure InsertPreamble(PlatformFile, QuicheLibrary: String);
 
@@ -130,6 +135,11 @@ begin
   AsmLine(S);
 end;
 
+procedure AsmLabel(Name: String);
+begin
+  AsmLine(Name + ':');
+end;
+
 function PeekAssembly: String;
 var Line: String;
 begin
@@ -163,11 +173,6 @@ function GetUniqueLabel: String;
 begin
   Result := '.x'+IntToStr(LabelIndex);
   inc(LabelIndex);
-end;
-
-procedure GenLabel(Name: String);
-begin
-  AsmLine(Name + ':');
 end;
 
 var

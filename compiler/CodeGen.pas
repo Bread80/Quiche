@@ -84,44 +84,6 @@ begin
   if InString then
     Result := Result + '''';
 end;
-(*
-procedure GenLiterals(const Param: TILParam);
-var Code: String;
-  S: String;
-begin
-  if Param.Kind <> pkImmediate then
-    EXIT;
-  if IsRegisterType(Param.Imm.VarType) then
-    EXIT;
-  case Param.Imm.VarType of
-    vtString:
-    begin
-      S := Param.Imm.StringValue;
-      Code := Param.Imm.ToLabel + ':'#13 +
-        'db ' + length(S).ToString + ',' + AsmSanitiseString(S);
-    end;
-  else
-    Assert(False);
-  end;
-
-  AsmDataLine(Code);
-end;
-
-
-procedure LiteralsGen;
-var I: Integer;
-  ILItem: PILItem;
-begin
-    //Codegen for each item
-  for I := 0 to ILGetCount-1 do
-  begin
-    ILItem := ILIndexToData(I);
-    GenLiterals(ILItem.Param1);
-    GenLiterals(ILItem.Param2);
-    GenLiterals(ILItem.Param3);
-  end;
-end;
-*)
 
 procedure GenPointeredLiteral(C: PConst);
 var S: String;
@@ -420,7 +382,7 @@ begin
     CurrCGBlockID := -1;
     CurrSourceLineNo := -1;
 
-    GenLabel(GetCurrProcName);
+    AsmLabel(GetCurrProcName);
 
     GenFunctionPreamble(Scope, BlockType);
 
@@ -436,7 +398,7 @@ begin
     end;
 
 
-    GenLabel(GetCurrProcName+IntToStr(CurrCGBlockID+1));
+    AsmLabel(GetCurrProcName+IntToStr(CurrCGBlockID+1));
 
     GenFunctionPostamble(Scope, BlockType);
     if IDE.Compiler.GetConfig.CodeGen.VarMap then
