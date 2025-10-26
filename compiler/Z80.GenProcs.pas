@@ -7,7 +7,7 @@ library subroutine.
 unit Z80.GenProcs;
 
 interface
-uses Def.Consts, Def.IL, Def.QTypes,
+uses Def.Consts, Def.IL, Def.VarTypes,
   Lib.Data, Lib.GenFragments,
   Z80.Hardware, Z80.Algos;
 
@@ -51,6 +51,10 @@ procedure GenLoadRegLiteral(Reg: TCPUReg;const Value: TImmValue;Options: TMoveOp
 //  the A register will be trashed (and the Flags register cannot be preserved)
 //Updates RegState
 procedure GenRegMove(FromReg, ToReg: TCPUReg;Signed: Boolean;Options: TMoveOptionSet);
+
+//Generate code for opBlockCopy - copy data for a pointered type from one variable
+//to another.
+procedure GenBlockCopy(ILItem: PILItem);
 
 //A procedure to generate code for an ILItem's Op
 type
@@ -688,6 +692,13 @@ begin
     System.Assert(False, 'Sorry, unable to handle that register move');
 end;
 
+procedure GenBlockCopy(ILItem: PILItem);
+begin
+  OpLDIR;
+  RegStateSetUnknowns([rHL, rDE]);
+  RegStateSetLiteral(rBC, 0);
+end;
+
 //================================CODEGENPROCS
 
 var CodeGenProcs: TDictionary<String, TCodeGenProc>;
@@ -786,7 +797,7 @@ begin
   Assert(IsOrdinalType(UTToVT(ILItem.Param2.Imm.UserType)));
 
   V := ILItem.Param1.Variable;
-  Assert(V.AddrMode in [amStatic, amStaticPtr]);
+  Assert(V.AddrMode in [amStatic, amStaticRef]);
   Assert(UTToVT(V.UserType) in [vtArray, vtVector, vtList]);
   Assert(Assigned(V.UserType.OfType));
 
@@ -804,7 +815,7 @@ begin
         amStatic: //Direct load of calculated address into register
           OpLD(rHL, V.GetAsmName + ' + ' + WordToStr(ElementSize * (Index - FirstIndex)));
           //TODO: Update Reg State
-        amStaticPtr:
+        amStaticRef:
         begin
           OpLD(rHL, V.GetAsmName);
 //          LD HL,V.GetAsmName  //Addr of variable into HL
@@ -846,16 +857,16 @@ var V: PVariable; //The array
   FirstIndex: Integer;  //First item of array
 begin
   Assert(ILItem.Param1.Kind = pkVarRef);
-  Assert(ILItem.Param1.Variable.AddrMode = amStatic);
   Assert(ILItem.Param2.Kind = pkVarSource);
   Assert(IsOrdinalType(UTToVT(ILItem.Param2.Variable.UserType)));
 
   V := ILItem.Param1.Variable;
-  Assert(V.AddrMode = amStatic);
+  Assert(V.AddrMode in [amStatic, amStaticRef]);
   ArrayType := V.UserType;
 
-  IsPointerTo := ArrayType.VarType = vtTypedPointer;
-  if IsPointerTo then
+  IsPointerTo := (ArrayType.VarType = vtTypedPointer) or
+    (V.AddrMode = amStaticRef);
+  if ArrayType.VarType = vtTypedPointer then
     ArrayType := ArrayType.OfType;
   Assert(UTToVT(ArrayType) in [vtArray, vtVector, vtList]);
   Assert(Assigned(ArrayType.OfType));

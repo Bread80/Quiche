@@ -128,7 +128,7 @@ procedure SaveObjectCode(Filename: String);
 implementation
 uses SysUtils, {$ifdef fpc}FileUtil,{$else}IOUtils,{$endif}
   Def.Functions, Def.IL, Def.Intrinsics, Def.Operators, Def.Scopes,
-  Def.Variables, Def.Consts, Def.QTypes, Def.UserTypes,
+  Def.Variables, Def.Consts, Def.VarTypes, Def.UserTypes,
   Parse.Base,
   Lib.Data, Lib.Primitives,
   CodeGen, CG.Data,
@@ -338,7 +338,7 @@ begin
 //ProgramDirectory: <Base>/redist/bin/<platform>/
 //BinFolder: <Base>/redist/bin/
   BinFolder := ProgramDirectory;
-  BinFolder :=ExpandFileName(ConcatPaths([BinFolder, '..\']);
+  BinFolder := ExpandFileName(ConcatPaths([BinFolder, '..\']));
 //QuicheFolder: <Base>/redist
   SetQuicheFolder(ExpandFileName(ConcatPaths([BinFolder, '..\'])));
   ConfigFileName := ConcatPaths([GetQuicheFolder, 'Config','Compiler.cfg']);
@@ -487,6 +487,7 @@ function CompileStrings(SL: TStrings;BlockType: TBlockType;ParseMode: TParseMode
   InitDirectives, WarmInit: Boolean): Boolean;
 var Start: Double;
 begin
+writeln('CompileStrings');
   Start := Now;
   Initialise(InitDirectives, WarmInit);
   LoadSourceStrings(SL);
@@ -632,6 +633,8 @@ end;
 
 procedure Initialise(InitDirectives, WarmInit: Boolean);
 begin
+writeln('Initialise');
+
   ParseErrorNo := 0;
   LastError := qeNone;
   Parse.OnScopeDone := CodeGenCallback;
@@ -676,6 +679,7 @@ begin
   //reload for every run
   InitialiseIntrinsics;
 {$ifdef fpc}
+  writeln('Init - Intrinsics');
   LoadIntrinsicsFile(ConcatPaths([BinFolder, IntrinsicsFilename]));
 {$else}
   LoadIntrinsicsFile(TPath.Combine(BinFolder, IntrinsicsFilename));

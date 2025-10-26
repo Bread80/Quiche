@@ -153,7 +153,7 @@ end;
 
 procedure BranchFixup(LeftIndex, LeftStopIndex, RightIndex, RightStopIndex: Integer);
 begin
-  VarClearAdjust;
+  Vars.ClearAdjust;
 
   //Short circuit if no assignments in the other path.
   if BranchFixupLeft(LeftIndex, LeftStopIndex) > 0 then
@@ -260,8 +260,7 @@ function PhiWalkInt(Path1Index, StopIndex, Path2Index, OriginIndex: Integer;
 
         inc(Result);  //Inc count
 
-        //Mark var as touched
-        VarTouch(Variable);
+        Variable.Touch;
       end;
     end;
   end;
@@ -288,7 +287,7 @@ end;
 
 procedure PhiWalk(Path1Index, Path2Index, OriginIndex: Integer;Path1BlockID, Path2BlockID: Integer);
 begin
-  VarClearTouches;
+  Vars.ClearTouches;
 
   //Walk Path 1 and find related assignments in Path2 and Origin
   PhiWalkInt(Path1Index, OriginIndex, Path2Index, OriginIndex, Path1BlockID, Path2BlockID, False, -1);

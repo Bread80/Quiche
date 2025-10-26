@@ -146,6 +146,8 @@
 	= expected
 =AssignmentNotAllowed
 	Assigning a value is not allowed here
+=AssignToCONSTVar
+	Cannot assign a value to a CONSTant variable (function argument)
 
 ;Function declarations
 =FunctionRedeclared
@@ -229,6 +231,8 @@
 =ReturnedArgTypeMismatch
 	Argument type mismatch on '%s' ('%s', '%s')
 	Variable type must exactly match the argument type for VAR and OUT parameters
+=CantPassCONSTasVARorOUT
+	Cannot pass a CONST variable as a VAR or OUT argument of a function (on '%s')
 =TooManyArgs
 	Too many arguments
 	The compiler has a hard coded maximum. No function can be declared with this many anyway.

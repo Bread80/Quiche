@@ -7,7 +7,7 @@ generated.
 unit Z80.Store;
 
 interface
-uses Def.IL, Def.QTypes, Def.UserTypes,
+uses Def.IL, Def.VarTypes, Def.UserTypes,
   Lib.Data,
   Z80.Validation, Z80.Hardware, Z80.GenProcs;
 
@@ -133,9 +133,9 @@ begin
 
   Result := False;
   case Variable.AddrMode of
-    amStack:
+    amStack{, amStackPtr}:
       OpLD(rIX, Variable, Reg);
-    amStatic:
+    amStatic, amStaticRef:
       OpLD(Variable, Reg);
   else
     Assert(False);
@@ -346,14 +346,14 @@ procedure GenStoreRegVarValue(Reg: TCPUReg;FromType: PUserType;
 begin
   case Reg of
     rA..rL:
-      case GetTypeSize(Variable.UserType) of
+      case GetTypeRegSize(Variable.UserType) of
         1: GenVarStore8(Reg, Variable, VarVersion, Options);
         2: GenStoreReg8BitToVar16Bit(Reg, FromType, Variable, VarVersion, RangeChecked, Options);
       else
         Assert(False);
       end;
     rHL..rBC:
-      case GetTypeSize(Variable.UserType) of
+      case GetTypeRegSize(Variable.UserType) of
         1: GenVarStore8(CPURegPairToLow[Reg], Variable, VarVersion, Options);
         2: GenVarStore16(Reg, Variable, VarVersion, Options);
       else

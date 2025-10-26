@@ -16,7 +16,7 @@ function ValidateAssignment(ToType: PUserType;const Slug: TExprSlug): TQuicheErr
 
 implementation
 uses SysUtils,
-  Def.QTypes, Def.Consts, Def.Operators, Def.IL;
+  Def.VarTypes, Def.Consts, Def.Operators, Def.IL;
 
 function ValidateAssignmentType(ToType, ExprType: PUserType): TQuicheError;
 var ToVT: TVarType;

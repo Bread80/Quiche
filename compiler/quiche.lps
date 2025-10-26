@@ -8,38 +8,39 @@
       <Unit>
         <Filename Value="quiche.lpr"/>
         <IsPartOfProject Value="True"/>
-        <TopLine Value="34"/>
-        <CursorPos X="3" Y="38"/>
-        <UsageCount Value="52"/>
+        <TopLine Value="39"/>
+        <CursorPos X="28" Y="53"/>
+        <UsageCount Value="110"/>
         <Loaded Value="True"/>
-        <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
         <Filename Value="Def.Operators.pas"/>
-        <EditorIndex Value="-1"/>
-        <TopLine Value="298"/>
-        <CursorPos X="6" Y="314"/>
-        <UsageCount Value="12"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="330"/>
+        <CursorPos X="10" Y="354"/>
+        <UsageCount Value="11"/>
+        <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
         <Filename Value="Def.Consts.pas"/>
         <EditorIndex Value="-1"/>
-        <UsageCount Value="12"/>
+        <UsageCount Value="7"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
         <Filename Value="Def.Variables.pas"/>
         <EditorIndex Value="-1"/>
-        <UsageCount Value="11"/>
+        <UsageCount Value="6"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
         <Filename Value="Def.Functions.pas"/>
-        <EditorIndex Value="-1"/>
-        <TopLine Value="127"/>
-        <CursorPos X="10" Y="127"/>
+        <EditorIndex Value="4"/>
+        <TopLine Value="318"/>
+        <CursorPos X="18" Y="323"/>
         <UsageCount Value="11"/>
+        <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
@@ -47,13 +48,13 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="642"/>
         <CursorPos X="17" Y="659"/>
-        <UsageCount Value="11"/>
+        <UsageCount Value="6"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
         <Filename Value="Parse.Source.pas"/>
         <EditorIndex Value="-1"/>
-        <UsageCount Value="11"/>
+        <UsageCount Value="6"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
@@ -61,25 +62,30 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="123"/>
         <CursorPos X="32" Y="139"/>
-        <UsageCount Value="11"/>
+        <UsageCount Value="6"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
         <Filename Value="Def.Scopes.pas"/>
         <EditorIndex Value="-1"/>
+        <TopLine Value="135"/>
+        <CursorPos X="14" Y="151"/>
         <UsageCount Value="11"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
         <Filename Value="Parse.Errors.pas"/>
         <EditorIndex Value="-1"/>
-        <UsageCount Value="11"/>
+        <UsageCount Value="6"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
         <Filename Value="Parse.Expr.pas"/>
-        <EditorIndex Value="-1"/>
+        <EditorIndex Value="5"/>
+        <TopLine Value="39"/>
+        <CursorPos X="15" Y="55"/>
         <UsageCount Value="11"/>
+        <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
@@ -87,33 +93,32 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="172"/>
         <CursorPos X="23" Y="188"/>
-        <UsageCount Value="11"/>
+        <UsageCount Value="6"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
         <Filename Value="IDE.Config.pas"/>
-        <EditorIndex Value="6"/>
+        <EditorIndex Value="12"/>
         <TopLine Value="245"/>
         <CursorPos X="35" Y="260"/>
-        <UsageCount Value="21"/>
+        <UsageCount Value="49"/>
         <Loaded Value="True"/>
-        <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
         <Filename Value="IDE.Compiler.pas"/>
-        <IsVisibleTab Value="True"/>
-        <EditorIndex Value="4"/>
-        <TopLine Value="325"/>
-        <CursorPos X="16" Y="341"/>
-        <UsageCount Value="25"/>
+        <EditorIndex Value="8"/>
+        <TopLine Value="623"/>
+        <CursorPos X="7" Y="634"/>
+        <UsageCount Value="53"/>
         <Loaded Value="True"/>
-        <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
         <Filename Value="Def.Intrinsics.pas"/>
-        <EditorIndex Value="-1"/>
-        <CursorPos X="24" Y="16"/>
+        <EditorIndex Value="3"/>
+        <TopLine Value="51"/>
+        <CursorPos Y="59"/>
         <UsageCount Value="11"/>
+        <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
@@ -121,77 +126,82 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="91"/>
         <CursorPos X="6" Y="107"/>
-        <UsageCount Value="11"/>
+        <UsageCount Value="6"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
         <Filename Value="Parse.Fixups.pas"/>
         <EditorIndex Value="-1"/>
-        <UsageCount Value="11"/>
+        <UsageCount Value="6"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
         <Filename Value="Parse.Eval.pas"/>
         <EditorIndex Value="-1"/>
+        <TopLine Value="18"/>
+        <CursorPos X="16" Y="34"/>
         <UsageCount Value="11"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
         <Filename Value="Parse.FuncCall.pas"/>
-        <EditorIndex Value="-1"/>
-        <TopLine Value="89"/>
-        <CursorPos X="42" Y="103"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="2"/>
+        <TopLine Value="292"/>
+        <CursorPos Y="283"/>
         <UsageCount Value="11"/>
+        <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
         <Filename Value="Parse.FuncDef.pas"/>
-        <EditorIndex Value="-1"/>
+        <EditorIndex Value="6"/>
+        <TopLine Value="610"/>
+        <CursorPos X="3" Y="590"/>
         <UsageCount Value="11"/>
+        <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
         <Filename Value="Parse.pas"/>
         <EditorIndex Value="-1"/>
-        <TopLine Value="16"/>
-        <CursorPos X="3" Y="33"/>
-        <UsageCount Value="11"/>
+        <TopLine Value="174"/>
+        <CursorPos X="20" Y="184"/>
+        <UsageCount Value="10"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
         <Filename Value="IDE.Emulator.pas"/>
-        <EditorIndex Value="5"/>
+        <EditorIndex Value="11"/>
         <TopLine Value="67"/>
         <CursorPos X="7" Y="95"/>
-        <UsageCount Value="11"/>
+        <UsageCount Value="39"/>
         <Loaded Value="True"/>
-        <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
         <Filename Value="IDE.ILExec.pas"/>
         <EditorIndex Value="-1"/>
-        <UsageCount Value="11"/>
+        <UsageCount Value="6"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
         <Filename Value="IDE.Shell.pas"/>
-        <EditorIndex Value="7"/>
+        <EditorIndex Value="13"/>
         <TopLine Value="109"/>
         <CursorPos X="9" Y="131"/>
-        <UsageCount Value="25"/>
+        <UsageCount Value="53"/>
         <Loaded Value="True"/>
-        <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
         <Filename Value="Z80.CPUState.pas"/>
         <EditorIndex Value="-1"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="5"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
         <Filename Value="Z80.Optimise.pas"/>
         <EditorIndex Value="-1"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="5"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
@@ -203,45 +213,45 @@
       <Unit>
         <Filename Value="Z80.Store.pas"/>
         <EditorIndex Value="-1"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="5"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
         <Filename Value="Z80.LoadStoreMove.pas"/>
         <EditorIndex Value="-1"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="5"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
         <Filename Value="Z80.RegAlloc.pas"/>
         <EditorIndex Value="-1"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="5"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
         <Filename Value="Z80.CodeGen.pas"/>
         <EditorIndex Value="-1"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="5"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
         <Filename Value="Z80.Load.pas"/>
         <EditorIndex Value="-1"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="5"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
         <Filename Value="CodeGen.pas"/>
-        <EditorIndex Value="-1"/>
-        <TopLine Value="297"/>
-        <CursorPos X="5" Y="304"/>
-        <UsageCount Value="10"/>
-        <DefaultSyntaxHighlighter Value="Delphi"/>
+        <EditorIndex Value="10"/>
+        <TopLine Value="300"/>
+        <CursorPos X="37" Y="316"/>
+        <UsageCount Value="38"/>
+        <Loaded Value="True"/>
       </Unit>
       <Unit>
         <Filename Value="Z80.CPU.pas"/>
         <EditorIndex Value="-1"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="5"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
@@ -250,7 +260,7 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="142"/>
         <CursorPos X="23" Y="32"/>
-        <UsageCount Value="17"/>
+        <UsageCount Value="12"/>
       </Unit>
       <Unit>
         <Filename Value="C:\lazarus\components\lazutils\lazfileutils.pas"/>
@@ -258,13 +268,13 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="30"/>
         <CursorPos X="20" Y="57"/>
-        <UsageCount Value="17"/>
+        <UsageCount Value="12"/>
       </Unit>
       <Unit>
         <Filename Value="Def.Globals.pas"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="18" Y="8"/>
-        <UsageCount Value="17"/>
+        <UsageCount Value="12"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
@@ -273,54 +283,50 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="1170"/>
         <CursorPos X="20" Y="1186"/>
-        <UsageCount Value="17"/>
+        <UsageCount Value="13"/>
       </Unit>
       <Unit>
         <Filename Value="Parse.Directives.pas"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="16"/>
         <CursorPos X="29" Y="35"/>
-        <UsageCount Value="10"/>
+        <UsageCount Value="5"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
         <Filename Value="..\emulator\mZ80.pas"/>
-        <EditorIndex Value="1"/>
+        <EditorIndex Value="-1"/>
         <CursorPos X="60" Y="25"/>
-        <UsageCount Value="18"/>
-        <Loaded Value="True"/>
-        <DefaultSyntaxHighlighter Value="Delphi"/>
+        <UsageCount Value="46"/>
       </Unit>
       <Unit>
         <Filename Value="..\emulator\mSymbols.pas"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="87"/>
         <CursorPos X="3" Y="104"/>
-        <UsageCount Value="16"/>
+        <UsageCount Value="11"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
         <Filename Value="..\emulator\mHardware.pas"/>
-        <EditorIndex Value="2"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="316"/>
         <CursorPos X="30" Y="332"/>
-        <UsageCount Value="16"/>
-        <Loaded Value="True"/>
-        <DefaultSyntaxHighlighter Value="Delphi"/>
+        <UsageCount Value="44"/>
       </Unit>
       <Unit>
         <Filename Value="..\emulator\mConfigFile.pas"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="101"/>
         <CursorPos X="12" Y="117"/>
-        <UsageCount Value="16"/>
+        <UsageCount Value="11"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
         <Filename Value="..\emulator\mMemory.pas"/>
         <EditorIndex Value="-1"/>
         <CursorPos X="15" Y="14"/>
-        <UsageCount Value="16"/>
+        <UsageCount Value="11"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
@@ -328,139 +334,170 @@
         <EditorIndex Value="-1"/>
         <TopLine Value="625"/>
         <CursorPos X="5" Y="645"/>
-        <UsageCount Value="14"/>
+        <UsageCount Value="9"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
         <Filename Value="IDE.CommandLine.pas"/>
-        <EditorIndex Value="3"/>
-        <TopLine Value="28"/>
-        <CursorPos X="46" Y="15"/>
-        <UsageCount Value="19"/>
+        <EditorIndex Value="7"/>
+        <TopLine Value="31"/>
+        <CursorPos X="47" Y="46"/>
+        <UsageCount Value="47"/>
         <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Z80.GenProcs.pas"/>
+        <EditorIndex Value="9"/>
+        <TopLine Value="55"/>
+        <CursorPos X="33" Y="57"/>
+        <UsageCount Value="38"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Parse.Pointers.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="255"/>
+        <CursorPos X="22" Y="274"/>
+        <UsageCount Value="11"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Parse.VarDefs.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="26"/>
+        <CursorPos X="41" Y="42"/>
+        <UsageCount Value="10"/>
+        <DefaultSyntaxHighlighter Value="Delphi"/>
+      </Unit>
+      <Unit>
+        <Filename Value="Parse.TypeDefs.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="386"/>
+        <CursorPos X="28" Y="378"/>
+        <UsageCount Value="10"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
     </Units>
     <JumpHistory HistoryIndex="29">
       <Position>
         <Filename Value="IDE.Compiler.pas"/>
-        <Caret Line="59" Column="19" TopLine="32"/>
+        <Caret Line="49" TopLine="49"/>
       </Position>
       <Position>
         <Filename Value="IDE.Compiler.pas"/>
-        <Caret Line="101" Column="9" TopLine="74"/>
+        <Caret Line="705" TopLine="673"/>
+      </Position>
+      <Position>
+        <Filename Value="quiche.lpr"/>
+        <Caret Line="54" Column="28" TopLine="41"/>
       </Position>
       <Position>
         <Filename Value="IDE.Compiler.pas"/>
-        <Caret Line="103" Column="16" TopLine="76"/>
-      </Position>
-      <Position>
-        <Filename Value="quiche.lpr"/>
-        <Caret Line="140" Column="78" TopLine="126"/>
-      </Position>
-      <Position>
-        <Filename Value="quiche.lpr"/>
-        <Caret Line="65" TopLine="65"/>
+        <Caret Line="92" Column="10" TopLine="76"/>
       </Position>
       <Position>
         <Filename Value="IDE.Compiler.pas"/>
-        <Caret Line="103" Column="15" TopLine="79"/>
-      </Position>
-      <Position>
-        <Filename Value="quiche.lpr"/>
-        <Caret Line="137" Column="40" TopLine="125"/>
-      </Position>
-      <Position>
-        <Filename Value="quiche.lpr"/>
-        <Caret Line="21" Column="17" TopLine="8"/>
-      </Position>
-      <Position>
-        <Filename Value="quiche.lpr"/>
-        <Caret Line="113" Column="35" TopLine="107"/>
-      </Position>
-      <Position>
-        <Filename Value="quiche.lpr"/>
-        <Caret Line="166" Column="35" TopLine="151"/>
-      </Position>
-      <Position>
-        <Filename Value="quiche.lpr"/>
-        <Caret Line="212" Column="7" TopLine="180"/>
-      </Position>
-      <Position>
-        <Filename Value="quiche.lpr"/>
-        <Caret Line="159" Column="3" TopLine="150"/>
-      </Position>
-      <Position>
-        <Filename Value="quiche.lpr"/>
-        <Caret Line="114" Column="3" TopLine="86"/>
-      </Position>
-      <Position>
-        <Filename Value="quiche.lpr"/>
-        <Caret Line="106" Column="76" TopLine="88"/>
+        <Caret Line="81" Column="16" TopLine="72"/>
       </Position>
       <Position>
         <Filename Value="IDE.Compiler.pas"/>
-        <Caret Line="531" Column="54" TopLine="525"/>
+        <Caret Line="633" Column="17" TopLine="626"/>
       </Position>
       <Position>
         <Filename Value="IDE.Compiler.pas"/>
-        <Caret Line="136" Column="27" TopLine="113"/>
-      </Position>
-      <Position>
-        <Filename Value="IDE.Emulator.pas"/>
-        <Caret Line="20" Column="48"/>
-      </Position>
-      <Position>
-        <Filename Value="quiche.lpr"/>
-        <Caret Line="107" Column="3" TopLine="91"/>
-      </Position>
-      <Position>
-        <Filename Value="IDE.Emulator.pas"/>
-        <Caret Line="26" TopLine="17"/>
+        <Caret Line="635" Column="20" TopLine="626"/>
       </Position>
       <Position>
         <Filename Value="IDE.Compiler.pas"/>
-        <Caret Line="103" Column="14" TopLine="89"/>
+        <Caret Line="643" Column="13" TopLine="626"/>
       </Position>
       <Position>
         <Filename Value="IDE.Compiler.pas"/>
-        <Caret Line="542" Column="33" TopLine="525"/>
+        <Caret Line="644" Column="13" TopLine="626"/>
       </Position>
       <Position>
         <Filename Value="IDE.Compiler.pas"/>
-        <Caret Line="539" Column="88" TopLine="525"/>
-      </Position>
-      <Position>
-        <Filename Value="quiche.lpr"/>
-        <Caret Line="13" Column="48"/>
-      </Position>
-      <Position>
-        <Filename Value="quiche.lpr"/>
-        <Caret Line="27" Column="20"/>
-      </Position>
-      <Position>
-        <Filename Value="quiche.lpr"/>
-        <Caret Line="136" Column="3" TopLine="135"/>
-      </Position>
-      <Position>
-        <Filename Value="quiche.lpr"/>
-        <Caret Line="25" Column="11"/>
-      </Position>
-      <Position>
-        <Filename Value="quiche.lpr"/>
-        <Caret Line="100" Column="3" TopLine="97"/>
-      </Position>
-      <Position>
-        <Filename Value="quiche.lpr"/>
-        <Caret Line="24" Column="15" TopLine="9"/>
+        <Caret Line="645" Column="13" TopLine="626"/>
       </Position>
       <Position>
         <Filename Value="IDE.Compiler.pas"/>
-        <Caret Line="201" Column="16" TopLine="181"/>
+        <Caret Line="646" Column="13" TopLine="626"/>
       </Position>
       <Position>
         <Filename Value="IDE.Compiler.pas"/>
-        <Caret Line="341" Column="17" TopLine="317"/>
+        <Caret Line="647" Column="13" TopLine="626"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Compiler.pas"/>
+        <Caret Line="656" Column="15" TopLine="629"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Compiler.pas"/>
+        <Caret Line="662" Column="15" TopLine="636"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Compiler.pas"/>
+        <Caret Line="668" Column="15" TopLine="642"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Compiler.pas"/>
+        <Caret Line="675" Column="28" TopLine="649"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Compiler.pas"/>
+        <Caret Line="679" Column="13" TopLine="653"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Compiler.pas"/>
+        <Caret Line="688" Column="13" TopLine="662"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Compiler.pas"/>
+        <Caret Line="691" Column="13" TopLine="665"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Compiler.pas"/>
+        <Caret Line="69" Column="32" TopLine="53"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Compiler.pas"/>
+        <Caret Line="74" Column="13" TopLine="53"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Compiler.pas"/>
+        <Caret Line="81" Column="21" TopLine="54"/>
+      </Position>
+      <Position>
+        <Filename Value="quiche.lpr"/>
+        <Caret Line="55" Column="31" TopLine="31"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Compiler.pas"/>
+        <Caret Line="92" Column="10" TopLine="76"/>
+      </Position>
+      <Position>
+        <Filename Value="Def.Functions.pas"/>
+        <Caret Line="335" Column="3" TopLine="312"/>
+      </Position>
+      <Position>
+        <Filename Value="quiche.lpr"/>
+        <Caret Line="285" TopLine="254"/>
+      </Position>
+      <Position>
+        <Filename Value="Def.Intrinsics.pas"/>
+        <Caret Line="101" Column="29" TopLine="89"/>
+      </Position>
+      <Position>
+        <Filename Value="Def.Functions.pas"/>
+        <Caret Line="208" Column="10" TopLine="192"/>
+      </Position>
+      <Position>
+        <Filename Value="Def.Intrinsics.pas"/>
+        <Caret Line="102" Column="70" TopLine="89"/>
+      </Position>
+      <Position>
+        <Filename Value="IDE.Compiler.pas"/>
+        <Caret Line="489" Column="6" TopLine="479"/>
       </Position>
     </JumpHistory>
     <RunParams>

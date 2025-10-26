@@ -3,7 +3,7 @@
 unit Z80.Validation;
 
 interface
-uses Def.QTypes, Def.UserTypes,
+uses Def.VarTypes, Def.UserTypes,
   Lib.Data,
   Z80.Hardware, Z80.GenProcs;
 
@@ -133,7 +133,7 @@ begin
   OpLD(rA, CPURegPairToLow[Reg]);
   AsmInstr('rla');               //Bit 7 of low byte into carry flag
   OpLD(rA, CPURegPairToHigh[Reg]);
-  AsmInstr('adc a,$00');         //$ff + carry set gives $00, $00 + carry clear gives $00
+  AsmInstr('adc a,$00');         // $ff + carry set gives $00, $00 + carry clear gives $00
   AsmInstr('jp nz,raise_range'); //All others overflow
   RegStateSetUnknowns([rFlags, rCF]);
   RegStateSetLiteral(rA, 0);
@@ -153,7 +153,7 @@ begin
   if Reg <> rA then
     OpLD(rA, Reg);
   AsmInstr('rlca');               //Bit 7 of low byte into carry flag, and to bit 0 of A
-  AsmInstr('adc a,$00');         //$ff + carry set gives $00, $00 + carry clear gives $00
+  AsmInstr('adc a,$00');         // $ff + carry set gives $00, $00 + carry clear gives $00
   AsmInstr('jp nz,raise_range'); //All others overflow
   RegStateSetUnknowns([rFlags, rCF]);
   RegStateSetLiteral(rA, 0);

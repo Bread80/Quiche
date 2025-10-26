@@ -128,7 +128,7 @@ procedure SaveObjectCode(Filename: String);
 implementation
 uses SysUtils, {$ifdef fpc}FileUtil,{$else}IOUtils,{$endif}
   Def.Functions, Def.IL, Def.Intrinsics, Def.Operators, Def.Scopes,
-  Def.Variables, Def.Consts, Def.QTypes, Def.UserTypes,
+  Def.Variables, Def.Consts, Def.VarTypes, Def.UserTypes,
   Parse.Base,
   Lib.Data, Lib.Primitives,
   CodeGen, CG.Data,
@@ -539,7 +539,7 @@ begin
     IDE.Emulator.RunToHalt;
     IDE.Emulator.TryReadByte('LAST_ERROR_CODE', RunTimeError);
     IDE.Emulator.TryReadWord('LAST_ERROR_ADDR', RunTimeErrorAddress);
-    IDE.Emulator.GetVarData(VarGetParamsByteSize + StackFrameSize);
+    IDE.Emulator.GetVarData(Vars.GetParamsByteSize + StackFrameSize);
     ConsoleLog := IDE.Emulator.ConsoleLog;
     {$ifdef fpc}
     writeln;
@@ -587,7 +587,7 @@ end;
 
 procedure GetVarsText(S: TStrings;TypeSummary: Boolean);
 begin
-  VarsToStrings(S, TypeSummary);
+  Vars.ToStrings(S, TypeSummary);
   if RunTimeError = 0 then
     S.Insert(0, 'Runtime error 0')
   else

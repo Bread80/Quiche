@@ -2,7 +2,7 @@ unit Def.UserTypes;
 
 interface
 uses Generics.Collections, Classes,
-  Def.QTypes;
+  Def.VarTypes;
 
 const iUnboundedArray = 0;  //For Vector.Length and List.Capacity
 
@@ -130,7 +130,10 @@ function GetTypeItemCount(UserType: PUserType): Integer;
 //Returns the number of bytes required for storage of the given type.
 //Will return -1 if size is unknown, for example for an unbounded array
 //UserType should *not* be nil. If it is results will be unpredictable.
+//***REDACTED***
 function GetTypeSize(UserType: PUserType): Integer;
+function GetTypeDataSize(UserType: PUserType): Integer;
+function GetTypeRegSize(UserType: PUserType): Integer;
 
 //Where AType is an enumeration, if Ident is a member of the enumeration returns
 //it's index within the enumeration, otherwise returns -1.
@@ -320,9 +323,9 @@ begin
   PrevScope := GetCurrentScope;
   SetCurrentScope(ScopeHandleToScope(Scope));
 
-  for I := 0 to VarGetCount-1 do
+  for I := 0 to Vars.GetCount-1 do
   begin
-    V := VarIndexToData(I);
+    V := Vars.IndexToData(I);
     Assert(Assigned(V.UserType));
     Result := Result + '  +' + V.Offset.ToString + ' ' +
       V.Name + ': ' + V.UserType.DefinitionString + #13;
@@ -533,6 +536,19 @@ begin
     Assert(False);  //Unknown type
 //    Result := GetVarTypeSize(UserType.VarType);
   end;
+end;
+
+function GetTypeDataSize(UserType: PUserType): Integer;
+begin
+  Result := GetTypeSize(UserType);
+end;
+
+function GetTypeRegSize(UserType: PUserType): Integer;
+begin
+  if IsPointeredType(UTToVT(UserType)) then
+    Result := 2
+  else
+    Result := GetTypeDataSize(UserType);
 end;
 
 procedure SetCurrentTypeList(List: PTypeList);

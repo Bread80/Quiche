@@ -31,7 +31,7 @@ function DoTYPE(const Ident: String): TQuicheError;
 
 implementation
 uses SysUtils,
-  Def.Consts, Def.QTypes, Def.Scopes, Def.Variables, Def.Functions,
+  Def.Consts, Def.VarTypes, Def.Scopes, Def.Variables, Def.Functions,
   Parse.Base, Parse.Source, Parse.Expr, Parse.FuncDef, Parse.VarDefs;
 
 function ParseSubRangeDefinition(out TheType: PUserType): TQuicheError;

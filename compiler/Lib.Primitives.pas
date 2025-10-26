@@ -4,7 +4,7 @@ Primitives are routines available to the code generator
 unit Lib.Primitives;
 
 interface
-uses Def.IL, Def.Operators, Def.QTypes, Def.Variables, Def.UserTypes,
+uses Def.IL, Def.Operators, Def.VarTypes, Def.Variables, Def.UserTypes,
   Parse.Literals,
   Lib.Data,
   Z80.Hardware;
@@ -109,8 +109,8 @@ begin
     plImmediate: Result := Kind = pkImmediate;
     plStaticVar: Result := AddrMode = amStatic;
     plStackVar:  Result := AddrMode = amStack;
-    plStaticPtrVar:  Result := AddrMode = amStaticPtr;
-    plStackPtrVar:  Result := AddrMode = amStackPtr;
+    plStaticPtrVar:  Result := AddrMode = amStaticRef;
+    plStackPtrVar:  Assert(False);//Result := AddrMode = amStackPtr;
 
     plRegister:  Result := (AvailableRegs * [rA..rE,rH..rL, rHL..rBC]) <> [];
   else
@@ -144,8 +144,8 @@ begin
         plRegister:  Result := True;
         plStaticVar: Result := V.AddrMode = amStatic;
         plStackVar:  Result := V.AddrMode = amStack;
-        plStaticPtrVar: Result := V.AddrMode = amStaticPtr;
-        plStackPtrVar:  Result := V.AddrMode = amStackPtr;
+        plStaticPtrVar: Result := V.AddrMode = amStaticRef;
+        plStackPtrVar:  Assert(False);//Result := V.AddrMode = amStackPtr;
       else
         Assert(False);
       end;
@@ -583,8 +583,8 @@ begin
     V := ILItem.Param1.ToVariable;
     SearchRec.LAddrMode := V.AddrMode;
     if V.VarType = vtTypedPointer then
-      if V.AddrMode = amStaticPtr then
-        SearchRec.LAddrMode := amStaticPtr;
+      if V.AddrMode = amStaticRef then
+        SearchRec.LAddrMode := amStaticRef;
   end;
 
   SearchRec.RKind := ILItem.Param2.Kind;

@@ -14,7 +14,7 @@ procedure LoadIntrinsicsFile(const Filename: String);
 
 implementation
 uses SysUtils, Classes,
-  Def.Operators, Def.QTypes, Def.Variables, Def.UserTypes, Def.Scopes;
+  Def.Operators, Def.VarTypes, Def.Variables, Def.UserTypes, Def.Scopes;
 
 procedure InitialiseIntrinsics;
 begin
@@ -91,9 +91,10 @@ begin
           else
           begin
             if CompareText(Fields[fP1Access], 'val') = 0 then
-              Intrinsic.Params[0].Access := vaVal
+              Intrinsic.Params[0].Access := paVal
             else
-              Assert(IdentToAccessSpecifier(Fields[fP1Access], Intrinsic.Params[0].Access));
+              if not IdentToAccessSpecifier(Fields[fP1Access], Intrinsic.Params[0].Access) then
+                raise Exception.Create('Unknown access specifier: ' + Fields[fP1Access]);
             Intrinsic.Params[0].Name := Fields[fP1Name];
 
             //TODO: Should only include builtin types. Should allow 'base' types
@@ -112,9 +113,10 @@ begin
             begin
               Intrinsic.ParamCount := 2;
               if CompareText(Fields[fP2Access], 'val') = 0 then
-                Intrinsic.Params[1].Access := vaVal
+                Intrinsic.Params[1].Access := paVal
               else
-                Assert(IdentToAccessSpecifier(Fields[fP2Access], Intrinsic.Params[1].Access));
+                if not IdentToAccessSpecifier(Fields[fP2Access], Intrinsic.Params[1].Access) then
+                  raise Exception.Create('Unknown access specifier: ' + Fields[fP2Access]);
               Intrinsic.Params[1].Name := Fields[fP2Name];
 
               Intrinsic.Params[1].UserType := GetSystemType(StringToVarType(Fields[fP2VarType]));
@@ -153,7 +155,7 @@ begin
 
           if CompareText(Fields[fResultType], 'None') <> 0 then
           begin
-            Intrinsic.Params[Intrinsic.ParamCount].Access := vaResult;
+            Intrinsic.Params[Intrinsic.ParamCount].Access := paResult;
             if CompareText(Fields[fResultType], 'Param1') = 0 then
             begin
               Intrinsic.Params[Intrinsic.ParamCount].UserType := Intrinsic.Params[0].UserType;

@@ -45,7 +45,7 @@ function AreAnyForwardsUnsatisfied: TQuicheError;
 
 implementation
 uses SysUtils,
-  Def.Globals, Def.IL, Def.Operators, Def.QTypes, Def.Scopes, Def.Variables,
+  Def.Globals, Def.IL, Def.Operators, Def.VarTypes, Def.Scopes, Def.Variables,
   Def.UserTypes, Def.Consts,
   Parse, Parse.Expr, Parse.Literals, Parse.Source, Parse.TypeDefs,
   Z80.Hardware;
@@ -101,18 +101,18 @@ end;
 //  Registers must be unique within a declaration, unless one usage is an input
 //  (value) parameter, and the other is an output (out, result) parameter.
 function ValidateRegParam(Func: PFunction;ParamIndex: Integer;Reg: TCPUReg): TQuicheError;
-var Access: TVarAccess;
+var Access: TParamAccess;
   IsOutput: Boolean;
   P: Integer;
 begin
   Access := Func.Params[ParamIndex].Access;
-  if not (Access in [vaVal, vaOut, vaResult]) then
+  if not (Access in [paVal, paOut, paResult]) then
     EXIT(qeRegisterParamInvalidAccessType);
   if ParamIndex = 0 then
     EXIT(qeNone);
-  IsOutput := Access in [vaOut, vaResult];
+  IsOutput := Access in [paOut, paResult];
   for P := 0 to ParamIndex-1 do
-    if (Func.Params[P].Reg = Reg) and (IsOutput = (Func.Params[P].Access in [vaOut, vaResult])) then
+    if (Func.Params[P].Reg = Reg) and (IsOutput = (Func.Params[P].Access in [paOut, paResult])) then
       EXIT(ErrSub(qeRegisterParamRedeclared, CPURegStrings[Reg]));
   Result := qeNone;
 end;
@@ -246,7 +246,7 @@ var
   ListStart: Integer; //If we have a comma separated list of parameters, this
                       //is the index of the first
   Ident: String;
-  Access: TVarAccess;
+  Access: TParamAccess;
   Ch: Char;
   HaveDefaultValue: Boolean;  //True if we've read a param with a default value
 begin
@@ -523,6 +523,15 @@ begin
   end;
 end;
 
+procedure SetIsByRef(Func: PFunction);
+var I: Integer;
+begin
+  for I := 0 to Length(Func.Params)-1 do
+    if Func.Params[I].Access <> paNone then
+      Func.Params[I].IsByRef := IsPassByRef(Func.CallingConvention, Func.Params[I].Access,
+        Func.Params[I].UserType);
+end;
+
 //If we're parsing a Type definition, validate that the function definition is
 //suitable. Eg. For any register based calling convention every parameter must
 //have a concrete register allocation.
@@ -534,16 +543,39 @@ begin
     ccStack: ;  //Okay
     ccRegister:
       for Param in Func.Params do
-        if (Param.Access <> vaNone) and (Param.Reg = rNone) then
+        if (*(Param.Access <> vaNone) and*) (Param.Reg = rNone) then
         begin
           Parser.SetCursor(Cursor);
-          if Param.Access = vaResult then
+          if Param.Access = paResult then
             EXIT(ErrSub(qeFuncTypeDefUnspecifiedReg, 'Result'))
           else
             EXIT(ErrSub(qeFuncTypeDefUnspecifiedReg, Param.Name));
         end;
   else  //Unknown or invalid calling conventin
     Result := Err(qeBUG);
+  end;
+end;
+
+//TODO: This /probably/ isn't needed any more
+function GetParamAddrMode(CallingConvention: TCallingConvention;const Param: TParameter): TAddrMode;
+begin
+  case CallingConvention of
+    ccRegister:
+      if IsPointeredType(Param.UserType.VarType) then
+        Result := amStaticRef
+      else
+        Result := amStatic;
+    ccStack:
+      if IsPointeredType(Param.UserType.VarType) then
+        Assert(False)
+//        Result := amStackPtr
+      else if Param.IsByRef then
+        Assert(False)
+//        Result := amStackPtr
+      else
+        Result := amStack;
+  else
+    Raise Exception.Create('Unknown calling convention');
   end;
 end;
 
@@ -561,6 +593,8 @@ var I: Integer;
   ILItem: PILItem;
   Param: PILParam;
   Variable: PVariable;
+
+  AddrMode: TAddrMode;
 begin
   //Setup scope for function
   CreateCurrentScope(Func, Func.Name);
@@ -571,17 +605,35 @@ begin
   ILItem := nil;
   //Add Parameters to variables list for the function
   for I := Func.ParamCount + Func.ResultCount - 1 downto 0 do
-  begin
-    //'Result' is accessed via the function name. (Result is syntactic sugar handled
-    //elsewhere
-    if Func.Params[I].Access = vaResult then
-      ParamName := Func.Name
-    else
-      ParamName := Func.Params[I].Name;
-    Variable := VarCreateParameter(ParamName, Func.Params[I].UserType, ParamAddrMode,
-      Func.Params[I].Access);
-    Variable.FuncParamIndex := I;
-  end;
+    if not Func.Params[I].CopyDataIn then
+    begin
+      //'Result' is accessed via the function name. (Result is syntactic sugar handled
+      //elsewhere
+      if Func.Params[I].Access = paResult then
+        ParamName := Func.Name
+      else
+        ParamName := Func.Params[I].Name;
+      AddrMode := GetParamAddrMode(Func.CallingConvention, Func.Params[I]);
+
+      Variable := Vars.AddParameter(ParamName, Func.Params[I].UserType, AddrMode,
+      Func.Params[I].Access = paResult);
+      //Inc the variables write count to indicate it's be assigned a value by the caller
+      if not (Func.Params[I].Access in [paOut, paResult]) then
+        Variable.IncVersion;
+      Variable.IsConst := Func.Params[I].Access = paConst;
+      Variable.FuncParamIndex := I;
+    end;
+
+  //CopyDataIn params need to be created as local variables
+  for I := Func.ParamCount + Func.ResultCount - 1 downto 0 do
+    if Func.Params[I].CopyDataIn then
+    begin
+      Assert(Func.Params[I].Access <> paResult);
+      Variable := Vars.Add(Func.Params[I].Name, Func.Params[I].UserType);
+      Variable.IncVersion;
+      Variable.IsConst := Func.Params[I].Access = paConst;
+      Variable.FuncParamIndex := I;
+    end;
 
   //The function code
   Result := ParseQuiche(pmFuncDecls, LocalAddrMode);
@@ -599,7 +651,7 @@ begin
         ILItem := nil;
         Param := ILAppendRegLoad(ILItem);
         Param.Kind := pkVarSource;
-        Variable := VarFindResult;
+        Variable := Vars.FindResult;
         Assert(Variable <> nil);
         Param.Variable := Variable;
         Param.VarVersion := Variable.Version;
@@ -697,11 +749,11 @@ begin
       Parser.SkipChar;
       if ffForward in Func.Flags then
       begin
-        if Func.Params[Func.ParamCount].Access <> vaResult then
+        if Func.Params[Func.ParamCount].Access <> paResult then
           EXIT(Err(qeFuncDecDoesntMatch))
       end
       else
-        Func.Params[Func.ParamCount].Access := vaResult;
+        Func.Params[Func.ParamCount].Access := paResult;
       Result := ParseParamType(Func, Func.ParamCount, Func.ParamCount);
       if Result <> qeNone then
         EXIT;
@@ -713,6 +765,8 @@ begin
   Result := ParseDirectives(Func, ParseType, NoCode);
   if Result <> qeNone then
     EXIT;
+
+  SetIsByRef(Func);
 
   if ParseType = fptTypeDef then
   begin

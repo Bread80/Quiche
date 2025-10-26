@@ -10,7 +10,7 @@ var ExecOutput: TStringList;
 
 implementation
 uses Generics.Collections, SysUtils,
-  Def.Globals, Def.Operators, Def.QTypes, Def.Consts;
+  Def.Globals, Def.Operators, Def.VarTypes, Def.Consts;
 
 const
   ValueToBool: array[valueTrue..valueFalse] of Boolean = (True, False);
@@ -317,7 +317,7 @@ begin
 //  Trace := True;
 
   ExecOutput.Clear;
-  VarsExecClear;
+  Vars.ExecClear;
   ClearTempVars;
 
   CurrIL := 0;

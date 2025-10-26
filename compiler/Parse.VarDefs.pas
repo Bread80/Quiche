@@ -39,7 +39,7 @@ function DoVAR(const Ident: String;AddrMode: TAddrMode): TQuicheError;
 
 implementation
 uses SysUtils,
-  Def.Globals, Def.QTypes, Def.Scopes, Def.IL,
+  Def.Globals, Def.VarTypes, Def.Scopes,
   Parse.TypeDefs, Parse.Expr;
 
 
@@ -149,14 +149,14 @@ begin
       Variable := nil;
     end
     else
-      Variable := VarFindByNameAllScopes(VarName);
+      Variable := Vars.FindByNameAllScopes(VarName);
   end
   else  //We're only doing assignment, no creation allowed
   begin
     HaveAssign := TestAssignment;
     if not HaveAssign then
       EXIT(Err(qeAssignmentExpected));
-    Variable := VarFindByNameAllScopes(VarName);
+    Variable := Vars.FindByNameAllScopes(VarName);
     if Variable = nil then
       EXIT(ErrSub(qeVariableNotFound, VarName));
     UserType := Variable.UserType;
@@ -182,7 +182,7 @@ begin
   end
   else
   begin //Otherwise just create it. Meh. Boring
-    Variable := VarCreate(VarName, UserType);
+    Variable := Vars.Add(VarName, UserType);
     if Variable = nil then
       EXIT(ErrSub(qeIdentifierRedeclared, VarName));
     Result := qeNone;

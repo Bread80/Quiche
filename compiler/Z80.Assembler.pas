@@ -39,6 +39,8 @@ procedure OpLDFromIndirect(Dest, Source: TCPUReg);//overload;
 //Where Dest is 16-bit (pointer) and Source is 8-bit
 procedure OpLDToIndirect(Dest, Source: TCPUReg);//overload;
 
+procedure OpLDIR;
+
 procedure OpPUSH(Reg: TCPUReg);
 procedure OpPOP(Reg: TCPUReg);
 
@@ -132,13 +134,13 @@ end;
 
 procedure OpLD(DestV: PVariable;Source: TCPUReg);overload;
 begin
-  Assert(DestV.AddrMode = amStatic);
+  Assert(DestV.AddrMode in [amStatic, amStaticRef]);
   AsmOpcode('ld', '('+DestV.GetAsmName+')', CPURegStrings[Source]);
 end;
 
 procedure OpLD(Dest: TCPUReg;SourceV: PVariable);overload;
 begin
-  Assert(SourceV.AddrMode = amStatic);
+  Assert(SourceV.AddrMode in [amStatic, amStaticRef]);
   AsmOpcode('ld', CPURegStrings[Dest], '('+SourceV.GetAsmName+')');
 end;
 
@@ -192,6 +194,11 @@ begin
 
   D := '(' + CPURegStrings[Dest] + ')';
   AsmOpcode('ld', D, CPURegStrings[Source]);
+end;
+
+procedure OpLDIR;
+begin
+  AsmOpcode('ldir');
 end;
 
 procedure OpPUSH(Reg: TCPUReg);

@@ -17,7 +17,7 @@ procedure InitPrimitives;
 
 implementation
 uses Classes, SysUtils,
-  Def.Operators, Def.QTypes,
+  Def.Operators, Def.VarTypes,
   Lib.GenFragments,
   CG.Data,
   Z80.LoadStoreMove, Z80.RegAlloc,

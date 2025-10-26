@@ -1,18 +1,19 @@
 unit Parse.Expr;
 
 interface
-uses Def.IL, Def.Operators, Def.QTypes, Def.UserTypes, Def.Consts, Def.Variables,
+uses Def.IL, Def.Operators, Def.VarTypes, Def.UserTypes, Def.Consts, Def.Variables,
   Parse.Errors, Parse.Literals;
 
 //Creates IL to assign the slug to a dest (variable or other)
-//  Variable must be assigned, and must be a pointer type
+//  Variable must be assigned,
+//  ??? and must be a pointer type
 //  If AsType is nil:
 //    If the variable is being created it will be assigned the implicit type of the expression
 //    Otherwise the variable will be checked for compatibility with the expressions result type
 procedure AssignSlugToDest(const Slug: TExprSlug;var Variable: PVariable;
   AsType: PUserType);
 
-function ParseExprToSlug(var Slug: TExprSlug;var ExprType: PUserType): TQuicheError;
+function ParseExprToSlug(out Slug: TExprSlug;var ExprType: PUserType): TQuicheError;
 
 //Parses an expression to an ILItem with a single parameter and no operation
 //Dest and Operation data *must* be assigned by the caller
@@ -51,7 +52,7 @@ procedure SlugToTypeDef(var Slug: TExprSlug);
 
 implementation
 uses SysUtils,
-  Def.Globals, Def.Functions, Def.Scopes,
+  Def.Globals, Def.Scopes,
   Lib.Primitives,
   Parse.Base, Parse.Eval, Parse.FuncCall, Parse.Source, Parse.Pointers,
   Parse.TypeChecker;
@@ -71,8 +72,25 @@ begin
       else
         ILItem.Op := OpMove;
   end
+  else if IsPointeredType(Slug.ResultType.VarType) then
+    if Slug.Operand.Kind = pkImmediate then
+      //TODO: Immediate Pointered data
+      Assert(False)
+//      ILItem := ILAppend(OpStoreImm)
+    else
+    begin
+      Assert(Slug.Operand.Kind = pkVarSource);
+      ILItem := ILAppend(opBlockCopy);
+      ILItem.Param1 := Slug.Operand;
+      ILItem.Param1.Kind := pkVarRef;
+      ILItem.Param2.Kind := pkImmediate;
+      ILItem.Param2.Imm := TImmValue.CreateTyped(vtWord, GetTypeSize(Slug.ResultType));
+      //Dest to be set by caller(??)
+      ILItem.Dest.Kind := pkNone;
+      ILItem.ResultType := Slug.ResultType;
+    end
   else
-  begin
+  begin //Non-pointered types
     if Slug.Operand.Kind = pkImmediate then
       ILItem := ILAppend(OpStoreImm)
     else
@@ -89,13 +107,23 @@ begin
   if Variable = nil then
   begin
     if Assigned(AsType) then
-      Variable := VarCreateUnnamed(AsType)
+      Variable := Vars.AddUnnamed(AsType)
     else
-      Variable := VarCreateUnnamed(Slug.ImplicitType);
+      Variable := Vars.AddUnnamed(Slug.ImplicitType);
   end;
 
   VarVersion := Variable.IncVersion;
-  ILItem.Dest.SetVarDestAndVersion(Variable, VarVersion);
+  If Slug.ResultByRefParam <> nil then
+  begin
+    //We need to modify the IL so the Variable's VarRef gets passed /into/ the function
+    //To do this Store the variable's details into the param pointed to by Slug.ResultByRefParam
+    Assert(Slug.ResultByRefParam.Kind = pkNone);
+    Slug.ResultByRefParam.SetVarRef(Variable);
+  end
+  else if ILItem.Op = opBlockCopy then
+    ILItem.Dest.SetVarRef(Variable)
+  else
+    ILItem.Dest.SetVarDestAndVersion(Variable, VarVersion);
 end;
 
 
@@ -572,7 +600,7 @@ begin
   Result := qeNone;
 end;
 
-function ParseExprToSlug(var Slug: TExprSlug;var ExprType: PUserType): TQuicheError;
+function ParseExprToSlug(out Slug: TExprSlug;var ExprType: PUserType): TQuicheError;
 var ILItem: PILItem;
 begin
   Parser.Mark;
@@ -701,6 +729,9 @@ function ParseAssignment(Variable: PVariable): TQuicheError;
 var UserType: PUserType;
 begin
   Assert(Assigned(Variable));
+
+  if Variable.IsConst then
+    EXIT(Err(qeAssignToCONSTVar));
 
   if CharInSet(Parser.TestChar, PtrSuffix) then
     EXIT(ParseAssignPtrSuffixStore(Variable));

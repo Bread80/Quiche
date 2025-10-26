@@ -3,7 +3,7 @@ unit IDE.SelfTest;
 interface
 uses SysUtils, Generics.Collections,
   Parse,
-  Def.Globals, Def.QTypes, Def.Variables,
+  Def.Globals, Def.VarTypes, Def.Variables,
   CodeGen,
   IDE.Compiler;
 
@@ -725,7 +725,7 @@ end;
 procedure TTest.TestVarType(Step: PTestStep);
 var V: PVariable;
 begin
-  V := VarFindByNameAllScopes(Step.Name);
+  V := Vars.FindByNameAllScopes(Step.Name);
   if not Assigned(V) then
     Error(Step, 'ERROR: No such variable: ''' + Step.Name + ''''#13)
   else if V.UserType = nil then
@@ -750,7 +750,7 @@ var V: PVariable;
   ExprType: PUserType;
   Value: TImmValue;
 begin
-  V := VarFindByNameAllScopes(Step.Name);
+  V := Vars.FindByNameAllScopes(Step.Name);
   if not Assigned(V) then
     Error(Step, 'ERROR: No such variable: ''' + Step.Name + ''''#13)
   else
@@ -774,7 +774,7 @@ procedure TTest.TestVarValueString(Step: PTestStep);
 var V: PVariable;
   Value: String;
 begin
-  V := VarFindByNameAllScopes(Step.Name);
+  V := Vars.FindByNameAllScopes(Step.Name);
   if not Assigned(V) then
     Error(Step, 'ERROR: No such variable: ''' + Step.Name + ''''#13)
   else
@@ -1264,6 +1264,7 @@ const IntegerValues: TArray<Integer> = [-32768, -32767, -129, -128, -127, -1, 0,
 procedure TTestLoadParams.Generate;
 const NameTemplate = '%%From->%%To (%%Value) Range %%Range %%Access';
 const CodeTemplate =
+'program'#13+
 'var x: %%To;'#13+''#13+'procedure f(a: %%To);%%Access;'#13+'begin'#13+'  x:= a;'#13+'end;'#13+''#13+'begin'#13+'  var i: %%From = %%Value;'#13+'  f(i);'#13+'end.'#13;var Options: TTestOptions;
   FromType: TVarType;
   ToType: TVarType;
@@ -1336,6 +1337,7 @@ procedure TTestStoreResults.Generate;
 
 const NameTemplate = '%%From->%%To (%%Value) Range %%Range %%Access';
 const CodeTemplate =
+'program'#13+
 'function f: %%From;%%Access;'#13+'begin'#13+'  var a:%%From = %%Value'#13+'  Result := a;'#13+'end;'#13+''#13+'var x: %%To;'#13+'begin'#13+'  x := f;'#13+'end.'#13;var Options: TTestOptions;  FromType: TVarType;
   ToType: TVarType;
   Values: TArray<Integer>;

@@ -29,7 +29,7 @@ function UsesPrimitive(const Name: String): Boolean;
 
 implementation
 uses SysUtils,
-  Def.Functions, Def.Operators, Def.QTypes, Def.Variables, Def.UserTypes,
+  Def.Functions, Def.Operators, Def.VarTypes, Def.Variables, Def.UserTypes, Def.Consts,
   Parse.Base,
   Lib.GenFragments, Lib.Data, Lib.Primitives,
   CG.Data, CG.VarMap,
@@ -84,14 +84,14 @@ begin
   if InString then
     Result := Result + '''';
 end;
-
+(*
 procedure GenLiterals(const Param: TILParam);
 var Code: String;
   S: String;
 begin
   if Param.Kind <> pkImmediate then
     EXIT;
-  if not IsPointeredType(Param.Imm.VarType) then
+  if IsRegisterType(Param.Imm.VarType) then
     EXIT;
   case Param.Imm.VarType of
     vtString:
@@ -107,6 +107,7 @@ begin
   AsmDataLine(Code);
 end;
 
+
 procedure LiteralsGen;
 var I: Integer;
   ILItem: PILItem;
@@ -120,6 +121,39 @@ begin
     GenLiterals(ILItem.Param3);
   end;
 end;
+*)
+
+procedure GenPointeredLiteral(C: PConst);
+var S: String;
+  Code: String;
+begin
+  case UTToVT(C.UserType) of
+    vtString:
+    begin
+      S := C.Value.StringValue;
+      Code := C.Value.ToLabel + ':'#13 +
+        'db ' + length(S).ToString + ',' + AsmSanitiseString(S);
+    end;
+  else
+    raise Exception.Create('Unknown VarType');
+  end;
+
+  AsmDataLine(Code);
+end;
+
+
+//Generates any constant data for pointered types in current scope
+procedure GenPointeredLiterals;
+var Scope: PScope;
+  List: PConstList;
+  I: Integer;
+begin
+  Scope := GetCurrentScope;
+  List := Scope.ConstList;
+  for I := 0 to List.Count-1 do
+    if IsPointeredType(UTToVT(List.Items[I].UserType)) then
+      GenPointeredLiteral(List.Items[I]);
+end;
 
 //For the current scope:
 //Allocates global memory for static vars.
@@ -131,9 +165,9 @@ var I: Integer;
   Bytes: Integer;
   C: Integer;
 begin
-  for I := 0 to VarGetCount-1 do
+  for I := 0 to Vars.GetCount-1 do
   begin
-    V := VarIndexToData(I);
+    V := Vars.IndexToData(I);
     if V.RequiresStorage then
     begin
       case V.AddrMode of
@@ -159,14 +193,14 @@ begin
         begin
           S := V.GetAsmName + ' equ ' + abs(V.Offset).ToString;
         end;
-        amStaticPtr:
+        amStaticRef:
         begin
           Assert(GetVarTypeSize(vtPointer) = 2);
           S := V.GetAsmName + ': dw 0';
         end;
-        amStackPtr:
+(*        amStackPtr:
           S := V.GetAsmName + ' equ ' + abs(V.Offset).ToString;
-      else
+*)      else
         Assert(False);
       end;
 
@@ -299,7 +333,7 @@ begin
   end;
 
   case ILItem.Op of
-    //Operations which don't use the parameter load-store mechanism below
+    //Operations which don't use the parameter load-store and primitive mechanisms below
     opPhi: RegStateInitialise; //Branches merge here. Clear cached data - we don't know what might be there
     opStoreImm: //Store a literal into a variable
       GenStoreImm(ILItem, []);
@@ -312,7 +346,13 @@ begin
       GenLoadParam(ILItem.Param1, ILItem.Dest.GetUserType, []);
       //Range checking and extending (if required) is done while loading
       GenDestParam(ILItem.Dest, nil, False, nil, [])
-     end;
+    end;
+    opBlockCopy:
+    begin
+      TEMPRegAllocBlockCopy(ILItem);
+      GenRegLoad(ILIndex, nil);
+      GenBlockCopy(ILItem);
+    end;
     opBranch: GenUncondBranch(ILItem);
     opBoolVarBranch:  //Branch where condition is a boolean variable (which could
                       //be in a CPU flag)
@@ -364,14 +404,17 @@ begin
     CreateVarMap;
 
     //Calc variables size/offsets
-    VarSetOffsets;
+    Vars.SetOffsets;
 
-    LiteralsGen;
+    GenPointeredLiterals;
+//    LiteralsGen;
 
     //Generate any global data
     DataGen;
 
     AsmLine(';=========='+Scope.Name);
+    if Assigned(Scope.Func) then
+      AsmLine(';'+Scope.Func.ToString);
     AsmLine('');
 
     CurrCGBlockID := -1;

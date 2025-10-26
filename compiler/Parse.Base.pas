@@ -2,7 +2,7 @@ unit Parse.Base;
 
 interface
 uses Classes,
-  Def.IL, Def.QTypes, Def.Variables, Def.UserTypes, Def.Consts,
+  Def.IL, Def.VarTypes, Def.Variables, Def.UserTypes, Def.Consts,
   Parse.Errors, Parse.Source,
   Z80.Hardware;
 
@@ -587,7 +587,7 @@ begin
   if Enable and not CurrSkipMode then
   begin //Mark current positions
     ILMark;
-    VarMark;
+    Vars.Mark;
   end;
   Result := CurrSkipMode;
   if Enable then
@@ -600,7 +600,7 @@ begin
   if CurrSkipMode and not PrevSkipMode then
   begin
     ILRollback;
-    VarRollback;
+    Vars.Rollback;
   end;
   CurrSkipMode := PrevSkipMode;
 end;

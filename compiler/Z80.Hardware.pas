@@ -4,7 +4,7 @@ Data defining the Z80 hardware (registers, flags etc)
 unit Z80.Hardware;
 
 interface
-uses Def.QTypes;
+uses Def.VarTypes;
 
 type
   //Where is the parameter value stored (Location)

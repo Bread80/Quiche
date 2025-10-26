@@ -13,12 +13,23 @@ procedure LoadIntrinsicsFile(const Filename: String);
 
 
 implementation
-uses SysUtils, Classes, Generics.Collections,
-  Def.Operators, Def.QTypes, Def.Variables;
+uses SysUtils, Classes,
+  Def.Operators, Def.VarTypes, Def.Variables, Def.UserTypes, Def.Scopes;
 
 procedure InitialiseIntrinsics;
 begin
   //Nothing
+end;
+
+function ParseIntrinsicFlags(const Field: String): TIntrinsicFlagSet;
+begin
+  Result := [];
+  if CompareText(Field, 'arrayasbounds') = 0 then
+    Result := Result + [ifArrayAsBounds]
+  else if CompareText(Field, 'totype') = 0 then
+    Result := Result + [ifToType]
+      else if Field <> '' then
+    raise Exception.Create('Invalid flag or flags for Intrinsic: ' + Field);
 end;
 
 const //Column indexes
@@ -41,130 +52,150 @@ var Data: TStringList;
   Fields: TArray<String>;
   I: Integer;
   Intrinsic: PFunction;
-  VT: TVarType;
+  UT: PUserType;
   IntValue: Integer;
+  PrevScope: PScope;
 begin
+  { $ifdef fpc}
+  writeln('LoadIntrinsicFile: ',Filename);
+  { $endif}
+  PrevScope := GetCurrentScope;
+  SetCurrentScope(@SystemScope);
+
   Data := TStringlist.Create;
   try
     Data.LoadFromFile(Filename);
 
-  Data := TStringList.Create;
-  Data.LoadFromFile(Filename);
-
-  for Line in Data do
-    if (Length(Line) > 0) and (Line.Chars[0] <> ';') then
-    begin
-      if Line.StartsWith('END') then
-        EXIT;
-
-      Fields := Line.Split([',']);
-      if Fields[fName] <> '' then
+    for Line in Data do
+      if (Length(Line) > 0) and (Line.Chars[0] <> ';') then
       begin
-        if Length(Fields) < 12 then
-          raise Exception.Create('Operators line too short: ' + Line);
-        for I:=0 to Length(Fields)-1 do
-          Fields[I] := Fields[I].Trim;
+        if Line.StartsWith('END') then
+          EXIT;
 
-        Intrinsic := FuncCreate('System', Fields[fName]);
-        Intrinsic.CallingConvention := ccIntrinsic;
-
-        Intrinsic.Op := IdentToIntrinsicOperator(Fields[fName]);
-        if Intrinsic.Op = opUnknown then
-          raise Exception.Create('Operator not found: ' + Fields[fName]);
-
-        if Fields[fP1Access] = '' then
-          Intrinsic.ParamCount := 0
-        else
+        Fields := Line.Split([',']);
+        if Fields[fName] <> '' then
         begin
-          if CompareText(Fields[fP1Access], 'val') = 0 then
-            Intrinsic.Params[0].Access := vaVal
-          else
-            Assert(IdentToAccessSpecifier(Fields[fP1Access], Intrinsic.Params[0].Access));
-          Intrinsic.Params[0].Name := Fields[fP1Name];
+          if Length(Fields) < 12 then
+            raise Exception.Create('Operators line too short: ' + Line);
+          for I:=0 to Length(Fields)-1 do
+            Fields[I] := Fields[I].Trim;
 
-          //TODO: Should only include builtin types. Should allow 'base' types
-          Intrinsic.Params[0].VarType := StringToVarType(Fields[fP1VarType]);
-          if Intrinsic.Params[0].VarType = vtUnknown then
-            if not StringToSuperType(Fields[fP1VarType], Intrinsic.Params[0].SuperType) then
-              raise Exception.Create('Invalid P1VarType for Intrinsic: ' + Fields[fP1VarType]);
+          Intrinsic := FuncCreate('System', Fields[fName]);
+          Intrinsic.CallingConvention := ccIntrinsic;
 
-          Assert(Fields[fP1Flags] = '');
-          //  fP1Flags    = 4;
-          if Fields[fP2Access] = '' then
-            Intrinsic.ParamCount := 1
+          Intrinsic.Op := IdentToIntrinsicOperator(Fields[fName]);
+          if Intrinsic.Op = opUnknown then
+            raise Exception.Create('Operator not found: ' + Fields[fName]);
+
+          //================FIRST PARAMETER
+          {$ifdef fpc}
+//          writeln('fP1Access ',Fields[fP1Access]);
+          {$endif}
+          if Fields[fP1Access] = '' then
+            Intrinsic.ParamCount := 0
           else
           begin
-            Intrinsic.ParamCount := 2;
-            if CompareText(Fields[fP2Access], 'val') = 0 then
-              Intrinsic.Params[1].Access := vaVal
+            if CompareText(Fields[fP1Access], 'val') = 0 then
+              Intrinsic.Params[0].Access := paVal
             else
-              Assert(IdentToAccessSpecifier(Fields[fP2Access], Intrinsic.Params[1].Access));
-            Intrinsic.Params[1].Name := Fields[fP2Name];
+              if not IdentToAccessSpecifier(Fields[fP1Access], Intrinsic.Params[0].Access) then
+                raise Exception.Create('Access specifier not found');
+            {$ifdef fpc}
+            if CompareText(Fields[fName], 'inc') = 0 then
+            begin
+              writeln('FileLoad inc - ',Fields[fP1Access], ' ',Integer(Intrinsic.Params[0].Access));
+            end;
+            {$endif}
+            Intrinsic.Params[0].Name := Fields[fP1Name];
 
-            Intrinsic.Params[1].VarType := StringToVarType(Fields[fP2VarType]);
-            if Intrinsic.Params[1].VarType = vtUnknown then
-              if not StringToSuperType(Fields[fP2VarType], Intrinsic.Params[1].SuperType) then
-                raise Exception.Create('Invalid P2VarType for Intrinsic: ' + Fields[fP2VarType]);
-            if Fields[fP2DefaultValue] <> '' then
-            begin //TODO: A proper parse value to TImmValue!
-              if Intrinsic.Params[1].VarType = vtTypeDef then
-              begin
-                VT := StringToVarType(Fields[fP2DefaultValue]);
-                if VT = vtUnknown then
-                  raise Exception.Create('Unable to parse TypeDef default value: ' + Fields[fP2DefaultValue])
+            //TODO: Should only include builtin types. Should allow 'base' types
+            Intrinsic.Params[0].UserType := GetSystemType(StringToVarType(Fields[fP1VarType]));
+            if Intrinsic.Params[0].UserType = nil then
+              if not StringToSuperType(Fields[fP1VarType], Intrinsic.Params[0].SuperType) then
+                raise Exception.Create('Invalid P1VarType for Intrinsic: ' + Fields[fP1VarType]);
+
+            Intrinsic.Params[0].IntrinsicFlags := ParseIntrinsicFlags(Fields[fP1Flags]);
+
+            //=================SECOND PARAMETER
+
+            if Fields[fP2Access] = '' then
+              Intrinsic.ParamCount := 1
+            else
+            begin
+              Intrinsic.ParamCount := 2;
+              if CompareText(Fields[fP2Access], 'val') = 0 then
+                Intrinsic.Params[1].Access := paVal
+              else
+                Assert(IdentToAccessSpecifier(Fields[fP2Access], Intrinsic.Params[1].Access));
+              Intrinsic.Params[1].Name := Fields[fP2Name];
+
+              Intrinsic.Params[1].UserType := GetSystemType(StringToVarType(Fields[fP2VarType]));
+              if Intrinsic.Params[1].UserType = nil then
+                if not StringToSuperType(Fields[fP2VarType], Intrinsic.Params[1].SuperType) then
+                  raise Exception.Create('Invalid P2VarType for Intrinsic: ' + Fields[fP2VarType]);
+              if Fields[fP2DefaultValue] <> '' then
+              begin //TODO: A proper parse value to TImmValue!
+                if UTToVT(Intrinsic.Params[1].UserType) = vtTypeDef then
+                begin
+                  UT := IdentToType(Fields[fP2DefaultValue]);
+                  if UT = nil then
+                    raise Exception.Create('Unable to parse TypeDef default value: ' + Fields[fP2DefaultValue])
+                  else
+                  begin
+                    Intrinsic.Params[1].DefaultValue.CreateTypeDef(UT);
+                  end
+                end
                 else
                 begin
-                  Intrinsic.Params[1].DefaultValue.CreateTypeDef(VT);
-                end
-              end
-              else
-              begin
-                //TODO: Set type based on value
-                if not TryStrToInt(Fields[fP2DefaultValue], IntValue) then
-                  //Test for other valid value types
-                  raise Exception.Create('Unable to parse default value: ' + Fields[fP2DefaultValue]);
+                  //TODO: Set type based on value
+                  if not TryStrToInt(Fields[fP2DefaultValue], IntValue) then
+                    //Test for other valid value types
+                    raise Exception.Create('Unable to parse default value: ' + Fields[fP2DefaultValue]);
 
-                Intrinsic.Params[1].DefaultValue.CreateTyped(vtInteger, IntValue);
-
+                  Intrinsic.Params[1].DefaultValue.CreateTyped(vtInteger, IntValue);
+                end;
+                Intrinsic.Params[1].HasDefaultValue := True;
               end;
-              Intrinsic.Params[1].HasDefaultValue := True;
+
+              Intrinsic.Params[1].IntrinsicFlags := ParseIntrinsicFlags(Fields[fP2Flags]);
             end;
-            Assert(Fields[fP2Flags] = '');
-          //fP2Flags    = 7;
           end;
-        end;
-        if CompareText(Fields[fResultType], 'None') <> 0 then
-        begin
-          Intrinsic.Params[Intrinsic.ParamCount].Access := vaResult;
-          if CompareText(Fields[fResultType], 'Param1') = 0 then
-          begin
-            Intrinsic.Params[Intrinsic.ParamCount].VarType := Intrinsic.Params[0].VarType;
-            Intrinsic.Params[Intrinsic.ParamCount].SuperType := Intrinsic.Params[0].SuperType;
-          end
-          else
-          begin
-            Intrinsic.Params[Intrinsic.ParamCount].VarType := StringToVarType(Fields[fResultType]);
-            if Intrinsic.Params[Intrinsic.ParamCount].VarType = vtUnknown then
-              if not StringToSuperType(Fields[fResultType], Intrinsic.Params[Intrinsic.ParamCount].SuperType) then
-                raise Exception.Create('Invalid ResultType for Intrinsic: ' + Fields[fResultType]);
-          end;
-          Intrinsic.ResultCount := 1;
-        end;
 
-        for I := fComments to Length(Fields)-1 do
-          Intrinsic.Comments := Intrinsic.Comments + Fields[I] + ', ';
-        //Remove trailing comma-space
-        Intrinsic.Comments := Intrinsic.Comments.SubString(0, Length(Intrinsic.Comments)-2);
-        //There will be quotes if the data contains a comma
-        if Intrinsic.Comments.StartsWith('"') then
-          Intrinsic.Comments := Intrinsic.Comments.SubString(1, Length(Intrinsic.Comments)-2);
+          //=======================RESULT
+
+          if CompareText(Fields[fResultType], 'None') <> 0 then
+          begin
+            Intrinsic.Params[Intrinsic.ParamCount].Access := paResult;
+            if CompareText(Fields[fResultType], 'Param1') = 0 then
+            begin
+              Intrinsic.Params[Intrinsic.ParamCount].UserType := Intrinsic.Params[0].UserType;
+              Intrinsic.Params[Intrinsic.ParamCount].SuperType := Intrinsic.Params[0].SuperType;
+            end
+            else
+            begin
+              Intrinsic.Params[Intrinsic.ParamCount].UserType := GetSystemType(StringToVarType(Fields[fResultType]));
+              if Intrinsic.Params[Intrinsic.ParamCount].UserType = nil then
+                if not StringToSuperType(Fields[fResultType], Intrinsic.Params[Intrinsic.ParamCount].SuperType) then
+                  raise Exception.Create('Invalid ResultType for Intrinsic: ' + Fields[fResultType]);
+            end;
+            Intrinsic.ResultCount := 1;
+          end;
+
+          for I := fComments to Length(Fields)-1 do
+            Intrinsic.Comments := Intrinsic.Comments + Fields[I] + ', ';
+          //Remove trailing comma-space
+          Intrinsic.Comments := Intrinsic.Comments.SubString(0, Length(Intrinsic.Comments)-2);
+          //There will be quotes if the data contains a comma
+          if Intrinsic.Comments.StartsWith('"') then
+            Intrinsic.Comments := Intrinsic.Comments.SubString(1, Length(Intrinsic.Comments)-2);
+        end;
       end;
-    end;
-
 
   finally
     Data.Free;
+    SetCurrentScope(PrevScope);
   end;
+
 end;
 
 end.

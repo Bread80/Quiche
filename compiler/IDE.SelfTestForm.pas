@@ -211,10 +211,10 @@ begin
   try
     tvTests.BeginUpdate;
     if Item.IsChecked then
-      if Item.TagObject is TTestable then
+      if Item.TagObject is TTestGroup then
         (Item.TagObject as TTestable).Run;
-    for I := 0 to Item.Count-1 do
-      RunItemTests(Item.Items[I]);
+      for I := 0 to Item.Count-1 do
+        RunItemTests(Item.Items[I]);
 
     ItemShowResults(Item);
   finally

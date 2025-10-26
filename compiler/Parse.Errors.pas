@@ -68,6 +68,7 @@ type TQuicheError = (
   qeAssignmentExpected, // := operator
   qeEqualExpectedInAssignment,
   qeAssignmentNotAllowed,
+  qeAssignToCONSTVar,     //Attempting to assign a value to a constant variable (argument)
 
   //Function declarations
   qeFunctionRedeclared,
@@ -103,6 +104,7 @@ type TQuicheError = (
   //Function calls
   qeArgMustBeVariable,        //For VAR or OUT parameters
   qeReturnedArgTypeMismatch,  //For VAR and OUT parameters
+  qeCantPassCONSTasVARorOUT,  //For VAR and OUT parameters
   qeTooManyArgs,              //Number of arguments being passed his above hard coded limit
                               //No function can have this many arguments anyway, so you have a problem :)
   qeIntegerConstantArgExpected, //For some intrinsics such as INC and DEC

@@ -115,7 +115,7 @@ unit Def.IL;
 
 interface
 uses Generics.Collections, Classes,
-  Def.Functions, Def.Operators, Def.QTypes, Def.Consts, Def.Variables, Def.UserTypes,
+  Def.Functions, Def.Operators, Def.VarTypes, Def.Consts, Def.Variables, Def.UserTypes,
   Lib.Data,
   Z80.Hardware, Z80.Algos;
 
@@ -248,27 +248,27 @@ type
     //The payload data
     case Kind: TILParamKind of
       pkNone: ();
-      pkImmediate: (  //Immediate (constant) data
+      pkImmediate: (            //Immediate (constant) data
         Imm: TImmValue );
-      pkPhiVarSource: (            //Phi variable (specified in the Dest data)
-        PhiBlockID: Integer;  //If we come from this block...
-        PhiSourceVersion: Integer; );   //...use this version of the variable
+      pkPhiVarSource: (         //Phi variable (specified in the Dest data)
+        PhiBlockID: Integer;    //If we come from this block...
+        PhiSourceVersion: Integer; ); //...use this version of the variable
       pkPhiVarDest: (
         PhiVar: PVariable;
         PhiDestVersion: Integer; );
       pkVarSource, pkVarDest, pkVarAddr, pkVarPtr, pkVarRef: (
-        Variable: PVariable;  //The variable
-        VarVersion: Integer; );   //Current version of the variable
-      pkPop: ();           //Currently invalid for input params
-      pkPopByte: ();       //Currently invalid for input params
+        Variable: PVariable;    //The variable
+        VarVersion: Integer; ); //Current version of the variable
+      pkPop: ();                //Currently invalid for input params
+      pkPopByte: ();            //Currently invalid for input params
       pkPush, pkPushByte: (
-        PushType: PUserType; );  //Type of the value to be pushed
-      pkBranch: (           //For unconditional branches.
+        PushType: PUserType; ); //Type of the value to be pushed
+      pkBranch: (               //For unconditional branches.
         BranchBlockID: Integer; );  //Block number to branch to
-      pkCondBranch: (        //For conditional branches
-        BranchInvert: Boolean;    //Value has been NOTted
-        TrueBlockID: Integer;     //Block number to branch to if condition is true
-        FalseBlockID: Integer;    //Block number to branch to if condition is false
+      pkCondBranch: (           //For conditional branches
+        BranchInvert: Boolean;  //Value has been NOTted
+        TrueBlockID: Integer;   //Block number to branch to if condition is true
+        FalseBlockID: Integer;  //Block number to branch to if condition is false
       );
     end; {TILParam}
 
@@ -286,7 +286,7 @@ type
     Comments: String;       //For debugging <g>. Current only used if BlockID <> -1
 
     Op: TOperator;          //The operation
-    ResultType: PUserType;   //CURRENT: The type which will be output by the Operation
+    ResultType: PUserType;  //CURRENT: The type which will be output by the Operation
                             //OLD: If overflow checking is on, specifies the output type
                             //May also be used by typecasts to change/reduce value size
     Func: PFunction;        //If OpIndex is OpFuncCall this contains details of the function
@@ -328,7 +328,7 @@ type
     procedure SwapParams;   //For Operations. Swap order of Param1 and Param2
     function ToString: String;  //For debugging
 
-    case Integer of       //Third param (usually result or destination)
+    case Integer of         //Third param (usually result or destination)
     1: (Param3: TILParam);
     2: (Dest: TILParam);
   end;
@@ -422,14 +422,6 @@ uses SysUtils,
   Def.Globals,
   Parse.Base, Parse.Source,
   Z80.AlgoData;
-
-const CPURegStrings: array[low(TCPUReg)..high(TCPUReg)] of String = (
-    'None',//'Immediate','Indirect','Offset',
-//    'Param1',
-    'A','B','C','D','E','H','L',
-    'AF',
-    'HL','DE','BC','IX','IY',
-    'ZF','ZFandA','NZF','NZFandA','CF','NCF','CPLofA','Flags');
 
 var
   ILList: TILList;
@@ -766,7 +758,7 @@ begin
       else
         Assert(False);
       end;
-      Assert(not IsPointeredType(Result.VarType));
+      Assert(IsRegisterType(Result.VarType));
     end;
     pkVarRef:
     begin
@@ -836,17 +828,6 @@ begin
 end;
 
 function TILParam.ToString: String;
-(*
-  function VarToString: String;
-  begin
-    Result := '%' + Variable.Name + '_' + IntToStr(VarVersion) +
-      ':' + VarTypeToName(Variable.VarType) + '/' + CPURegStrings[Reg];
-    if SourceAlgo <> agUnspecified then
-      Result := Result + '<' + AlgoData[SourceAlgo].Name;
-    if StoreAlgo <> agUnspecified then
-      Result := Result + '>' + AlgoData[StoreAlgo].Name;
-  end;
-*)
 begin
   case Kind of
     pkNone: Result := '_';
@@ -931,7 +912,7 @@ end;
 function TILParam.ToVariable: PVariable;
 begin
   case Kind of
-    pkVarSource, pkVarDest, pkVarAddr, pkVarPtr:
+    pkVarSource, pkVarDest, pkVarAddr, pkVarPtr, pkVarRef:
       Result := Variable;
   else
     Assert(False);
@@ -939,12 +920,11 @@ begin
   end;
 end;
 
-
 { TILItem }
 
 function TILItem.AssignToHiddenVar(UserType: PUserType): PVariable;
 begin
-  Result := VarCreateHidden(UserType);
+  Result := Vars.AddHidden(UserType);
   Result.IncVersion;
   Dest.SetVarDestAndVersion(Result, Result.Version);
 end;
@@ -1001,6 +981,8 @@ begin
       Result := #13';VarAddr    ' + CPURegStrings[Param.Reg] + ' := @' + Param.ToString;
     pkVarPtr:
       Result := #13';VarPtr     ' + CPURegStrings[Param.Reg] + ' := ' + Param.ToString + '^';
+    pkVarRef:
+      Result := #13';VarRef     ' + CPURegStrings[Param.Reg] + ' := ' + Param.ToString + '^';
     pkCondBranch:
     begin
       Result := 'CondBranch ';
@@ -1026,9 +1008,9 @@ begin
     opRegStore, opRegStoreExtended,
     opFuncCall, opFuncCallExtended:
     begin
-      Assert(Param1.Kind in [pkNone, pkImmediate, pkVarSource, pkVarDest, pkVarAddr]);
-      Assert(Param2.Kind in [pkNone, pkImmediate, pkVarSource, pkVarDest, pkVarAddr]);
-      Assert(Param3.Kind in [pkNone, pkImmediate, pkVarSource, pkVarDest, pkVarAddr, pkCondBranch]);
+      Assert(Param1.Kind in [pkNone, pkImmediate, pkVarSource, pkVarDest, pkVarAddr, pkVarRef]);
+      Assert(Param2.Kind in [pkNone, pkImmediate, pkVarSource, pkVarDest, pkVarAddr, pkVarRef]);
+      Assert(Param3.Kind in [pkNone, pkImmediate, pkVarSource, pkVarDest, pkVarAddr, pkVarRef, pkCondBranch]);
       Result := Result + OpStrings[Op];
 
       FuncToDo := Func;
@@ -1056,10 +1038,10 @@ begin
   else //General operation types
     Assert(Param1.Kind in [pkNone, pkImmediate, pkVarSource, pkVarAddr, pkVarPtr, pkVarRef, pkPhiVarSource]);
     Assert(Param2.Kind in [pkNone, pkImmediate, pkVarSource, pkVarAddr, pkPhiVarSource]);
-    Assert(Dest.Kind in [pkNone, pkCondBranch, pkBranch, pkVarDest, pkVarAddr, pkPhiVarDest, pkPush, pkPushByte]);
+    Assert(Dest.Kind in [pkNone, pkCondBranch, pkBranch, pkVarDest, pkVarAddr, pkVarRef, pkPhiVarDest, pkPush, pkPushByte]);
     Result := Result + Param3.ToString;
 
-    if Dest.Kind in [pkVarDest, pkPhiVarDest, pkCondbranch, pkPush, pkPushByte] then
+    if Dest.Kind in [pkVarDest, pkVarRef, pkPhiVarDest, pkCondbranch, pkPush, pkPushByte] then
       Result := Result + ' = ';
     if Op <> opUnknown then
     begin

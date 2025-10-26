@@ -12,7 +12,7 @@ function GetTypeLowValue(UserType: PUserType;var Value: TImmValue): TQuicheError
 function GetTypeHighValue(UserType: PUserType;var Value: TImmValue): TQuicheError;
 
 implementation
-uses Def.QTypes;
+uses Def.VarTypes;
 
 function GetTypeLowValue(UserType: PUserType;var Value: TImmValue): TQuicheError;
 begin

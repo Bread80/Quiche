@@ -4,7 +4,7 @@ interface
 
 implementation
 uses TestFrameWork,
-  Def.IL, Def.QTypes, Def.Consts, Def.Scopes, Def.Variables, Def.UserTypes,
+  Def.IL, Def.VarTypes, Def.Consts, Def.Scopes, Def.Variables, Def.UserTypes,
   Lib.Data,
   CodeGen, CG.Data,
   Z80.LoadStoreMove, Z80.Load, Z80.Store,
@@ -538,7 +538,7 @@ begin
   InitialiseScopes;
   RegStateInitialise;
 
-  V := VarCreate('Test1', GetSystemType(VarType));
+  V := Vars.Add('Test1', GetSystemType(VarType));
   V.AddrMode := VarAddrMode;
   V.Offset := 0;  //Needed??
   V.Version := 10; //VarVersion Needed??
@@ -1268,7 +1268,7 @@ begin
   InitialiseScopes;
   RegStateInitialise;
 
-  V := VarCreate('Test1', GetSystemType(VarType));
+  V := Vars.Add('Test1', GetSystemType(VarType));
   V.AddrMode := VarAddrMode;
   V.Offset := 0;  //Needed??
   V.Version := 10; //VarVersion Needed??

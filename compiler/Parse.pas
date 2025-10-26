@@ -52,7 +52,7 @@ function ParseQuiche(ParseMode: TParseMode;AddrMode: TAddrMode): TQuicheError;
 
 implementation
 uses SysUtils, Classes,
-  Def.Functions, Def.Globals, Def.IL, Def.Operators, Def.QTypes, Def.Scopes,
+  Def.Functions, Def.Globals, Def.IL, Def.Operators, Def.VarTypes, Def.Scopes,
   Def.Consts, Def.UserTypes,
   Parse.Base, Parse.Fixups, Parse.FuncCall, Parse.FuncDef, Parse.Source, Parse.TypeDefs,
   Parse.VarDefs, Parse.Literals;
@@ -397,8 +397,8 @@ begin
   LoopVarPhi.Param2.SetPhiVarSource(GetCurrBlockID, LoopVar.Version);
 
   //Insert Phis at start of Header (for any variables updated during loop)
-  VarClearAdjust; //Prep for branch adjust
-  VarClearTouches;
+  Vars.ClearAdjust; //Prep for branch adjust
+  Vars.ClearTouches;
   LoopVar.Touched := True;
   PhiInsertCount := PhiWalkInt(ILGetCount-1, EntryLastItemIndex, -1, EntryLastItemIndex,
     GetCurrBlockID, EntryBlockID, False, PhiItemIndex + 1);
@@ -479,8 +479,8 @@ begin
 
   //PHI variables
   //Insert Phis at start of the loop (for any variables updated during loop)
-  VarClearAdjust; //Prep for branch adjust
-  VarClearTouches;
+  Vars.ClearAdjust; //Prep for branch adjust
+  Vars.ClearTouches;
   PhiInsertCount := PhiWalkInt(ILGetCount-1, WHILEIndex-1, -1, WHILEIndex-1,
     GetCurrBlockID, WHILEID-1, False, WHILEIndex);
   //We also need to fixup references within the loop to any variables we have phi'd
@@ -546,8 +546,8 @@ begin
 
   //PHI variables
   //Insert Phis at start of the loop (for any variables updated during loop)
-  VarClearAdjust; //Prep for branch adjust
-  VarClearTouches;
+  Vars.ClearAdjust; //Prep for branch adjust
+  Vars.ClearTouches;
   PhiInsertCount := PhiWalkInt(ILGetCount-1, REPEATIndex-1, -1, REPEATIndex-1,
     GetCurrBlockID, REPEATID-1, False, REPEATIndex);
   //We also need to fixup references within the loop to any variables we have phi'd
@@ -765,7 +765,7 @@ begin
     //of indents to disambiguate between VAR, CONST, TYPE states and code state
 //    Parser.SetCursor(Cursor);
 //    ParseStatement(Storage);
-      EXIT(Err(qeInvalidKeyword));
+      EXIT(Err(qeInvalidKeyword{, KeyWordStrings[KeyWord]}));
   end;
 end;
 
@@ -917,11 +917,14 @@ begin
               if Result <> qeNone then
                 EXIT;
               if not Parser.EOF then
-                EXIT(Err(qeCodeAfterEndDot));
+                EXIT(Err(qeCodeAfterEndDot))
+              else
+                EXIT(qeNone);
             end;
           end;
 
-          EXIT(qeNone);
+          if ParseMode in [pmFuncDecls, pmStatement] then
+            EXIT(qeNone);
         end;
 
         if ParseMode = pmStatement then

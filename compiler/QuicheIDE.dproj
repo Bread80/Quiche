@@ -401,7 +401,7 @@
         <DCCReference Include="Lib.Primitives.pas"/>
         <DCCReference Include="CodeGen.pas"/>
         <DCCReference Include="Parse.Eval.pas"/>
-        <DCCReference Include="Def.QTypes.pas"/>
+        <DCCReference Include="Def.VarTypes.pas"/>
         <DCCReference Include="Def.Globals.pas"/>
         <DCCReference Include="Parse.Errors.pas"/>
         <DCCReference Include="Parse.Source.pas"/>

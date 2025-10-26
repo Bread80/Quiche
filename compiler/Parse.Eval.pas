@@ -2,7 +2,7 @@ unit Parse.Eval;
 
 interface
 uses SysUtils,
-  Def.IL, Def.Operators, Def.QTypes, Def.Consts,
+  Def.IL, Def.Operators, Def.VarTypes, Def.Consts,
   Parse.Errors;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -31,7 +31,7 @@ function EvalIntrinsicBi(Op: TOperator;const Param1, Param2: TILParam;
 
 implementation
 uses {$ifndef fpc}System.Character,{$endif}
-  Def.Globals, Def.TypeData, Def.UserTypes;
+  Def.Globals, Def.UserTypes;
 
 function ValueToVarType(Value: Integer;out VarType: TVarType): TQuicheError;
 begin

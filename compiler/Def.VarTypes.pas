@@ -1,6 +1,6 @@
 //Types used by the Quiche compiler. Not to be confused with types used by the
 //Delphi/Pascal compiler itself!
-unit Def.QTypes;
+unit Def.VarTypes;
 
 interface
 
@@ -86,9 +86,13 @@ function StringToVarType(VarTypeName: String): TVarType;
 //returns the size of the pointer data, not the stored data.
 function GetVarTypeSize(VarType: TVarType): Integer;
 
-//Is this a type which is referenced by a pointer (as opposed to a type where the
-//value is directly stored in the register)
+//A Register type is one where the value of the variable is stored in registers.
+//A Pointered type is one where the register stores a pointer to the actual data.
+//Register types are usually those whose value fits into a register and Pointered
+//types are those whose values (data) are often too large to fit into a register.
+//Every type is either a Pointered Type or a Register Type. nothing is both.
 function IsPointeredType(VarType: TVarType): Boolean;
+function IsRegisterType(VarType: TVarType): Boolean;
 
 //Any numeric type. Not typed pointers - these can't be used in expressions
 function IsNumericType(VarType: TVarType): Boolean;
@@ -289,6 +293,11 @@ const VarTypeIsPointered: array[low(TVarType)..high(TVarType)] of Boolean = (
 function IsPointeredType(VarType: TVarType): Boolean;
 begin
   Result := VarTypeIsPointered[VarType];
+end;
+
+function IsRegisterType(VarType: TVarType): Boolean;
+begin
+  Result := not IsPointeredType(VarType);
 end;
 
 function IsNumericType(VarType: TVarType): Boolean;

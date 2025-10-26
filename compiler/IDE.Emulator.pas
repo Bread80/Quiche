@@ -23,7 +23,7 @@ uses SysUtils,
   //Include hardware so it is registered
   mMemory,
   {$ifdef fpc}CRT,{$endif}
-  Def.QTypes, Def.Consts, Def.Variables, Def.UserTypes;
+  Def.VarTypes, Def.Consts, Def.Variables, Def.UserTypes;
 
 var CurrConfigFile: String;
   Interactive: Boolean;
@@ -207,28 +207,32 @@ end;
 function ReadByte(const Symbol: String): Integer;
 var B: Byte;
 begin
-  Assert(TryReadByte(Symbol, B), 'Global symbol not found: ' + Symbol);
+  if not TryReadByte(Symbol, B) then
+    raise Exception.Create('Global symbol not found: ' + Symbol);
   Result := B;
 end;
 
 function ReadOffsetByte(const Symbol: String;Offset: Integer): Integer;
 var B: Byte;
 begin
-  Assert(TryReadOffsetByte(Symbol, Offset, B), 'Global symbol not found: ' + Symbol);
+  if not TryReadOffsetByte(Symbol, Offset, B) then
+    raise Exception.Create('Global symbol not found: ' + Symbol);
   Result := B;
 end;
 
 function ReadWord(const Symbol: String): Integer;
 var W: Word;
 begin
-  Assert(TryReadWord(Symbol, W), 'Global symbol not found: ' + Symbol);
+  if not TryReadWord(Symbol, W) then
+    raise Exception.Create('Global symbol not found: ' + Symbol);
   Result := W;
 end;
 
 function ReadInt8(const Symbol: String): Integer;
 var B: Byte;
 begin
-  Assert(TryReadByte(Symbol, B), 'Global symbol not found: ' + Symbol);
+  if not TryReadByte(Symbol, B) then
+    raise Exception.Create('Global symbol not found: ' + Symbol);
   if B >= $80 then
     Result := (-1 xor $ff) or B
   else
@@ -238,7 +242,8 @@ end;
 function ReadInteger(const Symbol: String): Integer;
 var W: Word;
 begin
-  Assert(TryReadWord(Symbol, W), 'Global symbol not found: ' + Symbol);
+  if not TryReadWord(Symbol, W) then
+    raise Exception.Create('Global symbol not found: ' + Symbol);
   if W >= $8000 then
     Result := (-1 xor $ffff) or W
   else
@@ -352,7 +357,7 @@ begin
         end;
       end;
 *)
-    amStaticPtr: Result := TImmValue.CreateTyped(GetPointerToType(UserType), ReadWord(AsmName));
+    amStaticRef: Result := TImmValue.CreateTyped(GetPointerToType(UserType), ReadWord(AsmName));
   else
       Assert(False);
   end;
@@ -365,9 +370,9 @@ var I: Integer;
 begin
   IX := (Hardware.Z80.Z80.IX - IXOffsetHack) and $ffff;
 
-  for I := 0 to VarGetCount-1 do
+  for I := 0 to Vars.GetCount-1 do
   begin
-    V := VarIndexToData(I);
+    V := Vars.IndexToData(I);
     V.Value := ValueToString(V.GetAsmName, V.AddrMode, V.UserType);
   end;
 end;

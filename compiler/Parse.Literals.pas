@@ -39,6 +39,20 @@ type
     ResultType: PUserType; //Type for the result
     ImplicitType: PUserType;//?? Type for type inference
 
+    //Used where the result value of a function call used pass-by-reference.
+    //The result will be assigned to a variable (possibly a temp variable). The
+    //function dispatch parser has no knownledge of that variable - indeed the variable
+    //might not have been created yet.
+    //Normally this is not a problem, but if the Result is pass by reference then
+    //the VarRef of (pointer to) the variable needs to be passed into the function
+    //at call dispatch time. When that happens the function dispatch mechanism will
+    //assign ResultByRefParam to the IL param which loads that VarRef prior to the function
+    //call. On return from the function dispatch mechanism, once the assignment variable
+    //is known ResultByRefParam must be patched to load it's VarRef.
+    //At all other times ResultByRefParam will be nil.
+    ResultByRefParam: PILParam;
+
+
     procedure Initialise;
 
     //Where the Slug has an ILItem, this routine creates a temp var and sets the
@@ -86,15 +100,28 @@ function ParseStringOrChar(var Slug: TExprSlug): TQuicheError;
 
 implementation
 uses SysUtils,
-  Def.Variables, Def.Globals, Def.QTypes,
+  Def.Variables, Def.Globals, Def.VarTypes,
   Parse.Source, Parse.Base;
 
 //===================================== Slugs
 
 procedure TExprSlug.AssignToHiddenVar;
+var V: PVariable;
 begin
   Assert(ILItem <> nil);
-  Operand.SetVarSource(ILItem.AssignToHiddenVar(ResultType));
+  if ResultByRefParam <> nil then
+  begin //If we have a function whose return value is pass-by-reference
+    Assert(ResultByRefParam.Kind = pkNone);
+    //Create a temp variable
+    V := Vars.AddHidden(ResultType);
+    V.IncVersion;
+    //Patch it into the argument /load/ IL for the function call
+    ResultByRefParam.SetVarRef(V);
+    //And return it in the operand
+    Operand.SetVarSource(V);
+  end
+  else
+    Operand.SetVarSource(ILItem.AssignToHiddenVar(ResultType));
 end;
 
 procedure TExprSlug.Initialise;
@@ -104,6 +131,7 @@ begin
   Op := OpUnknown;
   ResultType := nil;
   ImplicitType := nil;
+  ResultByRefParam := nil;
 end;
 
 function TExprSlug.OpData: POpData;
@@ -139,7 +167,7 @@ function ParseDecimal(var Slug: TExprSlug;Sign: TSign): TQuicheError;
 var S: String;
   Value: Integer;
   Ch: Char;
-  Large: Boolean; //If first digit is '0' expand type to vInteger/vtWord
+  Large: Boolean; //If first digit is '0' expand type to vtInteger/vtWord
   Cursor: TParseCursor;
 begin
   if Sign = sgnMinus then

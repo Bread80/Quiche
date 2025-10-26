@@ -742,7 +742,7 @@ procedure TRegState.FromString(Reg: TCPUReg;State: String);
   begin
     VarData := State.Substring(1).Split(['#']);
     Assert(Length(VarData) = 2, 'VarData state format: <qualified-varname>#<version>');
-    V := VarFindByNameAllScopes(VarData[0]);
+    V := Vars.FindByNameAllScopes(VarData[0]);
     Assert(V <> nil);
     Assert(TryStrToInt(VarData[1], LVersion), 'VarData state format: <qualified-varname>#<version>');
     RegStateSetVariable(Reg, V, LVersion, AKind);

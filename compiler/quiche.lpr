@@ -51,7 +51,7 @@ begin
     end;
 
     try
-      IDE.Compiler.CompileStrings(Lines, btDefault, pmRootUnknown, False, True);
+      IDE.Compiler.CompileStrings(Lines, btDefault, pmRootUnknown, True, False);
 
       if ParseErrorNo <> 0 then
       begin
@@ -68,7 +68,7 @@ begin
         EXIT(False);
       end
       else
-        writeln('Compiled in ' + format('%.5f',[IDE.Compiler.CompileTime * 1000]), 'ms');
+        writeln('Compiled in ' + format('%.0f',[IDE.Compiler.CompileTime / EncodeTime(0,0,0,1){ * 1000}]), 'ms');
     except
       on E:Exception do
       begin
@@ -140,7 +140,14 @@ begin
       if SelectDeploy(CommandLine) then
         if Compile(CommandLine) then
           if not Deploy(IDE.Compiler.GetBinaryFilename, True) then
-            writeln('Deployment error: ', IDE.Compiler.DeployError);
+            writeln('Deployment error: ', IDE.Compiler.DeployError)
+          else
+        else
+          writeln('Compile error')
+      else
+        writeln('Failed to select deployment')
+    else
+      writeln('Failed to select platfom');
 
   finally
     CommandLine.Free;
@@ -186,6 +193,8 @@ begin
       Exit(False);
     end;
   end
+  else if IDE.Compiler.SetDeploy('quiche') then
+    writeln('Deploy: quiche')
   else
     EXIT(False);
 
@@ -204,9 +213,10 @@ begin
       writeln('Specify either ''-run'' or ''-platform'' but not both.');
       EXIT(False);
     end
+    else if IDE.Compiler.SetPlatform('quiche') then
+        writeln('Platform: quiche')
     else
-      if IDE.Compiler.SetPlatform('quiche') then
-      writeln('Platform: quiche');
+      EXIT(False);
   end
   else if CommandLine.HasOption('platform') then
   begin
@@ -229,6 +239,8 @@ begin
       EXIT(False);
     end;
   end
+  else if IDE.Compiler.SetPlatform('quiche') then
+    writeln('Platform: quiche')
   else
     EXIT(False);
 

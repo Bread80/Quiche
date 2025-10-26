@@ -61,6 +61,10 @@ type
                   //Generally the data is unchanged and no validation is performed.
     opMove,       //Move data from one location to another (ie load+store)
                   //One parameter (Param1) and a Dest
+    opBlockCopy,  //Copy a block of data from one location to another
+                  //Param1: VarRef Source variable
+                  //Param2: VarRef Dest variable
+                  //Param3: Count of bytes to copy
     opStoreImm,   //Store an immediate value into a location
                   //One parameter (Param1) which must be an pkImmediate and a Dest
     opBranch,     //Unconditional branch
@@ -193,7 +197,7 @@ function StringToBoolean(S: String): Boolean;
 const OpStrings : array[low(TOperator)..high(TOperator)] of String = (
   //System operators
   'UNKNOWN','Typecast',
-  'Move','StoreImm',
+  'Move','BlockCopy','StoreImm',
   'Branch','BoolVarBranch',
   'PtrLoad','PtrStore',
   'Phi',

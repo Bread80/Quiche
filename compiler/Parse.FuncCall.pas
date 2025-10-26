@@ -1,7 +1,7 @@
 unit Parse.FuncCall;
 
 interface
-uses Def.Functions, Def.QTypes,
+uses Def.Functions, Def.VarTypes,
   Parse.Errors, Parse.Literals, Parse.Expr;
 
 //Parse a procedure call, or a function call with the result being ignored.
@@ -13,7 +13,7 @@ function DoParseFunctionCall(Func: PFunction;var Slug: TExprSlug): TQuicheError;
 
 implementation
 uses SysUtils,
-  Def.IL, Def.Operators, Def.Variables, Def.UserTypes, Def.TypeData,
+  Def.IL, Def.Operators, Def.Variables, Def.UserTypes, Def.TypeData, Def.Consts, Def.Scopes,
   Lib.Primitives,
   Parse.Base, Parse.Eval, Parse.TypeChecker,
   Z80.Hardware;
@@ -53,31 +53,67 @@ end;
 //Validate an argument and process as necessary, depending on the calling
 //convention (e.g. writing it to a hidden variable or pushing it onto the stack.
 function ProcessArgument(Func: PFunction;CallingConvention: TCallingConvention;
-  Arg: TParameter;var Slug: TExprSlug): TQuicheError;
-var ILItem: PILItem;
+  ArgIndex: Integer;var Slug: TExprSlug): TQuicheError;
+var Arg: PParameter;
+  ILItem: PILItem;
+  V: PVariable;
+  CL: PConstList;
+  Scope: PScope;
 begin
+  Arg := @Func.Params[ArgIndex];
+
+  //We have a pointered literal - it needs adding to a ConstList...
+  if (Slug.ILItem = nil) and (Slug.Operand.Kind = pkImmediate) then
+    if IsPointeredType(UTToVT(Slug.ResultType)) then
+        Consts.Add('<Unnamed>', Slug.ResultType, Slug.Operand.Imm);
+
   //Validate argument:
   case Arg.Access of
-    vaVal, vaConst, vaResult: ;  //Any
-    vaVar:
+    paVal, paConst, paResult: ;  //Any
+    paVar, paOut:
     begin //Argument needs to be a variable reference.
       if (Slug.ILItem <> nil) or (Slug.Operand.Kind <> pkVarSource) then
         EXIT(ErrFuncCallSub(qeArgMustBeVariable, Arg.Name, Func));
-    end;
-    vaOut:
-    begin //Argument needs to be a variable reference.
-      if (Slug.ILItem <> nil) or (Slug.Operand.Kind <> pkVarSource) then
-        EXIT(ErrFuncCallSub(qeArgMustBeVariable, Arg.Name, Func));
-      //TODO: Proper type checking of user types
-      if Slug.Operand.Variable.VarType <> UTToVT(Arg.UserType) then
-        EXIT(ErrFuncCallSub3(qeReturnedArgTypeMismatch, Arg.Name,
-          Slug.Operand.Variable.UserType.Description, Arg.UserType.Description,
-          Func));
-      //Output parameter so we need to write it to the variable
-      Slug.Operand.Kind := pkVarDest;
+      //Variable mustn't be a Const
+      Assert(Slug.Operand.Kind = pkVarSource);
+      V := Slug.Operand.Variable;
+      if V.IsConst then
+        EXIT(ErrFuncCallSub(qeCantPassCONSTasVARorOUT, Arg.Name, Func));
+      if not ((Arg.Access = paVar) and (Func.CallingConvention = ccIntrinsic)) then
+      begin
+        //TODO: Proper type checking of user types
+        if V.VarType <> UTToVT(Arg.UserType) then
+          EXIT(ErrFuncCallSub3(qeReturnedArgTypeMismatch, Arg.Name,
+            Slug.Operand.Variable.UserType.Description, Arg.UserType.Description,
+            Func));
+      end;
+      if Arg.Access = paOut then  //????vaVAR????
+        //Output parameter so we need to write it to the variable
+        Slug.Operand.Kind := pkVarDest;
     end;
     else
     Assert(False, 'Unknown access specifier');
+  end;
+
+  //Do we need a hidden copy (of a Pointered Type argument)?
+  //If so we need to generate a opBlockCopy /before/ the function dispatch IL
+  if Arg.CopyDataIn then
+  begin
+    Assert(IsPointeredType(Arg.UserType.VarType));
+    ILItem := ILAppend(opBlockCopy);
+    Assert(Slug.Operand.Kind = pkVarSource);
+    ILItem.Param1 := Slug.Operand;
+    ILItem.Param1.Kind := pkVarRef;
+    ILItem.Param2.Kind := pkImmediate;
+    ILItem.Param2.Imm := TImmValue.CreateTyped(vtWord, GetTypeSize(Slug.ResultType));
+    //Dest is the variable created within the function
+    Scope := FindScopeForFunc(Func);
+    Assert(Scope <> nil);
+    V := Scope.VarList.FindVarForArg(ArgIndex);
+    Assert(V <> nil); //Should never happen
+    ILItem.Dest.SetVarRef(V);  //TODO: CodeGen will probably use the wrong scope for the variable !Eek!
+    ILItem.Dest.VarVersion := 1;
+    ILItem.ResultType := Slug.ResultType;
   end;
 
   //Do we need to push this argument on the stack?
@@ -135,7 +171,7 @@ begin
     Result := ParseArgument(Func.Params[ArgIndex], Slugs[ArgIndex]);
     if Result <> qeNone then
       EXIT;
-    Result := ProcessArgument(Func, Func.CallingConvention, Func.Params[ArgIndex], Slugs[ArgIndex]);
+    Result := ProcessArgument(Func, Func.CallingConvention, ArgIndex, Slugs[ArgIndex]);
     if Result <> qeNone then
       EXIT;
 
@@ -196,7 +232,7 @@ begin
 
     Slugs[ArgIndex].ResultType := Slugs[ArgIndex].Operand.Imm.UserType;
     Slugs[ArgIndex].ImplicitType := Slugs[ArgIndex].Operand.Imm.UserType;
-    Result := ProcessArgument(Func, Func.CallingConvention, Func.Params[ArgIndex], Slugs[ArgIndex]);
+    Result := ProcessArgument(Func, Func.CallingConvention, ArgIndex, Slugs[ArgIndex]);
     if Result <> qeNone then
       EXIT;
     inc(ArgIndex);
@@ -265,8 +301,9 @@ begin
     end;
   end;
 
-  if Func.Params[0].Access = vaVar then
+  if (Func.Params[0].Access = paVar) and not (Func.Params[0].IsByRef) then
   begin //Var parameter - result is written back to Param1
+
     V := Slug.ILItem.Param1.Variable;
     V.IncVersion;
     Slug.ILItem.Dest.SetVarDestAndVersion(V, V.Version);
@@ -486,7 +523,7 @@ begin
         EXIT;
 
       //Validate the argument
-      Result := ProcessArgument(Func, Func.CallingConvention, Func.Params[0], Slug);
+      Result := ProcessArgument(Func, Func.CallingConvention, 0, Slug);
       if Result <> qeNone then
         EXIT;
 
@@ -521,10 +558,8 @@ begin
 end;
 
 //IL code for Register calling convention
-function DispatchRegister(Func: PFunction;var Slugs: TSlugArray): PILItem;
+function DispatchRegister(Func: PFunction;var Slugs: TSlugArray;var Slug: TExprSlug): PILItem;
 var
-(*  InParamCount: Integer;  //Number of parameters being passed *into* the function
-*)                          //I.e. excluding Out and Result paramaters being returned
   ArgIndex: Integer;
   Arg: PParameter;
   ILItem: PILItem;
@@ -532,86 +567,83 @@ var
 begin
   //NOTE: The following assumes values being passed are appropriate for the functions arguments
 
-(*  InParamCount := 0;
-*)  for ArgIndex := 0 to Func.ParamCount-1 do
-  begin
-    //For parameters which are being passed an expression:
-    //assign the result of the expression to a hidden variable.
+//1. Assign any expressions to variables
+
+  //For any arguments which are being passed an expression:
+  //assign the result of the expression to a hidden variable.
+  for ArgIndex := 0 to Func.ParamCount-1 do
     if Slugs[ArgIndex].ILItem <> nil then
       Slugs[ArgIndex].AssignToHiddenVar;
 
-(*    //Count number of Input parameters
-    if not (Func.Params[ArgIndex].Access in [vaOut, vaResult]) then
-      inc(InParamCount);
-*)  end;
-
-//2. Generate IL code to load parameters into registers
-//   (For Each SlugList/Func.Param)
-//     ILType of 'load register'?
-//       * From temp vars (created in step 1)
-//       * Variables (and other temp vars)
-//       * Addresses of vars (TODO)
-//       * Immediate data
+//2. Generate IL code to load arguments into registers
 
   //We haven't created any IL data yet
   ILItem := nil;
 
   //Load any input parameters
-  for ArgIndex := 0 to Func.ParamCount-1 do
-    if not (Func.Params[ArgIndex].Access in [vaOut, vaResult]) then
+  for ArgIndex := 0 to Func.ParamCount + Func.ResultCount - 1 do
+    if Func.Params[ArgIndex].PassDataIn then
     begin
+      //Allocate a Param
       Param := ILAppendFuncData(ILItem);
 
-      case Func.Params[ArgIndex].Access of
-        vaVal:
-        begin
-          Param^ := Slugs[ArgIndex].Operand;
-          Param.Reg := Func.Params[ArgIndex].Reg;
-        end;
-        vaVar: Assert(False, 'TODO');
-        vaConst: Assert(False, 'TODO');
-        vaOut: Assert(False, 'TODO');
-        vaResult: Assert(False, 'TODO');
+      if Func.Params[ArgIndex].Access = paResult then
+      begin
+        //Result will not have a Slug in Slugs. We need to set Slug.ResultByRefParam
+        //so caller can update the Param to load the VarRef
+        Param.Initialise;
+        Param.Reg := Func.Params[ArgIndex].Reg;
+        Slug.ResultByRefParam := Param;
+      end
       else
-        raise Exception.Create('Unknown access specifier (in)');
+      begin
+        Param^ := Slugs[ArgIndex].Operand;
+        Param.Reg := Func.Params[ArgIndex].Reg;
+        if Func.Params[ArgIndex].IsByRef then
+        begin
+          Assert(Param.Kind in [pkVarSource, pkVarDest]);
+          Param.Kind := pkVarRef;
+        end;
       end;
     end;
+
+//3. Generate IL code to write returned values into variables.
 
   //Store any output parameters
-  for ArgIndex := 0 to Func.ParamCount-1 do
-    if Func.Params[ArgIndex].Access = vaOut then
+  for ArgIndex := 0 to Func.ParamCount - 1 do
+    if Func.Params[ArgIndex].ReturnsData then
     begin
+      //Allocate a Param
       Param := ILAppendFuncData(ILItem);
 
-      case Func.Params[ArgIndex].Access of
-        //TODO: vaVarByVal (for Register) needs to load return value.
-        //We'll need to duplicate the Param so we can set the Kind to pkVarDest
-        vaOut:
-        begin
-          //We need to write the returned value to a varaible, so Param must be
-          //pkVarDest + variable + VarVersion
-          Param^ := Slugs[ArgIndex].Operand; //???
-          Assert(Param.Kind = pkVarDest);
-          Param.Reg := Func.Params[ArgIndex].Reg;
-          Param.Variable.IncVersion;
-          Param.VarVersion := Param.Variable.Version;
-        end;
-      else
-        raise Exception.Create('Unknown access specifier (out)');
-      end;
+      //We need to write the returned value to a variable, so Param must be
+      //pkVarDest + variable + VarVersion
+      Param^ := Slugs[ArgIndex].Operand; //???
+      Assert(Param.Kind in [pkVarSource, pkVarDest]);
+      if Param.Kind = pkVarSource then
+        Param.Kind := pkVarDest;
+      Param.Reg := Func.Params[ArgIndex].Reg;
+      Param.Variable.IncVersion;
+      Param.VarVersion := Param.Variable.Version;
     end;
+
+//4. Generate IL code for the function call itself
 
   //Add the function call
   ILAppendFuncCall(ILItem, Func);
 
+//5, Generate IL code to write a function Result to a variable
+
   //Return value has to be the very last one we do - it will be assigned by caller
   if Func.ResultCount > 0 then
   begin
-    Param := ILAppendFuncResult(ILItem);
     Arg := Func.FindResult;
-    ILItem.ResultType := Arg.UserType;
-    //TODO: Assign a variable here???
-    Param.Reg := Arg.Reg;
+    if Arg.ReturnsData then
+    begin
+      Param := ILAppendFuncResult(ILItem);
+      ILItem.ResultType := Arg.UserType;
+      Param.Reg := Arg.Reg;
+    end;
   end;
   Result := ILItem;
 end;
@@ -666,7 +698,7 @@ begin
 
   //Generate IL code for the parameters & call
   case Func.CallingConvention of
-    ccRegister, ccCall, ccRST: DispatchRegister(Func, Slugs);
+    ccRegister, ccCall, ccRST: DispatchRegister(Func, Slugs, DummySlug);
     ccIntrinsic:
         Result := DispatchIntrinsic(Func, Slugs, DummySlug);
     ccStack: DispatchStack(Func);
@@ -693,7 +725,7 @@ begin
 
   //Generate IL code for the parameters & call
   case Func.CallingConvention of
-    ccRegister, ccCall, ccRST: Slug.ILItem := DispatchRegister(Func, Slugs);
+    ccRegister, ccCall, ccRST: Slug.ILItem := DispatchRegister(Func, Slugs, Slug);
     ccIntrinsic: Result := DispatchIntrinsic(Func, Slugs, Slug);
     ccStack: Slug.ILItem := DispatchStack(Func);
   else

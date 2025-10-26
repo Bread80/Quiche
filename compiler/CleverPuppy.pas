@@ -263,7 +263,7 @@ type
 
 implementation
 uses SysUtils,
-  Def.Operators, Def.Variables, Def.QTypes, Def.Scopes, Def.UserTypes,
+  Def.Operators, Def.Variables, Def.VarTypes, Def.Scopes, Def.UserTypes,
   Lib.CPUState, Lib.Primitives,
   Z80.GenProcs,
   Puppy.Source;

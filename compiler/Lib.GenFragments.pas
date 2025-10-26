@@ -25,7 +25,7 @@ procedure GenLibraryProc(const ProcName: String;ILItem: PILItem);
 implementation
 uses Classes, Generics.Collections, SysUtils,
   IDE.Compiler, //For meta commentary
-  Def.QTypes, Def.Consts, Def.Variables, Def.UserTypes,
+  Def.VarTypes, Def.Consts, Def.Variables, Def.UserTypes,
   Lib.CPUState,
   Parse.Source,
   CG.Data,
@@ -209,9 +209,9 @@ begin
       PName := Result.Substring(St+1,En-St-1);
 
       if CompareText(PName, 'vars.localsbytesize') = 0 then
-        Sub := WordLoToStr(VarGetLocalsByteSize)
+        Sub := WordLoToStr(Vars.GetLocalsByteSize)
       else if CompareText(PName, 'vars.paramsbytesize') = 0 then
-        Sub := WordLoToStr(VarGetParamsByteSize)
+        Sub := WordLoToStr(Vars.GetParamsByteSize)
         ;
 
 

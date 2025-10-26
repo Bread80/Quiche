@@ -36,8 +36,8 @@ type
                       //Depth is increased for every BEGIN and decreased for every END
     Func: PFunction;  //The function which owns this scope. Nil for main/global code
     ConstList: PConstList;  //Constants declared at this scope level
-    TypeList: PTypeList;       //Ditto for Types
-    VarList: TVarList;      //Ditto for Variables
+    TypeList: PTypeList;    //Ditto for Types
+    VarList: PVarList;      //Ditto for Variables
     FuncList: TFuncList;    //Functions declared in this scope
 
     AsmCode: TStringList;   //Assembly code for Code segment for this scope (from CodeGen)
@@ -58,14 +58,14 @@ procedure SetCurrentScope(Scope: PScope);
 //Returns True if there was a parent scope, False if not
 function SetParentScope: Boolean;
 
-//Get te current scope. Used by vars, consts, types, functions to cache the current
+//Get the current scope. Used by vars, consts, types, functions to cache the current
 //value before searching parent scopes
 function GetCurrentScope: PScope;
 
 //Creates a new scope and sets it as the current scope
 //If no main scope is assigned, also sets this as the main scope
 //If the Scope is for a function, Func is that function, otherwise Func should be nil.
-//Name is the name of the scope. If Name is '' the name will be retrived from Func.
+//Name is the name of the scope. If Name is '' the name will be retrieved from Func.
 function CreateCurrentScope(Func: PFunction;const Name: String): PScope;
 
 //Creates a new scope to be used in a record deefinition.
@@ -131,6 +131,12 @@ function SearchScopes(const Ident: String;out Scope: PScope;
 //Searches all current scopes for a typed pointer to the given UserType
 function SearchScopesForAnonTypedPointer(UserType: PUserType): PUserType;
 
+//Searched /all/ scopes for the given variable
+function FindScopeForVar(AVar: PVariable;out Index: Integer): PScope;
+
+//Searched /all/ scopes for the given function
+function FindScopeForFunc(AFunc: PFunction): PScope;
+
 //-----GUI utlilities
 procedure ScopesToStrings(S: TStrings);
 
@@ -148,7 +154,7 @@ function ScopeHandleToScope(Handle: TScopeHandle): PScope;
 
 implementation
 uses Generics.Collections, SysUtils,
-  Def.Globals, Def.QTypes;
+  Def.Globals;
 
 var
   MainScope: PScope;    //Scope for the program itself/highest level
@@ -174,8 +180,8 @@ begin
     Dispose(Scope.ConstList);
     Scope.TypeList.Clear;
     Dispose(Scope.TypeList);
-    ClearVarList(Scope.VarList);
-    Scope.VarList.Free;
+    Scope.VarList.Clear;
+    Dispose(Scope.VarList);
     ClearFuncList(Scope.FuncList);
     Scope.FuncList.Free;
     Scope.AsmCode.Free;
@@ -304,7 +310,7 @@ begin
   //Variables
   if Assigned(Scope.VarList) then
   begin
-    Result.V := VarFindByNameInScope(Ident);
+    Result.V := Vars.FindByNameInScope(Ident);
     if Result.V <> nil then
     begin
       Result.IdentType := itVar;
@@ -349,6 +355,30 @@ begin
   SetCurrentScope(Scope);
 end;
 
+function FindScopeForVar(AVar: PVariable;out Index: Integer): PScope;
+begin
+  for Result in ScopeList do
+  begin
+    Index := Result.VarList.IndexOf(AVar);
+    if Index >= 0 then
+      EXIT;
+  end;
+
+  Index := -1;
+  Result := nil;
+end;
+
+function FindScopeForFunc(AFunc: PFunction): PScope;
+var Scope: PScope;
+  LFunc: PFunction;
+begin
+  for Scope in ScopeList do
+    if AFunc = Scope.Func then
+      EXIT(Scope);
+
+  Result := nil;
+end;
+
 function SearchScopesForAnonTypedPointer(UserType: PUserType): PUserType;
 var Scope: PScope;
 begin
@@ -384,7 +414,7 @@ begin
   Assert(CurrentScope.Depth > 0);
   CurrentScope.Depth := CurrentScope.Depth - 1;
   //TODO Tell variables about the new depth
-  Def.Variables.ScopeDepthDecced(CurrentScope.Depth);
+  Vars.ScopeDepthDecced(CurrentScope.Depth);
   Consts.ScopeDepthDecced(CurrentScope.Depth);
 end;
 

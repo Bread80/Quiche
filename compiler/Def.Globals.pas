@@ -90,3 +90,4 @@ const BlockTypeStrings: array[low(TBlockType)..high(TBlockType)] of String = (
 implementation
 
 end.
+

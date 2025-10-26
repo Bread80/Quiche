@@ -40,7 +40,7 @@
     <Version Value="11"/>
     <PathDelim Value="\"/>
     <Target>
-      <Filename Value="../redist/bin/quiche-$(TargetCPU)-$(TargetOS)"/>
+      <Filename Value="../redist/bin/$(TargetCPU)-$(TargetOS)/quiche"/>
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>

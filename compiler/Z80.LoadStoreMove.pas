@@ -10,7 +10,7 @@
 unit Z80.LoadStoreMove;
 
 interface
-uses Def.Functions, Def.IL, Def.QTypes,
+uses Def.Functions, Def.IL, Def.VarTypes,
   Lib.Data;
 
 
@@ -204,7 +204,7 @@ begin
         end;
       end;
     end;
-    pkVarSource, pkVarDest:
+    pkVarSource, pkVarDest, pkVarRef:
     begin
       V := Param.ToVariable;
       if RegStateEqualsVariable(R, V, Param.VarVersion, rskVarValue) then
@@ -220,7 +220,7 @@ begin
         else
         case V.AddrMode of
           amStatic:
-            case GetTypeSize(V.UserType) of
+            case GetTypeRegSize(V.UserType) of
               1: Result := mtStatic8;
               2: Result := mtStatic16;
             else
@@ -228,6 +228,8 @@ begin
             end;
           amStack:
             Result := mtStack;
+          amStaticRef: Result := mtStatic16;
+//          amStackPtr: Result := mtStack;
         else
           System.Assert(False);
         end;
@@ -241,7 +243,7 @@ begin
       //TODO: Already in registers?
       inc(MoveAnalysis.ToMoveCount);
       case V.AddrMode of
-        amStatic, amStaticPtr:
+        amStatic, amStaticRef:
                   //LD HL,(v)     ;HL->pointer
                   //LD r,(HL)     ;r->value
           case GetTypeSize(V.UserType.OfType) of
@@ -250,7 +252,7 @@ begin
           else
             System.Assert(False);
           end;
-        amStack, amStackPtr:
+        amStack{, amStackPtr}:
                   //LD L,(IX+)    ;HL->pointer
                   //LD H,(IX+)
                   //LD r,(HL)     ;r->value
@@ -282,14 +284,14 @@ begin
 
   case Param.Kind of
     pkImmediate: ;  //Nothing
-    pkVarSource, pkVarPtr:
+    pkVarSource, pkVarPtr, pkVarRef:
     begin
       V := Param.ToVariable;
       if Param.Kind = pkVarSource then
         UserType := V.UserType
       else
         UserType := V.UserType.OfType;
-      case GetTypeSize(UserType) of
+      case GetTypeRegSize(UserType) of
         1:  //8-bit to ??
           if (V.VarType = vtInt8) and (R in CPUReg16Bit) then
             Result := ptSignExtend;
@@ -362,23 +364,9 @@ begin
     if Func.Params[I].Reg <> rNone then
     begin
       Param := @Func.Params[I];
-      case Param.Access of
-        vaVar:  //Input and output
-          MoveState[Param.Reg].CheckType := Param.UserType;
-        vaVal, vaConst:  //Send access types
-          if Loading then
-          begin
-            Assert(Assigned(MoveState[Param.Reg].Param),
-              'Function parameter specifies a register not included in Load ILItem');
-            MoveState[Param.Reg].CheckType := Param.UserType;
-          end;
-        vaOut, vaResult: //Return access types
-          if not Loading then
-            //(Might not be an error if we're not saving the value)
-            MoveState[Param.Reg].CheckType := Param.UserType;
-      else
-        Assert(False, 'Unknown Function parameter VarAccess type');
-      end;
+      if (Loading and Param.PassDataIn) or
+        (not Loading and Param.ReturnsData) then
+         MoveState[Param.Reg].CheckType := Param.UserType;
     end;
 end;
 
@@ -443,7 +431,10 @@ begin
       pkVarAddr: ;  //Handled by the primitive
 
       //Loading
-      pkImmediate, pkVarRef:
+      pkImmediate:
+        if Loading and (Param.Reg <> rNone) then
+          CopyParamToMoveState(Param, CheckType);
+      pkVarRef:
         if Loading and (Param.Reg <> rNone) then
           CopyParamToMoveState(Param, CheckType);
       pkVarSource,pkVarPtr,pkPop,pkPopByte:
@@ -485,30 +476,35 @@ begin
 end;
 
 //As above but loads values from a function parameter list.
-//Beware Loading terminology: Params are Loaded (into registers) at the end of
-//the function, they are Stored (from registers) at the beginning of the function
+//If Entry is True we will process the saving of values from registers on entry
+//  to the function.
+//If Entry is False we will process the loading of values into registers on exit
 //NOTE: ILParams allocated here must be disposed (See DisposeMoveStateParams)
-procedure SetFuncMoveState(Func: PFunction;Loading: Boolean);
+procedure SetFuncMoveState(Func: PFunction;Entry: Boolean);
 
-  procedure SetParam(Index: Integer;FuncParam: PParameter;Loading: Boolean);
+  procedure SetParam(Index: Integer;FuncParam: PParameter;Entry: Boolean);
   var ILParam: PILParam;
   begin
     New(MoveState[FuncParam.Reg].Param);
     ILParam := MoveState[FuncParam.Reg].Param;
     ILParam.Initialise;
     ILParam.Reg := FuncParam.Reg;
-    if Loading then
+    if not Entry then
       ILParam.Kind := pkVarSource
     else
       ILParam.Kind := pkVarDest;
-    ILParam.Variable := VarFindByFuncParamIndex(Index); //Func param to variable???
+    ILParam.Variable := Vars.FindByFuncParamIndex(Index); //Func param to variable???
     Assert(Assigned(ILParam.Variable), 'Unable to find variable for function parameter');
     ILParam.VarVersion := 0;
 
     MoveState[FuncParam.Reg].Done := False;
     MoveState[FuncParam.Reg].CheckType := FuncParam.UserType;
     MoveState[FuncParam.Reg].MoveType := AssessMoveType(ILParam);
-    MoveState[FuncParam.Reg].ProcessType := AssessProcessType(ILParam);
+    //We're just storing the passed parameters, no need for any processing
+    if FuncParam.IsByRef then
+      MoveState[FuncParam.Reg].ProcessType := ptNone
+    else
+      MoveState[FuncParam.Reg].ProcessType := AssessProcessType(ILParam);
   end;
 
 var I: Integer;
@@ -516,19 +512,9 @@ begin
   InitMoveState;
 
   for I := Low(Func.Params) to High(Func.Params) do
-    case Func.Params[I].Access of
-      vaNone: ;
-      vaVar:  //In and Out
-        SetParam(I, @Func.Params[I], Loading);
-      vaVal, vaConst:   //Input params
-        if not Loading then
-          SetParam(I, @Func.Params[I], Loading);
-      vaOut, vaResult:  //Output params
-        if Loading then
-          SetParam(I, @Func.Params[I], Loading);
-    else
-      Assert(False);
-    end;
+    if (Entry and Func.Params[I].PassDataIn) or
+      (not Entry and Func.Params[I].ReturnsData) then
+        SetParam(I, @Func.Params[I], Entry);
 end;
 
 //To be called if the Params records within the MoveState have been allocated
@@ -850,20 +836,21 @@ var Reg: TCPUReg;
   FromType: PUserType;
 begin
   for Reg := low(MoveState) to High(MoveState) do
-    if not MoveState[Reg].Done then
-      if MoveState[Reg].Param <> nil then
-        if (MoveState[Reg].MoveType in MoveTypes) or (MoveState[Reg].ProcessType in ProcessTypes) then
-        begin
-          //If we need to range check the store
-          if MoveState[Reg].CheckType <> nil then
-              FromType := MoveState[Reg].CheckType
-          else //no converting happening, set FromType to the parameters type
-            FromType := MoveState[Reg].Param.GetUserType;
+    if Reg in Regs then
+      if not MoveState[Reg].Done then
+        if MoveState[Reg].Param <> nil then
+          if (MoveState[Reg].MoveType in MoveTypes) or (MoveState[Reg].ProcessType in ProcessTypes) then
+          begin
+            //If we need to range check the store
+            if MoveState[Reg].CheckType <> nil then
+                FromType := MoveState[Reg].CheckType
+            else //no converting happening, set FromType to the parameters type
+              FromType := MoveState[Reg].Param.GetUserType;
 
-          GenDestParam(MoveState[Reg].Param^, FromType,
-            cgRangeCheck in MoveState[Reg].Param.Flags, nil, Options);
-          MoveState[Reg].Done := True;
-        end;
+            GenDestParam(MoveState[Reg].Param^, FromType,
+              cgRangeCheck in MoveState[Reg].Param.Flags, nil, Options);
+            MoveState[Reg].Done := True;
+          end;
 end;
 
 function GenRegStore(ILIndex: Integer): Integer;
@@ -914,7 +901,7 @@ procedure GenFuncArgStore(Func: PFunction);
 begin
   InitMoveAnalysis;
 
-  SetFuncMoveState(Func, False);
+  SetFuncMoveState(Func, True);
 
   UpdateCPUStateFromMoveState;
 
@@ -952,7 +939,7 @@ begin
   //Initialise the MoveState array with the parameters we need to load into each
   //register, where that value can be sourced, and whether any range checking or
   //extending will be needed (and wether doing so will affect A or Flags
-  SetFuncMoveState(Func, True);
+  SetFuncMoveState(Func, False);
 
   //Initialise the MoveAnalysis record - whether we need to keep values in any registers
   //which might get trashed, and whether those registers will get trashed.

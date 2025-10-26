@@ -8,7 +8,7 @@ unit Def.Consts;
 interface
 uses
   Generics.Collections, Classes,
-  Def.QTypes, Def.UserTypes;
+  Def.VarTypes, Def.UserTypes;
 
 type PConstList = ^TConstList;
 
@@ -69,6 +69,8 @@ type PConstList = ^TConstList;
     //Returns a 16-bit value masked with $ffff
     function ToStringWord: String;
 
+    function GetConstList: PConstList;
+
     //For debugging. Sometimes for code generation
     function ToString: String;
   private
@@ -109,10 +111,12 @@ type PConstList = ^TConstList;
     //requiring a Scope pointer (which woud create circular references)
     ScopeName: String;
 
-    Items: TList<PConst>;
+    FItems: TList<PConst>;
     MarkPosition: Integer;
     Strings: TStringList; //String literals defined within this scope
-    Blobs: TList<TBlob>;  //Binary literals defined within this scope
+    Blobs: TList<TBlob>;
+    function GetItems(Index: Integer): PConst;
+    function GetCount: Integer;  //Binary literals defined within this scope
                           //(for any complex type other than strings)
   public
     procedure Initialise;
@@ -122,7 +126,15 @@ type PConstList = ^TConstList;
     procedure ScopeDepthDecced(NewDepth: Integer);
 
     function Add(const AName: String;UType: PUserType;const AValue: TImmValue): PConst;
+
+    //ONLY for Pointered Types. Finds a pre-existing definition of the same string data.
+    //Searches the current ConstList as well as AValue's Const List.
+    //Returns nil if nothing found.
+    function FindDupValueInScope(const AValue: TImmValue): PConst;
     function FindByNameInScope(const AName: String): PConst;
+
+    property Items[Index: Integer]: PConst read GetItems;default;
+    property Count: Integer read GetCount;
   end;
 
 //Currently scoped list of constants
@@ -278,6 +290,16 @@ begin
   FVarType := vtTypeDef;
   FUserType := GetSystemType(FVarType);
   FTypeDefValue := AValue;
+end;
+
+function TImmValue.GetConstList: PConstList;
+begin
+  case FVarType of
+    vtString: Result := FStringConstList;
+    vtArray: Result := FBlobConstList;
+  else
+    Result := nil;
+  end;
 end;
 
 function TImmValue.IntValue: Integer;
@@ -471,8 +493,8 @@ end;
 
 procedure TImmValue.UpdateUserType(NewType: PUserType);
 begin
-  Assert(Def.QTypes.IsIntegerVarType(UTToVT(NewType)));
-  Assert(Def.QTypes.IsIntegerVarType(UTToVT(FUserType)));
+  Assert(Def.VarTypes.IsIntegerVarType(UTToVT(NewType)));
+  Assert(Def.VarTypes.IsIntegerVarType(UTToVT(FUserType)));
   FVarType := UTToVT(NewType);
   FUserType := NewType;
 end;
@@ -528,9 +550,26 @@ end;
 
 function TConstList.Add(const AName: String; UType: PUserType;
   const AValue: TImmValue): PConst;
+var CL: PConstList;
 begin
+  if IsPointeredType(UTToVT(UType)) then
+  begin
+    //Do we already have this Value?
+    Result := FindDupValueInScope(AValue);
+    if Result <> nil then
+      EXIT;
+
+    //Is this value already in the Values ConstList?
+    CL := AValue.GetConstList;
+    if (CL <> nil) and (CL <> @Self) then
+      Result := CL.Add(AName, UType, AValue);
+    if Result <> nil then
+      EXIT;
+  end;
+
+  //If not add it
   New(Result);
-  Items.Add(Result);
+  FItems.Add(Result);
   Result.Name := AName;
   Result.UserType := UType;
   Result.InScope := True;
@@ -541,9 +580,9 @@ end;
 procedure TConstList.Clear;
 var V: PConst;
 begin
-  for V in Items do
+  for V in FItems do
     Dispose(V);
-  Items.Clear;
+  FItems.Clear;
   MarkPosition := -1;
   Strings.Clear;
   Blobs.Clear;
@@ -552,16 +591,44 @@ end;
 function TConstList.FindByNameInScope(const AName: String): PConst;
 var I: Integer;
 begin
-  for I := 0 to Items.Count-1 do
+  for I := 0 to FItems.Count-1 do
     if (CompareText(Items[I].Name, AName) = 0) and Items[I].InScope then
       EXIT(Items[I]);
 
   Result := nil;
 end;
 
+function TConstList.FindDupValueInScope(const AValue: TImmValue): PConst;
+var I: Integer;
+begin
+  Assert(IsPointeredType(UTToVT(AValue.UserType)));
+
+  for I := 0 to FItems.Count-1 do
+    case AValue.VarType of
+      vtString:
+        if (AValue.FStringConstList = FItems[I].Value.FStringConstList) and
+          (AValue.FStringIndex = FItems[I].Value.FStringIndex) then
+          EXIT(FItems[I]);
+    else
+      raise Exception.Create('Unknown type');
+    end;
+
+  Result := nil;
+end;
+
+function TConstList.GetCount: Integer;
+begin
+  Result := FItems.Count;
+end;
+
+function TConstList.GetItems(Index: Integer): PConst;
+begin
+  Result := FItems[Index];
+end;
+
 procedure TConstList.Initialise;
 begin
-  Items := TList<PConst>.Create;
+  FItems := TList<PConst>.Create;
   MarkPosition := -1;
   Strings := TStringList.Create;
   Blobs := TList<TBlob>.Create;
@@ -570,7 +637,7 @@ end;
 procedure TConstList.ScopeDepthDecced(NewDepth: Integer);
 var I: Integer;
 begin
-  I := Items.Count-1;
+  I := FItems.Count-1;
   while (I >= 0) and (Items[I].Depth > NewDepth) do
   begin
     Items[I].InScope := False;

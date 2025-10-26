@@ -1,0 +1,415 @@
+(*
+BOMBER for Amstrad CPC
+
+Originally by DAVE TOWN
+
+Published in Amstrad Computer User Issue 2 (October/November 1984)
+
+Translated to Quiche by Mike Sutton, October 2025
+*)
+{$CALLINGCONVENTION REGISTER}
+
+program Bomber
+
+//Select screen mode
+procedure Mode(Mode: A); call $bc0e;
+
+//Clear the screen
+procedure CLS; call $bc14;
+
+//Select colour for the given ink
+procedure Ink(InkNumber: A;FirstColour: B;SecondColour: C); call $bc32;
+
+//Select colours for the border
+procedure Border(FirstColour: B;SecondColour: C); call $bc38;
+
+
+//Position the cursor on screen
+procedure Locate(LogicalColumn: H;LogicalRow: L); call $bb75;
+
+//Select current text pen ink
+procedure Pen(Ink: A); call $bb90;
+
+//Specify the first user defined character and the buffer to use for them
+//Buffer must be in central 32k of RAM (ie not under a ROM)
+function TXT_SET_M_TABLE(FirstCharacter: DE;NewTable: HL as Pointer;out OldFirstCharacter: A;out OldTable: HL as Pointer): CF; call $bbab;
+
+
+//Set the graphics pen ink
+procedure GraphicsPen(Ink: A); call $bbde;
+
+//Plot the given pixel in the current graphics pen
+procedure Plot(UserXCoordinate: DE;UserYCoordinate: HL); call $bbea;
+
+//Draw a line from the current graphics cursor location to the given location in the current graphics pen
+procedure Draw(UserXCoordinate: DE;UserYCoordinate: HL); call $bbf6;
+
+//Reads the ink colour of the pixel at the given location
+function Test(UserXCoordinate: DE;UserYCoordinate: HL): A; call $bbf0;
+
+
+//Wait for frame flyback event
+procedure WaitFlyback; call $bd19;
+
+//Get the system time in 1/300ths of a second
+procedure GetTime(out HighWord: DE;out LowWord: HL); call $bd0d;
+
+type TCharData = array[0..7] of Byte
+//TODO: Mustn't be under a ROM. We have no way to specify that yet. 
+//Current default settings mean that's not a problem
+var CharMatrix: array[240..255] of TCharData
+
+var 
+  Score: Byte
+  HiScore: Byte
+  X: Byte
+  Y: Byte
+  Drop: Byte //1 if a Bomb is in play, otherwise 0
+  A: Byte	//Bomb X
+  B: Byte   //Bomb Y
+  Skill: Byte
+  Rate: Byte
+
+const Plane = #241#242
+  //BUG: The constant is being declared twice in memory
+  //PlaneB = #241#242
+
+//TODO: Random number generator
+//Generate an apparently random number between 0 and Max
+function Rnd(Max: Word): Word
+var L: Word
+  H: Word
+begin
+  GetTime(H, L)
+  Result := L mod (Max+1)
+end
+
+//Originally at Line 10
+procedure Initialise
+var OldFirst: Byte	//For return value
+  OldTable: Pointer //For return value
+begin
+  Mode 1
+  Ink 0,0,0
+  Border 0,0
+  ink 1,18,18
+  ink 2,6,6
+  ink 3,4,4
+  ink 5,15,15
+  ink 6,2,2
+  ink 7,24,24
+  ink 8,8,8
+  ink 9,26,26
+  ink 10,10,10
+  ink 11,20,20
+  ink 12,12,12
+  ink 13,16,16
+  ink 14,14,14
+  ink 15,21,21
+  //TODO - UDG management library
+  //symbol after 240
+  TXT_SET_M_TABLE 240,@CharMatrix,OldFirst,OldTable
+  //TODO: constant arrays
+//  symbol 241,$40,$60,$70,$7f,$7f,$3f,$07,$00
+//  symbol 242,$00,$32,$7a,$fe,$fa,$f2,$e0,$00
+  HiScore := 0
+end
+  
+//Originally at line 380
+procedure Instructions
+begin
+  Locate 1,2
+  Pen 1
+  Writeln 'You are piloting an aircraft over a des-serted city and must clear the buildingsin order to land and refuel. Your air-  craft moves across the screen from left to right.'
+  Writeln
+  Writeln
+  Writeln 'On reaching the right, the aircraft ret-urns to the left A LINE FURTHER DOWN.   You have an unlimited supply of bombs   and you can drop them on the buildings  below by pressing the SPACE BAR.'
+  Writeln
+  Writeln
+  Writeln 'Each time you land, the height of the   buildings or the speed of your aircraft increases.'
+  Writeln
+  Writeln
+  Writeln 'ONCE YOU HAVE RELEASED A BOMB, YOU WILL NOT BE ABLE TO RELEASE ANOTHER UNTIL THEFIRST HAS EXPLODED!!!!'
+  Pen 2
+  Locate 1,24
+  Writeln
+  Writeln 'Press any key to start.'
+  while not KeyPressed do ;
+  ReadKey
+end
+
+//Originally at Line 60
+procedure StartGame
+var Ch: Char
+begin
+  Mode 1
+  Pen 2
+  Locate 1,15
+  Write 'Skill: 0 (ACE) to 5 (NOVICE): '
+  Ch := #0
+  repeat
+    if KeyPressed
+      Ch := ReadKey
+  until (Ch >= '0') and (Ch <= '5')
+  Write Ch
+  Skill := ord(Ch) - Ord('0') + 10
+  Locate 1,15
+  Write #18		//Clear to end of line
+  Locate 1,15
+  //TODO: We don't have typed input/read working. Original INPUTs a number between 0 and 100
+  Write 'Speed: 0 (FAST) to 9 (SLOW): '
+  Ch := #0
+  repeat
+    if KeyPressed
+      Ch := ReadKey
+  until (Ch >= '0') and (Ch <= '9')
+  Rate := (ord(Ch) - Ord('0')) * 10
+  
+  X := 2
+  Y := 2
+  A := 2
+  B := 2
+  Score := 0
+  Drop := 0
+end
+
+//Originally at Line 120   
+procedure Buildings
+begin
+  Mode 0
+  for var Base := 5 to 15
+    //TODO: We don't have random numbers or reals (RND returns a value between 0 and 1).
+	//We'll use a function which returns a value between 0 and the parameter
+    for var Height := 21 downto rnd(8) + Skill
+	begin
+	  Locate Base, Height
+	  Pen Base-2
+	  Write #143#8#11#244
+	end
+
+  GraphicsPen 4	
+  Plot 0,20
+  Draw 640,20
+  Locate 1,25
+  Pen 2
+  Write 'SCORE ',Score
+  Locate 13,25
+  Write 'HI ',HiScore
+end
+
+//Originally at line 210
+procedure DoLanded
+begin
+  WaitFlyback	//Wait loop
+  Score := Score + 100 - (Skill*2)
+  Skill := Skill-1
+  X := 2
+  Y := 2
+  A := 2
+  B := 2
+  Drop := 0
+  if Skill < 10
+    Skill := 10
+  Rate := Rate - 20
+  if Rate < 0
+    Rate := 0
+end
+	
+//Originally at Line 520
+procedure BombedBuilding
+begin
+  Locate A,B-1
+  Write ' '#8
+  Pen 4
+  //CHANGED: Again we don't have random numbers yet
+  for var TR := 1 to rnd(3)+1
+  begin
+    Score := Score + 5
+	//TODO: Sound
+//	Sound 3,4000,10,12,0,0,10
+	Locate A,B
+	for var T := 0 to 4
+	  Write #238#8#32#8
+	Inc(B)
+	if B = 24 then
+	  Dec(B)
+  end
+  Locate 6,25
+  Write Score
+  Drop := 0
+  A := X
+  B := Y
+end
+
+//Returns True if we have landed (next level required)
+function UpdatePlane: Boolean
+begin
+  //Redraw in new location
+  Locate X-1,Y
+  Write '   '
+  Pen 1
+  Locate X,Y
+  Write Plane
+  Pen 2
+  Result := (Y = 21) and (X = 15)
+  
+  //Update position
+  if not Result then
+  begin
+    //Move plane
+    inc X
+    if X = 18
+    begin	//Move to next line
+	  Locate X-1,Y
+	  Write #18	   //Clear line??
+	  X := 2
+	  Y := Y + 1
+	  Locate X,Y
+	  Pen 1
+	  Write Plane
+	  Pen 2
+    end
+  end
+end
+
+//Originally at Line 440
+procedure Collided
+var Ch: Char
+begin
+  Locate X-1,Y
+  Write '   '#238#8#188#8
+  for Var T := 1 to 10
+  begin
+	//TODO: Sound - requires records
+//    Sound 7,4000,5,15,0,0,5
+	Pen T
+	Write #238#8#188#8#32#8
+	for var TM := 0 to 50 do ;	//Wait loop
+	Pen 2
+  end
+  CLS
+  Locate 1,5
+  Write 'You scored ',Score
+  if Score > HiScore
+  begin
+    HiScore := Score
+	Locate 1,8
+	Write 'TOP SCORE!!'
+  end
+  Score := 0
+  Locate 1,12
+  Write 'Press R to restart'
+  repeat
+    while not KeyPressed do ;
+	Ch := ReadKey
+  until (Ch = 'r') or (Ch = 'R')
+end
+
+//Returns True if we hit a building :sad-face:
+function TestCollision: Boolean
+begin
+  //TODO: Typecasts currently aren't functional
+  var GX: Word = X
+  GX := (GX+1)*2*32 div 2
+  var GY: Word = Y
+  GY := 408-GY*16
+  var Crash := Test(GX,GY)
+  Result := Crash > 0
+  if Result then
+    Collided
+end
+
+//Returns True if we bombed a building! (If so we can skip collision check)
+function UpdateBomb: Boolean
+begin
+  Result := False
+  //Draw Bomb
+  Locate A,B
+  Write #252
+  //Erase old bomb
+  Locate A,B-1
+  Write ' '
+  //Move bomb
+  Inc(B)
+  if B > 21
+  begin  //Off bottom of screen
+	Locate A,B
+	Write ' '
+	Locate A,B-1
+	Write ' '
+	A := 0
+	B := 0
+	Drop := 0
+	//TODO: Sound functions require records
+//	Sound 3,4000,10,12,0,0,10
+  end
+  else
+  begin  //Hit building?
+    //TODO: Typecasts currently aren't functional
+    var GA: Word = A
+    GA := (GA*2*32) div 2
+	var GB: Word = B
+    GB := 400-GB*16
+    var Bomb := Test(GA,GB)
+    if Bomb > 0
+	begin
+	  Result := True
+      BombedBuilding
+	end
+  end
+end
+  
+//Originally at Line 160
+//Returns True if the bomb hit a building - if so no need to test for collision??
+function DoBomb: Boolean
+var Ch: Char
+begin
+  if (Drop = 0) and KeyPressed
+  begin  //Release bomb?
+    Ch := ReadKey
+    if Ch = ' ' then
+    begin  //Drop a Bomb
+      Drop := 1
+	  B := Y
+	  A := X
+    end
+  end
+  
+  //No bombs if we reach bottom line
+  if Y = 21 then
+	Drop := 0;
+	
+  Result := False
+  if Drop = 1 then
+    Result := UpdateBomb
+  else
+    Result := False
+end
+
+var Died: Boolean
+  IsLanded: Boolean
+begin
+  Initialise
+  Instructions
+  while True 
+  begin
+    StartGame
+	Died := False
+	IsLanded := True
+	repeat
+	  if IsLanded
+	    Buildings
+	  IsLanded := UpdatePlane
+	  if IsLanded
+        DoLanded
+	  else
+	  begin
+	    if not DoBomb
+		  Died := TestCollision
+	  end
+	  for var I := 0 to Rate div 10
+	    WaitFlyback	//Delay
+	until Died
+  end
+end.
+	  

@@ -21,7 +21,7 @@ uses
   Lib.Primitives in 'Lib.Primitives.pas',
   CodeGen in 'CodeGen.pas',
   Parse.Eval in 'Parse.Eval.pas',
-  Def.QTypes in 'Def.QTypes.pas',
+  Def.VarTypes in 'Def.VarTypes.pas',
   Def.Globals in 'Def.Globals.pas',
   Parse.Errors in 'Parse.Errors.pas',
   Parse.Source in 'Parse.Source.pas',

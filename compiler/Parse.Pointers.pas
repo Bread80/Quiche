@@ -225,7 +225,7 @@ implementation
 uses
   SysUtils,
   Parse.Expr, Parse.Base, Parse.Source,
-  Def.QTypes, Def.Operators;
+  Def.VarTypes, Def.Operators;
 
 function TestForPtrSuffix: Boolean;
 var Ch: Char;
@@ -257,7 +257,7 @@ end;
 //  If the expression is not a constant one it's value will be validated against the
 //  type and V (if given)
 function ParseArrayIndexEX(var V: PVariable): TQuicheError;
-var IndexSlug: TExprSlug; //Slug for teh index expresssion
+var IndexSlug: TExprSlug; //Slug for the index expresssion
   ArrayType: PUserType;
   ILItem: PILItem;
 begin
@@ -329,8 +329,8 @@ begin
 
   ResultVar := ILItem.AssignToHiddenVar(ILItem.ResultType);
   case V.AddrMode of              //...but we need to update the addressing mode
-    amStatic, amStaticPtr: ResultVar.AddrMode := amStatic;//Ptr;
-    amStack, amStackPtr: ResultVar.AddrMode := amStack;//Ptr;
+    amStatic, amStaticRef: ResultVar.AddrMode := amStatic;//Ptr;
+    amStack{, amStackPtr}: ResultVar.AddrMode := amStack;//Ptr;
     //?? What if already StackPtr.StaticPtr?
   else
     Assert(False);

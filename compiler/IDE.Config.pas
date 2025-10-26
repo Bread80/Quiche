@@ -137,7 +137,7 @@ begin
       amStatic: WriteString(SL, scDefaultVarStorage, scStorageAbsolute);
       amStack: WriteString(SL, scDefaultVarStorage, scStorageRelative);
     else
-      Assert(True);
+      Assert(False);
     end;
 
     IDESettings.AppendToStringList(SL);

@@ -1,7 +1,7 @@
 unit Lib.Data;
 
 interface
-uses Def.Operators, Def.QTypes,
+uses Def.Operators, Def.VarTypes,
   Z80.Hardware;
 
 

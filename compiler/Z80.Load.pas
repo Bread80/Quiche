@@ -10,7 +10,7 @@ generated.
 unit Z80.Load;
 
 interface
-uses Def.IL,Def.QTypes, Def.Consts, Def.UserTypes,
+uses Def.IL, Def.VarTypes, Def.Consts, Def.UserTypes,
   Lib.Data,
   Z80.Hardware, Z80.GenProcs;
 
@@ -157,9 +157,9 @@ begin
 
   Result := False;
   case Variable.AddrMode of
-    amStack:
+    amStack{, amStackPtr}:
       OpLD(ToReg, rIX, Variable);
-    amStatic:
+    amStatic, amStaticRef:
       OpLD(ToReg, Variable);
   else
     Assert(False);
@@ -546,7 +546,7 @@ var ChangeSigned: Boolean;
   Scavenge: TCPUReg;
 begin
   Assert(ToReg in CPUReg16Bit);
-  Assert(GetTypeSize(Variable.UserType) = 2);
+  Assert(GetTypeRegSize(Variable.UserType) = 2);
 
   Kind := LoadTypeToKind(LoadType);
 
@@ -691,14 +691,14 @@ begin
 
   case ToReg of
     rA..rL:
-      case GetTypeSize(Variable.UserType) of
+      case GetTypeRegSize(Variable.UserType) of
         1: GenLoadVar8BitToReg8Bit(Variable, VarVersion, ToReg, LoadType, ToType, RangeCheck, Options);
         2: GenLoadVar16BitToReg8Bit(Variable, VarVersion, ToReg, LoadType, ToType, RangeCheck, Options);
       else
         Assert(False);
       end;
     rHL..rBC:
-      case GetTypeSize(Variable.UserType) of
+      case GetTypeRegSize(Variable.UserType) of
         1: GenLoadVar8BitToReg16Bit(Variable, VarVersion, ToReg, LoadType, ToType, RangeCheck, Options);
         2: GenLoadVar16BitToReg16Bit(Variable, VarVersion, ToReg, LoadType, ToType, RangeCheck, Options);
       else
@@ -795,6 +795,23 @@ begin
   RegStateSetVariable(ToReg, Variable, 0, rskVarAddr);
 end;
 
+//Loads the address of the data for a Pointered Type
+//The value will depend on the addressing mode of the variable
+procedure GenLoadRegVarRef(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
+{  LoadType: TLoadParamType;ToType: PUserType;RangeCheck: Boolean;}Options: TMoveOptionSet);
+begin
+  Assert(IsPointeredType(Variable.VarType));
+
+  case Variable.AddrMode of
+    amStatic:
+      OpLD(ToReg, Variable.GetAsmName);
+      //TODO: CPU State
+  else
+    Assert(False);
+  end;
+
+end;
+
 procedure GenLoadLiteralPointer(ToReg: TCPUReg;const Imm: TImmValue; Options: TMoveOptionSet);
 begin
   Assert(ToReg in CPUReg16Bit);
@@ -863,6 +880,8 @@ begin
     pkVarSource:
       GenLoadRegVarValue(Param.Variable, Param.VarVersion, Param.Reg, Param.LoadType, ToType,
         cgRangeCheck in Param.Flags, Options);
+    pkVarRef:
+      GenLoadRegVarRef(Param.Variable, Param.VarVersion, Param.Reg, Options);
     pkVarAddr, pkVarPtr: ;  //Handled by the primitive
   else
     System.Assert(False, 'Invalid param kind for param load');

@@ -1,8 +1,53 @@
+(* Function Data
+
+Paramater passing
+
+Calling Conventions: REGISTER, CALL, RST
+
+|-----------|-----------------------------|
+|  Access   | Data Type (of Parameter)    |
+| Specifier | Register    | Pointered     |
+|-----------|-------------|---------------|
+| (value)   | Value       | Ref (copy)[1] |
+|-----------|-------------|---------------|
+| VAR       | Value       | Ref           |
+|-----------|-------------|---------------|
+| CONST     | Value       | Ref           |
+|-----------|-------------|---------------|
+| OUT       | Value       | Ref[2]        |
+|-----------|-------------|---------------|
+| Result    | Value       | Ref[2]        |
+|-----------|-------------|---------------|
+[1] - Hidden copy performed by caller into callees static variables
+[2] - Reference passed in by caller in registers
+
+Calling Conventions: STACK
+
+|-----------|-----------------------------|
+|  Access   | Data Type (of Parameter)    |
+| Specifier | Register    | Pointered     |
+|-----------|-------------|---------------|
+| (value)   | Value       | Ref (copy)[3] |
+|-----------|-------------|---------------|
+| VAR       | Ref         | Ref           |
+|-----------|-------------|---------------|
+| CONST     | Value       | Ref           |
+|-----------|-------------|---------------|
+| OUT       | Ref         | Ref[4]        |
+|-----------|-------------|---------------|
+| Result    | Value[5]    | Ref[4]        |
+|-----------|-------------|---------------|
+[3] - Hidden copy performed by caller into stack space. (Note limits on stack frame size).
+[4] - References passed in by caller on stack
+[5] - Value returned in a register
+
+*)
+
 unit Def.Functions;
 
 interface
 uses Classes, Generics.Collections,
-  Def.Operators, Def.QTypes, Def.Consts, Def.Variables, Def.UserTypes,
+  Def.Operators, Def.VarTypes, Def.Consts, Def.Variables, Def.UserTypes,
   Z80.Hardware;
 
 //Maximum number of parameters which can be specified for a routine, including results
@@ -33,6 +78,15 @@ const
   DefaultExternCallingConvention = ccRegister;
 
 type
+  TParamAccess = (
+    //Function parameters:
+    paNone,   //No such parameter
+    paVal,    //Original value is not modified
+    paVar,    //Original value will be modified by the function
+    paConst,  //Original value will not be modified by the function
+    paOut,    //No value is passed in, a value will be returned
+    paResult);  //Is a result
+
   //Flags for intrinsic parameters
   TIntrinsicFlag = (
     ifToType,       //If parameter is TypeDef will convert it the type in the TypeDef
@@ -43,7 +97,10 @@ type
 
   PParameter = ^TParameter;
   TParameter = record
-    Access: TVarAccess; //Ignored for Intrinsics
+    Access: TParamAccess; //Ignored for Intrinsics
+    IsByRef: Boolean;   //True if the parameter is passed by reference. The value
+                        //will depend on the Access type, the Calling Convention
+                        //and the type of the parameter (ie whether it is a Pointered Type)
     Name: String;
 
     Reg: TCPUReg;       //If the parameter is passed via a register, otherwise rNone
@@ -56,6 +113,24 @@ type
     DefaultValue: TImmValue;   //If the parameter is optional.
                           //(only usable by Intrinsics at the moment)
 
+    //Returns True if the param requires data to be passed the function (in registers)
+    //when the function is called.
+    //Val params require data to be passed in in registers for register types.
+    //  For pointered types Val requires data to be copied into the functions local
+    //  storage
+    //VAR params require data to be passed in whether pass by value or pass by reference.
+    //OUT and Result params will also require data to be passed in when being
+    //passed by reference (ie. the pointer to the data).
+    function PassDataIn: Boolean;
+    //Returns True if the parameter requires a hidden copy of the arguments value
+    //into the functions local storage. Used for Value arguments which are pointered types.
+    function CopyDataIn: Boolean;
+    //Returns True if the param requires data to be returned (in registers).
+    //Params where data is return by reference require a pointer to be passed into
+    //the function. The data is thus returned in memory at the referenced address
+    //and no data is required to be returned by the function. Thus VAR, OUT and
+    //Result params don't return any data when being passed by reference.
+    function ReturnsData: Boolean;
     function ToString: String;
   end;
 
@@ -130,7 +205,12 @@ function IdentToFuncDirective(const Ident: String): TFuncDirective;
 //Converts a string to an access specifier.
 //If Ident is an access specifier returns True,
 //if not returns False and Access returns paVal
-function IdentToAccessSpecifier(const Ident: String;out Access: TVarAccess): Boolean;
+function IdentToAccessSpecifier(const Ident: String;out Access: TParamAccess): Boolean;
+
+//Returns True if a parameter under the given combination of calling convention,
+//access specifier and type will be passed by reference, false otherwise
+function IsPassByRef(CallingConvention: TCallingConvention; Access: TParamAccess;
+  UserType: PUserType): Boolean;
 
 function FunctionToFunctionHandle(Func: PFunction): TFunctionHandle;
 function FunctionHandleToFunction(Handle: TFunctionHandle): PFunction;
@@ -207,8 +287,9 @@ begin
     Result.Params[I].Reg := rNone;
     Result.Params[I].UserType := nil;
 //    Result.Params[I].VarTypes := [];
-    Result.Params[I].Access := vaNone;
+    Result.Params[I].Access := paNone;
     Result.Params[I].HasDefaultValue := False;
+    Result.Params[I].IsByRef := False;
 //    Result.Params[I].DefaultValue := 0;
   end;
 end;
@@ -227,41 +308,72 @@ begin
   Result := dirUnknown;
 end;
 
-function IdentToAccessSpecifier(const Ident: String;out Access: TVarAccess): Boolean;
-const AccessStrings: array[low(TVarAccess)..high(TVarAccess)] of String = (
-  '',
-  '',   //Local variables don't have a keyword
+//The keywords used in function declarations. Used when parsing source and when
+//reconstructing function definitions (for help etc).
+const AccessStrings: array[low(TParamAccess)..high(TParamAccess)] of String = (
+  '',   //None
   '',   //Val doesn't have a keyword
-  'var', 'const', {'in',} 'out',
+  'var',
+  'const',
+  'out',
   '');  //Result doesn't have a keyword
-var VA: TVarAccess;
+
+function IdentToAccessSpecifier(const Ident: String;out Access: TParamAccess): Boolean;
+var VA: TParamAccess;
 begin
-  for VA := low(TVarAccess) to high(TVarAccess) do
+  for VA := low(TParamAccess) to high(TParamAccess) do
     if CompareText(AccessStrings[VA], Ident) = 0 then
     begin
       Access := VA;
       EXIT(True);
     end;
 
-  Access := vaVal;
+  Access := paVal;
   Result := False;
+end;
+
+function IsPassByRef(CallingConvention: TCallingConvention; Access: TParamAccess;
+  UserType: PUserType): Boolean;
+begin
+  case CallingConvention of
+    ccRegister, ccCALL, ccRST:
+      Result := IsPointeredType(UserType.VarType);
+    ccStack:
+      Result := IsPointeredType(UserType.VarType) or
+        //For these two we need to pass in the data address even for non-pointered types
+        (Access in [paVar, paOut]);
+  else
+    Assert(False);
+  end;
 end;
 
 { TParameter }
 
-function TParameter.ToString: String;
-//var VT: TTypeEnum;
+function TParameter.CopyDataIn: Boolean;
 begin
-  case Access of
-    vaVal, vaResult: Result := '';
-    vaVar: Result := 'var ';
-    vaConst: Result := 'const ';
-    vaOut: Result := 'out ';
-  else
-    raise Exception.Create('Unknown param specifier in param');
-  end;
+  Result := IsByRef and (Access = paVal);
+end;
 
-  if Access <> vaResult then
+function TParameter.PassDataIn: Boolean;
+begin
+  if IsByRef then
+    Result := Access in [paVar, paConst, paOut, paResult]
+  else
+    Result := Access in [paVal, paVar, paConst];
+end;
+
+function TParameter.ReturnsData: Boolean;
+begin
+  Result := (Access in [paVar, paOut, paResult]) and not IsByRef;
+end;
+
+function TParameter.ToString: String;
+begin
+  Result := AccessStrings[Access];
+  if Result <> '' then
+    Result := Result + ' ';
+
+  if Access <> paResult then
     Result := Result + Name;
 
   Result := Result + ': ';
@@ -299,7 +411,7 @@ function TFunction.FindResult: PParameter;
 var I: Integer;
 begin
   for I := 0 to Length(Params)-1 do
-    if Params[I].Access = vaResult then
+    if Params[I].Access = paResult then
       EXIT(@Params[I]);
 
   Result := nil;

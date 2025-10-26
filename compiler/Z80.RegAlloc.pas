@@ -14,6 +14,8 @@ procedure TEMPRegAllocPrim(var ILItem: TILItem;const Prim: PPrimitive);
 //for an opMove operation
 procedure TEMPRegAllocMove(var ILItem: PILItem);
 
+procedure TEMPRegAllocBlockCopy(var ILItem: PILItem);
+
 procedure TEMPRegAllocPtrLoad(var ILItem: PILItem);
 
 procedure TEMPRegAllocPtrStore(var ILItem: PILItem);
@@ -30,7 +32,7 @@ procedure TEMPRegAllocStackFunc(Func: PFunction);
 
 implementation
 uses SysUtils, Classes,
-  Def.Operators, Def.QTypes, Def.Variables, Def.UserTypes,
+  Def.Operators, Def.VarTypes, Def.Variables, Def.UserTypes,
   Z80.Hardware;
 
 //============================== REGISTER ALLOCATION
@@ -146,6 +148,17 @@ begin
     ILItem.Dest.Reg := ILItem.Param1.Reg;
 end;
 
+procedure TEMPRegAllocBlockCopy(var ILItem: PILItem);
+begin
+  Assert(ILItem.Op = opBlockCopy);
+  Assert(ILItem.Param1.Kind = pkVarRef);
+  Assert(ILItem.Param2.Kind = pkImmediate);
+  Assert(ILItem.Dest.Kind = pkVarRef);
+  ILItem.Param1.Reg := rHL;
+  ILItem.Param2.Reg := rBC;
+  ILItem.Dest.Reg := rDE;
+end;
+
 procedure TEMPRegAllocPtrLoad(var ILItem: PILItem);
 var ByteCount: Integer;
 begin
@@ -225,26 +238,24 @@ procedure TEMPRegAllocRegisterFunc(Func: PFunction);
     end;
   end;
 
-var
-  Results: Boolean;
-  I: Integer;
-  UsedRegs: TCPURegSet;
-  Reg8: TCPUReg;  //Next 8 bit to be allocated
-  Reg16: TCPUReg; //Next 16 bit to be allocated
-begin
-  Assert(Func.CallingConvention = ccRegister, 'We can only allocate registers when ccRegister is the calling convention');
-
-  //Repeat for both entry and then exit parameters
-  for Results := False to True do
+  //If Entry is True we process Entry parameters (those which require data to be
+  //passed in). If False we process Exit/Result paramaters (those which return data)
+  procedure ProcessParams(Entry: Boolean);
+  var
+    I: Integer;
+    UsedRegs: TCPURegSet;
+    Reg8: TCPUReg;  //Next 8 bit to be allocated
+    Reg16: TCPUReg; //Next 16 bit to be allocated
+    ByteSize: Integer;
   begin
+    Assert(Func.CallingConvention = ccRegister, 'We can only allocate registers when ccRegister is the calling convention');
+
     //Find any registers already allocated and mark as 'used'
     UsedRegs := [];
-    for I := 0 to Func.ParamCount-1 do
+    for I := 0 to Func.ParamCount + Func.ResultCount - 1 do
       if Func.Params[I].Reg <> rNone then
-        if (Results and (Func.Params[I].Access in [vaVal, vaVar, vaConst])) or
-          //TODO: Var is Entry and exit where value passed (VarTypeSize <= 2)
-          //                   but not where address is passed (VarType >= 2)
-          (not Results and (Func.Params[I].Access in [vaVar, vaOut, vaResult])) then
+        if (Entry and Func.Params[I].PassDataIn) or
+          (not Entry and not Func.Params[I].ReturnsData) then
           AddUsedReg(UsedRegs, Func.Params[I].Reg);
 
     //For each Parameter
@@ -254,9 +265,15 @@ begin
     for I := 0 to Func.ParamCount + Func.ResultCount -1 do
       if Func.Params[I].UserType <> nil then
         if Func.Params[I].Reg = rNone then
-          if (Results and (Func.Params[I].Access in [vaVal, vaVar, vaConst])) or
-            (not Results and (Func.Params[I].Access in [vaOut, vaResult])) then
-            case GetTypeSize(Func.Params[I].UserType) of
+          if (Entry and Func.Params[I].PassDataIn) or
+            (not Entry and Func.Params[I].ReturnsData) then
+          begin
+            if Func.Params[I].IsByRef then
+              ByteSize := 2
+            else
+              ByteSize := GetTypeSize(Func.Params[I].UserType);
+
+            case ByteSize of
               1:
               begin
                 while (Reg8 in UsedRegs) and (Reg8 in CPUReg8Bit) do
@@ -269,14 +286,19 @@ begin
               begin
                 while (Reg16 in UsedRegs) and (Reg16 in CPUReg16Bit) do
                   inc(Reg16);
-                Assert(Reg16 in CPUReg16Bit, 'Unable to allocate a register :(');
-                Func.Params[I].Reg := Reg16;
-                AddUsedReg(UsedRegs, Reg16);
-              end;
-            else
-              Assert(False);
+              Assert(Reg16 in CPUReg16Bit, 'Unable to allocate a register :(');
+              Func.Params[I].Reg := Reg16;
+              AddUsedReg(UsedRegs, Reg16);
             end;
+          else
+            Assert(False);
+          end;
+        end;
   end;
+
+begin
+  ProcessParams(True);
+  ProcessParams(False);
 end;
 
 procedure TEMPRegAllocStackFunc(Func: PFunction);
