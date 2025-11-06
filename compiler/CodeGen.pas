@@ -151,18 +151,16 @@ begin
             end;
           end;
         end;
-        amStack:
-        begin
-          S := V.GetAsmName + ' equ ' + abs(V.Offset).ToString;
-        end;
         amStaticRef:
         begin
           Assert(GetVarTypeSize(vtPointer) = 2);
           S := V.GetAsmName + ': dw 0';
         end;
-(*        amStackPtr:
+        amStack, amStackRef:
+        begin
           S := V.GetAsmName + ' equ ' + abs(V.Offset).ToString;
-*)      else
+        end;
+      else
         Assert(False);
       end;
 

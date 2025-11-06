@@ -65,8 +65,6 @@ type
         //reference (both to Scope, Variables and Functions) so we'll use a
         //generic pointer and hack this with typecasts(!)
         Scope: TScopeHandle;
-//        Vars: PVarList;
-//        Funcs: PFunction;
       );
 (*      vtStream: (
         //??
@@ -145,7 +143,7 @@ procedure SetCurrentTypeList(List: PTypeList);
 procedure InitialiseTypes;
 
 //Create global/system types. CurrentScope must be SystemScope
-procedure SetSystemTypes;
+procedure CreateSystemTypes(List: PTypeList);
 
 //Returns the UserType for a VarType
 function GetSystemType(VarType: TVarType): PUserType;
@@ -584,16 +582,16 @@ end;
 
 var SystemTypes: array[low(TVarType)..high(TVarType)] of PUserType;
 
-function CreateSystemType(const Name: String;VarType: TVarType): PUserType;
+function CreateSystemType(List: PTypeList;const Name: String;VarType: TVarType): PUserType;
 begin
-  Result := Types.Add(VarType);
+  Result := List.Add(VarType);
   Result.Name := Name;
   SystemTypes[VarType] := Result;
 end;
 
-function CreateEnumSystemType(const Name: String;VarType: TVarType;Low, High: Integer): PUserType;
+function CreateEnumSystemType(List: PTypeList;const Name: String;VarType: TVarType;Low, High: Integer): PUserType;
 begin
-  Result := CreateSystemType(Name, VarType);
+  Result := CreateSystemType(List, Name, VarType);
   Result.Low := Low;
   Result.High := High;
 end;
@@ -603,23 +601,23 @@ begin
   Result := SystemTypes[VarType];
 end;
 
-procedure SetSystemTypes;
+procedure CreateSystemTypes(List: PTypeList);
 var UT: TVarType;
 begin
   for UT := low(TVarType) to high(TVarType) do
     SystemTypes[UT] := nil;
 
-  CreateEnumSystemType('Int8', vtInt8, -128, 127);
-  CreateEnumSystemType('Integer', vtInteger, -32768, 32767);
-  CreateEnumSystemType('Byte', vtByte, 0, 255);
-  CreateEnumSystemType('Word', vtWord, 0, 65535);
-  CreateEnumSystemType('Pointer', vtPointer, 0, 65535);
-  CreateSystemType('Real', vtReal);
-  CreateSystemType('Boolean', vtBoolean);
-  CreateSystemType('<Flag>', vtFlag);
-  CreateEnumSystemType('Char', vtChar, 0, 255);
-  CreateSystemType('<TypeDef>', vtTypeDef);
-  CreateSystemType('String', vtString);
+  CreateEnumSystemType(List, 'Int8', vtInt8, -128, 127);
+  CreateEnumSystemType(List, 'Integer', vtInteger, -32768, 32767);
+  CreateEnumSystemType(List, 'Byte', vtByte, 0, 255);
+  CreateEnumSystemType(List, 'Word', vtWord, 0, 65535);
+  CreateEnumSystemType(List, 'Pointer', vtPointer, 0, 65535);
+  CreateSystemType(List, 'Real', vtReal);
+  CreateSystemType(List, 'Boolean', vtBoolean);
+  CreateSystemType(List, '<Flag>', vtFlag);
+  CreateEnumSystemType(List, 'Char', vtChar, 0, 255);
+  CreateSystemType(List, '<TypeDef>', vtTypeDef);
+  CreateSystemType(List, 'String', vtString);
 end;
 
 { TTypeList }
@@ -721,9 +719,8 @@ end;
 function IdentToType(const Ident: String): PUserType;
 var
   IdentData: TIdentData;
-  Scope: PScope;
 begin
-  IdentData := SearchScopes(Ident, Scope, False);
+  IdentData := GetCurrentScope.SearchAllInScope(Ident, False);
   if IdentData.IdentType = itUnknown then
     EXIT(nil);
   if IdentData.IdentType <> itType then

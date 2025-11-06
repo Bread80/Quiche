@@ -144,7 +144,7 @@ begin
 
     if VarStatus = vsVarRead then
     begin
-      if SearchCurrentScope(VarName).IdentType <> itUnknown then
+      if GetCurrentScope.Search(VarName).IdentType <> itUnknown then
         EXIT(ErrSub(qeIdentifierRedeclared, VarName));
       Variable := nil;
     end

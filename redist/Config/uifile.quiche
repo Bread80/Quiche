@@ -1,6 +1,13 @@
+program
+  var Test: Byte
 
-  type TNumber = 100..65535
-  var x: TNumber
-  var y: Word
-  y := 65535
-  x := y
+  procedure Foo(var X: Integer);stack;
+  begin
+    Test := Lo(X)
+  end
+
+  var A: Integer
+  begin
+    A := 5
+    Foo(A)
+  end.

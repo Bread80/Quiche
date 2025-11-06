@@ -122,11 +122,6 @@ type
     opComplement,    //Unary NOT
     opAddrOf,  //@ (address of), or address of data or an array element
 
-    //Typecasts
-    //These have one input/source parameter (Param1) and an output/dest/result value (Dest/Param3)
-    opInt8, opInteger, opByte, opWord, opPointer, {opReal,}
-    opBoolean, opChar,
-
     //Intrinsics
     //These take one or two input parameters (Param1, Param2) and usually (but not always)
     //an output value (Dest)
@@ -136,8 +131,8 @@ type
     opHi, opHigh, opInp, opLo, opLow, opOrd, opOut, opPeek, opPoke, opPred,
     opPtr, opSizeof, opSucc, opSwap,
     //Keyboard and Screen (and other I/O)
-    opKeyPressed,
-    opRead, opReadKey, opReadln, opWrite, opWriteln,
+{    opKeyPressed,}
+    opRead, {opReadKey,} opReadln, opWrite, opWriteln,
     //Strings and Chars
     opChr, opDowncase, opLength, opUpcase
     );
@@ -148,7 +143,6 @@ const
 
   InfixOps = [opAdd..opSHL];
   UnaryOps = [opNegate..opAddrOf];
-  TypecastOps = [opInt8..opChar];
   IntrinsicOps = [opAbs..opUpcase];
 
 type
@@ -216,16 +210,12 @@ const OpStrings : array[low(TOperator)..high(TOperator)] of String = (
   'Negate', 'Complement',
   'AddrOf', {'Deref',}
 
-  //Typecasts
-  'Int8', 'Integer', 'Byte', 'Word', 'Pointer', {Real,}
-  'Boolean', 'Char',
-
   //Intrinsics
   'Abs', 'Dec', 'Inc', 'Odd',
   'Hi', 'High', 'Inp', 'Lo', 'Low', 'Ord', 'Out', 'Peek', 'Poke', 'Pred',
   'Ptr', 'Sizeof', 'Succ', 'Swap',
 
-  'KeyPressed', 'Read', 'ReadKey', 'Readln', 'Write', 'Writeln',
+  {'KeyPressed',} 'Read', {'ReadKey',} 'Readln', 'Write', 'Writeln',
 
   'Chr', 'Downcase', 'Length', 'Upcase'
   );
@@ -285,7 +275,7 @@ end;
 
 function IdentToIntrinsicOperator(const Name: String): TOperator;
 begin
-  for Result in (TypecastOps + IntrinsicOps) do
+  for Result in IntrinsicOps do
     if CompareText(Name, OpStrings[Result]) = 0 then
       EXIT;
 

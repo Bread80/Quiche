@@ -333,47 +333,6 @@ begin
   Evalled := True;
 
   case Op of
-    //Typecasts
-    opInt8:
-    begin
-      Value.CreateTyped(vtInt8, LogicValueToType(Param.Imm.ToInteger and $ff, vtInt8));
-      EXIT;
-    end;
-    opInteger:
-    begin
-      if Param.Imm.ToInteger > 32767 then
-        Value.CreateTyped(vtInteger, Param.Imm.ToInteger or (-1 xor $ffff))
-      else
-        Value.CreateTyped(vtInteger, Param.Imm.ToInteger);
-      EXIT;
-    end;
-    opByte:
-    begin
-      Value.CreateTyped(vtByte, Param.Imm.ToInteger and $ff);
-      EXIT;
-    end;
-    opWord:
-    begin
-      Value.CreateTyped(vtWord, Param.Imm.ToInteger and iCPUWordMask);
-      EXIT;
-    end;
-    opPointer:
-    begin
-      Value.CreateTyped(vtPointer, Param.Imm.ToInteger and iCPUWordMask);
-      EXIT;
-    end;
-//    opReal: Value.VarType := vtReal;
-    opBoolean:
-    begin
-      Value.CreateBoolean(Param.Imm.ToInteger <> 0);
-      EXIT;
-    end;
-    opChar:
-    begin
-      Value.CreateChar(chr(Param.Imm.ToInteger and $ff));
-      EXIT;
-    end;
-
     //-----Maths functions
     opAbs:
       if IsIntegerVarType(P.VarType) then

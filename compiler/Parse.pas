@@ -37,7 +37,7 @@ type TParseMode = (
   pmScript,       //At root level, parsing code outside a BEGIN...END block.
                   //Multiline CONST, TYPE, VAR are not allowed.
 
-  pmFuncDecls,     //The declarations section of a function.
+  pmFuncDecls,    //The declarations section of a function.
   pmStatement,    //Parse a single statement (which might be a block)
   pmBlock,        //A BEGIN ... END code block.
                   //The BEGIN has already been consumed
@@ -773,11 +773,9 @@ end;
 // * Variable assignments
 // * Function calls
 function DoNonKeyword(const Ident: String;AddrMode: TAddrMode): TQuicheError;
-var
-  Scope: PScope;
-  IdentData: TIdentData;
+var IdentData: TIdentData;
 begin
-  IdentData := SearchScopes(Ident, Scope);
+  IdentData := GetCurrentScope.SearchAllInScope(Ident);
   case IdentData.IdentType of
     itUnknown:
     begin //Identifier not found

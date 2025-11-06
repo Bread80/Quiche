@@ -130,14 +130,28 @@ begin
   Result := False;
   case Variable.AddrMode of
     amStack:
-      OpLD(ToReg, rIX, Variable);
+      OpLOAD(ToReg, rIX, Variable);
+    amStackRef:
+    begin
+      if moPreserveHL in Options then
+        OpPUSH(rHL);
+      //Variable's address into HL
+      OpLOAD(rHL, rIX, Variable);
+
+      //Load var value
+      OpLOAD(ToReg, rHL);
+      if moPreserveHL in Options then
+        OpPOP(rHL)
+      else if ToReg <> rHL then
+        RegStateSetUnknown(rHL);
+    end;
     amStatic:
     begin
-      OpLD(rA, Variable);
+      OpLOAD(rA, Variable);
       if ToReg <> rA then
       begin
         Assert(not (moPreserveA in Options));
-        OpLD(ToReg, rA);
+        OpMOV(ToReg, rA);
         RegStateSetVariable(rA, Variable, VarVersion, Kind);
         Result := True;
       end;
@@ -152,15 +166,48 @@ end;
 //Returns True if we loaded the value via the A register (but Reg <> rA)
 function GenVarLoad16(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
   Kind: TRegStateKind;Options: TMoveOptionSet): Boolean;
+var ViaA: Boolean;
 begin
   Assert(ToReg in CPURegPairs);
 
   Result := False;
   case Variable.AddrMode of
-    amStack{, amStackPtr}:
-      OpLD(ToReg, rIX, Variable);
+    amStack:
+      OpLOAD(ToReg, rIX, Variable);
+    amStackRef:
+    begin
+      if moPreserveHL in Options then
+        OpPUSH(rHL);
+      OpLOAD(rHL, rIX, Variable);   //Variable's address into HL
+      if ToReg = rHL then
+      begin //Load via A
+        if moPreserveA in Options then
+          OpPUSH(rAF);
+        OpLOAD(rA, rHL);    //Low byte into A
+        OpINC(rHL);
+        OpLOAD(rH, rHL);    //High byte into H
+        OpMOV(rL, rA);                 //Low byte into L
+        if moPreserveA in Options then
+          OpPOP(rAF)
+        else
+          if Kind = rskVarValue then
+            RegStateSetVariable(rA, Variable, VarVersion, rskVarValueLow)
+          else
+            RegStateSetUnknown(rA);
+      end
+      else
+      begin
+        OpLOAD(CPURegPairToLow[ToReg], rHL);
+        OpINC(rHL);
+        OpLOAD(CPURegPairToHigh[ToReg], rHL);
+      end;
+      if moPreserveHL in Options then
+        OpPOP(rHL)
+      else if ToReg <> rHL then
+        RegStateSetUnknown(rHL);
+    end;
     amStatic, amStaticRef:
-      OpLD(ToReg, Variable);
+      OpLOAD(ToReg, Variable);
   else
     Assert(False);
   end;
@@ -178,9 +225,9 @@ begin
   Result := False;
   case Variable.AddrMode of
     amStack:
-      OpLD(ToReg, rIX, Variable, 1);
+      OpLOAD(ToReg, rIX, Variable, 1);
     amStatic:
-      OpLD(ToReg, Variable, 1);
+      OpLOAD(ToReg, Variable, 1);
   else
     Assert(False);
   end;
@@ -197,17 +244,31 @@ begin
   Result := False;
   case Variable.AddrMode of
     amStack:
-      OpLD(ToReg, rIX, Variable, 1);
+      OpLOAD(ToReg, rIX, Variable, 1);
     amStatic:
     begin
-      OpLD(rA, Variable, 1);
+      OpLOAD(rA, Variable, 1);
       if ToReg <> rA then
       begin
         Assert(not (moPreserveA in Options));
-        OpLD(ToReg, rA);
+        OpMOV(ToReg, rA);
         RegStateSetVariable(rA, Variable, VarVersion, Kind);
         Result := True;
       end;
+    end;
+    amStackRef:
+    begin
+      if moPreserveHL in Options then
+        OpPUSH(rHL);
+      //TODO: Is address already in register?
+      //Load address of Data into HL
+      OpLOAD(rHL, rIX, Variable);
+      OpINC(rHL);
+      OpLOAD(ToReg, rHL);
+      if moPreserveHL in Options then
+        OpPOP(rHL)
+      else  //TODO: Update Reg State
+        RegStateSetUnknown(rHL);
     end;
   else
     Assert(False);
@@ -225,17 +286,30 @@ begin
   Result := False;
   case Variable.AddrMode of
     amStack:
-      OpLD(ToReg, rIX, Variable);
+      OpLOAD(ToReg, rIX, Variable);
     amStatic:
     begin
-      OpLD(rA, Variable);
+      OpLOAD(rA, Variable);
       if ToReg <> rA then
       begin
         Assert(not (moPreserveA in Options));
-        OpLD(ToReg, rA);
+        OpMOV(ToReg, rA);
         RegStateSetVariable(rA, Variable, VarVersion, Kind);
         Result := True;
       end;
+    end;
+    amStackRef:
+    begin
+      if moPreserveHL in Options then
+        OpPUSH(rHL);
+      //TODO: Is address already in register?
+      //Load address of Data into HL
+      OpLOAD(rHL, rIX, Variable);
+      OpLOAD(ToReg, rHL);
+      if moPreserveHL in Options then
+        OpPOP(rHL)
+      else  //TODO: Update Reg State
+        RegStateSetUnknown(rHL);
     end;
   else
     Assert(False);
@@ -349,6 +423,20 @@ begin
       case Variable.AddrMode of
         amStack:
           ViaA := GenVarLoad8(Variable, VarVersion, CPURegPairToLow[ToReg], Kind, Options);
+        amStackRef:
+        begin
+          if moPreserveHL in Options then
+            OpPUSH(rHL);
+          //Variable's address into HL
+          OpLOAD(rHL, rIX, Variable);
+
+          //Load var value
+          OpLOAD(CPURegPairToLow[ToReg], rHL);
+          if moPreserveHL in Options then
+            OpPOP(rHL)
+          else if ToReg <> rHL then
+            RegStateSetUnknown(rHL);
+        end;
         amStatic: //Load as pair then overwrite high byte
         begin
           ViaA := GenVarLoad16(Variable, VarVersion, ToReg, Kind, Options);
@@ -644,7 +732,7 @@ begin
   Assert(GetTypeSize(Variable.UserType) = 2, 'Can''t extend 8-bit load into index register');
   Assert(LoadType = lptNormal, 'Can''t load Hi() or Lo() to index register');
 
-  OpLD(ToReg, Variable);
+  OpLOAD(ToReg, Variable);
   RegStateSetVariable(ToReg, Variable, VarVersion, rskVarValue);
 
   if RangeCheck then
@@ -730,7 +818,7 @@ begin
 
   case Variable.AddrMode of
     amStatic:
-      OpLD(ToReg, Variable.GetAsmName);
+      OpMOV(ToReg, Variable.GetAsmName);
     amStack:
     begin
       if Reg <> rNone then
@@ -800,11 +888,11 @@ end;
 procedure GenLoadRegVarRef(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
 {  LoadType: TLoadParamType;ToType: PUserType;RangeCheck: Boolean;}Options: TMoveOptionSet);
 begin
-  Assert(IsPointeredType(Variable.VarType));
+(*  Assert(IsPointeredType(Variable.VarType)); *)
 
   case Variable.AddrMode of
     amStatic:
-      OpLD(ToReg, Variable.GetAsmName);
+      OpMOV(ToReg, Variable.GetAsmName);
       //TODO: CPU State
   else
     Assert(False);
@@ -815,7 +903,7 @@ end;
 procedure GenLoadLiteralPointer(ToReg: TCPUReg;const Imm: TImmValue; Options: TMoveOptionSet);
 begin
   Assert(ToReg in CPUReg16Bit);
-  OpLD(ToReg, Imm.ToLabel);
+  OpMOV(ToReg, Imm.ToLabel);
   RegStateSetLabel(ToReg, Imm.ToLabel);
 end;
 
@@ -823,12 +911,12 @@ procedure GenLoadRegIndirect(ToReg, PtrReg: TCPUReg;Options: TMoveOptionSet);
 begin
   Assert(PtrReg in CPUReg16Bit);
   if ToReg in CPUReg8Bit then
-    OpLDFromIndirect(ToReg, PtrReg)
+    OpLOAD(ToReg, PtrReg)
   else if ToReg in CPURegPairs then
   begin
-    OpLDFromIndirect(CPURegPairToLow[ToReg], PtrReg);
+    OpLOAD(CPURegPairToLow[ToReg], PtrReg);
     OpINC(PtrReg);
-    OpLDFromIndirect(CPURegPairToHigh[ToReg], PtrReg);
+    OpLOAD(CPURegPairToHigh[ToReg], PtrReg);
 
     //TODO: Add better meta data for this
     RegStateSetUnknown(PtrReg);
@@ -845,12 +933,12 @@ procedure GenStoreRegIndirect(PtrReg, FromReg: TCPUReg;Options: TMoveOptionSet);
 begin
   Assert(PtrReg in CPUReg16Bit);
   if FromReg in CPUReg8Bit then
-    OpLDToIndirect(PtrReg, FromReg)
+    OpSTO(PtrReg, FromReg)
   else if FromReg in CPURegPairs then
   begin
-    OpLDToIndirect(PtrReg, CPURegPairToLow[FromReg]);
+    OpSTO(PtrReg, CPURegPairToLow[FromReg]);
     OpINC(PtrReg);
-    OpLDToIndirect(PtrReg, CPURegPairToHigh[FromReg]);
+    OpSTO(PtrReg, CPURegPairToHigh[FromReg]);
 
     //TODO: Add better meta data for this
     RegStateSetUnknown(PtrReg);

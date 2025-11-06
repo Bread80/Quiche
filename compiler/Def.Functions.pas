@@ -46,7 +46,7 @@ Calling Conventions: STACK
 unit Def.Functions;
 
 interface
-uses Classes, Generics.Collections,
+uses Classes, Generics.Collections, SysUtils,
   Def.Operators, Def.VarTypes, Def.Consts, Def.Variables, Def.UserTypes,
   Z80.Hardware;
 
@@ -69,8 +69,16 @@ type
     ccRegister,   //Parameters allocated to registers (if possible), otherwise
                   //spilled to static (global) variables
     ccCall,       //A call to external code (at fixed address), otherwise as Register
-    ccRST         //As ccCode but for reoutines dispatched via Z80 RST instructions
+                  //Takes a parameter which is an address constant
+    ccRST,        //As ccCode but for routines dispatched via Z80 RST instructions
+    ccExtern      //As ccCall but to calls a label. Takes a parameter which is a
+                  //string constant. The string must be a label declared in an included
+                  //assemblyfile
     );
+
+  ECallingConvention = class(Exception)
+    constructor Create;reintroduce;
+  end;
 
 //This probably ought to be a compiler option. TODO
 const
@@ -139,7 +147,6 @@ type
   //For functions or procedures
   PFunction = ^TFunction;
   TFunction = record
-    NameSpace: String;      //I.e. current file
     Name: String;
     Flags: TFuncFlagSet;    //Meta data about the function
 
@@ -155,6 +162,8 @@ type
 
     Op: TOperator;          //If this is an intrinsic (otherwise OpUnknown)
     CodeAddress: Word;      //If implemented in machine code at fixed address
+    CodeLabel: String;      //For EXTERN directive - specifies the label of the assembly
+                            //routine to call
 
     Params: TParamArray;    //Parameter data
 
@@ -178,26 +187,36 @@ type
     function ToString: String;
   end;
 
-type TFuncList = TList<PFunction>;
+type
+  PFuncList = ^TFuncList;
+  TFuncList = record
+    Items: TList<PFunction>;
 
-function CreateFuncList: TFuncList;
+    procedure Initialise;
+    procedure Clear;
 
-procedure ClearFunclist(FuncList: TFuncList);
+    function Count: Integer;
 
-procedure SetCurrentFuncList(AFuncList: TFuncList);
+    //Create a new function and return it
+    function Add(const Name: String): PFunction;
+
+    function FindByNameInScope(Name: String): PFunction;
+
+    function ToString: String;
+  end;
+
+function CreateFuncList: PFuncList;
+
+procedure SetCurrentFuncList(AFuncList: PFuncList);
 
 //Find the given function
 function FuncFindAllScopes(Name: String): PFunction;
 
-function FuncFindInScope(Name: String): PFunction;
-
-//Create a new function and return it
-function FuncCreate(NameSpace, Name: String): PFunction;
 
 type TFuncDirective = (
   dirUNKNOWN,
   dirFORWARD,
-  dirCALL, dirRST,
+  dirCALL, dirRST, dirEXTERN,
   dirSTACK, dirREGISTER);
 
 function IdentToFuncDirective(const Ident: String): TFuncDirective;
@@ -215,90 +234,47 @@ function IsPassByRef(CallingConvention: TCallingConvention; Access: TParamAccess
 function FunctionToFunctionHandle(Func: PFunction): TFunctionHandle;
 function FunctionHandleToFunction(Handle: TFunctionHandle): PFunction;
 
-procedure FunctionsToStrings(S: TStrings);
+//Current function list
+var Funcs: PFuncList;
 
 
 implementation
-uses SysUtils,
-  Def.Scopes;
+uses Def.Scopes;
 
-var FuncList: TFuncList;
+{ ECallingConvention }
 
-function CreateFuncList: TFuncList;
+constructor ECallingConvention.Create;
 begin
-  Result := TFuncList.Create;
+  inherited Create('Unknown calling convention');
 end;
 
-procedure ClearFunclist(FuncList: TFuncList);
-var F: PFunction;
+function CreateFuncList: PFuncList;
 begin
-  for F in FuncList do
-    Dispose(F);
-
-  FuncList.Clear;
+  New(Result);
+  Result.Initialise;
 end;
 
-procedure SetCurrentFuncList(AFuncList: TFuncList);
+
+procedure SetCurrentFuncList(AFuncList: PFuncList);
 begin
-  FuncList := AFuncList;
+  Funcs := AFuncList;
 end;
 
 function FuncFindAllScopes(Name: String): PFunction;
 var IdentData: TIdentData;
-  Scope: PScope;
 begin
-  IdentData := SearchScopes(Name, Scope);
+  IdentData := GetCurrentScope.SearchAllInScope(Name);
   if IdentData.IdentType = itFunction then
     EXIT(IdentData.F);
 
   Result := nil;
 end;
 
-function FuncFindInScope(Name: String): PFunction;
-begin
-  for Result in FuncList do
-    if CompareText(Result.Name, Name) = 0 then
-      EXIT;
-
-  Result := nil;
-end;
-
-function FuncCreate(NameSpace, Name: String): PFunction;
-var I: Integer;
-begin
-  New(Result);
-  FuncList.Add(Result);
-  Result.NameSpace := NameSpace;
-  Result.Name := Name;
-  Result.Flags := [];
-  Result.Preserves := [];
-//  Result.InRegs := [];
-//  Result.OutRegs := [];
-  Result.IsExtern := False;
-  Result.CallingConvention := ccUnknown;
-  Result.ParamCount := 0;
-  Result.ResultCount := 0;
-  Result.Op := OpUnknown;
-  Result.CodeAddress := 0;
-
-  for I := 0 to MaxFunctionParams do
-  begin
-    Result.Params[I].Name := '';
-    Result.Params[I].Reg := rNone;
-    Result.Params[I].UserType := nil;
-//    Result.Params[I].VarTypes := [];
-    Result.Params[I].Access := paNone;
-    Result.Params[I].HasDefaultValue := False;
-    Result.Params[I].IsByRef := False;
-//    Result.Params[I].DefaultValue := 0;
-  end;
-end;
-
 function IdentToFuncDirective(const Ident: String): TFuncDirective;
 const DirectiveStrings: array[low(TFuncDirective)..high(TFuncDirective)] of String = (
   '',  //Placeholder for Unknown value
   'forward',
-  'call','rst',
+  'call','rst','extern',
   'stack','register');
 begin
   for Result := low(TFuncDirective) to high(TFuncDirective) do
@@ -336,14 +312,14 @@ function IsPassByRef(CallingConvention: TCallingConvention; Access: TParamAccess
   UserType: PUserType): Boolean;
 begin
   case CallingConvention of
-    ccRegister, ccCALL, ccRST:
+    ccRegister, ccCALL, ccRST, ccExtern:
       Result := IsPointeredType(UserType.VarType);
     ccStack:
       Result := IsPointeredType(UserType.VarType) or
         //For these two we need to pass in the data address even for non-pointered types
         (Access in [paVar, paOut]);
   else
-    Assert(False);
+    raise ECallingConvention.Create;
   end;
 end;
 
@@ -427,10 +403,11 @@ begin
         Result := 'rst $' + IntToHex(CodeAddress, 2)
       else
         Result := 'rst ' + IntToStr(CodeAddress);
+    ccExtern: Result := 'call ' + CodeLabel;
     ccRegister, ccStack:
       Result := 'call _' + Name
   else
-    raise exception.Create('GetCallInstruction: Dispatch type not implemented yet');
+    raise ECallingConvention.Create;
   end;
 end;
 
@@ -491,11 +468,11 @@ begin
   case CallingConvention of
     ccUnknown: Result := Result + ' UNKNOWN!!';
     ccIntrinsic: Result := Result + ' (Intrinsic)';
-    ccCall, ccRST: Result := Result + GetCallInstruction + ';';
+    ccCall, ccRST, ccExtern: Result := Result + GetCallInstruction + ';';
     ccStack: Result := Result + ' Stack;';
     ccRegister: Result := Result + ' Register;';
   else
-    raise Exception.Create('Unknown calling convention');
+    raise ECallingConvention.Create;
   end;
 
   for Flag in Flags do
@@ -507,24 +484,6 @@ begin
   end;
 end;
 
-procedure FunctionsToStrings(S: TStrings);
-var Func: PFunction;
-  NameSpace: String;
-begin
-  NameSpace := '';
-  S.Clear;
-  for Func in FuncList do
-  begin
-    if Func.NameSpace <> NameSpace then
-    begin
-      NameSpace := Func.NameSpace;
-      S.Add('NameSpace: ' + NameSpace);
-    end;
-    S.Add(Func.ToString);
-  end;
-end;
-
-
 function FunctionToFunctionHandle(Func: PFunction): TFunctionHandle;
 begin
   Result := TFunctionHandle(Func);
@@ -535,7 +494,76 @@ begin
   Result := PFunction(Handle);
 end;
 
+{ TFuncList }
+
+function TFuncList.Count: Integer;
+begin
+  Result := Items.Count;
+end;
+
+function TFuncList.FindByNameInScope(Name: String): PFunction;
+begin
+  for Result in Items do
+    if CompareText(Result.Name, Name) = 0 then
+      EXIT;
+
+  Result := nil;
+end;
+
+function TFuncList.Add(const Name: String): PFunction;
+var I: Integer;
+begin
+  New(Result);
+  Items.Add(Result);
+  Result.Name := Name;
+  Result.Flags := [];
+  Result.Preserves := [];
+//  Result.InRegs := [];
+//  Result.OutRegs := [];
+  Result.IsExtern := False;
+  Result.CallingConvention := ccUnknown;
+  Result.ParamCount := 0;
+  Result.ResultCount := 0;
+  Result.Op := OpUnknown;
+  Result.CodeAddress := 0;
+
+  for I := 0 to MaxFunctionParams do
+  begin
+    Result.Params[I].Name := '';
+    Result.Params[I].Reg := rNone;
+    Result.Params[I].UserType := nil;
+//    Result.Params[I].VarTypes := [];
+    Result.Params[I].Access := paNone;
+    Result.Params[I].HasDefaultValue := False;
+    Result.Params[I].IsByRef := False;
+//    Result.Params[I].DefaultValue := 0;
+  end;
+end;
+
+procedure TFuncList.Clear;
+var F: PFunction;
+begin
+  for F in Items do
+    Dispose(F);
+
+  Items.Free;
+  Items := nil;
+end;
+
+procedure TFuncList.Initialise;
+begin
+  Items := TList<PFunction>.Create;
+end;
+
+function TFuncList.ToString: String;
+var Func: PFunction;
+begin
+  Result := '';
+  for Func in Items do
+    Result := Result + Func.ToString + #13#10;
+end;
+
 initialization
-  FuncList := nil;
+  Funcs := nil;
 finalization
 end.

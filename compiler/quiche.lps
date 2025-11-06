@@ -17,10 +17,9 @@
         <Filename Value="Def.Operators.pas"/>
         <EditorIndex Value="1"/>
         <TopLine Value="330"/>
-        <CursorPos X="10" Y="354"/>
+        <CursorPos X="10" Y="352"/>
         <UsageCount Value="11"/>
         <Loaded Value="True"/>
-        <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
         <Filename Value="Def.Consts.pas"/>
@@ -41,7 +40,6 @@
         <CursorPos X="18" Y="323"/>
         <UsageCount Value="11"/>
         <Loaded Value="True"/>
-        <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
         <Filename Value="Def.IL.pas"/>
@@ -86,7 +84,6 @@
         <CursorPos X="15" Y="55"/>
         <UsageCount Value="11"/>
         <Loaded Value="True"/>
-        <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
         <Filename Value="CG.Fragments.pas"/>
@@ -119,7 +116,6 @@
         <CursorPos Y="59"/>
         <UsageCount Value="11"/>
         <Loaded Value="True"/>
-        <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
         <Filename Value="Def.Primitives.pas"/>
@@ -147,11 +143,10 @@
         <Filename Value="Parse.FuncCall.pas"/>
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="2"/>
-        <TopLine Value="292"/>
+        <TopLine Value="291"/>
         <CursorPos Y="283"/>
         <UsageCount Value="11"/>
         <Loaded Value="True"/>
-        <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
         <Filename Value="Parse.FuncDef.pas"/>
@@ -160,7 +155,6 @@
         <CursorPos X="3" Y="590"/>
         <UsageCount Value="11"/>
         <Loaded Value="True"/>
-        <DefaultSyntaxHighlighter Value="Delphi"/>
       </Unit>
       <Unit>
         <Filename Value="Parse.pas"/>

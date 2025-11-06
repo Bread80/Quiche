@@ -469,7 +469,6 @@ var Ch: Char;
   Ident: String;
   Keyword: TKeyword;
   IdentData: TIdentData;
-  Scope: PScope;
   Cursor: TParseCursor;
 begin
   TheType := nil;
@@ -533,7 +532,7 @@ begin
           Result := ParseVectorOrListDefinition(vtVector, TheType);
       keyUNKNOWN:
       begin //Not a keyword
-        IdentData := SearchScopes(Ident, Scope, True);
+        IdentData := GetCurrentScope.SearchAllInScope(Ident, True);
         case IdentData.IdentType of
           itType:
           begin

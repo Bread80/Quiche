@@ -84,7 +84,7 @@ s_writehex16:
 ;Exit: Carry flag set if a key has been pressed
 ;      Carry flag clear if no key pressed
 ;      A and other flags corrupt
-s_keypressed:
+_s_keypressed:
 	push hl
 	push de
 	push bc
@@ -104,7 +104,7 @@ s_keypressed:
 ;      If no key is available,
 ;			A is corrupt
 ;		All other registers are preserved
-s_readkey:
+_s_readkey:
 	push hl
 	push de
 	push bc

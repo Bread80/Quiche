@@ -360,12 +360,15 @@ begin
   Assert(Func.ResultCount = 1);
 
   Param := @Func.Params[Func.ParamCount];
-  Assert(Param.Reg = rNone, 'Already allocated!');
-  case GetTypeSize(Param.UserType) of
-    1: Param.Reg := rA;
-    2: Param.Reg := rHL;
-  else
-    Assert(False);
+  if Param.ReturnsData then
+  begin
+    Assert(Param.Reg = rNone, 'Already allocated!');
+    case GetTypeRegSize(Param.UserType) of
+      1: Param.Reg := rA;
+      2: Param.Reg := rHL;
+    else
+      Assert(False);
+    end;
   end;
 end;
 

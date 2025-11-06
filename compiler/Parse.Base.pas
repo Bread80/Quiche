@@ -7,7 +7,7 @@ uses Classes,
   Z80.Hardware;
 
 //NameSpace of the code we are currently parsing. I.e. the file name
-var NameSpace: String;
+(*var NameSpace: String;*)
 
 //Load source code text from a file
 procedure LoadFromFile(Filename: String);
@@ -150,22 +150,22 @@ uses SysUtils,
 procedure LoadFromString(Source: String);
 begin
   Parser.LoadFromString(Source);
-  NameSpace := '';
+//  NameSpace := '';
 end;
 
 procedure LoadFromStrings(SL: TStrings);
 begin
   Parser.LoadFromStrings(SL);
-  NameSpace := '';
+//  NameSpace := '';
 end;
 
 procedure LoadFromFile(Filename: String);
 begin
   Parser.OpenFile(Filename);
 {$ifdef fpc}
-  Namespace := ExtractFilePath(Filename);
+//  Namespace := ExtractFilePath(Filename);
 {$else}
-  NameSpace := TPath.GetFilename(Filename);
+//  NameSpace := TPath.GetFilename(Filename);
 {$endif}
 end;
 
@@ -333,7 +333,7 @@ begin
   if IdentToKeyword(Ident) <> keyUNKNOWN then
     EXIT(ErrSub(qeReservedWord, Ident));
 
-  if SearchCurrentScope(Ident).IdentType <> itUnknown then
+  if GetCurrentScope.Search(Ident).IdentType <> itUnknown then
     EXIT(ErrSub(qeIdentifierRedeclared, Ident));
 
   Result := qeNone;

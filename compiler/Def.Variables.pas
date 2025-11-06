@@ -1,7 +1,7 @@
 unit Def.Variables;
 
 interface
-uses Classes, Generics.Collections,
+uses Classes, Generics.Collections, SysUtils,
   Def.VarTypes, Def.UserTypes, Def.Consts;
 
 type
@@ -12,15 +12,18 @@ type
     amStack,    //Relative, offset from a base address (i.e in stack frame)
                 //VarAddr := IX+<offset>
                 //VarValue := (IX+<offset>)
-    amStaticRef//The address of the variable data is stored at an absolute (static)
+    amStaticRef,  //The address of the variable data is stored at an absolute (static)
                 //location. The variable *must* be of a Pointered type
                 //VarAddr := (<label>)
                 //VarValue := <addr> := (<label>). <value> := (<addr>)
-//    amStackPtr  //The address of the variable data is stored on the stack at a location
+    amStackRef  //The address of the variable data is stored on the stack at a location
                 //relative to the stack pointer (IX)
                 //VarAddr := (IX+<offset>)
                 //VarValue := <addr> := (IX+<offset>). <value> := (<addr>)
     );
+    EAddrMode = class(Exception)
+    constructor Create;reintroduce;
+  end;
 
 type  //Controls accessibility of variables and function parameters
   TVarAccess = (
@@ -138,9 +141,11 @@ type
     //Adds a variable for a function parameter. To be called at the beginning of a function
     //declaration.
     //If Access is vsResult: Results are parsed as local variable to the function. The
-    //Offset property for them will be initiated to -1.
+    //Offset property for them will be initiated to -1, unless PassDataIn is True in
+    //which case the address of tha data will be passed in the parameters and no data
+    //will be returned in registers
     function AddParameter(const AName: String;UserType: PUserType;AddrMode: TAddrMode;
-      AIsResult: Boolean): PVariable;
+      AIsResult, PassDataIn: Boolean): PVariable;
 
     //Returns the number of bytes required for local variables in the current scope
     //NOTE: Result is considered a local variable, not a parameter
@@ -215,9 +220,16 @@ procedure SetCurrentVarList(List: PVarList);
 var Vars: PVarList;
 
 implementation
-uses SysUtils, {IOUtils,}
+uses {IOUtils,}
   Def.Globals, Def.Scopes,
   Parse.Base;
+
+{ EAddrMode }
+
+constructor EAddrMode.Create;
+begin
+  inherited Create('Invalid addressing mode');
+end;
 
 const
   //Offset from IX to the first parameter
@@ -382,7 +394,7 @@ end;
 function TVarList.Add(AName: String; UserType: PUserType): PVariable;
 begin
   Assert(AName <> '');
-  if SearchCurrentScope(AName).IdentType <> itUnknown then
+  if GetCurrentScope.Search(AName).IdentType <> itUnknown then
     Result := nil
   else
     Result := AddInt(AName, UserType, GetCurrentScope.GetLocalAddrMode);
@@ -396,14 +408,14 @@ begin
 end;
 
 function TVarList.AddParameter(const AName: String; UserType: PUserType;
-  AddrMode: TAddrMode; AIsResult: Boolean): PVariable;
+  AddrMode: TAddrMode; AIsResult, PassDataIn: Boolean): PVariable;
 var Offset: Integer;  //Offset to the /previous/ stack variable (parameter)
   PrevIndex: Integer; //Indesx of last Parameter added to the variable list
 begin
   //If variable is being stored on the stack we need to ascertain the offset of
   //the variable from SP. Otherwise we set offset to -1 to signify no offset has
   //yet been calculated.
-  if (AddrMode = amStatic) or AIsResult then
+  if (AddrMode = amStatic) or (AIsResult and not PassDataIn) then
     Offset := -1
   else  //vsRelative
   begin
@@ -429,7 +441,7 @@ begin
   Result := AddInt(AName, UserType, AddrMode);
   Result.Offset := Offset;
   Result.IsResult := AIsResult;
-  Result.IsParam := not AIsResult;
+  Result.IsParam := PassDataIn or not AIsResult;
 end;
 
 function TVarList.AddUnnamed(UserType: PUserType): PVariable;
@@ -487,9 +499,8 @@ end;
 
 function TVarList.FindByNameAllScopes(AName: String): PVariable;
 var IdentData: TIdentData;
-  Scope: PScope;
 begin
-  IdentData := SearchScopes(AName, Scope);
+  IdentData := GetCurrentScope.SearchAllInScope(AName);
   if IdentData.IdentType = itVar then
     EXIT(IdentData.V);
 
@@ -545,7 +556,13 @@ begin
   for V in Items do
     if (V.Access in [vaLocal]) or V.IsResult then
       if V.RequiresStorage then
-        Result := Result + GetTypeSize(V.UserType);
+        case V.AddrMode of
+          amStatic, amStaticRef: ;  //Ignore
+          amStack: Result := Result + GetTypeSize(V.UserType);
+          amStackRef: Result := Result + GetVarTypeSize(vtPointer);
+        else
+          raise EAddrMode.Create;
+        end;
 end;
 
 function TVarList.GetParamsByteSize: Integer;
@@ -555,7 +572,13 @@ begin
   for V in Items do
     if V.IsParam then
       if V.RequiresStorage then
-        Result := Result + GetTypeSize(V.UserType);
+        case V.AddrMode of
+          amStatic, amStaticRef: ;  //Ignore
+          amStack: Result := Result + GetTypeSize(V.UserType);
+          amStackRef: Result := Result + GetVarTypeSize(vtPointer);
+        else
+          raise EAddrMode.Create;
+        end;
 end;
 
 function TVarList.IndexOf(V: PVariable): Integer;
@@ -611,10 +634,16 @@ begin
   for V in Items do
   begin
     //Ignore parameters (which already have offsets assigned)
-    //Ignore variable with global/absoluate storage addresses
-    if (V.Offset = -1) and (V.AddrMode = amStack) then
-    begin //TODO: Ignore if optimised away
-      Offset := Offset - GetTypeSize(V.UserType);
+    //Ignore variable with global/absolute storage addresses
+    if (V.Offset = -1) and (V.AddrMode in [amStack, amStackRef]) then
+    begin
+      //TODO: Ignore if optimised away
+      if V.AddrMode = amStack then
+        Offset := Offset - GetTypeRegSize(V.UserType)
+      else if V.AddrMode = amStackRef then
+        //If StackPtr we need storage for a pointer
+        Offset := Offset - GetVarTypeSize(vtPointer);
+
       //If local var and requires storage
       V.Offset := Offset;
     end;

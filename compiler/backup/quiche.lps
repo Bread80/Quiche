@@ -8,7 +8,6 @@
       <Unit>
         <Filename Value="quiche.lpr"/>
         <IsPartOfProject Value="True"/>
-        <IsVisibleTab Value="True"/>
         <TopLine Value="39"/>
         <CursorPos X="28" Y="53"/>
         <UsageCount Value="110"/>
@@ -146,7 +145,10 @@
       </Unit>
       <Unit>
         <Filename Value="Parse.FuncCall.pas"/>
+        <IsVisibleTab Value="True"/>
         <EditorIndex Value="2"/>
+        <TopLine Value="292"/>
+        <CursorPos Y="283"/>
         <UsageCount Value="11"/>
         <Loaded Value="True"/>
         <DefaultSyntaxHighlighter Value="Delphi"/>

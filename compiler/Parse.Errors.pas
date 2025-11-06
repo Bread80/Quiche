@@ -88,6 +88,7 @@ type TQuicheError = (
   qeNestedFuncsNotAllowed,
   qeUnsatisfiedForward, //Forward declared function not defined
   qeIntegerExpectedForCALLOrRST,  //Integer value expected for code or RST directives
+  qeStringExpectedForEXTERN,
   qeCallDirectiveOutOfRange,  //Parameter for Call directive is out of range
   qeRSTDirectiveOutOfRange, //Parameter for RST directive
   qeCALLOrRSTForwardDeclared,

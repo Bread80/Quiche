@@ -9,7 +9,7 @@ uses Def.Functions;
 
 procedure InitialiseIntrinsics;
 
-procedure LoadIntrinsicsFile(const Filename: String);
+procedure LoadIntrinsicsFile(const Filename: String;FuncList: PFuncList);
 
 
 implementation
@@ -46,7 +46,7 @@ const //Column indexes
   fResultType     = 11;
   fComments       = 12;
 
-procedure LoadIntrinsicsFile(const Filename: String);
+procedure LoadIntrinsicsFile(const Filename: String;FuncList: PFuncList);
 var Data: TStringList;
   Line: String;
   Fields: TArray<String>;
@@ -54,11 +54,7 @@ var Data: TStringList;
   Intrinsic: PFunction;
   UT: PUserType;
   IntValue: Integer;
-  PrevScope: PScope;
 begin
-  PrevScope := GetCurrentScope;
-  SetCurrentScope(@SystemScope);
-
   Data := TStringlist.Create;
   try
     Data.LoadFromFile(Filename);
@@ -77,7 +73,7 @@ begin
           for I:=0 to Length(Fields)-1 do
             Fields[I] := Fields[I].Trim;
 
-          Intrinsic := FuncCreate('System', Fields[fName]);
+          Intrinsic := FuncList.Add(Fields[fName]);
           Intrinsic.CallingConvention := ccIntrinsic;
 
           Intrinsic.Op := IdentToIntrinsicOperator(Fields[fName]);
@@ -183,9 +179,7 @@ begin
 
   finally
     Data.Free;
-    SetCurrentScope(PrevScope);
   end;
-
 end;
 
 end.

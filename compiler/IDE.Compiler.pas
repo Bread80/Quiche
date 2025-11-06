@@ -186,7 +186,7 @@ const
   IntrinsicsFilename = 'Intrinsics.csv';
   AlgoDataFilename = 'AlgoData.txt';
 
-  QuicheCoreFilename = 'Assembler/QuicheCore.asm';
+  SystemAsmFilename = 'System.asm';
   PlatformsBaseFolder = 'Platforms';
   //Platform library is in PlatformFolder
 //  PlatformLibraryFilename = 'Main.asm';
@@ -301,9 +301,9 @@ end;
 function GetDeployFolder: String;
 begin
 {$ifdef fpc}
-  Result := ConcatPaths([GetPlatformFolder, DeployFolderName]);
+  Result := {ConcatPaths([}GetPlatformFolder{, DeployFolderName])};
 {$else}
-  Result := TPath.Combine(IDE.Compiler.GetPlatformFolder, DeployFolderName)
+  Result := {TPath.Combine(}IDE.Compiler.GetPlatformFolder{, DeployFolderName)}
 {$endif}
 end;
 
@@ -375,17 +375,9 @@ end;
 //Parse the code which has been loaded
 //Returns True if parsing was successful, otherwise consult LastErrorNo and LastErrorString
 function DoParse(BlockType: TBlockType;ParseMode: TParseMode): Boolean;
-//var ParseMode: TParseMode;
 begin
   LastError := qeNone;
-(*  case ParseType of
-    ptDeclarations: ParseMode := pmProgram;
-    ptCode: ParseMode := pmRootUnknown;
-  else
-    Assert(False);
-    ParseMode := pmRootUnknown;
-  end;
-*)
+
   try
     case BlockType of
       btDefault: LastError := ParseQuiche(ParseMode, optDefaultAddrMode);
@@ -414,19 +406,13 @@ begin
   end;
 
   Result := CodeGenSection(Scope, BlockType);
-//  LastErrorNo := Integer(LastError);
 end;
 
 function CodeGenCallback: Boolean;
 begin
   Result := DoCodeGen(btDefault);
 end;
-(*var Scope: PScope;
-begin
-  Scope := GetCurrentScope;
-  Result := CodeGenSection(Scope, btDefault);
-end;
-*)
+
 procedure GetObjectCode(S: TStrings);
 var Scope: PScope;
 begin
@@ -434,7 +420,6 @@ begin
   if Assigned(Scope.AsmCode) then
   begin
     S.Assign(Scope.AsmCode);
-//    S.Assign(GetCurrentScope.Assembly);
     S.Append(Scope.AsmData.Text);
   end;
 end;
@@ -599,7 +584,7 @@ end;
 
 procedure GetFunctionsText(S: TStrings);
 begin
-  FunctionsToStrings(S);
+  S.Add(Funcs.ToString);
   S.Add(#13#13'Types');
   S.Add(Types.ToString);
 end;
@@ -628,6 +613,46 @@ begin
   optDefaultSignedInteger := True;
   optDefaultSmallestInteger := False;
   optCleverPuppy := False;
+end;
+
+function InitLibraries: Boolean;
+var Filename: String;
+  SL: TStringList;
+  PrevScope: PScope;
+begin
+  PrevScope := GetCurrentScope;
+  SL := TStringList.Create;
+  try
+    SetCurrentScope(@SystemScope);
+
+    //System file common to all platforms
+{$ifdef fpc}
+    Filename := ConcatPaths([GetQuicheFolder, 'System.quiche']);
+{$else}
+    Filename := TPath.Combine(GetQuicheFolder, 'System.quiche');
+{$endif}
+    SL.LoadFromFile(Filename);
+    LoadSourceStrings(SL);
+    Result := IDE.Compiler.DoParse(btStatic, pmScript);
+    if not Result then
+      EXIT;
+
+    //Platform specific system file
+{$ifdef fpc}
+    Filename := ConcatPaths([GetPlatformFolder, Config.PlatformName + '.quiche']);
+{$else}
+    Filename := TPath.Combine(GetPlatformFolder, Config.PlatformName + '.quiche');
+{$endif}
+    SL.LoadFromFile(Filename);
+    LoadSourceStrings(SL);
+    Result := IDE.Compiler.DoParse(btStatic, pmScript);
+    if not Result then
+      EXIT;
+
+    SetCurrentScope(PrevScope);
+  finally
+    SL.Free;
+  end;
 end;
 
 procedure Initialise(InitDirectives, WarmInit: Boolean);
@@ -676,23 +701,28 @@ begin
   //reload for every run
   InitialiseIntrinsics;
 {$ifdef fpc}
-  LoadIntrinsicsFile(ConcatPaths([BinFolder, IntrinsicsFilename]));
+  LoadIntrinsicsFile(ConcatPaths([BinFolder, IntrinsicsFilename]), SystemScope.FuncList);
 {$else}
-  LoadIntrinsicsFile(TPath.Combine(BinFolder, IntrinsicsFilename));
+  LoadIntrinsicsFile(TPath.Combine(BinFolder, IntrinsicsFilename), SystemScope.FuncList);
 {$endif}
 
 {$ifdef fpc}
-  InitialiseCodeGen(ConcatPaths([GetPlatformFolder, 'Assembler/', Config.PlatformName + '.asm']),
-    ConcatPaths([QuicheFolder, QuicheCoreFilename]));
+  InitialiseCodeGen(ConcatPaths([GetPlatformFolder, Config.PlatformName + '.asm']),
+    ConcatPaths([QuicheFolder, SystemAsmFilename]));
 {$else}
-  InitialiseCodeGen(TPath.Combine(GetPlatformFolder, 'Assembler/' + Config.PlatformName + '.asm'),
-    TPath.Combine(QuicheFolder, QuicheCoreFilename));
+  InitialiseCodeGen(TPath.Combine(GetPlatformFolder, Config.PlatformName + '.asm'),
+    TPath.Combine(QuicheFolder, SystemAsmFilename));
 {$endif}
 {$ifdef fpc}
   LoadAlgoData(ConcatPaths([BinFolder, AlgoDataFilename]));
 {$else}
   LoadAlgoData(TPath.Combine(BinFolder, AlgoDataFilename));
 {$endif}
+  if not WarmInit then
+  begin
+    if not InitLibraries then
+      raise Exception.Create('Unable to parse system library files');
+  end;
 end;
 
 initialization

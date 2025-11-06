@@ -104,18 +104,34 @@ begin
   Result := False;
   case Variable.AddrMode of
     amStack:
-      OpLD(rIX, Variable, Reg);
+      OpSTO(rIX, Variable, Reg);
+    amStackRef:
+    begin
+      //TODO: Do we already have VarAddr anywhere?
+      if moPreserveHL in Options then
+        OpPUSH(rHL);
+      //Load address of the data from stack frame into HL
+      //(Parameter's value is address of data)
+      OpLOAD(rHL, rIX, Variable);
+      //Store Reg to Variable
+      OpSTO(rHL, Reg);
+
+      if moPreserveHL in Options then
+        OpPOP(rHL)
+      else //TODO: HL contains VarAddr of variable
+        RegStateSetUnknown(rHL);
+    end;
     amStatic:
     begin
       if Reg <> rA then
       begin
         Assert(not (moPreserveA in Options));
-        OpLD(rA, Reg);
+        OpMOV(rA, Reg);
         RegStateSetVariable(rA, Variable, VarVersion, rskVarValue);
         Result := True;
       end;
 
-      OpLD(Variable, rA);
+      OpSTO(Variable, rA);
     end;
   else
     Assert(False);
@@ -126,6 +142,7 @@ end;
 //Returns True if we stored the value via the A register (but Reg <> rA)
 function GenVarStore16(Reg: TCPUReg;Variable: PVariable;VarVersion: Integer;
   Options: TMoveOptionSet): Boolean;
+var Ex: Boolean;
 begin
   Assert(Reg in CPURegPairs);
 
@@ -134,9 +151,38 @@ begin
   Result := False;
   case Variable.AddrMode of
     amStack{, amStackPtr}:
-      OpLD(rIX, Variable, Reg);
+      OpSTO(rIX, Variable, Reg);
+    amStackRef:
+    begin
+      //TODO: Do we already have VarAddr anywhere?
+      Ex := Reg = rHL;   //Value to be stored is in HL...
+      if Ex then
+      begin
+        Assert(not (moPreserveHL in Options));
+        OpPUSH(rDE);
+        OpEXHLDE;        //...so move it to DE
+        Reg := rDE;
+      end
+      else if moPreserveHL in Options then
+        OpPUSH(rHL);
+
+      //Load address of the data from stack frame into HL
+      //(Parameter's value is address of data)
+      OpLOAD(rHL, rIX, Variable);
+      //Store Reg to Variable
+      OpSTO(rHL, CPURegPairToLow[Reg]);
+      OpINC(rHL);
+      OpSTO(rHL, CPURegPairToHigh[Reg]);
+
+      if Ex then
+        OpPOP(rDE);
+      if moPreserveHL in Options then
+        OpPOP(rHL)
+      else
+        RegStateSetUnknown(rHL);
+    end;
     amStatic, amStaticRef:
-      OpLD(Variable, Reg);
+      OpSTO(Variable, Reg);
   else
     Assert(False);
   end;
@@ -154,17 +200,17 @@ begin
   Result := False;
   case Variable.AddrMode of
     amStack:
-      OpLD(rIX, Variable, Reg, 1);
+      OpSTO(rIX, Variable, Reg, 1);
     amStatic:
     begin
       if Reg <> rA then
       begin
         Assert(not (moPreserveA in Options));
-        OpLD(rA, Reg);
+        OpMOV(rA, Reg);
         RegStateSetVariable(rA, Variable, VarVersion, rskVarValueHigh);
         Result := True;
       end;
-      OpLD(Variable, 1, Reg);
+      OpSTO(Variable, 1, Reg);
     end;
   else
     Assert(False);
@@ -177,7 +223,7 @@ procedure GenStoreLiteralToVariable(Variable: PVariable;const Value: TImmValue;
   Options: TMoveOptionSet);
 var Reg: TCPUReg;
 begin
-  case GetTypeSize(Variable.UserType) of
+  case GetTypeDataSize(Variable.UserType) of
     1:
     case Variable.AddrMode of
       amStack:
@@ -192,36 +238,111 @@ begin
           GenLoadRegLiteral(rA, Value, []);
         end;
 
-        OpLD(rIX, Variable, Reg);
+        OpSTO(rIX, Variable, Reg);
+      end;
+      amStackRef:
+      begin
+        //TODO: Do we already have VarAddr anywhere?
+        if moPreserveHL in Options then
+          OpPUSH(rHL);
+        //Load address of the data from stack frame into HL
+        OpLOAD(rHL, rIX, Variable);   //Data address into HL
+
+        //Is the value already in a register?
+        Reg := RegStateFindLiteral8(Value.ToInteger);
+        //(H and L have already been corrupted)
+        if (Reg = rNone) or  (Reg in [rH, rL]) then
+          OpSTO(rHL, Value)
+        else
+          OpSTO(rHL, Reg);
+
+        if moPreserveHL in Options then
+          OpPOP(rHL)
+        else //TODO: HL contains VarAddr of variable
+          RegStateSetUnknown(rHL);
       end;
       amStatic: //We need to go via A register :(
       begin
         Assert(not (moPreserveA in Options));
         GenLoadRegLiteral(rA, Value, []);
-        OpLD(Variable, rA);
+        OpSTO(Variable, rA);
       end;
     else
       Assert(False);
     end;
     2:
-    begin
-      //Is the value already in a register?
-      Reg := RegStateFindLiteral16(Value.ToInteger);
-      if Reg = rNone then
+    case Variable.AddrMode of
+      amStack:
       begin
-        Assert(not (moPreserveHL in Options));
+        //Is low byte already in a register?
+        Reg := RegStateFindLiteral8(Value.ToInteger and $ff);
+        if Reg <> rNone then
+          OpSTO(rIX, Variable, Reg)
+        else
+          OpSTO(rIX, Variable, Value.ToInteger and $ff);
 
-        Reg := rHL;
-        GenLoadRegLiteral(rHL, Value, []);
+        //Is high byte already in a register?
+        Reg := RegStateFindLiteral8((Value.ToInteger shr 8) and $ff);
+        if Reg <> rNone then
+          OpSTO(rIX, Variable, Reg, 1)
+        else
+          OpSTO(rIX, Variable, (Value.ToInteger shr 8) and $ff, 1);
       end;
+      amStatic:
+        begin
+          //Is the value already in a register?
+          Reg := RegStateFindLiteral16(Value.ToInteger);
+          if Reg = rNone then
+          begin
+            Assert(not (moPreserveHL in Options));
 
-      case Variable.AddrMode of
-        amStack: OpLD(rIX, Variable, Reg);
-        amStatic: OpLD(Variable, Reg);
+            Reg := rHL;
+            GenLoadRegLiteral(rHL, Value, []);
+          end;
+          OpSTO(Variable, Reg);
+        end;
+      amStackRef:
+      begin
+        //TODO: Do we already have VarAddr anywhere?
+        if moPreserveHL in Options then
+          OpPUSH(rHL);
+        //Load address of the data from stack frame into HL
+        OpLOAD(rHL, rIX, Variable);   //Data address into HL
+
+        //Is the value already in a 16-bit register?
+        Reg := RegStateFindLiteral16(Value.ToInteger);
+        if (Reg <> rNone) and (Reg <> rHL) then
+          OpSTO(rHL, Reg)
+          //TODO: HL contains address of data
+        else  //Handle each byte separately
+        begin
+          //Is low byte already in a register?
+          Reg := RegStateFindLiteral8(Value.ToInteger and $ff);
+          //(H and L have already been corrupted)
+          if (Reg <> rNone) and not (Reg in [rH, rL]) then
+            OpSTO(rHL, Reg)
+          else
+            OpSTO(rHL, Value.ToInteger and $ff);
+
+          OpINC(rHL);
+
+          //Is high byte already in a register?
+          Reg := RegStateFindLiteral8((Value.ToInteger shr 8) and $ff);
+          //(H and L have already been corrupted)
+          if (Reg <> rNone) and not (Reg in [rH, rL]) then
+            OpSTO(rHL, Reg)
+          else
+            OpSTO(rHL, (Value.ToInteger shr 8) and $ff);
+        end;
+
+        if moPreserveHL in Options then
+          OpPOP(rHL)
+        else //TODO: HL contains VarAddr of variable
+          RegStateSetUnknown(rHL);
+      end;
       else
-        Assert(False);
+        raise EAddrMode.Create;
       end;
-    end;
   else
     Assert(False);
   end;
@@ -246,13 +367,13 @@ begin
         GenLoadRegLiteral(rA, Value, []);
       end;
 
-      OpLD(rIX, Variable, Reg, 1);
+      OpSTO(rIX, Variable, Reg, 1);
     end;
     amStatic: //We need to go via A register :(
     begin
       Assert(not (moPreserveA in Options));
       GenLoadRegLiteral(rA, Value, []);
-      OpLD(Variable, 1, rA);
+      OpSTO(Variable, 1, rA);
     end;
   else
     Assert(False);
@@ -273,13 +394,13 @@ begin
   begin
     Assert(not (moPreserveHL in Options));
 
-    OpLD(Reg, Lab);
+    OpMOV(Reg, Lab);
     RegStateSetLabel(Reg, Lab);
   end;
 
   case Variable.AddrMode of
-    amStack: OpLD(rIX, Variable, Reg);
-    amStatic: OpLD(Variable, Reg);
+    amStack: OpSTO(rIX, Variable, Reg);
+    amStatic: OpSTO(Variable, Reg);
   else
     Assert(False);
   end;
@@ -363,7 +484,7 @@ begin
     begin
       Assert(Variable.AddrMode = amStatic, 'Sorry, can''t store index registers to stack variables');
 
-      OpLD(Variable, Reg);
+      OpSTO(Variable, Reg);
     end;
     //Note: Flags should have been processed before we get here, to convert them to
     //a register

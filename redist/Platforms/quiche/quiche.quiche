@@ -1,0 +1,13 @@
+//Quiche library for 'quiche' platform
+
+//This file contains the platform dependant parts of the Quiche System library
+
+//Tests whether a key has been pressed and is ready to be read.
+//Returns True if a key is available.
+function KeyPressed:CF as Boolean;extern '_s_keypressed'
+//corrupts A,Flags
+
+//Read a key from the key buffer. Non blocking
+//Return value is undefined if no key is available.
+function ReadKey:A as Char;extern '_s_readkey';
+//preservesall

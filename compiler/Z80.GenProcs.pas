@@ -224,11 +224,11 @@ begin
   Assert(RIn in CPUReg8Bit);
   Assert(ROut in CPUReg8Bit);
   if RIn <> rA then
-    OpLD(rA, RIn);  //Move value to A
+    OpMOV(rA, RIn);  //Move value to A
   AsmOpcode('rla');       //Move sign bit to Carry
   AsmInstr('sbc a,a');   //If carry we get -1, otherwise 0
   if ROut <> rA then
-    OpLD(ROut, rA);  //Move result to register
+    OpMOV(ROut, rA);  //Move result to register
   RegStateSetUnknowns([rA, rOut, rFlags, rCF]);
 end;
 
@@ -523,7 +523,7 @@ begin
       begin
         if RLow <> rNone then
         begin
-          OpLD(CPURegPairToLow[Reg], RLow);
+          OpMOV(CPURegPairToLow[Reg], RLow);
           Result := True;
         end
         else
@@ -531,7 +531,7 @@ begin
 
         if RHigh <> rNone then
         begin
-          OpLD(CPURegPairToHigh[Reg], RHigh);
+          OpMOV(CPURegPairToHigh[Reg], RHigh);
           Result := Result and True;
         end
         else
@@ -541,7 +541,7 @@ begin
       begin
         if RHigh <> rNone then
         begin
-          OpLD(CPURegPairToHigh[Reg],RHigh);
+          OpMOV(CPURegPairToHigh[Reg],RHigh);
           Result := True;
         end
         else
@@ -549,7 +549,7 @@ begin
 
         if RLow <> rNone then
         begin
-          OpLD(CPURegPairToLow[Reg],RLow);
+          OpMOV(CPURegPairToLow[Reg],RLow);
           Result := Result and True;
         end
         else
@@ -578,13 +578,13 @@ begin
       R := RegStateFindLiteral8(Value.ToInteger and $ff);
       if R <> rNone then
         //...then copy it
-        OpLD(Reg,R) //1/1/4 (Bytes/M Cycles/T States)
+        OpMOV(Reg,R) //1/1/4 (Bytes/M Cycles/T States)
       else
       begin
         //Look for an optimised way to load the value
         if not TryLoadReg8Optimised(Reg, Value.ToInteger, Options) then
           //Otherwise load the literal
-          OpLD(Reg, Value) //2B/2M/7T
+          OpMOV(Reg, Value) //2B/2M/7T
       end;
     end;
     rHL, rDE, rBC:
@@ -592,10 +592,10 @@ begin
       //Can we do an optimised load?
       if not TryLoadRegPairOptimised(Reg, Value.Tointeger, Options) then
         //We've gotten here without loading either half, so load the pair together
-        OpLD(Reg, Value)
+        OpMOV(Reg, Value)
     end;
     rIX,rIY:
-      OpLD(Reg, Value);
+      OpMOV(Reg, Value);
     rCF:
     begin
       if Value.ToInteger <> 0 then
@@ -638,7 +638,7 @@ begin
   begin //From 8 bit
     if ToReg in CPUReg8Bit then
     begin //8-bit to 8-bit
-      OpLD(ToReg, FromReg);
+      OpMOV(ToReg, FromReg);
       RegStateCopy(ToReg, FromReg);
     end
 
@@ -647,7 +647,7 @@ begin
       //Low byte. Ignore if we're just extending (FromReg is low of ToReg)
       if FromReg <> CPURegPairToLow[ToReg] then
       begin
-        OpLD(CPURegPairToLow[ToReg], FromReg);
+        OpMOV(CPURegPairToLow[ToReg], FromReg);
         RegStateCopy(CPURegPairToLow[ToReg], FromReg);
       end;
 
@@ -679,8 +679,8 @@ begin
     //TODO: From 16 bit to 8 bit
     //TODO: Validate (optional) if down-sizing the value
     System.Assert(ToReg in [rHL, rDE, rBC]);
-    OpLD(CPURegPairToLow[ToReg],CPURegPairToLow[FromReg]);
-    OpLD(CPURegPairToHigh[ToReg],CPURegPairToHigh[FromReg]);
+    OpMOV(CPURegPairToLow[ToReg],CPURegPairToLow[FromReg]);
+    OpMOV(CPURegPairToHigh[ToReg],CPURegPairToHigh[FromReg]);
 
     RegStateCopy(ToReg, FromReg);
   end
@@ -826,7 +826,6 @@ begin
   Assert(IsOrdinalType(UTToVT(ILItem.Param2.Imm.UserType)));
 
   V := ILItem.Param1.Variable;
-  Assert(V.AddrMode in [amStatic, amStaticRef]);
   Assert(UTToVT(V.UserType) in [vtArray, vtVector, vtList]);
   Assert(Assigned(V.UserType.OfType));
 
@@ -841,27 +840,23 @@ begin
       //TODO: Check Reg State: is value already loaded?
 
       case V.AddrMode of
+
         amStatic: //Direct load of calculated address into register
-          OpLD(rHL, V.GetAsmName + ' + ' + WordToStr(ElementSize * (Index - FirstIndex)));
+          OpMOV(rHL, V.GetAsmName + ' + ' + WordToStr(ElementSize * (Index - FirstIndex)));
           //TODO: Update Reg State
-        amStaticRef:
+        amStaticRef, amStackRef:
         begin
-          OpLD(rHL, V.GetAsmName);
-//          LD HL,V.GetAsmName  //Addr of variable into HL
-          OpLDFromIndirect(rE, rHL);
-//          LD E,(HL)           //Base address of array into DE
-          OpINC(rHL);
-//          INC HL
-          OpLDFromIndirect(rD, rHL);
-//          LD D,(HL)
-          OpLD(rHL, WordToStr(ElementSize * (Index - FirstIndex)));
-//          LD HL,<offset>      //Offset to element
-          OpADD(rHL,rDE);
-//          ADD HL,DE           //Element address onto HL
+          if V.AddrMode = amStaticRef then
+            OpLOAD(rDE, V.GetAsmName)
+          else  //amStackRef
+            OpLOAD(rDE, rIX, V);
+
+          OpMOV(rHL, WordToStr(ElementSize * (Index - FirstIndex))); //Offset to element
+          OpADD(rHL,rDE);           //Element address onto HL
           //TODO: Update Reg State
         end;
       else
-        Assert(False, 'TODO - AddrMode');
+        raise EAddrMode.Create;
       end;
     end;
 //    vtVector:
@@ -879,7 +874,8 @@ end;
 procedure Proc_AddrOfArrayElemStaticVarSource(ILItem: PILItem);
 var V: PVariable; //The array
   ArrayType: PUserType; //Array type
-  IsPointerTo: Boolean; //If True V is a pointer to the actual data (static pointer)
+  AddrMode: TAddrMode;
+//  IsPointerTo: Boolean; //If True V is a pointer to the actual data (static pointer)
                         //If False V is the actual data (static)
   ElementSize: Integer;
   IndexVT: TVarType;    //Index type
@@ -890,13 +886,21 @@ begin
   Assert(IsOrdinalType(UTToVT(ILItem.Param2.Variable.UserType)));
 
   V := ILItem.Param1.Variable;
-  Assert(V.AddrMode in [amStatic, amStaticRef]);
   ArrayType := V.UserType;
 
-  IsPointerTo := (ArrayType.VarType = vtTypedPointer) or
-    (V.AddrMode = amStaticRef);
+  AddrMode := V.AddrMode;
+//  IsPointerTo := (ArrayType.VarType = vtTypedPointer) or
+//    (V.AddrMode = amStaticRef);
   if ArrayType.VarType = vtTypedPointer then
+  begin
     ArrayType := ArrayType.OfType;
+    case AddrMode of
+      amStatic: AddrMode := amstaticRef;
+      amStack: AddrMode := amStackRef;
+    else
+      raise EAddrMode.Create;
+    end;
+  end;
   Assert(UTToVT(ArrayType) in [vtArray, vtVector, vtList]);
   Assert(Assigned(ArrayType.OfType));
 
@@ -936,12 +940,21 @@ begin
   //Now add base address of the variable, and any offsets for Vector, List etc
   case UTToVT(ArrayType) of
     vtArray:
-    begin
       //TODO: Validate array size
       //TODO: Check Reg State: is value already loaded?
-
-      if IsPointerTo then
-      begin //V is pointer to data
+    case AddrMode of
+      amStatic:
+      begin //V is static data
+        //Get static address of array less (or plus) offset of first element (due
+        //to Low bounds of array)
+        if FirstIndex > 0 then
+          OpMOV(rDE, V.GetAsmName + ' - ' + WordToStr(ElementSize * FirstIndex))
+        else
+          OpMOV(rDE, V.GetAsmName + ' + ' + WordToStr(ElementSize * -FirstIndex))
+        //TODO: Update Reg State
+      end;  //HL -> Offset, DE -> array base
+      amStaticRef, amStackRef:
+      begin
         //Add/Subtract low bounds from offset
         if ArrayType.BoundsType.Low > 0 then
         begin
@@ -956,19 +969,15 @@ begin
         end;
         //HL -> Offset from array base
 
-        OpLD(rDE, V);  //DE->Base of array
-        //TODO: Update Reg State
-      end //HL -> Offset. DE -> array base
-      else
-      begin //V is static data
-        //Get static address of array less (or plus) offset of first element (due
-        //to Low bounds of array)
-        if FirstIndex > 0 then
-          OpLD(rDE, V.GetAsmName + ' - ' + WordToStr(ElementSize * FirstIndex))
+        //DE->Base of array
+        if AddrMode = amStaticRef then
+          OpLOAD(rDE, V)
         else
-          OpLD(rDE, V.GetAsmName + ' + ' + WordToStr(ElementSize * -FirstIndex))
+          OpLOAD(rDE, rIX, V, 0);
         //TODO: Update Reg State
-      end;  //HL -> Offset, DE -> array base
+      end; //HL -> Offset. DE -> array base
+    else
+      raise EAddrMode.Create;
     end;
 //    vtVector:
 {    vtList:

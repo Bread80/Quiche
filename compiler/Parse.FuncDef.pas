@@ -354,7 +354,8 @@ end;
 //Parse an extern directive and add it to the function definition
 // <extern-def> :- CALL <integer-constant-expression>
 // <extern-def> :- RST <integer-constant-expression>
-//Assumes the CALL or RST keyword has already been consumed
+// <extern-def> :- EXTERN <string-constant-expression>
+//Assumes the CALL or RST or EXTERN keyword has already been consumed
 //Parses and validates the constant expression.
 //Note: The function's calling convention value is set (and validated) by the caller
 //We only parse, validate, and set the address and other data
@@ -381,20 +382,33 @@ begin
     EXIT;
   if (Slug.ILItem <> nil) or (Slug.Operand.Kind <> pkImmediate) then
     EXIT(Err(qeConstantExpressionExpected));
-  if not IsIntegerVarType(Slug.Operand.Imm.VarType) then
-    EXIT(err(qeIntegerExpectedForCALLOrRST));
   case Func.CallingConvention of
     ccCall:
+    begin
+      if not IsIntegerVarType(Slug.Operand.Imm.VarType) then
+        EXIT(err(qeIntegerExpectedForCALLOrRST));
       if (Slug.Operand.Imm.IntValue < 0) or (Slug.Operand.Imm.IntValue > $ffff) then
         EXIT(err(qeCALLDirectiveOutOfRange));
+      Func.CodeAddress := Slug.Operand.Imm.IntValue;
+    end;
     ccRST:
+    begin
+      if not IsIntegerVarType(Slug.Operand.Imm.VarType) then
+        EXIT(err(qeIntegerExpectedForCALLOrRST));
       if not Slug.Operand.Imm.IntValue in [0..8,$10,$18,$20,$28,$30,$38] then
         EXIT(err(qeRSTDirectiveOutOfRange));
+      Func.CodeAddress := Slug.Operand.Imm.IntValue;
+    end;
+    ccEXTERN:
+    begin
+      if Slug.Operand.Imm.VarType <> vtString then
+        EXIT(err(qeStringExpectedForEXTERN));
+      Func.CodeLabel := Slug.Operand.Imm.StringValue;
+    end;
   else
     Assert(False);
   end;
 
-  Func.CodeAddress := Slug.Operand.Imm.IntValue;
   Result := qeNone;
 end;
 
@@ -454,7 +468,7 @@ begin
         if ffForward in Func.Flags then
           EXIT(Err(qeFORWARDRedeclared));
       end;
-      dirCALL, dirRST:
+      dirCALL, dirRST, dirEXTERN:
       begin
         if ParseType <> fptNormal then
           EXIT(Err(qeCALLOrRSTInTypeOrRecord));
@@ -467,6 +481,7 @@ begin
         case NextDirective of
           dirCALL: Func.CallingConvention := ccCall;
           dirRST: Func.CallingConvention := ccRST;
+          dirEXTERN: Func.CallingConvention := ccEXTERN;
         else
           Assert(False);
         end;
@@ -567,15 +582,13 @@ begin
         Result := amStatic;
     ccStack:
       if IsPointeredType(Param.UserType.VarType) then
-        Assert(False)
-//        Result := amStackPtr
+        Result := amStackRef
       else if Param.IsByRef then
-        Assert(False)
-//        Result := amStackPtr
+        Result := amStackRef
       else
         Result := amStack;
   else
-    Raise Exception.Create('Unknown calling convention');
+    raise ECallingConvention.Create;
   end;
 end;
 
@@ -616,7 +629,7 @@ begin
       AddrMode := GetParamAddrMode(Func.CallingConvention, Func.Params[I]);
 
       Variable := Vars.AddParameter(ParamName, Func.Params[I].UserType, AddrMode,
-      Func.Params[I].Access = paResult);
+        Func.Params[I].Access = paResult, Func.Params[I].PassDataIn);
       //Inc the variables write count to indicate it's be assigned a value by the caller
       if not (Func.Params[I].Access in [paOut, paResult]) then
         Variable.IncVersion;
@@ -646,7 +659,7 @@ begin
   //If we're a function, load Result into A if 8-bit or DE if 16-bit
   case Func.CallingConvention of
     ccStack:
-      if Func.ResultCount > 0 then
+      if (Func.ResultCount > 0) and Func.FindResult.ReturnsData then
       begin
         ILItem := nil;
         Param := ILAppendRegLoad(ILItem);
@@ -709,11 +722,11 @@ begin
     //...error if it's a keyword or already defined (unless a forward)
     if IdentToKeyword(Ident) <> keyUnknown then
       EXIT(ErrSub(qeReservedWord, Ident));
-    Func := FuncFindInScope(Ident);
+    Func := Funcs.FindByNameInScope(Ident);
   end;
 
   if Func = nil then
-    Func := FuncCreate(NameSpace, Ident)
+    Func := Funcs.Add(Ident)
   else
   begin
     if not (ffForward in Func.Flags) then
@@ -792,8 +805,8 @@ var Scope: PScope;
 begin
   Scope := GetCurrentScope;
   for I := 0 to Scope.FuncList.Count-1 do
-    if ffForward in Scope.FuncList[I].Flags then
-      EXIT(ErrSub(qeUnsatisfiedForward, Scope.FuncList[I].Name));
+    if ffForward in Scope.FuncList.Items[I].Flags then
+      EXIT(ErrSub(qeUnsatisfiedForward, Scope.FuncList.Items[I].Name));
 
   Result := qeNone;
 end;

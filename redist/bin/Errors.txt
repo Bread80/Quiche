@@ -185,6 +185,9 @@
 	Unsatisfied forward declared function: '%s'
 =IntegerExpectedForCALLOrRST
 	Integer value expected for CALL or RST directive
+=StringExpectedForEXTERN
+	String value expected for EXTEN directive
+	An EXTERN directive must be follwed by a string constant expression giving the label of the assembly routine to call
 =CallDirectiveOutOfRange
 	CALL directive value out of range
 	The value must be an integer between $0000 and $ffff
@@ -193,7 +196,7 @@
 	The value must be one of: 0..8,$10,$18,$20,$28,$30,$38
 =CALLOrRSTForwardDeclared
 	CALL and RST functions can't be forward declared
-	The CALL and RST function directives are not compatible with the FORWARD directive
+	The CALL, RST and EXTERN function directives are not compatible with the FORWARD directive
 =MultipleCALLOrRST
 	Multiple CALL or RST directives not allowed
 =MultipleCallingConventions
@@ -204,7 +207,7 @@
 =FORWARDInTypeOrRecord
 	FORWARD directive not allowed in function type or record method declarations
 =CALLOrRSTInTypeOrRecord
-	CALL or RST directive not allowed in function type or record method declarations
+	CALL, RST and EXTERN directive not allowed in function type or record method declarations
 =FuncTypeDefUnspecifiedReg
 	No register allocation specified for parameter '%s'
 	In if function type definition, where the calling convention is register based one, every

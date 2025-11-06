@@ -62,7 +62,7 @@ s_writehex16:
 ;Exit: Carry flag set if a key has been pressed
 ;      Carry flag clear if no key pressed
 ;      A and other flags corrupt
-s_keypressed
+_s_keypressed
 	call KM_READ_CHAR	;Is a char available?
 	jp c,KM_RETURN		;If so, return if to the buffer
 	ret
@@ -74,7 +74,7 @@ s_keypressed
 ;      If no key is available,
 ;			A is corrupt
 ;		All other registers are preserved
-s_readkey
+_s_readkey
 	jp KM_READ_CHAR
 	
 SAVE 'quiche.bin',__quiche_start,__quiche_end - __quiche_start,DSK,'c:\RetroTools\Quiche\quiche.dsk'

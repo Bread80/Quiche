@@ -130,9 +130,9 @@ begin
   Assert(Reg in CPURegPairs);
   Assert(Options * [moPreserveOtherFlags, moPreserveCF, moPreserveA] = []);
 
-  OpLD(rA, CPURegPairToLow[Reg]);
+  OpMOV(rA, CPURegPairToLow[Reg]);
   AsmInstr('rla');               //Bit 7 of low byte into carry flag
-  OpLD(rA, CPURegPairToHigh[Reg]);
+  OpMOV(rA, CPURegPairToHigh[Reg]);
   AsmInstr('adc a,$00');         // $ff + carry set gives $00, $00 + carry clear gives $00
   AsmInstr('jp nz,raise_range'); //All others overflow
   RegStateSetUnknowns([rFlags, rCF]);
@@ -151,7 +151,7 @@ begin
   Assert(Options * [moPreserveOtherFlags, moPreserveCF, moPreserveA] = []);
 
   if Reg <> rA then
-    OpLD(rA, Reg);
+    OpMOV(rA, Reg);
   AsmInstr('rlca');               //Bit 7 of low byte into carry flag, and to bit 0 of A
   AsmInstr('adc a,$00');         // $ff + carry set gives $00, $00 + carry clear gives $00
   AsmInstr('jp nz,raise_range'); //All others overflow
@@ -183,7 +183,7 @@ begin
   Assert(Reg in CPURegPairs);
   Assert(Options * [moPreserveOtherFlags, moPreserveCF, moPreserveA] = []);
 
-  OpLD(rA, CPURegPairToLow[Reg]);
+  OpMOV(rA, CPURegPairToLow[Reg]);
   AsmInstr('and $80');			      //Mask all but top bit of low byte
   AsmOpcode('or', CPURegStrings[CPURegPairToHigh[Reg]]);
   AsmInstr('jp nz,raise_range');
@@ -200,7 +200,7 @@ begin
   Assert(Reg in CPURegPairs);
   Assert(Options * [moPreserveOtherFlags, moPreserveCF] = []);
 
-  OpLD(rA, CPURegPairToHigh[Reg]);
+  OpMOV(rA, CPURegPairToHigh[Reg]);
   AsmInstr('and a');
   AsmInstr('jp nz,raise_range');
 
@@ -220,7 +220,7 @@ begin
   if Reg <> rA then
   begin
     Assert(Options * [moPreserveA] = []);
-    OpLD(rA, Reg);
+    OpMOV(rA, Reg);
   end;
   AsmInstr('and a');
   AsmInstr('jp nz,raise_range');

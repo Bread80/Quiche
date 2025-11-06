@@ -149,7 +149,7 @@ function CreateConstList(const ScopeName: String): PConstList;
 procedure SetCurrentConstList(List: PConstList);
 
 //Add global/system consts to the /current/ const list (Ie current scope should be global scope)
-procedure SetSystemConsts;
+procedure CreateSystemConsts(List: PConstList);
 
 implementation
 uses
@@ -573,7 +573,10 @@ begin
   Result.Name := AName;
   Result.UserType := UType;
   Result.InScope := True;
-  Result.Depth := GetCurrentScope.Depth;
+  if GetCurrentScope <> nil then
+    Result.Depth := GetCurrentScope.Depth
+  else
+    Result.Depth := 0;
   Result.Value := AValue;
 end;
 
@@ -645,13 +648,13 @@ begin
   end;
 end;
 
-procedure SetSystemConsts;
+procedure CreateSystemConsts(List: PConstList);
 begin
-  Consts.Add('False', GetSystemType(vtBoolean), TImmValue.CreateBoolean(False));
-  Consts.Add('True', GetSystemType(vtBoolean), TImmValue.CreateBoolean(True));
-  Consts.Add('Maxint', GetSystemType(vtInteger), TImmValue.CreateTyped(vtInteger, GetMaxValue(vtInteger)));
-  Consts.Add('Minint', GetSystemType(vtInteger), TImmValue.CreateTyped(vtInteger, GetMinValue(vtInteger)));
-  Consts.Add('nil', GetSystemType(vtPointer), TImmValue.CreateTyped(vtPointer, $0000));
+  List.Add('False', GetSystemType(vtBoolean), TImmValue.CreateBoolean(False));
+  List.Add('True', GetSystemType(vtBoolean), TImmValue.CreateBoolean(True));
+  List.Add('Maxint', GetSystemType(vtInteger), TImmValue.CreateTyped(vtInteger, GetMaxValue(vtInteger)));
+  List.Add('Minint', GetSystemType(vtInteger), TImmValue.CreateTyped(vtInteger, GetMinValue(vtInteger)));
+  List.Add('nil', GetSystemType(vtPointer), TImmValue.CreateTyped(vtPointer, $0000));
 end;
 
 initialization

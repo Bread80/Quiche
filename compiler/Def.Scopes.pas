@@ -27,6 +27,27 @@ uses Classes,
   CleverPuppy;
 
 type
+//========== SEARCH FOR IDENTIFIERS
+  TIdentType = (itUnknown, itVar, itFunction, itConst, itType, itEnumItem);
+
+  TIdentData = record
+    case IdentType: TIdentType of
+      itUnknown: ();
+      itVar: (
+        V: PVariable;
+        );
+      itFunction: (
+        F: PFunction;
+        );
+      itConst: (
+        C: PConst;
+        );
+      itType, itEnumItem: (
+        T: PUserType;
+        Index: Integer; //Not used for itType
+        );
+    end;
+
   PScope= ^TScope;
   TScope = record
     Parent: PScope;   //The next higher Scope, or nil in none
@@ -38,15 +59,29 @@ type
     ConstList: PConstList;  //Constants declared at this scope level
     TypeList: PTypeList;    //Ditto for Types
     VarList: PVarList;      //Ditto for Variables
-    FuncList: TFuncList;    //Functions declared in this scope
+    FuncList: PFuncList;    //Functions declared in this scope
 
     AsmCode: TStringList;   //Assembly code for Code segment for this scope (from CodeGen)
     AsmData: TStringList;   //Assembly code for Data segment (from CodeGen)
     ILList: TILList;
     CleverPuppy: TCleverPuppy;  //Clever puppy codegen data (if any)
 
+    procedure Initialise(const AName: String;AParent: PScope);
+
     //Returns the storage type for local variables
     function GetLocalAddrMode: TAddrMode;
+
+    //Search the current scope for an item with the given identifier (name)
+    //Returns a pointer to the item if an item was found, otherwise returns nil.
+    //The return value can be cast to the appropriate type: PVariable, PFunction, etc.
+    //Return values:
+    //IdentType identifies if the found item is a variable, function, const or type etc.
+    //IgnoreFuncs is temporarily required so that searches for Type names return the type instead
+    function Search(const Ident: String; IgnoreFuncs: Boolean = False): TIdentData;
+
+    //Searches all scopes which are in scope (ie. it recursed up parent scopes and
+    //also searches any library scopes
+    function SearchAllInScope(const Ident: String;IgnoreFuncs: Boolean = False): TIdentData;
   end;
 
 //Only to be used with caution!!
@@ -94,39 +129,7 @@ procedure ScopeDecDepth;
 //Get the depth of the current Scope
 function ScopeGetDepth: Integer;
 
-//========== SEARCH FOR IDENTIFIERS
-type
-  TIdentType = (itUnknown, itVar, itFunction, itConst, itType, itEnumItem);
 
-  TIdentData = record
-    case IdentType: TIdentType of
-      itUnknown: ();
-      itVar: (
-        V: PVariable;
-        );
-      itFunction: (
-        F: PFunction;
-        );
-      itConst: (
-        C: PConst;
-        );
-      itType, itEnumItem: (
-        T: PUserType;
-        Index: Integer; //Not used for itType
-        );
-    end;
-
-//Search the current scope for an item with the given identifier (name)
-//Returns a pointer to the item if an item was found, otherwise returns nil.
-//The return value can be cast to the appropriate type: PVariable, PFunction, etc.
-//Return values:
-//IdentType identifies if the found item is a variable, function, const or type etc.
-//IgnoreFuncs is temporarily required so that searches for Type names return the type instead
-function SearchCurrentScope(const Ident: String; IgnoreFuncs: Boolean = False): TIdentData;
-//Search the current scope and it's parents for an item with the given identifier (name)
-//Scope returns the scope in which the item was found.
-function SearchScopes(const Ident: String;out Scope: PScope;
-  IgnoreFuncs: Boolean = False): TIdentData;
 
 //Searches all current scopes for a typed pointer to the given UserType
 function SearchScopesForAnonTypedPointer(UserType: PUserType): PUserType;
@@ -182,8 +185,8 @@ begin
     Dispose(Scope.TypeList);
     Scope.VarList.Clear;
     Dispose(Scope.VarList);
-    ClearFuncList(Scope.FuncList);
-    Scope.FuncList.Free;
+    Scope.FuncList.Clear;
+    Dispose(Scope.FuncList);
     Scope.AsmCode.Free;
     Scope.AsmData.Free;
     ClearILList(Scope.ILList);
@@ -223,32 +226,18 @@ begin
   NewBlock := True;
 end;
 
-procedure InitScope(AScope: PScope);
-begin
-  AScope.Parent := CurrentScope;
-  AScope.Depth := 0;
-  AScope.Func := nil;
-  AScope.ConstList := CreateConstList(AScope.Name);
-  AScope.TypeList := CreateTypeList;
-  AScope.VarList := CreateVarList;
-  AScope.FuncList := CreateFuncList;
-  AScope.AsmCode := TStringlist.Create;
-  AScope.AsmData := TStringList.Create;
-  AScope.ILList:= CreateILList;
-  AScope.CleverPuppy := nil;
-end;
-
 function CreateCurrentScope(Func: PFunction;const Name: String): PScope;
+var LName: String;
 begin
   Assert((Func <> nil) or (Name <> ''), 'Scope requires a Func or a Name (or both)');
   New(Result);
   ScopeList.Add(Result);
   if Name <> '' then
-    Result.Name := Name
+    LName := Name
   else
-    Result.Name := Func.Name;
+    LName := Func.Name;
 
-  Initscope(Result);
+  Result.Initialise(LName, GetCurrentScope);
   Result.Func := Func;
 
   if MainScope = nil then
@@ -262,6 +251,13 @@ begin
   Result.Parent := nil;
 end;
 
+procedure InitSystemScope;
+begin
+  SystemScope.Initialise('System', nil);
+  CreateSystemTypes(SystemScope.TypeList);
+  CreateSystemConsts(SystemScope.ConstList);
+end;
+
 procedure InitialiseScopes;
 begin
   ClearScopeList;
@@ -271,88 +267,7 @@ begin
   CurrentScope := nil;
   MainScope := nil;
   CreateCurrentScope(nil, '_Global');
-end;
-
-function SearchCurrentScope(const Ident: String;IgnoreFuncs: Boolean = False): TIdentData;
-var
-  Scope: PScope;
-begin
-  Scope := GetCurrentScope;
-
-  //Consts
-  if Assigned(Scope.ConstList) then
-  begin
-    Result.C := Consts.FindByNameInScope(Ident);
-    if Result.C <> nil then
-    begin
-      Result.IdentType := itConst;
-      EXIT;
-    end;
-  end;
-
-  //Types and Enumerations
-  if Assigned(Scope.TypeList) then
-  begin
-    Result.T := Types.FindByNameInScope(Ident);
-    if Result.T <> nil then
-    begin
-      Result.IdentType := itType;
-      EXIT;
-    end;
-    Result.T := Types.FindByEnumNameInScope(Ident, Result.Index);
-    if Result.T <> nil then
-    begin
-      Result.IdentType := itEnumItem;
-      EXIT;
-    end;
-  end;
-
-  //Variables
-  if Assigned(Scope.VarList) then
-  begin
-    Result.V := Vars.FindByNameInScope(Ident);
-    if Result.V <> nil then
-    begin
-      Result.IdentType := itVar;
-      EXIT;
-    end;
-  end;
-
-  if not IgnoreFuncs then //TEMP
-    if Assigned(Scope.FuncList) then
-    begin
-      Result.F := FuncFindInScope(Ident);
-      if Result.F <> nil then
-      begin
-        Result.IdentType := itFunction;
-        EXIT;
-      end;
-    end;
-
-  Result.IdentType := itUnknown;;
-end;
-
-function SearchScopes(const Ident: String;out Scope: PScope;IgnoreFuncs: Boolean = False): TIdentData;
-begin
-  Scope := GetCurrentScope;
-
-  repeat
-    //Search scope
-    Result := SearchCurrentScope(Ident, IgnoreFuncs);
-    if Result.IdentType <> itUnknown then
-    begin
-      //Restore original scope
-      SetCurrentScope(Scope);
-      EXIT;
-    end;
-  until not SetParentScope;
-
-  //Search System scope
-  SetCurrentScope(@SystemScope);
-  Result := SearchCurrentScope(Ident, IgnoreFuncs);
-
-  //Restore original scope
-  SetCurrentScope(Scope);
+  InitSystemScope;
 end;
 
 function FindScopeForVar(AVar: PVariable;out Index: Integer): PScope;
@@ -458,20 +373,6 @@ begin
     Result := Func.GetLocalAddrMode;
 end;
 
-procedure InitSystemScope;
-begin
-  InitScope(@SystemScope);
-  SystemScope.Name := 'System';
-  try
-    //Fake the current scope
-    SetCurrentScope(@SystemScope);
-    SetSystemTypes;
-    SetSystemConsts;
-  finally
-//    SetCurrentScope(nil);
-  end;
-end;
-
 function ScopeToScopeHandle(Scope: PScope): TScopeHandle;
 begin
   Result := TScopeHandle(Scope);
@@ -482,7 +383,96 @@ begin
   Result := PScope(Handle);
 end;
 
+procedure TScope.Initialise(const AName: String;AParent: PScope);
+begin
+  Parent := AParent;
+  Name := AName;
+  Depth := 0;
+  Func := nil;
+  ConstList := CreateConstList(AName);
+  TypeList := CreateTypeList;
+  VarList := CreateVarList;
+  FuncList := CreateFuncList;
+  AsmCode := TStringlist.Create;
+  AsmData := TStringList.Create;
+  ILList:= CreateILList;
+  CleverPuppy := nil;
+end;
+
+function TScope.Search(const Ident: String; IgnoreFuncs: Boolean): TIdentData;
+begin
+  //Consts
+  if Assigned(ConstList) then
+  begin
+    Result.C := ConstList.FindByNameInScope(Ident);
+    if Result.C <> nil then
+    begin
+      Result.IdentType := itConst;
+      EXIT;
+    end;
+  end;
+
+  //Types and Enumerations
+  if Assigned(TypeList) then
+  begin
+    Result.T := TypeList.FindByNameInScope(Ident);
+    if Result.T <> nil then
+    begin
+      Result.IdentType := itType;
+      EXIT;
+    end;
+    Result.T := TypeList.FindByEnumNameInScope(Ident, Result.Index);
+    if Result.T <> nil then
+    begin
+      Result.IdentType := itEnumItem;
+      EXIT;
+    end;
+  end;
+
+  //Variables
+  if Assigned(VarList) then
+  begin
+    Result.V := VarList.FindByNameInScope(Ident);
+    if Result.V <> nil then
+    begin
+      Result.IdentType := itVar;
+      EXIT;
+    end;
+  end;
+
+  if not IgnoreFuncs then //TEMP
+    if Assigned(FuncList) then
+    begin
+      Result.F := FuncList.FindByNameInScope(Ident);
+      if Result.F <> nil then
+      begin
+        Result.IdentType := itFunction;
+        EXIT;
+      end;
+    end;
+
+  Result.IdentType := itUnknown;;
+end;
+
+function TScope.SearchAllInScope(const Ident: String; IgnoreFuncs: Boolean): TIdentData;
+var Scope: PScope;
+begin
+  Scope := @Self;
+
+  repeat
+    //Search scope
+    Result := Scope.Search(Ident, IgnoreFuncs);
+    if Result.IdentType <> itUnknown then
+      EXIT;
+    Scope := Scope.Parent;
+  until Scope = nil;
+
+  //Search libraries (more TODO)
+  Scope := @SystemScope;
+  Result := Scope.Search(Ident, IgnoreFuncs);
+end;
+
 initialization
   ScopeList := nil;
-  InitSystemScope;
+//  InitSystemScope;
 end.

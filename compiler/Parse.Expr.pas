@@ -174,10 +174,9 @@ function ParseOperand(var Slug: TExprSlug;UnaryOp: TUnaryOperator): TQuicheError
 //Identifiers can be constants, variables or functions or types
 function ParseOperandIdentifier(var Slug: TExprSlug;Ident: String): TQuicheError;
 var IdentData: TIdentData;
-  Scope: PScope;
 begin
   //Search everything we can see
-  IdentData := SearchScopes(Ident, Scope);
+  IdentData := GetCurrentScope.SearchAllInScope(Ident);
   case IdentData.IdentType of
     itUnknown:
       EXIT(ErrSub(qeUndefinedIdentifier, Ident));

@@ -87,9 +87,6 @@ begin
             Slug.Operand.Variable.UserType.Description, Arg.UserType.Description,
             Func));
       end;
-      if Arg.Access = paOut then  //????vaVAR????
-        //Output parameter so we need to write it to the variable
-        Slug.Operand.Kind := pkVarDest;
     end;
     else
     Assert(False, 'Unknown access specifier');
@@ -118,23 +115,41 @@ begin
 
   //Do we need to push this argument on the stack?
   case CallingConvention of
-    ccRegister, ccCall, ccRST, ccIntrinsic: ; //Registers will be loaded later
+    ccRegister, ccCall, ccRST, ccExtern, ccIntrinsic: ; //Registers will be loaded later
     ccStack: //Put parameters on the stack
     begin
       ILItem := Slug.ToILItemNoDest;
       if ILItem.Op = OpUnknown then
         ILItem.Op := OpMove;
-      //Slug to ILItem
-      case GetTypeSize(Arg.UserType) of
-        1: ILItem.Dest.Kind := pkPushByte;
-        2: ILItem.Dest.Kind := pkPush;
+
+      if Arg.IsByRef then
+      begin
+        //TODO: Push /address/ of the variable
+        //If we have an expression we need to store the result to a variable then
+        //pass the address of that variable
+        Assert(ILItem.Param1.Kind in [pkVarSource, pkVarRef]);
+        if ILItem.Param1.Kind = pkVarSource then
+        begin
+          ILItem.Param1.Kind := pkVarRef;
+//          ILItem.ResultType := GetPointerToType(Slug.ResultType);
+        end;
+        ILItem.Dest.Kind := pkPush;
+        ILItem.Dest.PushType := GetPointerToType(Slug.ResultType);
+      end
       else
-        Assert(False, 'Item too large for stack - needs to be passed by reference');
+      begin
+        //Slug to ILItem
+        case GetTypeRegSize(Arg.UserType) of
+          1: ILItem.Dest.Kind := pkPushByte;
+          2: ILItem.Dest.Kind := pkPush;
+        else
+          Assert(False, 'Item too large for stack - needs to be passed by reference');
+        end;
+        ILItem.Dest.PushType := Arg.UserType;
       end;
-      ILItem.Dest.PushType := Arg.UserType;
     end;
   else
-    Assert(False, 'Invalid calling convention');
+    raise ECallingConvention.Create;
   end;
   Result := qeNone;
 end;
@@ -648,14 +663,34 @@ begin
   Result := ILItem;
 end;
 
-function DispatchStack(Func: PFunction): PILItem;
+function DispatchStack(Func: PFunction;var Slug: TExprSlug): PILItem;
 var Arg: PParameter;
+  ILItem: PILItem;
 begin
+  //We haven't created any IL data yet
+  ILItem := nil;
+
+  //If we have a Result and it's Pass-By-Ref (i.e. a Pointered Type) then we need to
+  //also push the data address on the stack
+  if Func.ResultCount > 0 then
+  begin
+    Arg := Func.FindResult;
+    if Arg.PassDataIn then
+    begin
+      ILItem := ILAppend(opMove);
+      ILItem.Param1.Kind := pkNone;  //Variable data to be set later
+      Slug.ResultByRefParam := @ILItem.Param1;
+      ILItem.ResultType := GetPointerToType(Arg.UserType);
+      ILItem.Dest.Kind := pkPush;
+      ILItem.Dest.PushType := ILItem.ResultType;
+    end;
+  end;
+
   Result := nil;
   ILAppendFuncCall(Result, Func);
 
   //Process return value(s)
-  if Func.ResultCount > 0 then
+  if (Func.ResultCount > 0) and Func.FindResult.ReturnsData then
   begin
     ILAppendFuncResult(Result);
     Arg := Func.FindResult;
@@ -698,12 +733,12 @@ begin
 
   //Generate IL code for the parameters & call
   case Func.CallingConvention of
-    ccRegister, ccCall, ccRST: DispatchRegister(Func, Slugs, DummySlug);
+    ccRegister, ccCall, ccRST, ccExtern: DispatchRegister(Func, Slugs, DummySlug);
     ccIntrinsic:
         Result := DispatchIntrinsic(Func, Slugs, DummySlug);
-    ccStack: DispatchStack(Func);
+    ccStack: DispatchStack(Func, DummySlug);
   else
-    raise Exception.Create('Unknown calling convention in function despatch :(');
+    raise ECallingConvention.Create;
   end;
   if Result <> qeNone then
     EXIT;
@@ -725,21 +760,38 @@ begin
 
   //Generate IL code for the parameters & call
   case Func.CallingConvention of
-    ccRegister, ccCall, ccRST: Slug.ILItem := DispatchRegister(Func, Slugs, Slug);
+    ccRegister, ccCall, ccRST, ccExtern: Slug.ILItem := DispatchRegister(Func, Slugs, Slug);
     ccIntrinsic: Result := DispatchIntrinsic(Func, Slugs, Slug);
-    ccStack: Slug.ILItem := DispatchStack(Func);
+    ccStack: Slug.ILItem := DispatchStack(Func, Slug);
   else
-    raise Exception.Create('Unknown calling convention in function despatch :(');
+    raise ECallingConvention.Create;
   end;
   if Result <> qeNone then
     EXIT;
 
   //Generate IL code for after call/saving result
   if Func.CallingConvention <> ccIntrinsic then
+    //Process return value(s)
+(*  if (Func.ResultCount > 0) and Func.FindResult.ReturnsData then
   begin
+    ILAppendFuncResult(Result);
+    Arg := Func.FindResult;
+    Result.ResultType := Arg.UserType;
+
+    case GetTypeSize(Arg.UserType) of
+      1: Result.Dest.Reg := rA;   //Byte params returned in A
+      2: Result.Dest.Reg := rHL;  //2 byte params returned in HL
+    else
+      Assert(False, 'Uncoded result type');
+    end;
+  end;
+*)  begin
     Param := Func.FindResult;
-    Slug.ResultType := Param.UserType;
-    Slug.ImplicitType := Param.UserType;
+//    if Param.ReturnsData then
+    begin
+      Slug.ResultType := Param.UserType;
+      Slug.ImplicitType := Param.UserType;
+    end;
   end;
 end;
 

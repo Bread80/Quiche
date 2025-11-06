@@ -229,7 +229,7 @@ begin
           amStack:
             Result := mtStack;
           amStaticRef: Result := mtStatic16;
-//          amStackPtr: Result := mtStack;
+          amStackRef: Result := mtStack;
         else
           System.Assert(False);
         end;
