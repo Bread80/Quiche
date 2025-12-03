@@ -115,6 +115,8 @@ type
     acRun: TAction;
     MenuItem1: TMenuItem;
     MenuItem5: TMenuItem;
+    acBuild: TAction;
+    MenuItem6: TMenuItem;
     procedure btnInterpretClick(Sender: TObject);
     procedure btnEmulateClick(Sender: TObject);
     procedure acRunExecute(Sender: TObject);
@@ -133,6 +135,7 @@ type
     procedure acSaveAsExecute(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
     procedure acSelfTestFormExecute(Sender: TObject);
+    procedure acBuildExecute(Sender: TObject);
   private
     tdSource: TTextBrowser;
     //True if this window is still being created. Prevents options being autosaved etc.
@@ -148,6 +151,8 @@ type
     //Returns False if the project couldn't be saved for any reason
     function SaveProject: Boolean;
     procedure DelayedSetFocus(Control: TControl);
+    //Returns True if all went okay
+    function Build: Boolean;
   public
     { Public declarations }
   end;
@@ -166,6 +171,11 @@ const
   scCaption = 'Quiche Z80 Cross Compiler by @Bread80';
 
   scScratchFile = 'Config\uifile.quiche';
+
+procedure TForm1.acBuildExecute(Sender: TObject);
+begin
+  Build
+end;
 
 procedure TForm1.acNewExecute(Sender: TObject);
 begin
@@ -196,46 +206,9 @@ begin
 end;
 
 procedure TForm1.acRunExecute(Sender: TObject);
-var Good: Boolean;
 begin
-  if not SaveProject then
-    EXIT;
-  EmulateGood := False;
-
-  Good := IDE.Compiler.CompileString(tdSource.Text.AsString, GetBlockType,
-    pmRootUnknown, True, False);
-
-  IDE.Compiler.GetScopeList(cbScope.Items);
-  if cbScope.Items.Count > 0 then
-    cbScope.ItemIndex := 0;
-(*
-  IDE.Compiler.GetILText(mmIL.Lines);
-  IDE.Compiler.GetVarsText(mmVariables.Lines, True);
-  IDE.Compiler.GetFunctionsText(mmFunctions.Lines);
-//  IDE.Compiler.GetTypesText(mmFunctions.Lines);
-*)
-  if not Good then
+  if Build then
   begin
-    if IDE.Compiler.ParseErrorNo <> 0 then
-    begin //Compile error
-      tdSource.Text.acSetCursor(IDE.Compiler.ParseErrorPos, IDE.Compiler.ParseErrorLine-1);
-      edError.Text := IDE.Compiler.ParseErrorString;
-      mmIL.Lines.Add(tdSource.Text.Lines[ParseErrorLine-1]);
-      mmIL.Lines.Add(StringOfChar(' ',ParseErrorPos)+'^');
-      mmIL.Lines.Add(edError.Text);
-      mmIL.Lines.Add(ParseErrorHelp);
-      TabControl1.ActiveTab := tbILCode;
-    end
-    else if IDE.Compiler.AssembleError then
-    begin
-      ShowMessage('Assembly error: ' + IDE.Compiler.AssemblerLog);
-      TabControl1.ActiveTab := tbAssembly;
-    end;
-  end
-  else
-  begin
-    edError.Text := '';
-
     btnEmulateClick(nil);
     TabControl1.ActiveTab := tbEmulate;
 //    if Compiler.LastErrorNo <> 0 then
@@ -334,6 +307,46 @@ begin
 
   IDE.Compiler.GetVarsText(mmVariables.Lines, False);
   TabControl1.ActiveTab := tbVariables;
+end;
+
+function TForm1.Build: Boolean;
+begin
+  if not SaveProject then
+    EXIT;
+  EmulateGood := False;
+
+  Result := IDE.Compiler.CompileString(tdSource.Text.AsString, GetBlockType,
+    pmRootUnknown, True, False);
+
+  IDE.Compiler.GetScopeList(cbScope.Items);
+  if cbScope.Items.Count > 0 then
+    cbScope.ItemIndex := 0;
+(*
+  IDE.Compiler.GetILText(mmIL.Lines);
+  IDE.Compiler.GetVarsText(mmVariables.Lines, True);
+  IDE.Compiler.GetFunctionsText(mmFunctions.Lines);
+//  IDE.Compiler.GetTypesText(mmFunctions.Lines);
+*)
+  if not Result then
+  begin
+    if IDE.Compiler.ParseErrorNo <> 0 then
+    begin //Compile error
+      tdSource.Text.acSetCursor(IDE.Compiler.ParseErrorPos, IDE.Compiler.ParseErrorLine-1);
+      edError.Text := IDE.Compiler.ParseErrorString;
+      mmIL.Lines.Add(tdSource.Text.Lines[ParseErrorLine-1]);
+      mmIL.Lines.Add(StringOfChar(' ',ParseErrorPos)+'^');
+      mmIL.Lines.Add(edError.Text);
+      mmIL.Lines.Add(ParseErrorHelp);
+      TabControl1.ActiveTab := tbILCode;
+    end
+    else if IDE.Compiler.AssembleError then
+    begin
+      ShowMessage('Assembly error: ' + IDE.Compiler.AssemblerLog);
+      TabControl1.ActiveTab := tbAssembly;
+    end;
+  end
+  else
+    edError.Text := '';
 end;
 
 procedure TForm1.cbDeployChange(Sender: TObject);

@@ -1,6 +1,24 @@
 (* Function Data
 
-Paramater passing
+Calling Conventions
+===================
+
+Stack Usage
+-----------
+Arguments passed on the stack. Local variables alloocated on the stack.
+
+Stack Frames (Stack calling convention):
+  <Start of previous stack frame>   <- Original IX
+  <End of local vars, pushes, etc>  <- Original SP
+  <Arguments pushed onto stack>
+  Return-addr         <- From call to function
+  Prev-IX             <- From previous stack frame
+  <Local variables>   <- New IX points here
+  <End of local vars> <- New SP
+
+
+
+Parameter passing
 
 Calling Conventions: REGISTER, CALL, RST
 
@@ -40,7 +58,6 @@ Calling Conventions: STACK
 [3] - Hidden copy performed by caller into stack space. (Note limits on stack frame size).
 [4] - References passed in by caller on stack
 [5] - Value returned in a register
-
 *)
 
 unit Def.Functions;
@@ -179,6 +196,12 @@ type
     //Returns variable storage (specified by the calling convention)
     function GetParamAddrMode: TAddrMode;
     function GetLocalAddrMode: TAddrMode;
+
+    //Returns the byte-size of arguments which are passed on the stack.
+    //Includes the size of arguments /after/ ArgIndex (ie not including Arg[ArgIndex]).
+    //Only includes data for Args which are passed as parameters on the stack
+    //(ie. those which PassDataIn but not those which CopyDataIn)
+    function GetParamByteSizeAfter(ArgIndex: Integer): Integer;
 
     //Returns the assembly instruction to call this function.
     //(Could be a CALL or an RST, or something fancier).
@@ -431,6 +454,18 @@ begin
     ccStack: Result := amStack;
   else
     raise Exception.Create('Undefined Calling Convention');
+  end;
+end;
+
+function TFunction.GetParamByteSizeAfter(ArgIndex: Integer): Integer;
+begin
+  inc(ArgIndex);
+  Result := 0;
+  while ArgIndex < ParamCount + ResultCount do
+  begin
+    if Params[ArgIndex].PassDataIn then
+      Result := Result + GetTypeRegSize(Params[ArgIndex].UserType);
+    Inc(ArgIndex);
   end;
 end;
 

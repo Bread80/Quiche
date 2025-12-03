@@ -8,7 +8,6 @@ uses
   Def.Variables, Def.Consts,
   Z80.Hardware;
 
-
 //If ByteIndex is zero,
 //Generates (IX+<full-varname>)
 //otherwise,
@@ -16,7 +15,19 @@ uses
 function OffsetToStr(Reg: TCPUReg;Variable: PVariable;ByteIndex: Integer = 0): String;
 function OffsetHiToStr(Reg: TCPUReg;Variable: PVariable): String;
 
-//---Moves between register, and loads of immediate data
+//---Loads from memory
+procedure OpLOAD(Dest: TCPUReg;Source: String);overload;
+procedure OpLOAD(Dest: TCPUReg;SourceV: PVariable);overload;
+//ByteIndex allows to specify high or low byte. Reg must be 8-bit
+procedure OpLOAD(Dest: TCPUReg;SourceV: PVariable;ByteIndex: Integer);overload;
+//From index register - can move both 8 and 16 bit values
+procedure OpLOAD(Dest, SourceXY: TCPUReg;SourceV: PVariable;ByteIndex: Integer = 0);overload;
+
+//Where Dest is 8-bit and Source is 16-bit (pointer)
+//LD <Dest>,(<Source>)
+procedure OpLOAD(Dest, Source: TCPUReg);overload;
+
+//---Moves between registers, and loads of immediate data
 procedure OpMOV(Dest: TCPUReg;Source: String);overload;
 //Convenience routines to generate specific opcodes
 procedure OpMOV(Dest, Source: TCPUReg);overload;
@@ -44,18 +55,6 @@ procedure OpSTO(Dest: TCPUReg; Source: TImmValue);overload;
 //8-bit immediate store ONLY
 procedure OpSTO(Dest: TCPUReg; Value: Integer);overload;
 
-//---Loads from memory
-procedure OpLOAD(Dest: TCPUReg;Source: String);overload;
-procedure OpLOAD(Dest: TCPUReg;SourceV: PVariable);overload;
-//ByteIndex allows to specify high or low byte. Reg must be 8-bit
-procedure OpLOAD(Dest: TCPUReg;SourceV: PVariable;ByteIndex: Integer);overload;
-//From index register - can move both 8 and 16 bit values
-procedure OpLOAD(Dest, SourceXY: TCPUReg;SourceV: PVariable;ByteIndex: Integer = 0);overload;
-
-//Where Dest is 8-bit and Source is 16-bit (pointer)
-//LD <Dest>,(<Source>)
-procedure OpLOAD(Dest, Source: TCPUReg);overload;
-
 procedure OpLDIR;
 
 procedure OpPUSH(Reg: TCPUReg);
@@ -64,6 +63,7 @@ procedure OpPOP(Reg: TCPUReg);
 procedure OpEXHLDE;
 
 procedure OpADD(RAcc, RAdd: TCPUReg);
+procedure OpADDHLSP;
 procedure OpINC(Reg: TCPUReg);
 procedure OpSBC(RAcc, rSub: TCPUReg);
 procedure OpDEC(Reg: TCPUReg);
@@ -98,6 +98,55 @@ begin
   Result := OffsetToStr(Reg, Variable, 1);
 end;
 
+procedure OpLOAD(Dest: TCPUReg;Source: String);overload;
+begin
+  Assert((Dest = rA) or (Dest in CPUReg16Bit));
+  AsmOpcode('ld', CPURegStrings[Dest], '('+Source+')');
+end;
+
+procedure OpLOAD(Dest: TCPUReg;SourceV: PVariable);overload;
+begin
+  Assert(SourceV.AddrMode in [amStatic, amStaticRef]);
+  AsmOpcode('ld', CPURegStrings[Dest], '('+SourceV.GetAsmName+')');
+end;
+
+procedure OpLOAD(Dest, SourceXY: TCPUReg;SourceV: PVariable;ByteIndex: Integer = 0);overload;
+begin
+  Assert(SourceXY in [rIX, rIY]);
+  Assert(SourceV.AddrMode in [amStack, amStackRef]);
+
+  if Dest in CPURegPairs then
+  begin
+    AsmOpcode('ld', CPURegStrings[CPURegPairToLow[Dest]], OffsetToStr(SourceXY, SourceV, ByteIndex));
+    AsmOpcode('ld', CPURegStrings[CPURegPairToHigh[Dest]], OffsetToStr(SourceXY, SourceV, ByteIndex +1));
+  end
+  else
+    AsmOpcode('ld', CPURegStrings[Dest], OffsetToStr(SourceXY, SourceV, ByteIndex));
+end;
+
+procedure OpLOAD(Dest: TCPUReg;SourceV: PVariable;ByteIndex: Integer);overload;
+var S: String;
+begin
+  Assert(SourceV.AddrMode = amStatic);
+  S := '('+SourceV.GetAsmName;
+  if ByteIndex <> 0 then
+    S := S +' +' +ByteIndex.ToString;
+  S := S + ')';
+  AsmOpcode('ld', CPURegStrings[Dest], S);
+end;
+
+//LD <dest>,(<source>) where dest is an 8-bit and source is a 16-bit
+procedure OpLOAD(Dest, Source: TCPUReg);
+var S: String;
+begin
+  Assert(Source in CPUReg16Bit);
+  Assert(Dest in CPUReg8Bit);
+  Assert((Dest = rA) or (Source = rHL));  //Unacceptable combinations
+
+  S := '(' + CPURegStrings[Source] + ')';
+  AsmOpcode('ld', CPURegStrings[Dest], S);
+end;
+
 procedure OpMOV(Dest: TCPUReg;Source: String);overload;
 begin
   AsmOpcode('ld', CPURegStrings[Dest], Source);
@@ -105,7 +154,14 @@ end;
 
 procedure OpMOV(Dest, Source: TCPUReg);overload;
 begin
-  AsmOpcode('ld',CPURegStrings[Dest],CPURegStrings[Source]);
+  if Source in [rIX, rIY] then
+  begin //Mov via 'illegal' instructions
+    Assert(Dest in [rBC, rDE]); //Can't move to other index reg or HL :sigh:
+    AsmOpCode('ld',CPURegStrings[CPURegPairToLow[Dest]],CPURegStrings[Source] + 'l');
+    AsmOpCode('ld',CPURegStrings[CPURegPairToHigh[Dest]],CPURegStrings[Source] + 'h');
+  end
+  else
+    AsmOpcode('ld',CPURegStrings[Dest],CPURegStrings[Source]);
 end;
 
 procedure OpMOV(Dest: TCPUReg; Source: TImmValue);overload;
@@ -198,56 +254,6 @@ begin
   AsmOpcode('ld', D, ByteToStr(Value));
 end;
 
-procedure OpLOAD(Dest: TCPUReg;Source: String);overload;
-begin
-  Assert((Dest = rA) or (Dest in CPUReg16Bit));
-  AsmOpcode('ld', CPURegStrings[Dest], '('+Source+')');
-end;
-
-procedure OpLOAD(Dest: TCPUReg;SourceV: PVariable);overload;
-begin
-  Assert(SourceV.AddrMode in [amStatic, amStaticRef]);
-  AsmOpcode('ld', CPURegStrings[Dest], '('+SourceV.GetAsmName+')');
-end;
-
-procedure OpLOAD(Dest, SourceXY: TCPUReg;SourceV: PVariable;ByteIndex: Integer = 0);overload;
-begin
-  Assert(SourceXY in [rIX, rIY]);
-  Assert(SourceV.AddrMode in [amStack, amStackRef]);
-
-  if Dest in CPURegPairs then
-  begin
-    AsmOpcode('ld', CPURegStrings[CPURegPairToLow[Dest]], OffsetToStr(SourceXY, SourceV, ByteIndex));
-    AsmOpcode('ld', CPURegStrings[CPURegPairToHigh[Dest]], OffsetToStr(SourceXY, SourceV, ByteIndex +1));
-  end
-  else
-    AsmOpcode('ld', CPURegStrings[Dest], OffsetToStr(SourceXY, SourceV, ByteIndex));
-end;
-
-procedure OpLOAD(Dest: TCPUReg;SourceV: PVariable;ByteIndex: Integer);overload;
-var S: String;
-begin
-  Assert(SourceV.AddrMode = amStatic);
-  S := '('+SourceV.GetAsmName;
-  if ByteIndex <> 0 then
-    S := S +' +' +ByteIndex.ToString;
-  S := S + ')';
-  AsmOpcode('ld', CPURegStrings[Dest], S);
-end;
-
-//LD <dest>,(<source>) where dest is an 8-bit and source is a 16-bit
-procedure OpLOAD(Dest, Source: TCPUReg);
-var S: String;
-begin
-  Assert(Source in CPUReg16Bit);
-  Assert(Dest in CPUReg8Bit);
-  Assert((Dest = rA) or (Source = rHL));  //Unacceptable combinations
-
-  S := '(' + CPURegStrings[Source] + ')';
-  AsmOpcode('ld', CPURegStrings[Dest], S);
-end;
-
-
 procedure OpLDIR;
 begin
   AsmOpcode('ldir');
@@ -273,6 +279,11 @@ end;
 procedure OpADD(RAcc, RAdd: TCPUReg);
 begin
   AsmOpcode('add',CPURegStrings[RAcc],CPURegStrings[RAdd]);
+end;
+
+procedure OpADDHLSP;
+begin
+  AsmOpcode('add','hl','sp');
 end;
 
 procedure OpINC(Reg: TCPUReg);

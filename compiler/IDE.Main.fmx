@@ -3327,9 +3327,15 @@ object Form1: TForm1
       end
     end
     object MenuItem1: TMenuItem
-      Text = '&Run'
+      Text = '&Project'
       object MenuItem5: TMenuItem
         Action = acRun
+        Enabled = True
+        Locked = True
+        ImageIndex = -1
+      end
+      object MenuItem6: TMenuItem
+        Action = acBuild
         Enabled = True
         Locked = True
         ImageIndex = -1
@@ -3397,6 +3403,12 @@ object Form1: TForm1
       Text = '&Run'
       ShortCut = 120
       OnExecute = acRunExecute
+    end
+    object acBuild: TAction
+      Category = 'Run'
+      Text = '&Build'
+      ShortCut = 8312
+      OnExecute = acBuildExecute
     end
   end
 end

@@ -17,6 +17,7 @@ procedure TEMPRegAllocMove(var ILItem: PILItem);
 procedure TEMPRegAllocTypecast(var ILItem: PILItem);
 
 procedure TEMPRegAllocBlockCopy(var ILItem: PILItem);
+procedure TEMPRegAllocBlockCopyToOffset(var ILItem: PILItem);
 
 procedure TEMPRegAllocPtrLoad(var ILItem: PILItem);
 
@@ -205,6 +206,19 @@ begin
   ILItem.Param1.Reg := rHL;
   ILItem.Param2.Reg := rBC;
   ILItem.Dest.Reg := rDE;
+end;
+
+procedure TEMPRegAllocBlockCopyToOffset(var ILItem: PILItem);
+begin
+  Assert(ILItem.Op = opBlockCopyToOffset);
+  Assert(ILItem.Param1.Kind = pkVarRef);
+  Assert(ILItem.Param2.Kind = pkImmediate);
+  Assert(ILItem.Dest.Kind = pkImmediate);
+  //We need to add SP to Dest, so we need tp swap HL and DE.They'll be swapped
+  //back later
+  ILItem.Param1.Reg := rDE;
+  ILItem.Param2.Reg := rBC;
+  ILItem.Param3.Reg := rHL;
 end;
 
 procedure TEMPRegAllocPtrLoad(var ILItem: PILItem);

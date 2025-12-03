@@ -18,6 +18,10 @@ uses SysUtils,
   Parse.Base, Parse.Eval, Parse.TypeChecker,
   Z80.Hardware;
 
+//Bytes required for return stack pointer, previous IX etc.
+//Probably should be somewhere else. CPU specific?
+const iFunctionMetaByteSize = 4;
+
 type TSlugArray= array[0..MaxFunctionParams] of TExprSlug;
 
 //Read an argument from the source code, and return it in a Slug
@@ -59,6 +63,7 @@ var Arg: PParameter;
   V: PVariable;
   CL: PConstList;
   Scope: PScope;
+  Offset: Integer;
 begin
   Arg := @Func.Params[ArgIndex];
 
@@ -96,31 +101,80 @@ begin
   //If so we need to generate a opBlockCopy /before/ the function dispatch IL
   if Arg.CopyDataIn then
   begin
-    Assert(IsPointeredType(Arg.UserType.VarType));
-    ILItem := ILAppend(opBlockCopy);
-    Assert(Slug.Operand.Kind = pkVarSource);
-    ILItem.Param1 := Slug.Operand;
-    ILItem.Param1.Kind := pkVarRef;
-    ILItem.Param2.Kind := pkImmediate;
-    ILItem.Param2.Imm := TImmValue.CreateTyped(vtWord, GetTypeSize(Slug.ResultType));
-    //Dest is the variable created within the function
+    //Dest is the variable within the function
     Scope := FindScopeForFunc(Func);
     Assert(Scope <> nil);
     V := Scope.VarList.FindVarForArg(ArgIndex);
     Assert(V <> nil); //Should never happen
-    ILItem.Dest.SetVarRef(V);  //TODO: CodeGen will probably use the wrong scope for the variable !Eek!
-    ILItem.Dest.VarVersion := 1;
-    ILItem.ResultType := Slug.ResultType;
-  end;
 
+    //To
+    case Func.CallingConvention of
+      ccStack:
+      begin
+        //'To' address will be an offset from the current SP. This offset will
+        //depend on:
+        // - The variable's offset from the base of the function's stack frame.
+        //   (note this is allocated as a local variable, not a parameter)
+        // - The bytesize of arguments not yet pushed on the stack.
+        // - The bytesize of any call 'meta data' overhead (ie return address and
+        //   previous stack frame base preserved on the stack)
+        //BE AWARE that we are in the stack frame of the caller, NOT the stack frame
+        //of the function being called. The target (in V) IS in the stack frame
+        //of the function being called.
+        ILItem := ILAppend(opBlockCopyToOffset);
+        Offset :=
+          //Offset of data from stack frame
+          V.Offset -
+          //Bytes still to be pushed on stack -
+          Func.GetParamByteSizeAfter(ArgIndex) -
+          //Bytes for return value and prev IX (etc)
+          iFunctionMetaByteSize;
+        ILItem.Param3.Kind := pkImmediate;
+        ILItem.Param3.Imm := TImmValue.CreateInteger(Offset);
+      end;
+      ccRegister, ccCall, ccRST, ccExtern:
+      begin
+        ILItem := ILAppend(opBlockCopy);
+        ILItem.Dest.SetVarRef(V);
+        ILItem.Dest.VarVersion := 1;
+      end;
+    else
+      raise ECallingConvention.Create;
+    end;
+
+    //From
+    Assert(Slug.Operand.Kind = pkVarSource);
+    ILItem.Param1 := Slug.Operand;
+    ILItem.Param1.Kind := pkVarRef;
+
+    //Bytecount
+    ILItem.Param2.Kind := pkImmediate;
+    ILItem.Param2.Imm := TImmValue.CreateTyped(vtWord, GetTypeSize(Slug.ResultType));
+
+    ILItem.ResultType := Slug.ResultType;
+  end
+  else
   //Do we need to push this argument on the stack?
   case CallingConvention of
     ccRegister, ccCall, ccRST, ccExtern, ccIntrinsic: ; //Registers will be loaded later
     ccStack: //Put parameters on the stack
     begin
-      ILItem := Slug.ToILItemNoDest;
-      if ILItem.Op = OpUnknown then
-        ILItem.Op := OpMove;
+      //The expression has returned a pointered value. We need to create a temporary
+      //variable to store the returned data, and set it's value into the ResultByRefParam.
+      if Slug.ResultByRefParam <> nil then
+      begin
+        Assert(Arg.IsByRef);  //Ensure we take the correct path in the next IF statement
+        Slug.AssignToHiddenVar;
+        ILItem := ILAppend(OpMove);
+        ILItem.ResultType := GetPointerToType(Slug.ResultType);
+        ILItem.Param1.SetVarRef(Slug.Operand.Variable);
+      end
+      else
+      begin
+        ILItem := Slug.ToILItemNoDest;
+        if ILItem.Op = OpUnknown then
+          ILItem.Op := OpMove;
+      end;
 
       if Arg.IsByRef then
       begin
@@ -129,10 +183,7 @@ begin
         //pass the address of that variable
         Assert(ILItem.Param1.Kind in [pkVarSource, pkVarRef]);
         if ILItem.Param1.Kind = pkVarSource then
-        begin
           ILItem.Param1.Kind := pkVarRef;
-//          ILItem.ResultType := GetPointerToType(Slug.ResultType);
-        end;
         ILItem.Dest.Kind := pkPush;
         ILItem.Dest.PushType := GetPointerToType(Slug.ResultType);
       end
@@ -143,7 +194,7 @@ begin
           1: ILItem.Dest.Kind := pkPushByte;
           2: ILItem.Dest.Kind := pkPush;
         else
-          Assert(False, 'Item too large for stack - needs to be passed by reference');
+          Assert(False);
         end;
         ILItem.Dest.PushType := Arg.UserType;
       end;

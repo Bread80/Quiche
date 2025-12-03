@@ -1,21 +1,4 @@
 unit Parse.FuncDef;
-{Calling Conventions
-===
-
-StackLocal
----
-Arguments passed on the stack. Local variables alloocated on the stack.
-
-Stack:
-  <Start of previous stack frame>   <- Original IX
-  <End of local vars, pushes, etc>  <- Original SP
-  <Arguments pushed onto stack>
-  Return-addr         <- From call to function
-  Prev-IX             <- From previous stack frame
-  <Local variables>   <- New IX points here
-  <End of local vars> <- New SP
-}
-
 interface
 uses
   Def.Functions,

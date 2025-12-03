@@ -319,6 +319,12 @@ begin
       GenRegLoad(ILIndex, nil);
       GenBlockCopy(ILItem);
     end;
+    opBlockCopyToOffset:
+    begin
+      TEMPRegAllocBlockCopyToOffset(ILItem);
+      GenRegLoad(ILIndex, nil);
+      GenBlockCopyToOffset(ILItem);
+    end;
     opBranch: GenUncondBranch(ILItem);
     opBoolVarBranch:  //Branch where condition is a boolean variable (which could
                       //be in a CPU flag)

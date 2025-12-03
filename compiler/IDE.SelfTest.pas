@@ -602,21 +602,29 @@ end;
 
 procedure TTest.Run;
 begin
-  FStatus := tsNotRun;
-  FTestLog := '';
-  FEmulateError := False;
-  FErrorReport := '';
+  try
+    FStatus := tsNotRun;
+    FTestLog := '';
+    FEmulateError := False;
+    FErrorReport := '';
 
-  ClearTestStatuses;
-  WarmInitCompiler;
+    ClearTestStatuses;
+    WarmInitCompiler;
 
-  if Compile and (FParseErrorNo = 0) and not AssembleError then
-    if not Emulate then
+    if Compile and (FParseErrorNo = 0) and not AssembleError then
+      if not Emulate then
+        FStatus := tsError;
+
+    RunSteps;
+    if FStatus = tsNotRun then
+      FStatus := tsPassed;
+  except
+    on E:Exception do
+    begin
       FStatus := tsError;
-
-  RunSteps;
-  if FStatus = tsNotRun then
-    FStatus := tsPassed;
+//      Error('Unhandled Exception: ' + E.Message);
+    end;
+  end;
 end;
 
 procedure TTest.RunSteps;

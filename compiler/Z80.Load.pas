@@ -886,7 +886,7 @@ end;
 //Loads the address of the data for a Pointered Type
 //The value will depend on the addressing mode of the variable
 procedure GenLoadRegVarRef(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
-{  LoadType: TLoadParamType;ToType: PUserType;RangeCheck: Boolean;}Options: TMoveOptionSet);
+  Options: TMoveOptionSet);
 begin
 (*  Assert(IsPointeredType(Variable.VarType)); *)
 
@@ -894,6 +894,44 @@ begin
     amStatic:
       OpMOV(ToReg, Variable.GetAsmName);
       //TODO: CPU State
+    amStack:  //Result := rIX + V.Offset
+    begin
+      //Preserve stuff - TODO: Optimise so we only preserve as needed
+      if ToReg <> rHL then
+        OpPUSH(rHL);
+      if ToReg <> rDE then
+        OpPUSH(rDE);
+
+      OpMOV(rDE, rIX);  //Stack base (OpMOV uses 'illegal' instructions for this)
+
+      GenLoadRegLiteral(rHL, TImmValue.CreateInteger(Variable.Offset), []);  //Offset from stack base
+      OpADD(rHL, rDE);
+      case ToReg of       //Move to final register
+        rHL:  ; //Do nothing
+        rDE: OpEXHLDE;
+        rBC:
+        begin
+          OpMOV(rC, rL);
+          OpMOV(rB, rH);
+        end;
+      else
+        Assert(False);  //Invalid toReg
+      end;
+      //Restore stuff
+      if ToReg <> rDE then
+        OpPOP(rDE);
+      if ToReg <> rHL then
+        OpPOP(rHL);
+
+      RegStateSetUnknown(ToReg);  //TODO: Reg state
+    end;
+    amStackRef:
+    begin
+      //HL -> Pointer to
+      OpLOAD(ToReg, rIX, Variable);
+
+      RegStateSetUnknown(rHL);  //TODO: Reg State
+    end;
   else
     Assert(False);
   end;

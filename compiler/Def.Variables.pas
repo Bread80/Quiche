@@ -90,6 +90,11 @@ type
     //Mark a variable as 'touched'
     procedure Touch;
 
+    //Returns the number of bytes to be allocated on the stack for storing this
+    //variable as a parameter. Returns 0 if the variable's data is not passed via the
+    //stack
+    function GetSizeAsParam: Integer;
+
     //Returns true if the variable requires storage, false if not.
     //Varaibles don't require storage include:
     // - those which have been optimised away
@@ -108,6 +113,8 @@ type
   PVarList = ^TVarList;
   TVarList = record
     Items: TList<PVariable>;
+    ParamOffset: Integer; //Current highest parameter offset (from stack base)
+                          //Used when assigning parameter offsets
 
     //---------------SkipMode
     //These two functions are used by SkipMode to enable
@@ -324,6 +331,19 @@ begin
     Result := Result + Index.ToString;
 end;
 
+function TVariable.GetSizeAsParam: Integer;
+begin
+  case AddrMode of
+    amStatic, amStaticRef: Result := 0;  //Not passed on stack
+    amStack:  //Passed as data
+      Result := GetTypeDataSize(UserType);
+    amStackRef: //Passed as pointer
+      Result := GetVarTypeSize(vtPointer);
+  else
+    raise EAddrMode.Create;
+  end;
+end;
+
 function TVariable.IncVersion: Integer;
 begin
   Assert(not IsConst);
@@ -339,15 +359,18 @@ end;
 
 function TVariable.ToString(TypeSummary: Boolean): String;
 begin
-  if TypeSummary then
-    Result := ''
-  else if AddrMode = amStatic then
-    Result := '@'+IntToHex(Offset, 4).Tolower
+  if AddrMode = amStatic then
+  begin
+    if TypeSummary then
+      Result := ''
+    else
+      Result := '@'+IntToHex(Offset, 4).Tolower
+  end
   //vsOffset
   else if Offset < 0 then
-    Result := '-' + IntToHex(0-Offset, 2) + ' '
+    Result := {'-' +} IntToStr(Offset){IntToHex(0-Offset, 2)} + ' '
   else
-    Result := '+' + IntToHex(Offset, 2) + ' ';
+    Result := '+' + IntToStr(Offset){IntToHex(Offset, 2)} + ' ';
   Result := Result + GetAsmName + ': ' + UserType.Description;
   if not TypeSummary then
     Result := Result + ' = ' + Value.ToString;
@@ -409,39 +432,22 @@ end;
 
 function TVarList.AddParameter(const AName: String; UserType: PUserType;
   AddrMode: TAddrMode; AIsResult, PassDataIn: Boolean): PVariable;
-var Offset: Integer;  //Offset to the /previous/ stack variable (parameter)
-  PrevIndex: Integer; //Indesx of last Parameter added to the variable list
 begin
+  Result := AddInt(AName, UserType, AddrMode);
+  Result.IsResult := AIsResult;
+  Result.IsParam := PassDataIn or not AIsResult;
+
   //If variable is being stored on the stack we need to ascertain the offset of
   //the variable from SP. Otherwise we set offset to -1 to signify no offset has
   //yet been calculated.
   if (AddrMode = amStatic) or (AIsResult and not PassDataIn) then
-    Offset := -1
-  else  //vsRelative
+    Result.Offset := -1
+  else
   begin
-    //Get index of the last parameter which has already been added as a variable.
-    //We need to ignore any Result parameters, so step backwards through Vars
-    PrevIndex := Items.Count-1;
-    while (PrevIndex >= 0) and (Items[PrevIndex].IsResult) do
-      dec(PrevIndex);
-
-    if PrevIndex < 0 then
-      //This is the first parameter to be added
-      Offset := iStackOffsetForFirstParam
-    else
-    begin
-      Offset := Items[PrevIndex].Offset;
-      //Offsets for 'regular' variables are assigned later. Offsets for parameters
-      //are assigned here. If previous variable does not have an offset assigned we have a bug.
-      Assert(Offset <> -1,'Adding a parameter variable, but previous variable is NOT a parameter variable');
-      Offset := Offset + GetTypeSize(Items[PrevIndex].UserType);
-    end;
+    Result.Offset := ParamOffset;
+    //TODO: Depends of AddrMode and ?? (eg Pass by value of pointered types)
+    ParamOffset := ParamOffset + Result.GetSizeAsParam;
   end;
-
-  Result := AddInt(AName, UserType, AddrMode);
-  Result.Offset := Offset;
-  Result.IsResult := AIsResult;
-  Result.IsParam := PassDataIn or not AIsResult;
 end;
 
 function TVarList.AddUnnamed(UserType: PUserType): PVariable;
@@ -595,6 +601,7 @@ procedure TVarList.Initialise;
 begin
   Items := TList<PVariable>.Create;
   MarkPosition := -1;
+  ParamOffset := iStackOffsetForFirstParam;
 end;
 
 procedure TVarList.Mark;
@@ -626,28 +633,53 @@ begin
   end;
 end;
 
-procedure TVarList.SetOffsets;
-var Offset: Integer;
-  V: PVariable;
-begin
-  Offset := 0;
-  for V in Items do
-  begin
-    //Ignore parameters (which already have offsets assigned)
-    //Ignore variable with global/absolute storage addresses
-    if (V.Offset = -1) and (V.AddrMode in [amStack, amStackRef]) then
-    begin
-      //TODO: Ignore if optimised away
-      if V.AddrMode = amStack then
-        Offset := Offset - GetTypeRegSize(V.UserType)
-      else if V.AddrMode = amStackRef then
-        //If StackPtr we need storage for a pointer
-        Offset := Offset - GetVarTypeSize(vtPointer);
 
-      //If local var and requires storage
-      V.Offset := Offset;
+procedure TVarList.SetOffsets;
+
+  procedure DoSetOffsets(var Offset: Integer;PointeredTypes: Boolean);
+  var V: PVariable;
+    Size: Integer;
+  begin
+    for V in Items do
+    begin
+      //Ignore parameters (which already have offsets assigned)
+      //Ignore variable with global/absolute storage addresses
+      if (V.Offset = -1) then
+      begin
+        Size := V.GetSizeAsParam;
+
+        if Size <> 0 then
+          //TODO: Ignore if optimised away
+          case V.AddrMode of
+            amStatic, amStaticRef: ;  //Ignore
+            amStack:
+              if IsPointeredType(V.VarType) = PointeredTypes then
+              begin
+                Offset := Offset - Size;
+                V.Offset := Offset;
+              end;
+            amStackRef:
+            begin
+              //If StackPtr we need storage for a pointer
+              Offset := Offset - Size;
+              V.Offset := Offset;
+            end;
+          else
+            raise EAddrMode.Create;
+          end;
+      end;
     end;
   end;
+
+var Offset: Integer;
+begin
+  Offset := 0;
+  //Offsets for Register types and StackRef addr mode
+  DoSetOffsets(Offset, False);
+  //Generate offsets for Pointered Types
+  //They need to be stored beyond other variables due to limits in index register
+  //offset ranges. (They will be accessed using explicit additions to/from stack base)
+  DoSetOffsets(Offset, True);
 end;
 
 procedure TVarList.ToStrings(S: TStrings; TypeSummary: Boolean);
@@ -659,7 +691,7 @@ begin
   else
     S.Add('Variables dump:');
   for I := 0 to Items.Count-1 do
-    S.Add(IntToStr(I) + '- ' + Items[I].ToString(TypeSummary));
+    S.Add(IntToStr(I) + ': ' + Items[I].ToString(TypeSummary));
 end;
 
 end.

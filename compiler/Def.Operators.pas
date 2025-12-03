@@ -63,8 +63,15 @@ type
                   //One parameter (Param1) and a Dest
     opBlockCopy,  //Copy a block of data from one location to another
                   //Param1: VarRef Source variable
-                  //Param2: VarRef Dest variable
-                  //Param3: Count of bytes to copy
+                  //Param2: Count of bytes to copy
+                  //Param3/Dest: VarRef Dest variable
+    opBlockCopyToOffset,
+                  //Similar to opBlockCopy but the destination is an offset from
+                  //the current SP. Used for pass-by-value pointered types in the
+                  //Stack calling convention
+                  //Param1: VarRef Source variable
+                  //Param2: Count of bytes to copy
+                  //Param3: Offset from SP
     opStoreImm,   //Store an immediate value into a location
                   //One parameter (Param1) which must be an pkImmediate and a Dest
     opBranch,     //Unconditional branch
@@ -191,7 +198,7 @@ function StringToBoolean(S: String): Boolean;
 const OpStrings : array[low(TOperator)..high(TOperator)] of String = (
   //System operators
   'UNKNOWN','Typecast',
-  'Move','BlockCopy','StoreImm',
+  'Move','BlockCopy','BlockCopyToOffset','StoreImm',
   'Branch','BoolVarBranch',
   'PtrLoad','PtrStore',
   'Phi',

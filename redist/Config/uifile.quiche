@@ -1,13 +1,21 @@
 program
-  var Test: Byte
+  type TArray = array[0..5] of Byte
 
-  procedure Foo(var X: Integer);stack;
+  var
+    TestOld: Byte
+    TestNew: Byte
+
+  procedure FillArray(A: TArray);stack;
   begin
-    Test := Lo(X)
+    TestOld := A[5]
+    for var I := 0 to 5 do
+      A[I] := I
+    TestNew := A[5]
   end
 
-  var A: Integer
+  var MyArray: TArray;
   begin
-    A := 5
-    Foo(A)
+    for var I := 0 to 5 do
+      MyArray[I] := $ff
+    FillArray(MyArray)
   end.

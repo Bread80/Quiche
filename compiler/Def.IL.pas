@@ -1036,10 +1036,16 @@ begin
         Result := Result + #13';    CALL: ' + Func.ToString;
     end;
   else //General operation types
-    Assert(Param1.Kind in [pkNone, pkImmediate, pkVarSource, pkVarAddr, pkVarPtr, pkVarRef, pkPhiVarSource]);
-    Assert(Param2.Kind in [pkNone, pkImmediate, pkVarSource, pkVarAddr, pkPhiVarSource]);
-    Assert(Dest.Kind in [pkNone, pkCondBranch, pkBranch, pkVarDest, pkVarAddr, pkVarRef, pkPhiVarDest, pkPush, pkPushByte]);
-    Result := Result + Param3.ToString;
+//    Assert(Param1.Kind in [pkNone, pkImmediate, pkVarSource, pkVarAddr, pkVarPtr, pkVarRef, pkPhiVarSource]);
+//    Assert(Param2.Kind in [pkNone, pkImmediate, pkVarSource, pkVarAddr, pkPhiVarSource]);
+//    Assert(Dest.Kind in [pkNone, pkCondBranch, pkBranch, pkVarDest, pkVarAddr, pkVarRef, pkPhiVarDest, pkPush, pkPushByte]);
+    if Op = opBlockCopyToOffset then
+    begin
+      Assert(Param3.Kind = pkImmediate);
+      Result := Result + 'SP'+Param3.Imm.ToStringWord;
+    end
+    else
+      Result := Result + Param3.ToString;
 
     if Dest.Kind in [pkVarDest, pkVarRef, pkPhiVarDest, pkCondbranch, pkPush, pkPushByte] then
       Result := Result + ' = ';

@@ -58,6 +58,7 @@ procedure GenTypecast(ILItem: PILItem);
 //Generate code for opBlockCopy - copy data for a pointered type from one variable
 //to another.
 procedure GenBlockCopy(ILItem: PILItem);
+procedure GenBlockCopyToOffset(ILItem: PILItem);
 
 //A procedure to generate code for an ILItem's Op
 type
@@ -79,7 +80,7 @@ procedure Initialise;
 
 implementation
 uses Generics.Collections, SysUtils,
-  Def.Globals, Def.Operators, Def.Variables, Def.UserTypes,
+  Def.Globals, Def.Operators, Def.Variables, Def.UserTypes, Def.Functions,
   CG.Data,
   Z80.CPUState, Z80.Assembler, Z80.AlgoData, Z80.Validation;
 
@@ -100,7 +101,7 @@ begin
   GenFragmentParam(Fragment, Param^, '');//TODO: Prefix???
 end;
 
-const MaxParamCount = 15;
+const MaxParamCount = 15; //Params to load/store for a primitive. NOT for a function.
 
 var OrderedParams: array[0..MaxParamCount-1] of PILParam;
 
@@ -728,6 +729,16 @@ begin
   RegStateSetLiteral(rBC, 0);
 end;
 
+procedure GenBlockCopyToOffset(ILItem: PILItem);
+begin
+  Assert(ILItem.Op = opBlockCopyToOffset);
+  OpADDHLSP;  //ADD HL,SP
+  OpEXHLDE;
+  OpLDIR;
+  RegStateSetUnknowns([rHL, rDE]);
+  RegStateSetLiteral(rBC, 0);
+end;
+
 //================================CODEGENPROCS
 
 var CodeGenProcs: TDictionary<String, TCodeGenProc>;
@@ -844,6 +855,15 @@ begin
         amStatic: //Direct load of calculated address into register
           OpMOV(rHL, V.GetAsmName + ' + ' + WordToStr(ElementSize * (Index - FirstIndex)));
           //TODO: Update Reg State
+        amStack:  //Data address is IX+offset_to_data + offset_within_array
+        begin
+          OpPUSH(rIX);  //Push stack pointer
+          OpPOP(rDE);   //into DE
+          GenLoadRegLiteral(rHL, TImmValue.CreateTyped(vtWord, ElementSize * (Index - FirstIndex) + V.Offset), []);
+//          OpMOV(rHL, WordToStr(ElementSize * (Index - FirstIndex) + V.Offset));
+          OpADD(rHL, rDE);
+          //TODO: Update Reg State
+        end;
         amStaticRef, amStackRef:
         begin
           if V.AddrMode = amStaticRef then
@@ -851,7 +871,8 @@ begin
           else  //amStackRef
             OpLOAD(rDE, rIX, V);
 
-          OpMOV(rHL, WordToStr(ElementSize * (Index - FirstIndex))); //Offset to element
+          GenLoadRegLiteral(rHL, TImmValue.CreateTyped(vtWord, ElementSize * (Index - FirstIndex)), []);
+//          OpMOV(rHL, WordToStr(ElementSize * (Index - FirstIndex))); //Offset to element
           OpADD(rHL,rDE);           //Element address onto HL
           //TODO: Update Reg State
         end;
@@ -866,54 +887,19 @@ begin
   end;
 end;
 
-//Calc address of array element where:
-// - the array is in a static variable
-// - the index has been pre-loaded into the
-//   - HL register (16-bit value),
-//   - L register (unsigned 8-bit value)
-procedure Proc_AddrOfArrayElemStaticVarSource(ILItem: PILItem);
-var V: PVariable; //The array
-  ArrayType: PUserType; //Array type
-  AddrMode: TAddrMode;
-//  IsPointerTo: Boolean; //If True V is a pointer to the actual data (static pointer)
-                        //If False V is the actual data (static)
-  ElementSize: Integer;
-  IndexVT: TVarType;    //Index type
-  FirstIndex: Integer;  //First item of array
+//Generate cdeo to convert the array index (in (H)L to an offset from the array
+//base, returned in HL
+//Also bounds checks the index value as necessary
+procedure GenIndexToOffset(V: PVariable;IndexParam: PILParam;ArrayType: PUserType; ElementSize: Integer);
+var IndexVT: TVarType;    //Index type
 begin
-  Assert(ILItem.Param1.Kind = pkVarRef);
-  Assert(ILItem.Param2.Kind = pkVarSource);
-  Assert(IsOrdinalType(UTToVT(ILItem.Param2.Variable.UserType)));
-
-  V := ILItem.Param1.Variable;
-  ArrayType := V.UserType;
-
-  AddrMode := V.AddrMode;
-//  IsPointerTo := (ArrayType.VarType = vtTypedPointer) or
-//    (V.AddrMode = amStaticRef);
-  if ArrayType.VarType = vtTypedPointer then
-  begin
-    ArrayType := ArrayType.OfType;
-    case AddrMode of
-      amStatic: AddrMode := amstaticRef;
-      amStack: AddrMode := amStackRef;
-    else
-      raise EAddrMode.Create;
-    end;
-  end;
-  Assert(UTToVT(ArrayType) in [vtArray, vtVector, vtList]);
-  Assert(Assigned(ArrayType.OfType));
-
   //TODO: Only for vtArray - others use dynamic bounds checking
-  if cgRangeCheck in ILItem.Param2.Flags then
-    GenRangeCheck(ILItem.Param2.Reg, ILItem.Param2.GetUserType, ArrayType.BoundsType, nil, []);
-
-  ElementSize := GetTypeSize(ArrayType.OfType);
-  FirstIndex := ArrayType.BoundsType.Low;
+  if cgRangeCheck in IndexParam.Flags then
+    GenRangeCheck(IndexParam.Reg, IndexParam.GetUserType, ArrayType.BoundsType, nil, []);
 
   //Index will be in L (for unsigned 8-bit) or HL (for 16-bit)
   //If 8-bit then extend to 16-bit
-  IndexVT := UTToVT(GetBaseType(ILItem.Param2.Variable.UserType));
+  IndexVT := UTToVT(GetBaseType(IndexParam.Variable.UserType));
   if IndexVT = vtInt8 then
     GenSignExtend(rL, rH, [])
   else if GetVarTypeSize(IndexVT) = 1 then
@@ -935,55 +921,117 @@ begin
     RegStateSetUnknowns([rFlags, rCF, rZF]);
   end;
   //HL -> Index * ElementSize (Offset from array base (ignoring low bound))
+end;
 
-  //Get array base address
-  //Now add base address of the variable, and any offsets for Vector, List etc
-  case UTToVT(ArrayType) of
-    vtArray:
-      //TODO: Validate array size
-      //TODO: Check Reg State: is value already loaded?
+
+//Calc address of array element where:
+// - the array is in a static variable
+// - the index has been pre-loaded into the
+//   - HL register (16-bit value),
+//   - L register (unsigned 8-bit value)
+procedure Proc_AddrOfArrayElemStaticVarSource(ILItem: PILItem);
+var V: PVariable; //The array
+  ArrayType: PUserType; //Array type
+  AddrMode: TAddrMode;
+  ElementSize: Integer;
+  BoundsLow: Integer;  //First item of array
+  Offset: Integer;  //Due to: stack offset; Low bounds; Meta data (length, capacity)
+begin
+  Assert(ILItem.Param1.Kind = pkVarRef);
+  Assert(ILItem.Param2.Kind = pkVarSource);
+  Assert(IsOrdinalType(UTToVT(ILItem.Param2.Variable.UserType)));
+
+  V := ILItem.Param1.Variable;
+  ArrayType := V.UserType;
+
+  AddrMode := V.AddrMode;
+  //Tweak the addressing mode for typed pointers to simplify code generation
+  //(We can treat then the same as StatcRef/StackRef variables)
+  if ArrayType.VarType = vtTypedPointer then
+  begin
+    ArrayType := ArrayType.OfType;
     case AddrMode of
-      amStatic:
-      begin //V is static data
-        //Get static address of array less (or plus) offset of first element (due
-        //to Low bounds of array)
-        if FirstIndex > 0 then
-          OpMOV(rDE, V.GetAsmName + ' - ' + WordToStr(ElementSize * FirstIndex))
-        else
-          OpMOV(rDE, V.GetAsmName + ' + ' + WordToStr(ElementSize * -FirstIndex))
-        //TODO: Update Reg State
-      end;  //HL -> Offset, DE -> array base
-      amStaticRef, amStackRef:
-      begin
-        //Add/Subtract low bounds from offset
-        if ArrayType.BoundsType.Low > 0 then
-        begin
-          GenLoadRegLiteral(rDE, TImmValue.CreateInteger(abs(ArrayType.BoundsType.Low * ElementSize)), []);
-          GenLoadRegLiteral(rCF, TImmValue.CreateInteger(0), []);  //Clear carry
-          OpSBC(rHL, rDE);
-        end
-        else if ArrayType.BoundsType.Low < 0 then
-        begin
-          GenLoadRegLiteral(rDE, TImmValue.CreateInteger(abs(ArrayType.BoundsType.Low * ElementSize)), []);
-          OpADD(rHL, rDE);
-        end;
-        //HL -> Offset from array base
-
-        //DE->Base of array
-        if AddrMode = amStaticRef then
-          OpLOAD(rDE, V)
-        else
-          OpLOAD(rDE, rIX, V, 0);
-        //TODO: Update Reg State
-      end; //HL -> Offset. DE -> array base
+      amStatic: AddrMode := amstaticRef;
+      amStack: AddrMode := amStackRef;
     else
       raise EAddrMode.Create;
+    end;
+  end;
+  Assert(UTToVT(ArrayType) in [vtArray, vtVector, vtList]);
+  Assert(Assigned(ArrayType.OfType));
+
+  ElementSize := GetTypeSize(ArrayType.OfType);
+
+  //Gen code to calculate the offset from array base (ElementSize * Index)
+  GenIndexToOffset(V, @ILItem.Param2, ArrayType, ElementSize);
+  //HL -> Index * ElementSize (Offset from array base (ignoring low bound))
+
+  //Gen code to calculate the array base
+  case UTToVT(ArrayType) of
+    vtArray:
+    begin
+      //Offset to data from array base
+      Offset := ElementSize * -ArrayType.BoundsType.Low;
+      //Offset from stack base
+      if V.AddrMode = amStack then
+        Offset := Offset + V.Offset;
     end;
 //    vtVector:
 {    vtList:
 } else
     Assert(False);  //Must be array type
   end;
+
+      //TODO: Validate array size
+      //TODO: Check Reg State: is value already loaded?
+
+
+  //At this point: HL->Indexed offset into the array
+  case AddrMode of
+    amStatic:
+    begin //V is static data
+      //Get static address of array less (or plus) offset of first element (due
+      //to Low bounds of array)
+      if Offset < 0 then
+        OpMOV(rDE, V.GetAsmName + ' - ' + WordToStr(abs(Offset)))
+      else
+        OpMOV(rDE, V.GetAsmName + ' + ' + WordToStr(Offset))
+      //TODO: Update Reg State
+    end;  //HL -> Offset, DE -> array base
+    amStaticRef, amStackRef, amStack:
+    begin
+      //Add/Subtract low bounds from offset
+      if Offset < 0 then
+      begin
+        GenLoadRegLiteral(rDE, TImmValue.CreateInteger(abs(Offset)), []);
+        GenLoadRegLiteral(rCF, TImmValue.CreateInteger(0), []);  //Clear carry
+        OpSBC(rHL, rDE);
+      end
+      else if Offset > 0 then
+      begin
+        GenLoadRegLiteral(rDE, TImmValue.CreateInteger(abs(Offset)), []);
+        OpADD(rHL, rDE);
+      end;
+      //HL -> Offset from array base
+
+      //Get base of array into DE
+      case AddrMode of
+        amStack:
+        begin //Note: Base Offset calculated above includes stack offset from IX
+          OpPUSH(rIX);
+          OpPOP(rDE);
+        end;
+        amStaticRef: OpLOAD(rDE, V);
+        amStackRef:  OpLOAD(rDE, rIX, V, 0);
+      else
+        raise EAddrMode.Create; //Should never get here
+      end;
+      //TODO: Update Reg State
+    end; //HL -> Offset. DE -> array base
+  else
+    raise EAddrMode.Create;
+  end;
+
 
   //Add array base and offset
   //(ordering may be swapped depending on the path we took)
