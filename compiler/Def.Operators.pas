@@ -65,13 +65,22 @@ type
                   //Param1: VarRef Source variable
                   //Param2: Count of bytes to copy
                   //Param3/Dest: VarRef Dest variable
-    opBlockCopyToOffset,
-                  //Similar to opBlockCopy but the destination is an offset from
-                  //the current SP. Used for pass-by-value pointered types in the
-                  //Stack calling convention
-                  //Param1: VarRef Source variable
+    opParamCopyToStack,
+                  //A specialised version of opBlockCopy for copying a function
+                  //parameter's data into stack offset memory.
+                  //After calculating the address the Dest data this address is also
+                  //written back as Param1's value. Thus the Param1 variable us updated
+                  //to the data storage location ready for the remainder of the function
+                  //to use.
+                  //This operation is used for pointered types in the Stack calling
+                  //convention.
+                  //Param1: VarSource of the Variable (which must be have StackRef
+                  //addressing mode.
+                  //  On entry to the function variable's value is source address
+                  //  of the data to be copied. opParamCopyToStack updates the variables
+                  //  value to be the address of the local data (as passed in as Dest)
                   //Param2: Count of bytes to copy
-                  //Param3: Offset from SP
+                  //Param3/Dest: VarRef of the variable (the address of the local data)
     opStoreImm,   //Store an immediate value into a location
                   //One parameter (Param1) which must be an pkImmediate and a Dest
     opBranch,     //Unconditional branch
@@ -120,7 +129,7 @@ type
     //Comparisons
     opEqual, opNotEqual, opLess, opGreater, opLessEqual, opGreaterEqual,
     //Misc
-    opIn, opSHR, opSHL,
+    opConcat, opIn, opSHR, opSHL,
 
     //Unary operators
     //These have one input/source parameter (Param1) and an output/dest/result value (Dest/Param3)
@@ -141,7 +150,7 @@ type
 {    opKeyPressed,}
     opRead, {opReadKey,} opReadln, opWrite, opWriteln,
     //Strings and Chars
-    opChr, opDowncase, opLength, opUpcase
+    opCapacity, opChr, opDowncase, opLength, opSetLength, opUpcase
     );
 
 const
@@ -198,7 +207,7 @@ function StringToBoolean(S: String): Boolean;
 const OpStrings : array[low(TOperator)..high(TOperator)] of String = (
   //System operators
   'UNKNOWN','Typecast',
-  'Move','BlockCopy','BlockCopyToOffset','StoreImm',
+  'Move','BlockCopy','ParamCopyToStack','StoreImm',
   'Branch','BoolVarBranch',
   'PtrLoad','PtrStore',
   'Phi',
@@ -211,7 +220,7 @@ const OpStrings : array[low(TOperator)..high(TOperator)] of String = (
   'Add', 'Subtract', 'Multiply', 'RealDiv', 'Div', 'Mod',
   'OR', 'AND', 'XOR',
   'Equal', 'NotEqual', 'Less', 'Greater', 'LessEqual', 'GreaterEqual',
-  'In', 'SHR', 'SHL',
+  'Concat', 'In', 'SHR', 'SHL',
 
   //Unary operators
   'Negate', 'Complement',
@@ -224,7 +233,7 @@ const OpStrings : array[low(TOperator)..high(TOperator)] of String = (
 
   {'KeyPressed',} 'Read', {'ReadKey',} 'Readln', 'Write', 'Writeln',
 
-  'Chr', 'Downcase', 'Length', 'Upcase'
+  'Capacity', 'Chr', 'Downcase', 'Length', 'SetLength', 'Upcase'
   );
 
 

@@ -17,7 +17,7 @@ procedure TEMPRegAllocMove(var ILItem: PILItem);
 procedure TEMPRegAllocTypecast(var ILItem: PILItem);
 
 procedure TEMPRegAllocBlockCopy(var ILItem: PILItem);
-procedure TEMPRegAllocBlockCopyToOffset(var ILItem: PILItem);
+procedure TEMPRegAllocParamCopyToStack(var ILItem: PILItem);
 
 procedure TEMPRegAllocPtrLoad(var ILItem: PILItem);
 
@@ -53,13 +53,13 @@ begin
   Assert(not (ILItem.Op in [opUnknown, opPhi, opBranch, opMove,
     opRegLoad, opRegLoadExtended, opRegStore, opRegStoreExtended, opFuncCall, opFuncCallExtended]));
 
-  Assert(Assigned(Prim));
+  Assert(Assigned(Prim), 'No primitive assign for:'#13#10 + ILItem.ToString);
 
   if (ILItem.Param1.Reg = rNone) and (ILItem.Param1.Kind <> pkNone) then
     //Prim doesn't use this parameter?
     if Prim.ProcMeta.LLoc = plRegister then
     begin
-      //assign a register for the parameter to be loaded into
+      //Assign a register for the parameter to be loaded into
       Regs := Prim.ProcMeta.LRegs;
       if Regs <> [] then
       begin
@@ -200,7 +200,7 @@ end;
 procedure TEMPRegAllocBlockCopy(var ILItem: PILItem);
 begin
   Assert(ILItem.Op = opBlockCopy);
-  Assert(ILItem.Param1.Kind = pkVarRef);
+  Assert(ILItem.Param1.Kind in [pkVarRef, pkVarSource]);
   Assert(ILItem.Param2.Kind = pkImmediate);
   Assert(ILItem.Dest.Kind = pkVarRef);
   ILItem.Param1.Reg := rHL;
@@ -208,17 +208,15 @@ begin
   ILItem.Dest.Reg := rDE;
 end;
 
-procedure TEMPRegAllocBlockCopyToOffset(var ILItem: PILItem);
+procedure TEMPRegAllocParamCopyToStack(var ILItem: PILItem);
 begin
-  Assert(ILItem.Op = opBlockCopyToOffset);
+  Assert(ILItem.Op = opParamCopyToStack);
   Assert(ILItem.Param1.Kind = pkVarRef);
   Assert(ILItem.Param2.Kind = pkImmediate);
-  Assert(ILItem.Dest.Kind = pkImmediate);
-  //We need to add SP to Dest, so we need tp swap HL and DE.They'll be swapped
-  //back later
-  ILItem.Param1.Reg := rDE;
+  Assert(ILItem.Dest.Kind = pkVarRef);
+  ILItem.Param1.Reg := rHL;
   ILItem.Param2.Reg := rBC;
-  ILItem.Param3.Reg := rHL;
+  ILItem.Param3.Reg := rDE;
 end;
 
 procedure TEMPRegAllocPtrLoad(var ILItem: PILItem);
@@ -226,7 +224,7 @@ var ByteCount: Integer;
 begin
   Assert(ILItem.Op = opPtrLoad);
   Assert(ILItem.Param1.Kind = pkVarPtr);
-  Assert(UTToVT(ILItem.Param1.Variable.UserType) in [vtPointer, vtTypedPointer]);
+  Assert(ILItem.Param1.Variable.VarType in [vtPointer, vtTypedPointer]);
   Assert(ILItem.Param2.Kind = pkNone);
   Assert(ILItem.Param3.Kind in [pkVarDest{, pkPush, pkPushByte}]);
 
@@ -250,7 +248,7 @@ var ByteCount: Integer;
 begin
   Assert(ILItem.Op = opPtrStore);
   Assert(ILItem.Param1.Kind in [pkVarPtr, pkVarSource]);
-  Assert(UTToVT(ILItem.Param1.Variable.UserType) in [vtPointer, vtTypedPointer]);
+  Assert(ILItem.Param1.Variable.VarType in [vtPointer, vtTypedPointer]);
   Assert(ILItem.Param2.Kind <> pkNone);
   Assert(ILItem.Param3.Kind = pkNone);
 

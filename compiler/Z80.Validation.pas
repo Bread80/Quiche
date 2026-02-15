@@ -706,7 +706,7 @@ end;
 function GetOptimisedRangeCheckProc(Prim: PPrimitive;FromType: TVarType): TRangeCheckProc;
 var ProcName: String;
 begin
-  if not IsNumericType(FromType) then
+  if not IsNumericVarType(FromType) then
     EXIT(nil);
 
   Assert(Assigned(Prim));
@@ -782,9 +782,9 @@ begin
     GenSubRangeCheck(Reg, FromType, ToType, Options);
     EXIT;
   end;
-  if not IsNumericType(FType) then
+  if not IsNumericVarType(FType) then
     EXIT;
-  if not IsNumericType(TType) then
+  if not IsNumericVarType(TType) then
     EXIT;
   Assert(TType <> vtUnknown);
 
@@ -815,9 +815,9 @@ begin
 
   FType := FromType.VarType;
   TType := ToType.VarType;
-  if not IsNumericType(FType) then
+  if not IsNumericVarType(FType) then
     EXIT;
-  if not IsNumericType(TType) then
+  if not IsNumericVarType(TType) then
     EXIT;
 
   Assert(Reg in CPUReg8Bit);
@@ -853,9 +853,9 @@ begin
 
   FType := FromType.VarType;
   TType := ToType.VarType;
-  if not IsOrdinalType(FType) then
+  if not IsOrdinalVarType(FType) then
     EXIT;
-  if not IsOrdinalType(TType) then
+  if not IsOrdinalVarType(TType) then
     EXIT;
 
   Assert(Reg in CPUReg8Bit);
@@ -926,9 +926,9 @@ begin
 
   FType := FromType.VarType;
   TType := ToType.VarType;
-  if not IsNumericType(FType) then
+  if not IsNumericVarType(FType) then
     EXIT;
-  if not IsNumericType(TType) then
+  if not IsNumericVarType(TType) then
     EXIT;
 
   Assert(Reg in CPUReg8Bit);

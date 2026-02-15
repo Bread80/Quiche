@@ -114,21 +114,15 @@ begin
         EXIT;
       if not Assigned(UserType) then //(This is probably no longer needed)
         EXIT(Err(qeUnknownType));
-      case UTToVT(UserType) of
-        vtReal, vtString:
+      case UserType.VarType of
+        vtReal:
           EXIT(ErrTODO('Type not yet supported: ' + UserType.Name));
-        vtUnboundArray:
-          EXIT(ErrSub2(qeInstantiateUnboundedArray, UserType.Name, UserType.Name));
-        vtVector:
-          if UserType.VecLength = iUnboundedArray then
-            EXIT(ErrSub2(qeInstantiateUnboundedArray, UserType.Name, UserType.Name));
-        vtList:
-          if UserType.VecLength = iUnboundedArray then
+        vtArrayType:
+          if UserType.ArrayDef.IsUnbounded then
             EXIT(ErrSub2(qeInstantiateUnboundedArray, UserType.Name, UserType.Name));
       else
         //No probs
       end;
-
 
       Result := Parser.SkipWhite;
       if Result <> qeNone then

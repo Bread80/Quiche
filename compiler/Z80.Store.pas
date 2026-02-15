@@ -416,7 +416,7 @@ begin
   V := ILItem.Dest.Variable;
   Assert(Assigned(V));
 
-  if IsPointeredType(ILItem.Param1.Imm.VarType) then
+  if IsPointeredVarType(ILItem.Param1.Imm.VarType) then
     //Where the type is always referenced by a pointer, 'Immediate' means load
     //the address of the data in the data segment
     GenStoreLiteralPointerToVariable(V, ILItem.Param1.Imm, Options)
@@ -699,7 +699,7 @@ begin
   //We assume the result of an expression is a generic value - NOT a subrange and
   //therefore needs range checking into the DestType (if range checks are on).
   FromType := RemoveSubRange(ILItem.ResultType);
-  GenDestParam(ILItem.Dest, FromType, cgRangeCheck in ILItem.Dest.Flags, RangeCheckProc, []);
+  GenDestParam(ILItem.Dest, FromType, pfRangeCheck in ILItem.Dest.Flags, RangeCheckProc, []);
 end;
 
 end.

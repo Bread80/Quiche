@@ -332,11 +332,11 @@ begin
         vtWord, vtPointer, vtTypedPointer: Result := TImmValue.CreateTyped(UserType, ReadWord(AsmName));
           vtInt8: Result := TImmValue.CreateTyped(UserType, ReadInt8(AsmName));
           vtInteger: Result := TImmValue.CreateTyped(UserType, ReadInteger(AsmName));
-          vtString: Result := TImmValue.CreateString(ReadMemoryString(ReadWord(AsmName)));
+//          vtString: Result := TImmValue.CreateString(ReadMemoryString(ReadWord(AsmName)));
           vtReal, vtFlag, vtTypeDef, vtUnknown: ;//TODO?
           vtSetMem: Result := TImmValue.CreateString('TODO: SetMem type');
 //          vtArray, vtList: Result := TImmValue.CreateArray(ArrayToString(AsmName, AddrMode, UserType));
-          vtArray, vtList: Result := TImmValue.CreateBlob(UserType, ReadBlob(AsmName, GetTypeSize(UserType)));
+          vtArrayType: Result := TImmValue.CreateBlob(UserType, ReadBlob(AsmName, GetTypeSize(UserType)));
           vtRecord: Result := TImmValue.CreateString('TODO: Record types');
           vtFunction: Result := TImmValue.CreateString('TODO: Function types');
         else

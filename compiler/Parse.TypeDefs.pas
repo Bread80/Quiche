@@ -20,10 +20,10 @@ function ParseTypeDefinition(out TheType: PUserType;OrdinalTypesOnly: Boolean = 
 //                      | ( <identifier-list> )
 //                      | set of <type-definition>
 //                      | <range-expression>
-//TODO                      | range of <type-definition>
+//                      | range of <type-definition>
 //                      | array<array-bounds> of <type-definition>
-//                      | <list-keyword>[<capacity>] of <type-definition>
-//TODO                      | <list-type>[<capacity>]
+//                      | [LONG|SHORT] <list-keyword>[<capacity>] of <type-definition>
+//                      | <list-type>[<capacity>]
 //                      | <record-definition>
 //TODO                      | <stream-definition>
 //TODO                      | <function-definition>
@@ -31,14 +31,12 @@ function DoTYPE(const Ident: String): TQuicheError;
 
 implementation
 uses SysUtils,
-  Def.Consts, Def.VarTypes, Def.Scopes, Def.Variables, Def.Functions,
+  Def.Consts, Def.VarTypes, Def.Scopes, Def.Variables, Def.Functions, Def.Globals,
   Parse.Base, Parse.Source, Parse.Expr, Parse.FuncDef, Parse.VarDefs;
 
 function ParseSubRangeDefinition(out TheType: PUserType): TQuicheError;
 var ValueLow: TImmValue;
-  ExprTypeLow: PUserType;
   ValueHigh: TImmValue;
-  ExprTypeHigh: PUserType;
   CommonType: PUserType;  //Common type of upper and lower bounds
   Found: Boolean;
 begin
@@ -47,8 +45,7 @@ begin
     EXIT;
 
   //Parse low bound
-  ExprTypeLow := nil;
-  Result := ParseConstantExpr(ValueLow, ExprTypeLow);
+  Result := ParseConstantExpr(ValueLow);
   if Result = qeOperatorExpected then
     EXIT(Err(qeRangeOperatorExpected));
   if Result <> qeNone then
@@ -67,8 +64,7 @@ begin
   if not Found then
     EXIT(Err(qeRangeOperatorExpected));
 
-  Assert(Assigned(ExprTypeLow));
-  if not IsOrdinalType(UTToVT(ExprTypeLow)) then
+  if not IsOrdinalVarType(ValueLow.VarType) then
     EXIT(Err(qeOrdinalConstExprExpected));
 
   Result := Parser.SkipWhiteNL;
@@ -76,23 +72,21 @@ begin
     EXIT;
 
   //Parse high bound
-  ExprTypeHigh := nil;
-  Result := ParseConstantExpr(ValueHigh, ExprTypeHigh);
+  Result := ParseConstantExpr(ValueHigh);
   if Result = qeConstantExpressionExpected then
     EXIT(Err(qeOrdinalConstExprExpected));
   if Result <> qeNone then
     EXIT;
 
-  Assert(Assigned(ExprTypeHigh));
-  if not IsOrdinalType(UTToVT(ExprTypeHigh)) then
+  if not IsOrdinalVarType(ValueHigh.VarType) then
     EXIT(Err(qeOrdinalConstExprExpected));
 
   //Validate, and find a common type if required (ie for numeric types)
-  CommonType := ExprTypeLow;
-  if IsNumericType(UTToVT(ExprTypeLow)) then
+  CommonType := ValueLow.UserType;
+  if IsNumericVarType(ValueLow.VarType) then
   begin
-    if not IsNumericType(UTToVT(ExprTypeHigh)) then
-      EXIT(ErrSub2(qeRangeBoundsTypeMismatch, ExprTypeLow.Name, ExprTypeHigh.Name));
+    if not IsNumericVarType(ValueHigh.VarType) then
+      EXIT(ErrSub2(qeRangeBoundsTypeMismatch, ValueLow.UserType.Description, ValueHigh.UserType.Description));
 
     //If we can't fit all Word values into an Integer type...
     //(This code is future proofed against wider Integer types)
@@ -103,9 +97,9 @@ begin
 
     //Find most suitable common numeric type (if any)
     if ValueLow.IntValue < -128 then
-      CommonType := ExprTypeLow
+      CommonType := ValueLow.UserType
     else if ValueHigh.IntValue > 32767 then
-      CommonType := ExprTypeHigh  //We want to preserve any Pointer typing so use parsed types
+      CommonType := ValueHigh.UserType  //We want to preserve any Pointer typing so use parsed types
     else if ValueLow.IntValue < 0 then
       if ValueHigh.IntValue > 127 then
         CommonType := GetSystemType(vtInteger)
@@ -113,18 +107,18 @@ begin
         CommonType := GetSystemType(vtInt8)
     else  //ValueLow >= 0
       if ValueHigh.IntValue > 255 then
-        CommonType := ExprTypeHigh
+        CommonType := ValueHigh.UserType
       else
         CommonType := GetSystemType(vtByte);
   end
   else
-    case UTToVT(ExprTypeLow) of
+    case ValueLow.VarType of
       vtBoolean, vtChar:
-        if UTToVT(ExprTypeLow) <> UTToVT(ExprTypeHigh) then
-          EXIT(ErrSub2(qeRangeBoundsTypeMismatch, ExprTypeLow.Name, ExprTypeHigh.Name));
+        if ValueLow.VarType <> ValueHigh.VarType then
+          EXIT(ErrSub2(qeRangeBoundsTypeMismatch, ValueLow.UserType.Description, ValueHigh.UserType.Description));
       vtEnumeration:
-        if ExprTypeLow <> ExprTypeHigh then
-          EXIT(ErrSub2(qeRangeBoundsTypeMismatch, ExprTypeLow.Name, ExprTypeHigh.Name));
+        if ValueLow.UserType <> ValueHigh.UserType then
+          EXIT(ErrSub2(qeRangeBoundsTypeMismatch, ValueLow.UserType.Description, ValueHigh.UserType.Description));
     else
       Assert(False);  //Unknown type?
     end;
@@ -194,8 +188,7 @@ end;
 //                        might be an array definition, if we're parsing a
 //                        multidimensional array definition.
 //If InBounds is False -> We're outside a [..] section.
-//                        TheType will return an Array definition (vtArray or vtUnboundArray)
-
+//                        TheType will return an Array definition (vtArrayType)
 
 //Array definitions are basically a list of '<bounds> of <element>'
 //where, for a multidimensional array, <element> will be another array type.
@@ -221,7 +214,14 @@ function ParseArrayDefinition(out TheType: PUserType;InBounds: Boolean = False):
     if Result <> qeNone then
       EXIT;
 
-    TheType := Types.AddOfType(vtArray, OfType);
+    TheType := Types.AddOfType(vtArrayType, OfType);
+    TheType.ArrayDef.ArrayType := atArray;
+    if (TheType.High-TheType.Low+1) > 255 then
+      TheType.ArrayDef.ArraySize := asLong
+    else
+      TheType.ArrayDef.ArraySize := asShort;
+    TheType.ArrayDef.IsUnbounded := False;
+    TheType.ArrayDef.ElementSize := GetTypeDataSize(OfType);
     TheType.BoundsType := Bounds;
   end;
 
@@ -282,7 +282,11 @@ begin
 
   if not InBounds then
   begin //Unbounded array
-    TheType := Types.AddOfType(vtUnboundArray, OfType);
+    TheType := Types.AddOfType(vtArrayType, OfType);
+    TheType.ArrayDef.ArrayType := atArray;
+    TheType.ArrayDef.ArraySize := asUnknown;
+    TheType.ArrayDef.IsUnbounded := True;
+    TheType.ArrayDef.ElementSize := GetTypeDataSize(OfType);
     TheType.BoundsType := nil;
   end
   else  //Element
@@ -291,7 +295,6 @@ end;
 
 function ParseVectorOrListSize(out Size: Integer): TQuicheError;
 var SizeValue: TImmValue;
-  ExprType: PUserType;
 begin
   Assert(Parser.TestChar = '[');
 
@@ -299,13 +302,12 @@ begin
   Result := Parser.SkipWhiteNL;
   if Result <> qeNone then
     EXIT;
-  ExprType := nil;
-  Result := ParseConstantExpr(SizeValue, ExprType);
+  Result := ParseConstantExpr(SizeValue);
   if Result <> qeNone then
     EXIT;
 
   //Vectors and list can only have numeric sizes
-  if not IsIntegerType(ExprType) then
+  if not IsIntegerVarType(SizeValue.VarType) then
     EXIT(Err(qeListCapacityError));
   Size := SizeValue.ToInteger;
   if Size < 1 then
@@ -323,23 +325,36 @@ end;
 
 //<list> :== list of <type>
 //           list[<capacity>] of <type>
-//where <capacity> is any Integer value > 0
-function ParseVectorOrListDefinition(ListType: TVarType;out TheType: PUserType): TQuicheError;
+//           vector of <type>
+//           vector[<length>] of <type>
+//where <capacity>/<length> is any Integer value > 0. If <length>/<capacity> is not
+//specified and unbounded array type will be created.
+//ArrayType must be either atVector or atList.
+//If ArraySize is asUnknown the size will be chosen based on options and specified
+//length/capacity. If the options specify a Short size but the specified length/capacity
+//is oversize then a Long size will be used instead.
+//If ArraySize is given explicitly it will be adhered to and an error raised in the specified
+//length/capacity is out of range.
+function ParseVectorOrListDefinition(ArrayType: TArrayType;ArraySize: TArraySize;out TheType: PUserType): TQuicheError;
 var Size: Integer;
   OfType: PUserType;
+  IsUnbounded: Boolean;
 begin
+  assert(ArrayType in [atVector, atList]);
+
   Result := Parser.SkipWhiteNL;
   if Result <> qeNone then
     EXIT;
 
-  if Parser.TestChar = '[' then
+  IsUnbounded := Parser.TestChar <> '[';
+  if IsUnbounded then
+    Size := 0
+  else
   begin
     Result := ParseVectorOrListSize(Size);
     if Result <> qeNone then
       EXIT;
-  end
-  else
-    Size := iUnboundedArray;
+  end;
 
   if not TestForIdent('of') then
     EXIT(Err(qeOFExpected));
@@ -348,12 +363,27 @@ begin
   if Result <> qeNone then
     EXIT;
 
-  TheType := Types.AddOfType(ListType, OfType);
-  case ListType of
-    vtVector: TheType.VecLength := Size;
-    vtList:   TheType.Capacity := Size;
+  if ArraySize = asUnknown then
+  begin
+    if Size > 255 then
+      ArraySize := asLong
+    else
+      ArraySize := optDefaultArraySize;
+  end
   else
-    assert(False);  //Invalid type
+    if (Size > 255) and (ArraySize <> asLong) then
+      EXIT(Err(qeConstantOutOfRange));
+
+  TheType := Types.AddOfType(vtArrayType, OfType);
+  TheType.ArrayDef.ArrayType := ArrayType;
+  TheType.ArrayDef.ArraySize := ArraySize;
+  TheType.ArrayDef.IsUnbounded := IsUnbounded;
+  TheType.ArrayDef.ElementSize := GetTypeDataSize(OfType);
+  case ArrayType of
+    atVector: TheType.VectorLength := Size;
+    atList: TheType.ListCapacity := Size;
+  else
+    Assert(False);
   end;
 end;
 
@@ -367,11 +397,15 @@ begin
 
   BaseType := GetBaseType(FromType);
   TheType := Types.AddOfType(BaseType.VarType, BaseType.OfType);
-  case TheType.VarType of
-    vtVector: TheType.VecLength := Size;
-    vtList:   TheType.Capacity := Size;
+  TheType.ArrayDef.ArrayType := BaseType.ArrayDef.ArrayType;
+  TheType.ArrayDef.ArraySize := BaseType.ArrayDef.ArraySize;
+  TheType.ArrayDef.IsUnbounded := False;
+  TheType.ArrayDef.ElementSize := BaseType.ArrayDef.ElementSize;
+  case TheType.ArrayDef.ArrayType of
+    atVector: TheType.VectorLength := Size;
+    atList:   TheType.ListCapacity := Size;
   else
-    Assert(False);  //Invalid type
+    raise EVarType.Create; //Invalid type
   end;
 end;
 
@@ -470,8 +504,10 @@ var Ch: Char;
   Keyword: TKeyword;
   IdentData: TIdentData;
   Cursor: TParseCursor;
+  ArraySize: TArraySize;
 begin
   TheType := nil;
+
   Result := Parser.SkipWhiteNL;
   if Result <> qeNone then
     EXIT;
@@ -494,71 +530,77 @@ begin
       EXIT;
 
     Keyword := IdentToKeyword(Ident);
+    if OrdinalTypesOnly then
+      if Keyword in [keyARRAY, keyFUNCTION, keyLIST, keyLONG, keyPROCEDURE, keyRECORD,
+        keySET, keySHORT, keyVECTOR] then
+        EXIT(Err(qeOrdinalTypeExpected));
+
     case Keyword of
-      keyARRAY:
-        if OrdinalTypesOnly then
-          EXIT(Err(qeOrdinalTypeExpected))
-        else
-          Result := ParseArrayDefinition(TheType);
-      keyFUNCTION:
-        if OrdinalTypesOnly then
-          EXIT(Err(qeOrdinalTypeExpected))
-        else
-          Result := ParseFuncDefinition(False, TheType);
-      keyLIST:
-        if OrdinalTypesOnly then
-          EXIT(Err(qeOrdinalTypeExpected))
-        else
-          Result := ParseVectorOrListDefinition(vtList, TheType);
-      keyPROCEDURE:
-        if OrdinalTypesOnly then
-          EXIT(Err(qeOrdinalTypeExpected))
-        else
-          Result := ParseFuncDefinition(True, TheType);
-      keyRECORD:
-        if OrdinalTypesOnly then
-          EXIT(Err(qeOrdinalTypeExpected))
-        else
-          Result := ParseRecordDefinition(TheType);
-      keySET:
-        if OrdinalTypesOnly then
-          EXIT(Err(qeOrdinalTypeExpected))
-        else
-          Result := ParseSetDefinition(TheType);
-      keyVECTOR:
-        if OrdinalTypesOnly then
-          EXIT(Err(qeOrdinalTypeExpected))
-        else
-          Result := ParseVectorOrListDefinition(vtVector, TheType);
-      keyUNKNOWN:
-      begin //Not a keyword
-        IdentData := GetCurrentScope.SearchAllInScope(Ident, True);
-        case IdentData.IdentType of
-          itType:
-          begin
-            //If identifier is the name of a type we'll assume it's a type synonym
-            //(or pointer)...
-            if IsPointed then
-              TheType := GetPointerToType(IdentData.T)
-            else if (Parser.TestChar = '[') and (IdentData.T.VarType in [vtVector, vtList]) then
-              Result := BakeArrayType(IdentData.T, TheType)
-            else
-              TheType := IdentData.T;
-          end
-        else
-          if IsPointed and (IdentData.IdentType <> itType) then
-            EXIT(Err(qePointedTypeNameExpected))
-          else  //...otherwise we'll assume it's a range declaration
-          begin
-            Parser.SetCursor(Cursor); //Reset cursor. Messy but easy
-            Result := ParseSubRangeDefinition(TheType);
-            if Result = qeConstantExpressionExpected then
-              EXIT(ErrSub(qeUndeclaredTypeOrInvalidTypeDef, Ident));
+      keySHORT: ArraySize := asShort;
+      keyLONG: ArraySize := asLong;
+    else
+      ArraySize := asUnknown;
+    end;
+
+    if ArraySize <> asUnknown then
+    begin
+      Result := Parser.SkipWhite;
+      if Result <> qeNone then
+        EXIT;
+
+      Result := ParseIdentifier(#0, Ident);
+      if Result <> qeNone then
+        EXIT;
+
+      Keyword := IdentToKeyword(Ident);
+    end;
+
+    //LIST and VECTOR can have a size prefix (LONG or SHORT)
+    case Keyword of
+      keyLIST:   Result := ParseVectorOrListDefinition(atList, ArraySize, TheType);
+      keyVECTOR: Result := ParseVectorOrListDefinition(atVector, ArraySize, TheType);
+    else
+      if ArraySize <> asUnknown then
+        EXIT(ErrSub(qeUndeclaredTypeOrInvalidTypeDef, Ident));
+
+      case Keyword of
+        keyARRAY: Result := ParseArrayDefinition(TheType);
+        keyFUNCTION: Result := ParseFuncDefinition(False, TheType);
+        keyPROCEDURE: Result := ParseFuncDefinition(True, TheType);
+        keyRECORD: Result := ParseRecordDefinition(TheType);
+        keySET: Result := ParseSetDefinition(TheType);
+        keyUNKNOWN:
+        begin //Not a keyword
+          IdentData := GetCurrentScope.SearchAllInScope(Ident, True);
+          case IdentData.IdentType of
+            itType:
+            begin
+              //If identifier is the name of a type we'll assume it's a type synonym
+              //(or pointer)...
+              if IsPointed then
+                TheType := GetPointerToType(IdentData.T)
+              else if (Parser.TestChar = '[') and
+                (IdentData.T.VarType = vtArrayType) and
+                (IdentData.T.ArrayDef.ArrayType in [atVector, atList]) then
+                Result := BakeArrayType(IdentData.T, TheType)
+              else
+                TheType := IdentData.T;
+            end
+          else
+            if IsPointed and (IdentData.IdentType <> itType) then
+              EXIT(Err(qePointedTypeNameExpected))
+            else  //...otherwise we'll assume it's a range declaration
+            begin
+              Parser.SetCursor(Cursor); //Reset cursor. Messy but easy
+              Result := ParseSubRangeDefinition(TheType);
+              if Result = qeConstantExpressionExpected then
+                EXIT(ErrSub(qeUndeclaredTypeOrInvalidTypeDef, Ident));
+            end;
           end;
         end;
-      end;
-    else  //Any other reserved word
-      EXIT(ErrSub(qeReservedWord, Ident));
+      else  //Any other reserved word
+        EXIT(ErrSub(qeReservedWord, Ident));
+      end
     end
   end
   else  //Not an identifier -
@@ -589,7 +631,7 @@ begin
     EXIT;
 
   if OrdinalTypesOnly then
-    if not IsOrdinalType(UTToVT(TheType)) then
+    if not IsOrdinalType(TheType) then
       EXIT(Err(qeOrdinalTypeExpected));
 end;
 

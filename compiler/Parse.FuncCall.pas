@@ -25,33 +25,38 @@ const iFunctionMetaByteSize = 4;
 type TSlugArray= array[0..MaxFunctionParams] of TExprSlug;
 
 //Read an argument from the source code, and return it in a Slug
-function ParseArgument(Arg: TParameter;out Slug: TExprSlug): TQuicheError;
-var UType: PUserType;
+function ParseArgument(Func: PFunction;Arg: TParameter;out Slug: TExprSlug): TQuicheError;
 begin
   Slug.Initialise;
 
   //Parse argument - and validate type compatibility
-  if UTToVT(Arg.UserType) = vtTypeDef then
+  if Arg.VarType = vtTypeDef then
+  begin
     //Special handling for TypeDefs - Passing vtTypeDef to ParseExpressionToSlug
     //will give errors if the arg doesn't result in a type name...
-    UType := nil
+    Result := ParseExprToSlug(Slug);
+    if Result <> qeNone then
+      EXIT;
+
+    //...and if it does we need to convert that result here
+    if Slug.ResultVarType <> vtTypeDef then
+    //If we have an intrinsic, leave this bit for the intrinsic argument massager
+    if Func.CallingConvention <> ccIntrinsic then
+      //If caller wants a TypeDef can we get TypeDef of value?
+      //Can't do this for expressions (at least, not yet! - TODO)
+      if Slug.ILItem = nil then
+      begin
+        Slug.Operand.Imm.CreateTypeDef(Slug.ResultType);
+        Slug.Operand.Kind := pkImmediate;
+        Slug.ResultType := GetSystemType(vtTypeDef);
+      end;
+  end
   else
-    UType := Arg.UserType;
-
-  Result := ParseExprToSlug(Slug, UType);
-  if Result <> qeNone then
-    EXIT;
-
-  //...and if it does we need to convert that result here
-  if (UTToVT(Arg.UserType) = vtTypeDef) and (UTToVT(UType) <> vtTypeDef) then
-    //If caller wants a TypeDef can we get TypeDef of value?
-    //Can't do this for expressions (at least, not yet! - TODO)
-    if Slug.ILItem = nil then
-    begin
-      Slug.Operand.Imm.CreateTypeDef(Slug.ResultType);
-      Slug.Operand.Kind := pkImmediate;
-      Slug.ResultType := GetSystemType(vtTypeDef);
-    end;
+  begin
+    Result := ParseExprToSlugWithTypeCheck(Slug, Arg.UserType);
+    if Result <> qeNone then
+      EXIT;
+  end;
 end;
 
 //Validate an argument and process as necessary, depending on the calling
@@ -61,15 +66,12 @@ function ProcessArgument(Func: PFunction;CallingConvention: TCallingConvention;
 var Arg: PParameter;
   ILItem: PILItem;
   V: PVariable;
-  CL: PConstList;
-  Scope: PScope;
-  Offset: Integer;
 begin
   Arg := @Func.Params[ArgIndex];
 
   //We have a pointered literal - it needs adding to a ConstList...
   if (Slug.ILItem = nil) and (Slug.Operand.Kind = pkImmediate) then
-    if IsPointeredType(UTToVT(Slug.ResultType)) then
+    if IsPointeredType(Slug.ResultType) then
         Consts.Add('<Unnamed>', Slug.ResultType, Slug.Operand.Imm);
 
   //Validate argument:
@@ -87,7 +89,7 @@ begin
       if not ((Arg.Access = paVar) and (Func.CallingConvention = ccIntrinsic)) then
       begin
         //TODO: Proper type checking of user types
-        if V.VarType <> UTToVT(Arg.UserType) then
+        if V.VarType <> Arg.VarType then
           EXIT(ErrFuncCallSub3(qeReturnedArgTypeMismatch, Arg.Name,
             Slug.Operand.Variable.UserType.Description, Arg.UserType.Description,
             Func));
@@ -97,63 +99,6 @@ begin
     Assert(False, 'Unknown access specifier');
   end;
 
-  //Do we need a hidden copy (of a Pointered Type argument)?
-  //If so we need to generate a opBlockCopy /before/ the function dispatch IL
-  if Arg.CopyDataIn then
-  begin
-    //Dest is the variable within the function
-    Scope := FindScopeForFunc(Func);
-    Assert(Scope <> nil);
-    V := Scope.VarList.FindVarForArg(ArgIndex);
-    Assert(V <> nil); //Should never happen
-
-    //To
-    case Func.CallingConvention of
-      ccStack:
-      begin
-        //'To' address will be an offset from the current SP. This offset will
-        //depend on:
-        // - The variable's offset from the base of the function's stack frame.
-        //   (note this is allocated as a local variable, not a parameter)
-        // - The bytesize of arguments not yet pushed on the stack.
-        // - The bytesize of any call 'meta data' overhead (ie return address and
-        //   previous stack frame base preserved on the stack)
-        //BE AWARE that we are in the stack frame of the caller, NOT the stack frame
-        //of the function being called. The target (in V) IS in the stack frame
-        //of the function being called.
-        ILItem := ILAppend(opBlockCopyToOffset);
-        Offset :=
-          //Offset of data from stack frame
-          V.Offset -
-          //Bytes still to be pushed on stack -
-          Func.GetParamByteSizeAfter(ArgIndex) -
-          //Bytes for return value and prev IX (etc)
-          iFunctionMetaByteSize;
-        ILItem.Param3.Kind := pkImmediate;
-        ILItem.Param3.Imm := TImmValue.CreateInteger(Offset);
-      end;
-      ccRegister, ccCall, ccRST, ccExtern:
-      begin
-        ILItem := ILAppend(opBlockCopy);
-        ILItem.Dest.SetVarRef(V);
-        ILItem.Dest.VarVersion := 1;
-      end;
-    else
-      raise ECallingConvention.Create;
-    end;
-
-    //From
-    Assert(Slug.Operand.Kind = pkVarSource);
-    ILItem.Param1 := Slug.Operand;
-    ILItem.Param1.Kind := pkVarRef;
-
-    //Bytecount
-    ILItem.Param2.Kind := pkImmediate;
-    ILItem.Param2.Imm := TImmValue.CreateTyped(vtWord, GetTypeSize(Slug.ResultType));
-
-    ILItem.ResultType := Slug.ResultType;
-  end
-  else
   //Do we need to push this argument on the stack?
   case CallingConvention of
     ccRegister, ccCall, ccRST, ccExtern, ccIntrinsic: ; //Registers will be loaded later
@@ -207,10 +152,14 @@ end;
 
 function ParseArgList(Func: PFunction;out Slugs: TSlugArray): TQuicheError;
 var
+  I: Integer;
   Brace: Boolean; //True if arg list uses brackets
   Ch: Char;
   ArgIndex: Integer;  //Index into Func's argument list
 begin
+  for I := 0 to high(Slugs) do
+    Slugs[I].Initialise;
+
   Brace := Parser.TestChar = '(';
   if Brace then
     Parser.SkipChar;
@@ -234,7 +183,7 @@ begin
     if ArgIndex >= Func.ParamCount then
       EXIT(ErrFuncCall(qeTooManyArgs, Func));
 
-    Result := ParseArgument(Func.Params[ArgIndex], Slugs[ArgIndex]);
+    Result := ParseArgument(Func, Func.Params[ArgIndex], Slugs[ArgIndex]);
     if Result <> qeNone then
       EXIT;
     Result := ProcessArgument(Func, Func.CallingConvention, ArgIndex, Slugs[ArgIndex]);
@@ -259,11 +208,19 @@ begin
           if (Slugs[ArgIndex].ILItem = nil) and (Slugs[ArgIndex].Operand.Kind = pkImmediate) then
             if IsIntegerVarType(Slugs[ArgIndex].Operand.Imm.VarType) then
             begin
-              if ValidateAssignment(GetSystemType(vtByte), Slugs[ArgIndex]) <> qeNone then
+              if TypeCheckFromSlug(GetSystemType(vtByte), Slugs[ArgIndex]) <> qeNone then
                 EXIT(errFuncCall(qeConstantOutOfRange, Func));
               if Result <> qeNone then
                 EXIT;
             end;
+      OpSetLength:
+        if ArgIndex = 0 then
+          //First arg must be a List type variable
+          if (Slugs[ArgIndex].ILItem <> nil) or
+            (Slugs[ArgIndex].Operand.Kind <> pkVarSource) or
+            (Slugs[ArgIndex].ResultVarType <> vtArrayType) or
+            (Slugs[ArgIndex].ResultType.ArrayDef.ArrayType <> atList) then
+            EXIT(errFuncCallSub(qeListVariableArgExpected, Func.Params[1].Name, Func));
     end;
 
     //More parameters
@@ -349,13 +306,21 @@ begin
       if Left.ILItem <> nil then
       begin //We have an ILItem. Assign it to a temp var and use that
         Left.AssignToHiddenVar;
-        Slug.ILItem.Param1.SetVarSource(Left.ILItem.Dest.Variable);
+        if Func.Params[0].IsByRef then
+          Slug.ILItem.Param1.SetVarRef(Left.ILItem.Dest.Variable)
+        else
+          Slug.ILItem.Param1.SetVarSource(Left.ILItem.Dest.Variable);
       end
       else  //Otherwise it's either a constant or variable we can assign directly
+      begin
         Slug.ILItem.Param1 := Left.Operand;
+        if Func.Params[0].IsByRef then
+          if Slug.ILItem.Param1.Kind = pkVarSource then
+            Slug.ILItem.Param1.Kind := pkVarRef;
+      end;
     end;
 
-    if Func.ParamCount >= 2 then
+    if ParamCount >= 2 then
     begin //Same for second parameter
       if Right.ILItem <> nil then
       begin
@@ -369,7 +334,6 @@ begin
 
   if (Func.Params[0].Access = paVar) and not (Func.Params[0].IsByRef) then
   begin //Var parameter - result is written back to Param1
-
     V := Slug.ILItem.Param1.Variable;
     V.IncVersion;
     Slug.ILItem.Dest.SetVarDestAndVersion(V, V.Version);
@@ -432,60 +396,204 @@ begin
       end;
 end;
 
-//Apply any intrinsic flags and do crazy TypeDef stuff
-function MassageIntrinsicParameters(Func: PFunction;var Slugs: TSlugArray;
-  var ResultType: PUserType): TQuicheError;
-var I: Integer;
-  ArrayAsBounds: Boolean;
+//Sizeof for an unbounded array needs to use a primitive to convert the length/capacity
+//to the bytesize. If the length/capacity is <> 1 the primitive also needs to
+//multiply by the element size. So, if length/capacity is <> 1 we will supply a second
+//parameter containing the element size.
+procedure MassageUnboundedSizeOf(var Slugs: TSlugArray);
+var ElementSize: Integer;
 begin
-  Result := qeNone;
+  Assert(Slugs[0].ResultVarType = vtArrayType);
+  Assert(Slugs[0].ResultType.ArrayDef.ArrayType in [atVector, atList]);
 
-  for I := 0 to Func.ParamCount-1 do
+  ElementSize := Slugs[0].ResultType.ArrayDef.ElementSize;
+  if ElementSize <> 1 then
   begin
-    //If the parameter calls for a TypeDef and the expression did *not* result
-    //in a TypeDef then we need to convert the slugs value to an immediate TypeDef
-    if UTToVT(Func.Params[I].UserType) = vtTypeDef then
-      if UTToVT(Slugs[I].ResultType) <> vtTypeDef then
-        SlugToTypeDef(Slugs[I]);
-
-    ArrayAsBounds := ifArrayAsBounds in Func.Params[I].IntrinsicFlags;
-    if ArrayAsBounds then
-      if UTToVT(Func.Params[I].UserType) = vtTypeDef then
-        //Keep the value if we have an array type
-        ArrayAsBounds := IsArrayType(Slugs[I].Operand.Imm.TypeDefValue.VarType);
-
-    //Solidify a parameterized intrinsic:
-    //If ResultType is specified as Parameterized it's type is given via a parameter
-    //of type TypeDef. We need to find that parameter and 'solidify' the type of both
-    //that parameter and the result to the compile time value of that TypeDef parameter.
-    if Func.ResultCount > 0 then
-      if (Func.Params[Func.ParamCount].UserType = nil) and
-        (Func.Params[Func.ParamCount].SuperType = stParameterized) then
-        if UTToVT(Func.Params[I].UserType) = vtTypeDef then
-        begin
-          Assert((Slugs[I].ILItem = nil) and (Slugs[I].Operand.Kind = pkImmediate));
-
-          //Update the Result Type of the slug
-          if ArrayAsBounds then
-            //ResultType will the the OfType of the BoundsType
-            ResultType := Slugs[I].Operand.Imm.TypeDefValue.BoundsType.OfType
-
-          else if ifToType in Func.Params[I].IntrinsicFlags then
-          begin //Convert the TypeDef to an immediate of the given type...
-            ResultType := Slugs[I].Operand.Imm.TypeDefValue;
-
-            Slugs[I].ResultType := ResultType;
-            //...the value we'll use will be the extreme value of that type to force
-            //the prim selector to return a routine of that type
-            if IsSignedType(Slugs[I].ResultType) then
-              Result := GetTypeLowValue(Slugs[I].ResultType, Slugs[I].Operand.Imm)
-            else
-              Result := GetTypeHighValue(Slugs[I].ResultType, Slugs[I].Operand.Imm);
-            if Result <> qeNone then
-              EXIT;
-          end;
-        end;
+    Assert(Slugs[1].Operand.Kind = pkNone);
+    Slugs[1].Operand.Kind := pkImmediate;
+    Slugs[1].Operand.Imm.CreateTyped(Slugs[0].ResultType.ArrayDef.MetaType, ElementSize);
+    Slugs[1].ResultType := GetSystemType(vtWord);
+    Slugs[1].ImplicitType := Slugs[1].ResultType;
   end;
+end;
+
+//Applies any special processing and validation required when an array is being passed
+//as an argument.
+//Param is the relevant parameter
+//SlugIndex is the index of the parameter which is being passed an array
+function MassageArrayArgument(Op: TOperator;Param: PParameter;var Slugs: TSlugArray;
+  SlugIndex: Integer): TQuicheError;
+var Slug: PExprSlug;
+  IsTypeDef: Boolean; //We have a TypeDef - Ie the argument was a type (immediate) not a variable
+                        //  - we can use the type provide it is bounded.
+                        //  - If it's unbounded we have a compile-time error
+  IsImmediate: Boolean; //If true we have an immediate value, other than a type (eg a typed constant)
+                        //  - we can use the type of the constant at compile time
+                        //If False we have a variable
+                        //  - We may need to do runtime processing to establish the result
+                        //  - Ie if the variable is a list, or is an unbounded array.
+  IsUnbounded: Boolean; //We have an unbounded array
+  ArrayUT: PUserType;
+  ArrayType: TArrayType;
+begin
+  //TODO: Should this should raise a TypeMismatch error?
+  Assert(Param.VarType = vtTypeDef);
+
+  Slug := @Slugs[SlugIndex];
+
+  IsTypeDef := Slug.ResultVarType = vtTypeDef;
+  IsImmediate := Slug.IsImmediate and not IsTypeDef;
+
+  //Establish the type of the array argument
+  if IsTypeDef then
+  begin
+    Assert(Slug.IsImmediate);
+    ArrayUT := Slug.Operand.Imm.TypeDefValue;
+    Assert(ArrayUT.VarType = vtArrayType);
+  end
+  else
+    ArrayUT := Slug.ResultType;
+
+  ArrayType := ArrayUT.ArrayDef.ArrayType;
+  IsUnbounded := ArrayUT.ArrayDef.IsUnbounded;
+
+  case Op of
+    opHigh: ;
+    opLow:
+      //Vectors and list always have a Low of zero
+      if ArrayType in [atVector, atList] then
+      begin
+        SlugToTypeDef(Slugs[SlugIndex]);
+        EXIT(qeNone);
+      end;
+    opSizeof: //Special handling if runtime calculations are needed
+      //Leave array literals for compile time evaluation
+      if IsImmediate then
+        EXIT(qeNone)
+      else if IsUnbounded then
+      begin
+        Assert(SlugIndex = 0);
+        //Unbounded arrays can be processed at run-time but need an extra argument
+        MassageUnboundedSizeOf(Slugs)
+      end
+      else if ArrayType = atList then
+      begin //We can determine sizeof all bounded lists at compile time so
+        //skip error checking and other processing
+        if not IsTypeDef then
+          SlugToTypeDef(Slugs[SlugIndex]);
+        EXIT(qeNone);
+      end;
+    opCapacity, opSetLength: //We require an atList
+      if (ArrayType <> atList) or IsImmediate then
+        EXIT(ErrSub2(qeTypeMismatch, ArrayUT.Description, Param.UserType.Description));
+    opLength: ; //No further processing
+  else
+  end;
+
+  if IsTypeDef and (IsUnbounded or (ArrayType = atList)) then
+    //A TypeDef is a compile time constant. Operations on unbounded arrays and list
+    //are runtime only.
+    //TODO: Func Param doesn't specify arrays!!
+    EXIT(ErrSub2(qeTypeMismatch, ArrayUT.Description, Param.UserType.Description));
+
+  //Leave array literals for evaluation
+  if IsImmediate then
+    EXIT(qeNone);
+
+  if IsUnbounded or (ArrayType = atList) then
+  begin //Operations on unbounded arrays and list require a VarRef at runtime
+    Assert(Slugs[0].ILItem = nil);  //TODO: Syntax error if we have an expression??
+    Assert(Slugs[0].Operand.Kind = pkVarSource);
+    Slugs[0].Operand.Kind := pkVarRef;
+  end
+  else
+    //If size can be determined at compile time then convert the argument to a
+    //TypeDef with value equal to the argument's type
+    if not IsTypeDef and not IsUnbounded and (ArrayType <> atList) then
+      SlugToTypeDef(Slugs[SlugIndex]);
+
+  Result := qeNone;
+end;
+
+//Apply MassageArrayArgument to any parameter which is having an array passed to it
+function MassageArrayArguments(Func: PFunction;var Slugs: TSlugArray): TQuicheError;
+var I: Integer;
+begin
+  for I := 0 to Func.ParamCount-1 do
+    if (Slugs[I].ResultVarType = vtArrayType) or
+      (Slugs[I].ResultVarType = vtTypeDef) and (Slugs[I].Operand.Imm.TypeDefValue.VarType = vtArrayType) then
+    begin
+        Result := MassageArrayArgument(Func.Op, @Func.Params[I], Slugs, I);
+        if Result <> qeNone then
+          EXIT;
+    end;
+
+  Result := qeNone;
+end;
+
+//For any parameters which require a vtTypeDef, ensures the argument is a vtTypeDef
+//**Unless** the parameter is a vtArrayType
+//(ie if it is not then convert it to one);
+procedure SolidifyTypeDefs(Func: PFunction;var Slugs: TSlugArray);
+var I: Integer;
+begin
+  for I := 0 to Func.ParamCount-1 do
+    if Func.Params[I].VarType = vtTypeDef then
+      //TODO: Not if Slug is an array???
+      if not (Slugs[I].ResultVarType in [vtTypeDef, vtArrayType]) then
+        SlugToTypeDef(Slugs[I]);
+end;
+
+//Solidify a parameterized result type:
+//If ResultType is specified as Parameterized it's type is given via a parameter
+//of type TypeDef. We need to find that parameter and 'solidify' the type of both
+//that parameter and the result to the compile time value of that TypeDef parameter.
+//Also handles parameters tagged with ifToType. These need to be converted to a
+//Immediate of type vtVarType which is the same as the parameterised result.
+function SolidifyParameterisedResultType(Func: PFunction;var Slugs: TSlugArray;var ResultType: PUserType): TQuicheError;
+var Param: PParameter;
+  Slug: PExprSlug;
+  I: Integer;
+begin
+//  ResultType := nil;
+  //We we have a parameterised result?
+  if Func.ResultCount = 0 then
+    EXIT(qeNone);
+  if (Func.Params[Func.ParamCount].UserType <> nil) then
+    EXIT(qeNone);
+  if Func.Params[Func.ParamCount].SuperType <> stParameterized then
+    EXIT(qeNone);
+
+  //Find the parameter we will use to solidify the result
+  Param := nil;
+  Slug := nil;
+  for I := 0 to Func.ParamCount-1 do
+    if Func.Params[I].VarType = vtTypeDef then
+    begin
+      Assert(Param = nil);  //Multiple parameterised params is an error
+      Param := @Func.Params[I];
+      Slug := @Slugs[I];
+    end;
+  if Param = nil then
+    EXIT(qeNone);
+
+  if ifToType in Param.IntrinsicFlags then
+  begin //Convert the TypeDef to an immediate of the given type...
+    Assert(Slug.IsImmediate);
+    ResultType := Slug.Operand.Imm.TypeDefValue;
+
+    Slug.ResultType := ResultType;
+    //...the value we'll use will be the extreme value of that type to force
+    //the prim selector to return a routine of that type
+    if IsSignedType(Slug.ResultType) then
+      Result := GetTypeLowValue(Slug.ResultType, Slug.Operand.Imm)
+    else
+      Result := GetTypeHighValue(Slug.ResultType, Slug.Operand.Imm);
+    if Result <> qeNone then
+      EXIT;
+  end
+  else
+    Result := qeNone;
 end;
 
 function DispatchIntrinsic(Func: PFunction;var Slugs: TSlugArray;out Slug: TExprSlug): TQuicheError;
@@ -498,9 +606,19 @@ var
   RType: PUserType;
   Msg: String;
   Evalled: Boolean;
+  ParamCount: Integer;
 begin
+  //Special handling of array arguments
+  Result := MassageArrayArguments(Func, Slugs);
+  if Result <> qeNone then
+    EXIT;
+
+  //If the parameter wants a TypeDef then ensure we supply one.
+  SolidifyTypeDefs(Func, Slugs);
+
+  //Returns de-parameterised ResultType, or nil
   ResultType := nil;
-  Result := MassageIntrinsicParameters(Func, Slugs, ResultType);
+  Result := SolidifyParameterisedResultType(Func, Slugs, ResultType);
   if Result <> qeNone then
     EXIT;
 
@@ -510,36 +628,37 @@ begin
   Found := False;
   //Find a suitable Primitive - to validate these parameter types are suitable, and
   //establish the result type
-  case Func.ParamCount of
-    0:
-    begin //No parameters - just return the functions return type
-      LType := nil;
-      RType := nil;
-      Found := True;
-      PrimResultType := Func.Params[0].UserType;
-    end;
-    1:
-    begin
-      LType := Slugs[0].ResultType;
-      RType := nil;
-      Found := PrimFindParseUnary(Func.Op, Slugs[0], LType, PrimResultType);
-    end;
-    2:
-    begin
-      LType := Slugs[0].ResultType;
-      RType := Slugs[1].ResultType;
-      Found := PrimFindParse(Func.Op, Slugs[0], Slugs[1], LType, RType, PrimResultType);
-    end;
+  if Slugs[0].ResultType = nil then
+  begin //No parameters - just return the functions return type
+    ParamCount := 0;
+    LType := nil;
+    RType := nil;
+    Found := True;
+    PrimResultType := Func.Params[0].UserType;
+  end
+  else if Slugs[1].ResultType = nil then
+  begin
+    ParamCount := 1;
+    LType := Slugs[0].ResultType;
+    RType := nil;
+    Found := PrimFindParseUnary(Func.Op, Slugs[0], LType, PrimResultType);
+  end
+  else if Slugs[2].ResultType = nil then
+  begin
+    ParamCount := 2;
+    LType := Slugs[0].ResultType;
+    RType := Slugs[1].ResultType;
+    Found := PrimFindParse(Func.Op, Slugs[0], Slugs[1], LType, RType, PrimResultType);
+  end
   else
     Assert(False);
-  end;
 
   //No primitive found :(
   if not Found then
   begin
-    Msg := VarTypeToName(UTToVT(Slugs[0].ResultType));
+    Msg := Slugs[0].ResultType.Description;
     if RType <> nil then
-      Msg := Msg + ', ' + VarTypeToName(UTToVT(Slugs[1].ResultType));
+      Msg := Msg + ', ' + Slugs[1].ResultType.Description;
     Msg := '(' + Msg + ')';
     if Assigned(ResultTypeDebug) then
       Msg := Msg + ': ' + ResultTypeDebug.Name;
@@ -559,7 +678,7 @@ begin
 
   if not Evalled then
     //Generate the IL code :)
-    IntrinsicGenerateIL(Func, opUnknown, Func.ParamCount, Slugs[0], Slugs[1], Slug);
+    IntrinsicGenerateIL(Func, opUnknown, ParamCount, Slugs[0], Slugs[1], Slug);
 end;
 
 
@@ -584,7 +703,7 @@ begin
     if (not Brace) or (Brace and (Ch <> ')')) then
     repeat
       //Read the argument
-      Result := ParseArgument(Func.Params[0], Slug);
+      Result := ParseArgument(Func, Func.Params[0], Slug);
       if Result <> qeNone then
         EXIT;
 
@@ -594,9 +713,9 @@ begin
         EXIT;
 
       //Verify the argument is a type we can handle
-      if not (UTToVT(Slug.ResultType) in [vtInt8, vtInteger, vtByte, vtWord, vtPointer,
-        vtBoolean, vtChar, vtString]) then
-        EXIT(ErrTODO('Unhandled parameter type for Write/ln: ' + VarTypeToName(UTToVT(Slug.ResultType))));
+      if not (Slug.ResultVarType in [vtInt8, vtInteger, vtByte, vtWord, vtPointer,
+        vtBoolean, vtChar]) then
+        EXIT(ErrTODO('Unhandled parameter type for Write/ln: ' + Slug.ResultType.Description));
 
       //Generate the code.
       //NOTE: We need to pass in two slugs. Second will be ignored because of ParamCount value of 1
@@ -718,9 +837,6 @@ function DispatchStack(Func: PFunction;var Slug: TExprSlug): PILItem;
 var Arg: PParameter;
   ILItem: PILItem;
 begin
-  //We haven't created any IL data yet
-  ILItem := nil;
-
   //If we have a Result and it's Pass-By-Ref (i.e. a Pointered Type) then we need to
   //also push the data address on the stack
   if Func.ResultCount > 0 then
@@ -820,25 +936,10 @@ begin
   if Result <> qeNone then
     EXIT;
 
-  //Generate IL code for after call/saving result
   if Func.CallingConvention <> ccIntrinsic then
-    //Process return value(s)
-(*  if (Func.ResultCount > 0) and Func.FindResult.ReturnsData then
+  //Process return value(s)
   begin
-    ILAppendFuncResult(Result);
-    Arg := Func.FindResult;
-    Result.ResultType := Arg.UserType;
-
-    case GetTypeSize(Arg.UserType) of
-      1: Result.Dest.Reg := rA;   //Byte params returned in A
-      2: Result.Dest.Reg := rHL;  //2 byte params returned in HL
-    else
-      Assert(False, 'Uncoded result type');
-    end;
-  end;
-*)  begin
     Param := Func.FindResult;
-//    if Param.ReturnsData then
     begin
       Slug.ResultType := Param.UserType;
       Slug.ImplicitType := Param.UserType;

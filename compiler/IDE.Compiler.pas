@@ -140,10 +140,13 @@ uses SysUtils, {$ifdef fpc}FileUtil,{$else}IOUtils,{$endif}
 
 function ParseErrorString: String;
 begin
-  if LastError <> qeNone then
+  if LastError = qeAssemblyError then
+    Result := 'CODE GENERATION ERROR: ' + CodeGenErrorString
+  else if LastError <> qeNone then
     Result := 'ERROR: ' + ParseErrorNo.ToString + ': ' + LastErrorMessage +
       ' at line ' + ParseErrorLine.ToString + ' ' + ParseErrorPos.ToString
-  else if CodeGenErrorString <> '' then
+  else
+  if CodeGenErrorString <> '' then
     Result := 'ERROR in CodeGen: ' + CodeGenErrorString
   else
     Result := '';
@@ -612,6 +615,7 @@ begin
   optDefaultCallingConvention := Config.DefaultCallingConvention;
   optDefaultSignedInteger := True;
   optDefaultSmallestInteger := False;
+  optDefaultArraySize := asLong;
   optCleverPuppy := False;
 end;
 
@@ -721,7 +725,8 @@ begin
   if not WarmInit then
   begin
     if not InitLibraries then
-      raise Exception.Create('Unable to parse system library files');
+      raise Exception.Create('Unable to parse system library files: '#10#13 +
+        ParseErrorString);
   end;
 end;
 

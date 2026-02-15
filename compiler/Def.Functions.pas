@@ -114,29 +114,32 @@ type
 
   //Flags for intrinsic parameters
   TIntrinsicFlag = (
-    ifToType,       //If parameter is TypeDef will convert it the type in the TypeDef
-    ifArrayAsBounds //If the parameter is an array type, and the result is parameterised
-                    //then the ResultType will be the OfType of the array's BoundsType
+    ifToType        //If parameter's value is not vtTypeDef it will be converted
+                    //to a vtTypeDef giving the type of the argument passed to it.
+                    //Only valid where the intrinsic's result type is Parameterised.
+                    //and the parameter is of type vtTypeDef.
     );
   TIntrinsicFlagSet = set of TIntrinsicFlag;
 
   PParameter = ^TParameter;
   TParameter = record
     Access: TParamAccess; //Ignored for Intrinsics
-    IsByRef: Boolean;   //True if the parameter is passed by reference. The value
-                        //will depend on the Access type, the Calling Convention
-                        //and the type of the parameter (ie whether it is a Pointered Type)
+    IsByRef: Boolean;     //True if the parameter is passed by reference. The value
+                          //will depend on the Access type, the Calling Convention
+                          //and the type of the parameter (ie whether it is a Pointered Type)
     Name: String;
 
-    Reg: TCPUReg;       //If the parameter is passed via a register, otherwise rNone
+    Reg: TCPUReg;         //If the parameter is passed via a register, otherwise rNone
                           //Ignored for Intrinsics
-    UserType: PUserType;   //Parameter type
+    UserType: PUserType;  //Parameter type
     SuperType: TSuperType;  //Only for intrinsics. Only valid where VarType is vtUnknown.
     IntrinsicFlags: TIntrinsicFlagSet;  //Flags for Intrinsic params
 
     HasDefaultValue: Boolean;
     DefaultValue: TImmValue;   //If the parameter is optional.
                           //(only usable by Intrinsics at the moment)
+
+    function VarType: TVarType;
 
     //Returns True if the param requires data to be passed the function (in registers)
     //when the function is called.
@@ -248,6 +251,9 @@ function IdentToFuncDirective(const Ident: String): TFuncDirective;
 //If Ident is an access specifier returns True,
 //if not returns False and Access returns paVal
 function IdentToAccessSpecifier(const Ident: String;out Access: TParamAccess): Boolean;
+//Extended version for meta data files which can accept ByRef suffix
+function IdentToAccessSpecifierEX(const Ident: String;out Access: TParamAccess;
+  out IsByRef: Boolean): Boolean;
 
 //Returns True if a parameter under the given combination of calling convention,
 //access specifier and type will be passed by reference, false otherwise
@@ -331,14 +337,33 @@ begin
   Result := False;
 end;
 
+function IdentToAccessSpecifierEX(const Ident: String;out Access: TParamAccess;
+  out IsByRef: Boolean): Boolean;
+var ByRef: String;
+  NewIdent: String;
+begin
+  NewIdent := Ident;
+  if Length(Ident) > 5 then
+  begin
+    ByRef := NewIdent.SubString(Length(Ident)-length('ByRef'));
+    IsByRef := CompareText(ByRef, 'ByRef') = 0;
+    if IsByRef then
+      NewIdent := NewIdent.SubString(0, length(Ident)-Length('ByRef'));
+  end
+  else
+    IsByRef := False;
+
+  Result := IdentToAccessSpecifier(NewIdent, Access);
+end;
+
 function IsPassByRef(CallingConvention: TCallingConvention; Access: TParamAccess;
   UserType: PUserType): Boolean;
 begin
   case CallingConvention of
     ccRegister, ccCALL, ccRST, ccExtern:
-      Result := IsPointeredType(UserType.VarType);
+      Result := IsPointeredType(UserType);
     ccStack:
-      Result := IsPointeredType(UserType.VarType) or
+      Result := IsPointeredType(UserType) or
         //For these two we need to pass in the data address even for non-pointered types
         (Access in [paVar, paOut]);
   else
@@ -356,7 +381,7 @@ end;
 function TParameter.PassDataIn: Boolean;
 begin
   if IsByRef then
-    Result := Access in [paVar, paConst, paOut, paResult]
+    Result := Access in [paVal, paVar, paConst, paOut, paResult]
   else
     Result := Access in [paVal, paVar, paConst];
 end;
@@ -390,6 +415,11 @@ begin
 
   if HasDefaultValue then
     Result := Result + ' = ' + DefaultValue.ToString;
+end;
+
+function TParameter.VarType: TVarType;
+begin
+  Result := UTToVT(UserType);
 end;
 
 { TFunction }

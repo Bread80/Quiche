@@ -13,18 +13,22 @@ uses Def.IL, Def.Operators, Def.VarTypes, Def.UserTypes, Def.Consts, Def.Variabl
 procedure AssignSlugToDest(const Slug: TExprSlug;var Variable: PVariable;
   AsType: PUserType);
 
-function ParseExprToSlug(out Slug: TExprSlug;var ExprType: PUserType): TQuicheError;
+//Parses an expression and returns it's data in an ExprSlug.
+function ParseExprToSlug(out Slug: TExprSlug): TQuicheError;
+function ParseExprToSlugWithTypeCheck(out Slug: TExprSlug;AsType: PUserType): TQuicheError;
 
+(*  //Removed because it wasn't being used
 //Parses an expression to an ILItem with a single parameter and no operation
 //Dest and Operation data *must* be assigned by the caller
 function ParseExprToILItem(out ILItem: PILItem;out UType: PUserType): TQuicheError;
-
+*)
 //Parses a constant expression and returns it in Value.
 //If the expression is not a constant expression, or if the type is incompatible with
 //ExprType returns an error.
 //On entry a value of vtUnknown may be passed for ExprType. If so ExprType will
 //return the type of the expression parsed
-function ParseConstantExpr(out Value: TImmValue;var ExprType: PUserType): TQuicheError;
+function ParseConstantExpr(out Value: TImmValue): TQuicheError;
+function ParseConstantExprAsType(out Value: TImmValue;AsType: PUserType): TQuicheError;
 
 //Parses an expression (After the <varname> := has been parsed) and creates IL
 //to assign it to the Variable which has been passed in. VarIndex is the index of
@@ -72,11 +76,14 @@ begin
       else
         ILItem.Op := OpMove;
   end
-  else if IsPointeredType(Slug.ResultType.VarType) then
+  else if IsPointeredType(Slug.ResultType) then
     if Slug.Operand.Kind = pkImmediate then
-      //TODO: Immediate Pointered data
-      Assert(False)
-//      ILItem := ILAppend(OpStoreImm)
+    begin      //TODO: Immediate Pointered data
+      ILItem := ILAppend(OpStoreImm);
+      ILItem.Param1 := Slug.Operand;
+      ILItem.Param2.Kind := pkNone;
+      ILItem.ResultType := Slug.ResultType;
+    end
     else
     begin
       Assert(Slug.Operand.Kind = pkVarSource);
@@ -102,7 +109,7 @@ begin
 
   //Overflows for an immediate assignment must be validated by the parser
   if ILItem.Op = OpStoreImm then
-    ILItem.Flags := ILItem.Flags - [cgOverflowCheck];
+    ILItem.Flags := ILItem.Flags - [dfOverflowCheck];
 
   if Variable = nil then
   begin
@@ -130,14 +137,12 @@ end;
 //=================================Complex operands, and operators
 
 function ParseTypecast(ToType: PUserType;var Slug: TExprSlug): TQuicheError;
-var ExprType: PUserType;
-  ILItem: PILItem;
+var ILItem: PILItem;
 begin
   Assert(Parser.TestChar = '(');
   Parser.SkipChar;
 
-  ExprType := nil;
-  Result := ParseExprToSlug(Slug, ExprType);
+  Result := ParseExprToSlug(Slug);
   if Result <> qeNone then
     EXIT;
 
@@ -163,8 +168,6 @@ begin
     Slug.ILItem := ILItem;
     Slug.ResultType := ToType;
     Slug.ImplicitType := ToType;
-//    EXIT(ErrTODO('Typecasts at runtime not yet implemented'))
-    //Typecast TODO
   end;
 end;
 
@@ -295,13 +298,23 @@ begin //Sub-expressions
   if Slug.Op <> opUnknown then
     EXIT(Err(qeAt));
   if Slug.Operand.Kind <> pkVarSource then
-     EXIT(Err(qeAt));
+    if not IsPointeredType(Slug.ResultType) then
+      EXIT(Err(qeAt));
+
+  if (Slug.Operand.Kind = pkImmediate) and IsPointeredType(Slug.ResultType) then
+    EXIT(qeNone);
 
   Slug.ILItem := ILAppend(OpAddrOf);
   Slug.ILItem.Param1 := Slug.Operand;
-  Slug.ILItem.Param1.Kind := pkVarAddr;
+//  if (Slug.Operand.Kind = pkImmediate) and IsPointeredType(Slug.ResultType) then
+    //Leave as literal
+//  else
+  begin
+    Slug.ILItem.Param1.Kind := pkVarAddr;
+    Slug.Operand.Kind := pkNone;
+  end;
+
   Slug.ILItem.ResultType := GetPointerToType(Slug.ResultType);
-  Slug.Operand.Kind := pkNone;
   Slug.ResultType := Slug.ILItem.ResultType;
   Slug.ImplicitType := Slug.ResultType;
 
@@ -332,7 +345,7 @@ begin
       begin //Sub-expressions
         Parser.SkipChar;
 
-        Result := ParseExprToSlug(Slug, Slug.ResultType);
+        Result := ParseExprToSlug(Slug);
         if Result <> qeNone then
           EXIT;
 
@@ -476,6 +489,9 @@ begin
     EXIT;
 
   Result := ParseInfixOperator(Slug);
+  if Slug.Op = opAdd then
+    if Slug.ResultVarType in [vtChar, vtArrayType] then
+      Slug.Op := opConcat;
 end;
 
 //==============================Expressions
@@ -567,19 +583,17 @@ begin
       Result := EvalBi(Left.Op, @Left.Operand, @Right.Operand, Left.Operand.Imm);
       if Result <> qeNone then
         EXIT;
-(*      if EvalType <> vtUnknown then
+
+      Left.ImplicitType := Left.Operand.Imm.UserType;
+      Left.ResultType := Left.ImplicitType;
+      Left.Op := Right.Op;
+      if Right.Op = OpUnknown then
       begin
-        Left.SetImmediate(EvalResult, EvalType);
-*)        Left.ImplicitType := Left.Operand.Imm.UserType;
-        Left.ResultType := Left.ImplicitType;
-        Left.Op := Right.Op;
-        if Right.Op = OpUnknown then
-        begin
-          ILItem := nil;
-          EXIT(qeNone);
-        end;
-(*      end;
- *)   end;
+        ILItem := nil;
+        EXIT(qeNone);
+      end;
+      Evalled := True;  //???
+    end;
 
     //If we didn't evaluate as a constant expression
     if not Evalled then
@@ -621,30 +635,11 @@ begin
   end;
 end;
 
-//For cases where the expression is a single item with no operation, either a
-//literal value or a variable/identifier
-//Updates the Slug's data as appropriate
-function FixupSlugNoOperation(var Slug: TExprSlug;var ExprType: PUserType): TQuicheError;
-begin
-  if Slug.ResultType = nil then
-    Slug.ResultType := GetSystemType(Slug.Operand.GetVarType);
-
-  if Assigned(ExprType) then
-  begin
-    Result := ValidateAssignment(ExprType, Slug);
-    if Result <> qeNone then
-      EXIT;
-  end
-  else
-    ExprType := Slug.ResultType;
-
-  Result := qeNone;
-end;
-
-function ParseExprToSlug(out Slug: TExprSlug;var ExprType: PUserType): TQuicheError;
+function ParseExprToSlug(out Slug: TExprSlug): TQuicheError;
 var ILItem: PILItem;
 begin
   Parser.Mark;
+  ILItem := nil;
 
   //Read the first slug of the expression
   Result := ParseExprSlug(Slug);
@@ -655,7 +650,7 @@ begin
   //or variable.
   //We'll populate the operation data, but the dest data will be added by the caller
   if Slug.Op = opUnknown then
-    EXIT(FixupSlugNoOperation(Slug, ExprType));
+    EXIT(qeNone);
 
   //If the slug returned an ILItem then we need to set it's Dest to a temp var
   if Slug.ILItem <> nil then
@@ -675,28 +670,26 @@ begin
       Slug.Operand.SetVarSource(ILItem.AssignToHiddenVar(Slug.ResultType));
   until Slug.Op = opUnknown;
 
-
-  if ILItem = nil then
-  begin
-    if Assigned(ExprType) then
-    begin
-      Result := ValidateAssignment(ExprType, Slug);
-      if Result <> qeNone then
-        EXIT;
-    end;
-  end
-  else // ILItem <> nil
-//???ValidateExprType??
-    Slug.ILItem := ILItem;
-
-  if Assigned(ExprType) then
-//    ILItem.ResultType := ExprType
-  else
-    ExprType := Slug.ImplicitType;
-
+  if ILItem <> nil then
+      Slug.ILItem := ILItem;
   Result := qeNone;
 end;
 
+function ParseExprToSlugWithTypeCheck(out Slug: TExprSlug;AsType: PUserType): TQuicheError;
+begin
+  Result := ParseExprToSlug(Slug);
+  if Result <> qeNone then
+    EXIT;
+
+  if AsType <> nil then
+  begin
+    Result := TypeCheckFromSlug(AsType, Slug);
+    if Result <> qeNone then
+      EXIT;
+  end;
+end;
+
+(*
 //Parses an expression to an ILItem
 function ParseExprToILItem(out ILItem: PILItem;out UType: PUserType): TQuicheError;
 var
@@ -706,7 +699,7 @@ begin
   Slug.Initialise;
 
   ExprType := nil;
-  Result := ParseExprToSlug(Slug, ExprType);
+  Result := ParseExprToSlugWithTypeCheck(Slug, ExprType);
   if Result <> qeNone then
     EXIT;
 
@@ -722,11 +715,25 @@ begin
 
   //Op data and Dest to be assigned by caller
 end;
+*)
 
-function ParseConstantExpr(out Value: TImmValue;var ExprType: PUSerType): TQuicheError;
+function ParseConstantExpr(out Value: TImmValue): TQuicheError;
 var Slug: TExprSlug;
 begin
-  Result := ParseExprToSlug(Slug, ExprType);
+  Result := ParseExprToSlug(Slug);
+  if Result <> qeNone then
+    EXIT;
+
+  if Slug.Operand.Kind <> pkImmediate then
+    EXIT(Err(qeConstantExpressionExpected));
+
+  Value := Slug.Operand.Imm;
+end;
+
+function ParseConstantExprAsType(out Value: TImmValue;AsType: PUSerType): TQuicheError;
+var Slug: TExprSlug;
+begin
+  Result := ParseExprToSlugWithTypeCheck(Slug, AsType);
   if Result <> qeNone then
     EXIT;
 
@@ -737,29 +744,37 @@ begin
 end;
 
 function ParseAssignmentExpr(var Variable: PVariable;AsType: PUserType): TQuicheError;
-var
-  ExprType: PUserType;
-  Slug: TExprSlug;
+var Slug: TExprSlug;
 begin
-  ExprType := AsType;
-  Result := ParseExprToSlug(Slug, ExprType);
+  Result := ParseExprToSlugWithTypeCheck(Slug, AsType);
   if Result <> qeNone then
     EXIT;
 
-  if UTToVT(ExprType) = vtString then
+(*  if Slug.ResultVarType = vtArrayType then
+    Assert(False, 'TODO');
     //TODO: If we are assigning a string literal to a variable (or passing as a var
     //parameter) then we need to get the code generator to generate /modifable/
     //string data (and to make sure that data is stored in RAM).
-    EXIT(ErrTODO('Strings variables are not currently supported.'));
-
-  //Verify assignment is in range. Only really required for integers due to
-  //implicit typing rules
+//    EXIT(ErrTODO('Strings variables are not currently supported.'));
+*)
   if not Assigned(AsType) then
   begin
-    Result := ValidateAssignment(ExprType, Slug);
-    if Result <> qeNone then
-      EXIT;
+    if Slug.ImplicitType <> nil then
+      AsType := Slug.ImplicitType
+    else
+      AsType := Slug.ResultType;
+
+    //Verify assignment is in range. Required for integers due to implicit typing
+    //rules. Ensures that a constant returned in the slug will fit into the type
+    //returned by the slug.
+    if IsIntegerType(AsType) then
+    begin
+      Result := TypeCheckFromSlug(AsType, Slug);
+      if Result <> qeNone then
+        EXIT;
+    end;
   end;
+
 
   AssignSlugToDest(Slug, Variable, AsType);
 end;
@@ -788,7 +803,7 @@ end;
 
 procedure SlugToTypeDef(var Slug: TExprSlug);
 begin
-  Assert(UTToVT(Slug.ResultType) <> vtTypeDef);
+  Assert(Slug.ResultVarType <> vtTypeDef);
 
   Slug.Operand.Kind := pkImmediate;
   Slug.Operand.Imm.CreateTypeDef(Slug.ResultType);

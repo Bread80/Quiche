@@ -166,7 +166,6 @@ end;
 //Returns True if we loaded the value via the A register (but Reg <> rA)
 function GenVarLoad16(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
   Kind: TRegStateKind;Options: TMoveOptionSet): Boolean;
-var ViaA: Boolean;
 begin
   Assert(ToReg in CPURegPairs);
 
@@ -759,7 +758,7 @@ begin
   case ToReg of
     rNZF:
     begin
-      OpANDA;
+      OpAND(rA);
       RegStateSetUnknown(rFlags);
       RegStateSetLiteral(rCF, 0);
     end;
@@ -888,8 +887,6 @@ end;
 procedure GenLoadRegVarRef(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
   Options: TMoveOptionSet);
 begin
-(*  Assert(IsPointeredType(Variable.VarType)); *)
-
   case Variable.AddrMode of
     amStatic:
       OpMOV(ToReg, Variable.GetAsmName);
@@ -999,13 +996,13 @@ begin
     pkImmediate:
       //If Reg is rNone the literal is loaded by the primitive itself
       if Param.Reg <> rNone then
-        if IsPointeredType(Param.Imm.VarType) then
+        if IsPointeredVarType(Param.Imm.VarType) then
           GenLoadLiteralPointer(Param.Reg, Param.Imm, Options)
         else
           GenLoadRegLiteral(Param.Reg, Param.Imm, Options);
     pkVarSource:
       GenLoadRegVarValue(Param.Variable, Param.VarVersion, Param.Reg, Param.LoadType, ToType,
-        cgRangeCheck in Param.Flags, Options);
+        pfRangeCheck in Param.Flags, Options);
     pkVarRef:
       GenLoadRegVarRef(Param.Variable, Param.VarVersion, Param.Reg, Options);
     pkVarAddr, pkVarPtr: ;  //Handled by the primitive

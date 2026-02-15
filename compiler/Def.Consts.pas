@@ -48,10 +48,12 @@ type PConstList = ^TConstList;
     function BoolValue: Boolean;
     function CharValue: Char;
     function TypeDefValue: PUserType;
-    //If VarType is vtString or vChar
+    //If VarType is vtChar or a vtArrayType of vtChar
     function StringValue: String;
     //If VarType is vtList ... More TODO
     function BlobValue: TBlob;
+    //If VarType is vtArrayType
+    function ArrayLength: Integer;
 
     //For (mostly) code generation
     //Only applicable to ordinal types
@@ -83,12 +85,14 @@ type PConstList = ^TConstList;
       vtBoolean, vtFlag: (FBoolValue: Boolean);
       vtChar: (FCharValue: Char);
       vtTypeDef: (FTypeDefValue: PUserType);
-      vtString: (
+      vtArrayType: (
+        //Is the data is a string we'll store it as a string...
         FStringConstList: PConstList;  //Scope to which the constant belongs
-        FStringIndex: Integer); //Index into string constants list for Scope
+        FStringIndex: Integer;  //Index into string constants list for Scope
                   //(We aren't allowed to put strings in a variant section. Instead
                   //we'll store them elsewhere and put an index to them here.
-      vtList: (
+
+        //...other we'll store the data as a blob
         FBlobConstList: PConstList;
         FBlobIndex: Integer;
         );
@@ -103,6 +107,8 @@ type PConstList = ^TConstList;
     InScope: Boolean;
     Depth: Integer;
     Value: TImmValue;
+
+    function VarType: TVarType;
   end;
 
   TConstList = record
@@ -159,10 +165,19 @@ uses
 
 //----------------------TImmValue
 
+function TImmValue.ArrayLength: Integer;
+begin
+  Assert(FVarType = vtArrayType);
+  if FStringConstList <> nil then
+    Result := Length(FStringConstList.Strings[FStringIndex])
+  else
+    Result := (GetTypeDataSize(FUserType) - FUserType.ArrayDef.MetaSize) div FUserType.ArrayDef.ElementSize;
+end;
+
 function TImmValue.BlobValue: TBlob;
 begin
   case FVarType of
-    vtArray, vtList, vtRecord:
+    vtArrayType, vtRecord:
     begin
       Assert(Assigned(FBlobConstList));
       Assert(FBlobIndex <> -1);
@@ -194,6 +209,9 @@ begin
   FBlobConstList := GetCurrentScope.ConstList;
   Assert(Assigned(FBlobConstList));
   FBlobIndex := FBlobConstList.Blobs.Add(ABlob);
+
+  FStringConstList := nil;
+  FStringIndex := -1;
 end;
 
 constructor TImmValue.CreateBoolean(AValue: Boolean);
@@ -219,11 +237,14 @@ end;
 
 constructor TImmValue.CreateString(AString: String);
 begin
-  FVarType := vtString;
-  FUserType := GetSystemType(FVarType);
+  FUserType := GetSystemStringLiteralType;
+  FVarType := FUserType.VarType;
   FStringConstList := GetCurrentScope.ConstList;
   Assert(Assigned(FStringConstList));
   FStringIndex := FStringConstList.Strings.Add(AString);
+
+  FBlobConstList := nil;
+  FBlobIndex := -1;
 end;
 
 constructor TImmValue.CreateTyped(AType: TVarType; AValue: Integer);
@@ -237,11 +258,13 @@ begin
     vtBoolean, vtFlag: FBoolValue:= AValue <> 0;
     vtChar: FCharValue := chr(AValue);
     vtTypeDef: FTypeDefValue := PUserType(AValue);
-    vtString:
+    vtArrayType: //Only empty arrays can be created here (useful for empty strings)
       if AValue = 0 then
       begin
         FStringConstList := nil;
         FStringIndex := -1;
+        FBlobConstList := nil;
+        FBlobIndex := -1;
       end
       else
         Assert(False);
@@ -264,17 +287,11 @@ begin
     vtBoolean, vtFlag: FBoolValue:= AValue <> 0;
     vtChar: FCharValue := chr(AValue);
     vtTypeDef: FTypeDefValue := PUserType(AValue);
-    vtString:
+    vtArrayType, vtSetMem, vtRecord:
       if AValue = 0 then
       begin
         FStringConstList := nil;
         FStringIndex := -1;
-      end
-      else
-        Assert(False);
-    vtArray, vtVector, vtList, vtSetMem, vtRecord:
-      if AValue = 0 then
-      begin
         FBlobConstList := nil;
         FBlobIndex := -1;
       end
@@ -294,12 +311,10 @@ end;
 
 function TImmValue.GetConstList: PConstList;
 begin
-  case FVarType of
-    vtString: Result := FStringConstList;
-    vtArray: Result := FBlobConstList;
+  if FStringConstList <> nil then
+    Result := FStringConstList
   else
-    Result := nil;
-  end;
+    Result := FBlobConstList;
 end;
 
 function TImmValue.IntValue: Integer;
@@ -311,19 +326,21 @@ end;
 function TImmValue.StringValue: String;
 begin
   case FVarType of
-    vtString:
-    begin
-      Assert(Assigned(FStringConstList));
-      Assert(FStringIndex <> -1);
-      Result := FStringConstList.Strings[FStringIndex];
-    end;
     vtChar: Result := CharValue;
     vtEnumeration:
     begin
       Assert(Assigned(FUserType));
       Result := UserType.EnumItemToString(FIntValue);
     end;
-  else
+    vtArrayType:
+    begin
+      Assert(Assigned(FStringConstList));
+      if FStringIndex = -1 then
+        Result := ''
+      else
+        Result := FStringConstList.Strings[FStringIndex];
+    end;
+    else
     Assert(False);
   end;
 end;
@@ -349,11 +366,10 @@ end;
 
 function TImmValue.ToLabel: String;
 begin
-  case FVarType of //TODO: Add scope name to the result
-    vtString: Result := '__sl_' + FStringConstList.ScopeName.ToLower + '_' + FStringIndex.ToString;
+  if FStringConstList <> nil then
+    Result := '__sl_' + FStringConstList.ScopeName.ToLower + '_string' + FStringIndex.ToString
   else
     Assert(False);
-  end;
 end;
 
 function IntValueToString(AUserType: PUserType;Value: Integer): String;
@@ -392,16 +408,49 @@ var ElementSize: Integer;
   I: Integer;
   Value: Integer;
 begin
+  Assert(AUserType.VarType = vtArrayType);
   ElementSize := GetTypeSize(AUserType.OfType);
-  case AUserType.VarType of
-    vtArray: Count := AUserType.BoundsType.High-AUserType.BoundsType.Low+1;
+  case AUserType.ArrayDef.ArrayType of
+    atArray:
+    begin
+      Count := AUserType.BoundsType.High-AUserType.BoundsType.Low+1;
+      Offset := 0;
+    end;
+    atVector:
+      case AUserType.ArrayDef.ArraySize of
+        asShort:
+        begin //Length byte
+          Count := Blob[0];
+          Offset := 1;
+        end;
+        asLong:
+        begin //Length word
+          Count := Blob[0] + Blob[1] shl 8;
+          Offset := 2;
+        end;
+      else
+        raise EVarType.Create;
+      end;
+    atList:
+      case AUserType.ArrayDef.ArraySize of
+        asShort:
+        begin //Capacity and length bytes
+          Count := Blob[1];
+          Offset := 2;
+        end;
+        asLong:
+        begin //Capacity and length words
+          Count := Blob[2] + Blob[3] shl 8;
+          Offset := 4;
+        end;
+      else
+        raise EVarType.Create;
+      end;
   else
-    Assert(False);
+    raise EVarType.Create;
   end;
 
   Result := '[';
-
-  Offset := 0;
   for I := 0 to Count-1 do
   begin
     case ElementSize of
@@ -443,16 +492,17 @@ function TImmValue.ToString: String;
         Result := TypeDefValue.Name
       else
         Result := 'nil';
-      vtString:
-        if (FStringConstList = nil) or (FStringIndex = -1) then
-          Result := '<<UNASSIGNED>>'
+      vtArrayType:
+        if (FStringConstList <> nil) then
+          if FStringIndex = -1 then
+            Result := '<<UNASSIGNED>>'
+          else
+            Result := FStringConstList.Strings[FStringIndex]
         else
-          Result := ''''+StringValue+'''';
-      vtArray, vtList:
-        if (FBlobConstList = nil) or (FBlobIndex = -1) then
-          Result := '<<UNASSIGNED>>'
-        else
-          Result := BlobArrayToString(FBlobConstList.Blobs[FBlobIndex], AUserType, 0);
+          if (FBlobConstList = nil) or (FBlobIndex = -1) then
+            Result := '<<UNASSIGNED>>'
+          else
+            Result := BlobArrayToString(FBlobConstList.Blobs[FBlobIndex], AUserType, 0)
     else
       Result := IntValueToString(AUserType, ToInteger);
     end;
@@ -493,8 +543,8 @@ end;
 
 procedure TImmValue.UpdateUserType(NewType: PUserType);
 begin
-  Assert(Def.VarTypes.IsIntegerVarType(UTToVT(NewType)));
-  Assert(Def.VarTypes.IsIntegerVarType(UTToVT(FUserType)));
+  Assert(IsIntegerType(NewType));
+  Assert(IsIntegerType(FUserType));
   FVarType := UTToVT(NewType);
   FUserType := NewType;
 end;
@@ -545,14 +595,21 @@ begin
   Consts := List;
 end;
 
-{ TConstList }
 
+{ TConst }
+
+function TConst.VarType: TVarType;
+begin
+  Result := UTToVT(UserType);
+end;
+
+{ TConstList }
 
 function TConstList.Add(const AName: String; UType: PUserType;
   const AValue: TImmValue): PConst;
 var CL: PConstList;
 begin
-  if IsPointeredType(UTToVT(UType)) then
+  if IsPointeredType(UType) then
   begin
     //Do we already have this Value?
     Result := FindDupValueInScope(AValue);
@@ -604,14 +661,22 @@ end;
 function TConstList.FindDupValueInScope(const AValue: TImmValue): PConst;
 var I: Integer;
 begin
-  Assert(IsPointeredType(UTToVT(AValue.UserType)));
+  Assert(IsPointeredType(AValue.UserType));
 
   for I := 0 to FItems.Count-1 do
     case AValue.VarType of
-      vtString:
-        if (AValue.FStringConstList = FItems[I].Value.FStringConstList) and
-          (AValue.FStringIndex = FItems[I].Value.FStringIndex) then
-          EXIT(FItems[I]);
+      vtArrayType:
+        if AValue.FStringConstList = FItems[I].Value.FStringConstList then
+        begin
+          if AValue.FStringIndex = FItems[I].Value.FStringIndex then
+            EXIT(FItems[I]);
+        end
+        else
+        if AValue.FBlobConstList = FItems[I].Value.FBlobConstList then
+        begin
+          if AValue.FBlobIndex = FItems[I].Value.FBlobIndex then
+            EXIT(FItems[I]);
+        end;
     else
       raise Exception.Create('Unknown type');
     end;

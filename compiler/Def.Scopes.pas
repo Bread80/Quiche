@@ -285,7 +285,6 @@ end;
 
 function FindScopeForFunc(AFunc: PFunction): PScope;
 var Scope: PScope;
-  LFunc: PFunction;
 begin
   for Scope in ScopeList do
     if AFunc = Scope.Func then

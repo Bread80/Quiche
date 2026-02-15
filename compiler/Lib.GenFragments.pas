@@ -93,10 +93,19 @@ end;
 function CodeVarName(const Param: TILParam;out Comment: String): String;
 var Variable: PVariable;
 begin
-  Variable := Param.ToVariable;
-  Assert(Variable.AddrMode = amStatic);
-  Result := Variable.GetAsmName;
-  Comment := Variable.Name;
+  if Param.Kind = pkImmediate then
+  begin
+    Assert(IsPointeredType(Param.Imm.UserType));
+    Result := Param.Imm.ToLabel;
+    Comment := '';
+  end
+  else
+  begin
+    Variable := Param.ToVariable;
+    Assert(Variable.AddrMode = amStatic);
+    Result := Variable.GetAsmName;
+    Comment := Variable.Name;
+  end;
 end;
 
 function DoParamSubs(S: String;const Param: TILParam;const Prefix: String;ThrowErrors: Boolean): String;

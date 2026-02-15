@@ -5,7 +5,7 @@ unit Def.Globals;
 
 interface
 uses Classes,
-  Def.Functions, Def.Variables;
+  Def.Functions, Def.Variables, Def.VarTypes, Def.UserTypes;
 
 const
   //Lanuage constants
@@ -67,6 +67,14 @@ var
   //This setting does not affect hexadecimal or binary literals
   optDefaultSmallestInteger: Boolean;
 
+
+  //Sets the default VECTOR and LIST size when either is defined without a size specifier.
+  //If the setting is asShort but a vector/list type is defined with length/capacity
+  //of more than 255 then the list/vector will be created as 'long'.
+  //If the setting is asLong then all vectors and lists will be defined as long no
+  //matter the length/capacity specified.
+  optDefaultArraySize: TArraySize; //Must be asShort or asLong
+
   optDefaultAddrMode: TAddrMode;
 
   optDefaultCallingConvention: TCallingConvention;
@@ -88,6 +96,5 @@ const BlockTypeStrings: array[low(TBlockType)..high(TBlockType)] of String = (
   'Default', 'Static', 'Stack');
 
 implementation
-
 end.
 

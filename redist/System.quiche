@@ -1,3 +1,8 @@
 //Quiche System libraries common to all platforms
 
 //This file is parsed in Script mode. Ie. no multi-line declarations are allowed.
+
+//procedure SetLength(var L: ShortList of ??;NewLength: Byte) extern __q_setlength_shortlist_error;error;overload;
+//procedure SetLength(var L: ShortList of ??;NewLength: Byte) extern __q_setlength_shortlist_noerror;noerror;overload;
+//procedure SetLength(var L: LongList of ??;NewLength: Word) extern __q_setlength_longlist_error;error;overload;
+//procedure SetLength(var L: LongList of ??;NewLength: Word) extern __q_setlength_longlist_noerror;noerror;overload;

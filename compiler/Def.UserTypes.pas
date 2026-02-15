@@ -4,8 +4,6 @@ interface
 uses Generics.Collections, Classes,
   Def.VarTypes;
 
-const iUnboundedArray = 0;  //For Vector.Length and List.Capacity
-
 type
   TScopeHandle = Pointer;
   TFunctionHandle = Pointer;
@@ -20,9 +18,9 @@ type
                             //Sets: The element type
                             //Arrays (etc): The element type
                             //Typed pointers: the type of the pointed to data
-    IsSubRange: Boolean;    //True if this type is a SubRange of another enumerard type.
+    IsSubRange: Boolean;    //True if this type is a SubRange of another enumerated type.
                             //If so, if it's a subrange of a user created type
-                            //(ie. an enumartion) then OfType will point to the base type,
+                            //(ie. an enumeration) then OfType will point to the base type,
                             //otherwise VarType will contain the base type
     Low: Integer;           //Specified for any ordinal type. High must be > Low.
     High: Integer;          //Ditto
@@ -37,11 +35,16 @@ type
     //Where VarType is vtEnumeration
     function EnumItemToString(Index: Integer): String;
 
+    //Returns True if the vtArrayType of vtChar
+    function IsStringType: Boolean;
+    //Returns True if the type is a vtChar or a vtArrayType of vtChar
+    function IsStringableType: Boolean;
+
     //Returns the name, if the type had one. Otherwise returns the DefinitionString
     function Description: String;
     function RecordDefToString: String;
     function DefinitionString: String;
-    function ToString: String;
+    function ToString: String;  //Returns the declaration
 
     case VarType: TVarType of
 (*      vtSparseSet: (
@@ -51,15 +54,14 @@ type
       vtRange: (
         //BaseType
       );
-*)    vtArray: (
-        BoundsType: PUserType;  //nil if unbounded
+*)
+      vtArrayType: (
+        ArrayDef: TArrayDef;
+        BoundsType: PUserType;  //If ArrayType = atArray
+        VectorLength: Integer;  //If ArrayType = atVector
+        ListCapacity: Integer;  //If ArrayType = atList
       );
-      vtVector: (
-        VecLength: Integer;  //iUnboundedArray if unbounded
-      );
-      vtList: (
-        Capacity: Integer;  //iUnboundedArray if unbounded
-      );
+
       vtRecord: (
         //We can't directly reference a PScope without creating a circular unit
         //reference (both to Scope, Variables and Functions) so we'll use a
@@ -102,15 +104,55 @@ type
 
 function UTToVT(UserType: PUserType): TVarType;
 
+//A Register type is one where the value of the variable is stored in registers.
+//A Pointered type is one where the register stores a pointer to the actual data.
+//Register types are usually those whose value fits into a register and Pointered
+//types are those whose values (data) are often too large to fit into a register.
+//Every type is either a Pointered Type or a Register Type. nothing is both.
+function IsPointeredType(UserType: PUserType): Boolean;
+function IsRegisterType(UserType: PUserType): Boolean;
+
+//Any numeric type. Not typed pointers - these can't be used in expressions
+function IsNumericType(UserType: PUserType): Boolean;
+
 //Any integer numeric type, or subrange of one
 function IsIntegerType(UserType: PUserType): Boolean;
 
 function IsSignedType(UserType: PUserType): Boolean;
 
+//Any type which only occupies a single byte
+function IsByteType(UserType: PUserType): Boolean;
+
+//Any numeric type which only occupies two bytes
+function IsWordType(UserType: PUserType): Boolean;
+
+//Boolean, Flag etc
+function IsBooleanType(UserType: PUserType): Boolean;
+
+//An ordinal type is one with an ordered set of values with a defined first and
+//last value. These are the integer numeric types, chars, booleans, enumerations
+//and subranges.
+function IsOrdinalType(UserType: PUserType): Boolean;
+
+//An enumerable type is one with an ordered set of values which can be 'enumerated'
+//over is sequence. This includes Ordinal types as well as array types.
+function IsEnumerableType(UserType: PUserType): Boolean;
+
+//Any arrayed type. Array, vector, list, string etc.
+function IsArrayType(UserType: PUserType): Boolean;
+
+//An unbounded array is a Vector with VecLength of iUnboundedArray or a List
+//with capacity of iUnboundedArray
+function IsUnboundedArray(UserType: PUserType): Boolean;
+
 //If the UserType is a subtype - either a SubRange or Synonym, returns the
 //BaseType. Will recurse up BaseTypes if necessary
 //For all other cases returns UserType
 function GetBaseType(UserType: PUserType): PUSerType;
+
+//If UserType has an OfType returns it, otherwise returns UserType
+//Used by array types to get the base type of the bounds type
+function GetOfType(UserType: PUserType): PUserType;
 
 //If UserType is a SubRange returns it's 'Of' type,
 //otherwise returns UserType
@@ -140,13 +182,22 @@ function IdentToEnumIndex(AType: PUserType;const Ident: String): Integer;
 function CreateTypeList: PTypeList;
 procedure SetCurrentTypeList(List: PTypeList);
 
+//Parses a type definition string. These strings are used in library data files.
+//If the definition string is for an array type (vtArrayDef) returns extra array
+//data in ArrayDef. (In all other cases ArrayDef is invalid)
+function StringToType(TypeString: String;out ArrayDef: TArrayDef): TVarType;
+
 procedure InitialiseTypes;
 
 //Create global/system types. CurrentScope must be SystemScope
 procedure CreateSystemTypes(List: PTypeList);
 
-//Returns the UserType for a VarType
-function GetSystemType(VarType: TVarType): PUserType;
+//Returns the UserType for a VarType. If VarType is vtArrayType then ArrayDef will be
+//used to find a matching type. If the relevant type does not exist it will be created.
+function GetSystemType(VarType: TVarType;ArrayDef: PArrayDef = nil): PUserType;
+
+function GetSystemStringType: PUserType;
+function GetSystemStringLiteralType: PUserType;
 
 function IdentToType(const Ident: String): PUserType;
 
@@ -158,7 +209,6 @@ procedure TypesToStrings(S: TStrings);
 implementation
 uses SysUtils,
   Def.Functions, Def.Scopes, Def.Variables;
-
 { TUserType }
 
 procedure TUserType.CloneTypeData(From: PUserType);
@@ -173,7 +223,6 @@ begin
     vtReal,
     vtBoolean, vtFlag,
     vtTypeDef,
-    vtString,
     vtInt8, vtInteger, vtByte, vtWord, vtPointer,
     vtChar,
     vtSetByte, vtSetWord, vtSetMem,
@@ -181,9 +230,13 @@ begin
     vtEnumeration: EnumItems := From.EnumItems;
 (*    vtSparseRange: ;*)
 (*    vtRange: ;*)
-    vtArray:  BoundsType := From.BoundsType;
-    vtVector: VecLength := From.VecLength;
-    vtList:   Capacity := From.Capacity;
+    vtArrayType:
+    begin
+      ArrayDef := From.ArrayDef;
+      BoundsType := From.BoundsType;
+      VectorLength := From.VectorLength;
+      ListCapacity := From.ListCapacity;
+    end;
     vtRecord: Assert(False);  //TODO
 (*    vtStream: ;*)
     vtFunction: Assert(False);  //TODO
@@ -217,7 +270,7 @@ begin
     vtReal,
     vtBoolean, vtFlag,
     vtTypeDef,
-    vtChar, vtString,
+    vtChar,
     vtUnknown:
       //If ParentType is nil we're the base type,
       //(otherwise we'd be a synonym for the ParentType)
@@ -238,32 +291,41 @@ begin
       Assert(Assigned(OfType));
       Result := Result + 'set of ' + OfType.Description;
     end;
-    vtArray:
-    begin
-      Assert(Assigned(BoundsType));
-      Assert(BoundsType.ParentType = nil);
-      Assert(Assigned(OfType));
-      Result := Result + 'array[' + BoundsType.Description + '] of ' + OfType.Description;
-    end;
-    vtUnboundArray:
+    vtArrayType:
     begin
       Assert(Assigned(OfType));
-      Result := Result + 'array of ' + OfType.Description;
-    end;
-    vtVector:
-    begin
-      Assert(Assigned(OfType));
-      Result := VarTypeToName(VarType);
-      if VecLength > 0 then
-        Result := Result + '[' + VecLength.ToString + ']';
-      Result := Result + ' of ' + OfType.Description;
-    end;
-    vtList:
-    begin
-      Assert(Assigned(OfType));
-      Result := VarTypeToName(VarType);
-      if Capacity > 0 then
-        Result := Result + '[' + Capacity.ToString + ']';
+
+      case ArrayDef.ArraySize of
+        asUnknown: ;  //Nothing
+        asShort: Result := Result + 'short ';
+        asLong: Result := Result + 'long ';
+      else
+        raise EVarType.Create;
+      end;
+      case ArrayDef.ArrayType of
+        atArray: Result := Result + 'array';
+        atVector: Result := Result + 'vector';
+        atList: Result := Result + 'list';
+      else
+        raise EVarType.Create;
+      end;
+
+      if not ArrayDef.IsUnbounded then
+        case ArrayDef.ArrayType of
+          atArray:
+          begin
+            Assert(Assigned(BoundsType));
+            Assert(BoundsType.ParentType = nil);
+            Result := Result + '[' + BoundsType.Description + ']';
+          end;
+          atVector:
+            Result := Result + '[' + VectorLength.ToString + ']';
+          atList:
+            Result := Result + '[' + ListCapacity.ToString + ']';
+        else
+          raise EVarType.Create;
+        end;
+
       Result := Result + ' of ' + OfType.Description;
     end;
     vtRecord: Result := RecordDefToString;
@@ -307,6 +369,16 @@ begin
   IsSubRange := False;
   Low := -1;
   High := -2;
+end;
+
+function TUserType.IsStringableType: Boolean;
+begin
+  Result := (VarType = vtChar) or IsStringType;
+end;
+
+function TUserType.IsStringType: Boolean;
+begin
+  Result := (VarType = vtArrayType) and (OfType.VarType = vtChar);
 end;
 
 function TUserType.RecordDefToString: String;
@@ -360,6 +432,27 @@ begin
     Result := vtUnknown;
 end;
 
+function IsPointeredType(UserType: PUserType): Boolean;
+begin
+  if not Assigned(UserType) then
+    EXIT(False);
+  Result := IsPointeredVarType(UserType.VarType);
+end;
+
+function IsRegisterType(UserType: PUserType): Boolean;
+begin
+  if not Assigned(UserType) then
+    EXIT(False);
+  Result := IsRegisterVarType(UserType.VarType);
+end;
+
+function IsNumericType(UserType: PUserType): Boolean;
+begin
+  if not Assigned(UserType) then
+    EXIT(False);
+  Result := IsNumericVarType(UserType.VarType);
+end;
+
 function IsIntegerType(UserType: PUserType): Boolean;
 begin
   if not Assigned(UserType) then
@@ -369,7 +462,54 @@ end;
 
 function IsSignedType(UserType: PUserType): Boolean;
 begin
+  if not Assigned(UserType) then
+    EXIT(False);
   Result := IsSignedVarType(UserType.VarType);
+end;
+
+function IsByteType(UserType: PUserType): Boolean;
+begin
+  if not Assigned(UserType) then
+    EXIT(False);
+  Result := IsByteVarType(UserType.VarType);
+end;
+
+function IsWordType(UserType: PUserType): Boolean;
+begin
+  if not Assigned(UserType) then
+    EXIT(False);
+  Result := IsWordVarType(UserType.VarType);
+end;
+
+function IsBooleanType(UserType: PUserType): Boolean;
+begin
+  Result := IsBooleanVarType(UserType.VarType);
+end;
+
+function IsOrdinalType(UserType: PUserType): Boolean;
+begin
+  if not Assigned(UserType) then
+    EXIT(False);
+  Result := IsOrdinalVarType(UserType.VarType);
+end;
+
+function IsEnumerableType(UserType: PUserType): Boolean;
+begin
+  if not Assigned(UserType) then
+    EXIT(False);
+  Result := IsEnumerableVarType(UserType.VarType);
+end;
+
+function IsArrayType(UserType: PUserType): Boolean;
+begin
+  if not Assigned(UserType) then
+    EXIT(False);
+  Result := IsArrayVarType(UserType.VarType);
+end;
+
+function IsUnboundedArray(UserType: PUserType): Boolean;
+begin
+  Result := (UTToVT(UserType) = vtArrayType) and UserType.ArrayDef.IsUnbounded;
 end;
 
 function GetBaseType(UserType: PUserType): PUserType;
@@ -378,6 +518,14 @@ begin
   if Assigned(Result) then
     while Assigned(Result.ParentType) do
       Result := Result.ParentType
+end;
+
+function GetOfType(UserType: PUserType): PUserType;
+begin
+  Result := UserType;
+  if Assigned(Result) then
+    if Result.OfType <> nil then
+      Result := Result.OfType;
 end;
 
 function RemoveSubRange(UserType: PUserType): PUserType;
@@ -406,37 +554,23 @@ function GetTypeItemCount(UserType: PUserType): Integer;
 begin
   Assert(UserType <> nil);
 
-  if IsOrdinalType(UserType.VarType) then
-    Result := UserType.High-UserType.Low+1
-  else
+  if IsOrdinalType(UserType) then
+    EXIT(UserType.High-UserType.Low+1);
+
   case UserType.VarType of
-(*    vtInt8, vtByte, vtChar: Result := 128;
-    vtInteger, vtPointer, vtWord, vtTypedPointer: Result := 65536;
-      //Or: Result := GetMaxValue(UserType.VarType) - GetMinValue(UserType.VarType) + 1;
-//    vtReal  //Not enumerable
-    vtBoolean: Result := 2;
-//    vtFlag  //Not a true enumerable
-//    vtTypeDef //Not enumerable
-
-    //String types
-//    vtString: //As vector or List (depending on base type)
-//  vtWideString:   //Ditto
-
     //========== Types which require a full declaration to instantiate
     //User types
-    vtEnumeration:  Result := Length(UserType.EnumItems);
-    vtSubRange: Result := UserType.High - UserType.Low + 1;
-*)//  vtSparseSet //TODO
+//  vtSparseSet //TODO
 //  vtRange     //TODO
 //  vtSet,      //TODO
 
     //Array types
-    vtArray:  Result := GetTypeItemCount(UserType.BoundsType);
-//  vtUnboundArray  //No length specified in the type, so invalid query
-//  vtVector: //As Array plus Length field size
-//  vtList:   //As Array plus Length field size and Capacity field size
-//  vtWideDynArray  //Ditto
-//  vtWideList,     //Ditto
+    vtArrayType:
+      if not UserType.ArrayDef.IsUnbounded then
+        case UserType.arrayDef.ArrayType of
+          atArray: EXIT(GetTypeItemCount(UserType.BoundsType));
+          atVector: EXIT(UserType.VectorLength);
+        end;
 
   //Other complex types
 //  vtRecord    //Not enumerable
@@ -445,9 +579,9 @@ begin
 
   //Error/undefined
 //  vtUnknown   //Not enumerable
-  else
-    raise Exception.Create('Enumerable type expected');
   end;
+
+  raise Exception.Create('Enumerable type expected');
 end;
 
 //Where UserType is an array based type, returns the bytecount of the types
@@ -456,29 +590,7 @@ end;
 function GetArrayMetaSize(UserType: PUserType): Integer;
 begin
   Assert(Assigned(UserType));
-  Assert(IsArrayType(UserType.VarType));
-
-  case UserType.VarType of
-    vtArray: Result := 0; //No meta data
-    vtVector:
-    begin
-      Assert(UserType.VecLength <> iUnboundedArray);
-      if UserType.VecLength < 256 then
-        Result := 1   //One byte
-      else
-        Result := 2;  //One word
-    end;
-    vtList:
-    begin
-      Assert(UserType.Capacity <> iUnboundedArray);
-      if UserType.Capacity < 256 then
-        Result := 1*2   //Two bytes
-      else
-        Result := 2*2;  //Two words
-    end;
-  else
-    Assert(False);  //Not an array type
-  end;
+  Result := UserType.ArrayDef.MetaSize;
 end;
 
 function GetRecordTypeSize(UserType: PUserType): Integer;
@@ -488,6 +600,7 @@ var Scope: PScope;
   NewSize: Integer;
 begin
   Assert(UserType.VarType = vtRecord);
+  Result := 0;
   Scope := ScopeHandleToScope(UserType.Scope);
   for I := 0 to Scope.VarList.GetCount-1 do
   begin
@@ -512,12 +625,10 @@ begin
       Result := 2;
     vtReal: Result := iRealSize;
 
-    //String types
-    vtString,       //aka List of Char
-
     //User types
-(*  vtSparseSet,  //Parse time only  - contains values and ranges
-  vtRange,        //Run time
+(*
+    vtSparseSet,  //Parse time only  - contains values and ranges
+    vtRange,        //Run time
 *)
     vtSetByte, vtSetWord, vtSetMem:
     begin
@@ -526,28 +637,29 @@ begin
     end;
 
     //Array types
-    vtArray:  //Element count * element size
+    vtArrayType:
     begin
-      Assert(Assigned(UserType.BoundsType));
-      Result := GetTypeItemCount(UserType.BoundsType) * GetTypeSize(UserType.OfType);
+      Assert(not UserType.ArrayDef.IsUnbounded);
+      case UserType.ArrayDef.ArrayType of
+        atArray:  //Element count * element size
+        begin
+          Assert(Assigned(UserType.BoundsType));
+          Result := GetTypeItemCount(UserType.BoundsType) * GetTypeSize(UserType.OfType);
+        end;
+        atVector: //Meta size + Length * element size
+          Result := GetArrayMetaSize(UserType) +
+            UserType.VectorLength * UserType.ArrayDef.ElementSize;
+        atList:   //Meta size + Capacity * element size
+          Result := GetArrayMetaSize(UserType) +
+            UserType.ListCapacity * UserType.ArrayDef.ElementSize;
+      else
+        raise EVarType.Create;
+      end;
     end;
-//    vtUnboundArray: Assert(False);  //Not available
-    vtVector: //Meta size + Length * element size
-    begin
-      Assert(UserType.VecLength <> iUnboundedArray);
-      Result := GetArrayMetaSize(UserType) +
-        UserType.VecLength * GetTypeSize(UserType.OfType);
-    end;
-    vtList:   //Meta size + Capacity * element size
-    begin
-      Assert(UserType.Capacity <> iUnboundedArray);
-      Result := GetArrayMetaSize(UserType) +
-        UserType.Capacity * GetTypeSize(UserType.OfType);
-    end;
-//  vtWideDynArray, //Max 65535 elements
-//  vtWideList,     //Max 65535 elements
-     vtRecord:
+
+    vtRecord:
       Result := GetRecordTypeSize(UserType);
+
 //  vtStream,       //Readble or writeable sequence of bytes or chars
   vtFunction: Result := 2;   //Code as data.
   else
@@ -563,7 +675,7 @@ end;
 
 function GetTypeRegSize(UserType: PUserType): Integer;
 begin
-  if IsPointeredType(UTToVT(UserType)) then
+  if IsPointeredType(UserType) then
     Result := 2
   else
     Result := GetTypeDataSize(UserType);
@@ -581,6 +693,63 @@ begin
 end;
 
 var SystemTypes: array[low(TVarType)..high(TVarType)] of PUserType;
+  StringType: PUserType;        //To use for string variables
+  StringLiteralType: PUserType; //To use for string literals
+
+
+function StringToType(TypeString: String;out ArrayDef: TArrayDef): TVarType;
+var Fields: TArray<String>;
+begin
+  Result := StringToVarType(TypeString);
+  if Result <> vtUnknown then
+    EXIT;
+
+  if CompareText(TypeString, 'String') = 0 then
+  begin
+    ArrayDef := GetSystemStringType.ArrayDef;
+    EXIT(vtArrayType);
+  end;
+
+  ArrayDef.ArrayType := atUnknown;
+  ArrayDef.ArraySize := asUnknown;
+  ArrayDef.IsUnbounded := False;
+  ArrayDef.ElementSize := 0;
+
+  Fields := TypeString.Split([':']);
+  if Length(Fields) < 1 then
+    EXIT(vtUnknown);
+
+  Result := vtArrayType;
+  if CompareText(Fields[0], 'ArrayType') = 0 then
+    ArrayDef.ArrayType := atUnknown //Matches any array type
+  else if CompareText(Fields[0], 'Array') = 0 then
+    ArrayDef.ArrayType := atArray
+  else if CompareText(Fields[0], 'Vector') = 0 then
+    ArrayDef.ArrayType := atVector
+  else if CompareText(Fields[0], 'List') = 0 then
+    ArrayDef.ArrayType := atUnknown
+  else
+    EXIT(vtUnknown);
+
+  if Length(Fields) = 1 then
+    EXIT;
+
+  if CompareText(Fields[1], 'Short') = 0 then
+    ArrayDef.ArraySize := asShort
+  else if CompareText(Fields[1], 'Long') = 0 then
+    ArrayDef.ArraySize := asLong
+  else if Fields[1] = '' then
+    ArrayDef.ArraySize := asUnknown
+  else if Fields[1] = '*' then
+    ArrayDef.ArraySize := asUnknown
+  else
+    EXIT(vtUnknown);
+
+  if Length(Fields) = 2 then
+    EXIT;
+
+  Result := vtUnknown;
+end;
 
 function CreateSystemType(List: PTypeList;const Name: String;VarType: TVarType): PUserType;
 begin
@@ -596,16 +765,33 @@ begin
   Result.High := High;
 end;
 
-function GetSystemType(VarType: TVarType): PUserType;
+function GetSystemType(VarType: TVarType;ArrayDef: PArrayDef = nil): PUserType;
 begin
-  Result := SystemTypes[VarType];
+  if VarType <> vtArrayType then
+    EXIT(SystemTypes[VarType]);
+
+  if ArrayDef = nil then
+    EXIT(nil);
+
+  Assert(False);
+end;
+
+function GetSystemStringType: PUserType;
+begin
+  Result := StringType;
+end;
+
+function GetSystemStringLiteralType: PUserType;
+begin
+  Result := StringLiteralType;
 end;
 
 procedure CreateSystemTypes(List: PTypeList);
-var UT: TVarType;
+var VT: TVarType;
+  CharType: PUserType;
 begin
-  for UT := low(TVarType) to high(TVarType) do
-    SystemTypes[UT] := nil;
+  for VT := low(TVarType) to high(TVarType) do
+    SystemTypes[VT] := nil;
 
   CreateEnumSystemType(List, 'Int8', vtInt8, -128, 127);
   CreateEnumSystemType(List, 'Integer', vtInteger, -32768, 32767);
@@ -615,9 +801,20 @@ begin
   CreateSystemType(List, 'Real', vtReal);
   CreateSystemType(List, 'Boolean', vtBoolean);
   CreateSystemType(List, '<Flag>', vtFlag);
-  CreateEnumSystemType(List, 'Char', vtChar, 0, 255);
+  CharType := CreateEnumSystemType(List, 'Char', vtChar, 0, 255);
   CreateSystemType(List, '<TypeDef>', vtTypeDef);
-  CreateSystemType(List, 'String', vtString);
+  StringType := CreateSystemType(List, 'String', vtArrayType);
+  StringType.OfType := CharType;
+  StringType.ArrayDef.ArrayType := atList;
+  StringType.ArrayDef.ArraySize := asShort;   //TODO - use config
+  StringType.ArrayDef.IsUnbounded := True;
+  StringType.ArrayDef.ElementSize := 1;
+  StringLiteralType := CreateSystemType(List, '<StringLiteral>', vtArrayType);
+  StringLiteralType.OfType := CharType;
+  StringLiteralType.ArrayDef.ArrayType := atVector; //Can't modify string literals!
+  StringLiteralType.ArrayDef.ArraySize := asShort;  //TODO - use config
+  StringLiteralType.ArrayDef.IsUnbounded := False;
+  StringLiteralType.ArrayDef.ElementSize := 1;
 end;
 
 { TTypeList }

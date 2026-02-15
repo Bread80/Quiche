@@ -142,7 +142,7 @@ type TILParamKind = (
     );
 
 type
-  TILParamFlags = (cgRangeCheck);
+  TILParamFlags = (pfRangeCheck);
   TILParamFlagSet = set of TILParamFlags;
 
 type
@@ -272,7 +272,7 @@ type
       );
     end; {TILParam}
 
-type TILDataFlags = (cgOverFlowCheck);
+type TILDataFlags = (dfOverFlowCheck, dfBoundsCheck);
   TILDataFlagSet = set of TILDataFlags;
 
 //Record for an atomic IL item
@@ -515,7 +515,9 @@ begin
 
   Result.Flags := [];
   if optOverflowChecks then
-    Result.Flags := Result.Flags + [cgOverflowCheck];
+    Result.Flags := Result.Flags + [dfOverflowCheck];
+  if optRangeChecks then
+    Result.Flags := Result.Flags + [dfBoundsCheck];
   Result.Prim := nil;
 
   Result.ResultType := nil;
@@ -746,29 +748,29 @@ begin
     pkVarSource, pkVarDest:
       Result := Variable.UserType;
     pkVarAddr: //TODO: Make this a typed pointer
-      if IsPointeredType(Variable.VarType) then
+      if IsPointeredVarType(Variable.VarType) then
         Result := Variable.UserType
       else
         Result := GetPointerToType(Variable.UserType);
     pkVarPtr:
     begin
-      case UTToVT(Variable.UserType) of
+      case Variable.VarType of
         vtTypedPointer: Result := Variable.UserType.OfType;
         vtPointer: Result := GetSystemType(vtByte);
       else
         Assert(False);
       end;
-      Assert(IsRegisterType(Result.VarType));
+      Assert(IsRegisterVarType(Result.VarType));
     end;
     pkVarRef:
     begin
-      case UTToVT(Variable.UserType) of
+      case Variable.VarType of
         vtTypedPointer: Result := Variable.UserType.OfType;
         vtPointer: Result := GetSystemType(vtByte);
       else
         Result := Variable.UserType;
       end;
-      Assert(IsPointeredType(Result.VarType));
+      Assert(IsPointeredVarType(Result.VarType));
     end;
     pkPush, pkPushByte, pkPop, pkPopByte:
       Result := PushType;
@@ -795,7 +797,7 @@ begin
 
   Flags := [];
   if optRangeChecks then
-    Flags := Flags + [cgRangeCheck];
+    Flags := Flags + [pfRangeCheck];
   LoadType := lptNormal;
   CheckType := vtUnknown;
 
@@ -1039,12 +1041,6 @@ begin
 //    Assert(Param1.Kind in [pkNone, pkImmediate, pkVarSource, pkVarAddr, pkVarPtr, pkVarRef, pkPhiVarSource]);
 //    Assert(Param2.Kind in [pkNone, pkImmediate, pkVarSource, pkVarAddr, pkPhiVarSource]);
 //    Assert(Dest.Kind in [pkNone, pkCondBranch, pkBranch, pkVarDest, pkVarAddr, pkVarRef, pkPhiVarDest, pkPush, pkPushByte]);
-    if Op = opBlockCopyToOffset then
-    begin
-      Assert(Param3.Kind = pkImmediate);
-      Result := Result + 'SP'+Param3.Imm.ToStringWord;
-    end
-    else
       Result := Result + Param3.ToString;
 
     if Dest.Kind in [pkVarDest, pkVarRef, pkPhiVarDest, pkCondbranch, pkPush, pkPushByte] then

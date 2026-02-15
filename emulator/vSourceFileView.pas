@@ -35,7 +35,8 @@ var Filename: String;
   FileLine: Integer;
 begin
   if Hardware.TryAddrToSourceFile(Hardware.Z80.Z80.PC, Filename, FileLine) then
-    GotoLine(Filename, FileLine);
+    if FileExists(Filename) then
+      GotoLine(Filename, FileLine);
 end;
 
 procedure TSourceFileView.FormCreate(Sender: TObject);

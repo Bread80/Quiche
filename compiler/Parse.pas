@@ -68,17 +68,13 @@ uses SysUtils, Classes,
 //  Returns last ILItem of the expression in ILItem and ConstExprValue as junk
 //  ILItem will have a CondBranch destination.
 function ParseBranchExpr(out ILItem: PILItem;out ConstExprValue: Boolean): TQuicheError;
-var ExprType: PUserType;
-//  ImplicitType: TVarType; //Dummy
-  Slug: TExprSlug;
+var  Slug: TExprSlug;
 begin
   Slug.Initialise;
-
-  ExprType := nil;
-  Result := ParseExprToSlug(Slug, ExprType);
+  Result := ParseExprToSlug(Slug);
   if Result <> qeNone then
     EXIT;
-  if UTToVT(ExprType) <> vtBoolean then
+  if not IsBooleanType(Slug.ResultType) then
     EXIT(Err(qeBooleanExpressionExpected));
 
   if Slug.ILItem <> nil then
@@ -148,7 +144,7 @@ end;
 function DoCONST(const Ident: String): TQuicheError;
 var ConstName: String;
   Value: TImmValue;
-  UType: PUserType;
+  AsType: PUserType;
 begin
   Result := Parser.SkipWhiteNL;
   if Result <> qeNone then
@@ -161,7 +157,7 @@ begin
     EXIT;
 
   //Type (if specified)
-  Result := ParseTypeSpecifier(UType);
+  Result := ParseTypeSpecifier(AsType);
   if Result <> qeNone then
     EXIT;
 
@@ -174,11 +170,11 @@ begin
   Parser.SkipChar;
 
   //Value
-  Result := ParseConstantExpr(Value, UType);
+  Result := ParseConstantExprAsType(Value, AsType);
   if Result <> qeNone then
     EXIT;
 
-  Consts.Add(ConstName, UType, Value);
+  Consts.Add(ConstName, Value.UserType, Value);
 end;
 
 type TBlockState = (bsSingle, bsBeginRead);
@@ -224,7 +220,7 @@ var
   LoopVarName: String;
   LoopVar: PVariable;
   Step: Integer;       //TO or DOWNTO?
-  ExprType: PUserType;
+//  ExprType: PUserType;
   Slug: TExprSlug;
   ToVar: PVariable;  //Hidden variable to contain end value for the loop. Nil if value is constant
   ToValue: TImmValue;  //If EndVar is nil, contants constant endvalue
@@ -288,16 +284,15 @@ begin
     EXIT(Err(qeTOorDOWNTOExpected));
 
   //TO value
-  ExprType := LoopVar.UserType;
-  Result := ParseExprToSlug(Slug, ExprType);
-  ToVar := nil;
+  Result := ParseExprToSlugWithTypeCheck(Slug, LoopVar.UserType);
   if Result <> qeNone then
     EXIT;
+  ToVar := nil;
   //If the value is a constant
   if (Slug.ILItem = nil) and (Slug.Operand.Kind = pkImmediate) then
     ToValue := Slug.Operand.Imm
   else //if the value is not constant, assign it to a temp variable
-    AssignSlugToDest(Slug, ToVar, ExprType);
+    AssignSlugToDest(Slug, ToVar, LoopVar.UserType);
 
   //TODO: Insert code here for Step value
 
@@ -370,12 +365,12 @@ begin
   ILItem := nil;
   case Step of
     1:
-    if IsOrdinalType(LoopVar.VarType) then
+    if IsOrdinalVarType(LoopVar.VarType) then
       ILItem := ILAppend(opSucc)
     else //Real??
       ILItem := ILAppend(OpAdd);
     -1:
-    if IsOrdinalType(LoopVar.VarType) then
+    if IsOrdinalVarType(LoopVar.VarType) then
       ILItem := ILAppend(opPred)
     else //Real??
       ILItem := ILAppend(OpSubtract);

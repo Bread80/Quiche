@@ -969,7 +969,7 @@ begin
   Param := Base.GetParam(Index);
 
   V := Param.Variable;
-  Assert((V.VarType = Param.CheckType) or not (cgRangeCheck in Param.Flags), 'TODO - Dest Range checking/type conversion');
+  Assert((V.VarType = Param.CheckType) or not (pfRangeCheck in Param.Flags), 'TODO - Dest Range checking/type conversion');
   Assert(not Base.GetPrim.ProcMeta.ResultInLReg, 'TODO - Dest ResultInLReg');
   Assert(GetTypeSize(V.UserType) = 2, 'TODO - Dest TypeSize <> 2');
 
@@ -1026,7 +1026,7 @@ begin
 
   //TODO: Type conversion?? Range check??
   V := Param.Variable;
-  Assert((V.VarType = Param.CheckType) or not (cgRangeCheck in Param.Flags), 'TODO - Source range checking/type conversion');
+  Assert((V.VarType = Param.CheckType) or not (pfRangeCheck in Param.Flags), 'TODO - Source range checking/type conversion');
   Assert(GetTypeSize(V.UserType) = 2, 'TODO - Source TypeSize <> 2');
 
   //Generate Combo for every possible register
@@ -1083,7 +1083,7 @@ begin
   Dest := nil;
 
   //TODO: Get /list/ of primitives (ie Combo Primitives)
-  Prim := ILItemToPrimitive(Base.Items[0], SwapParams);
+  Prim := PrimFindCodeGen(Base.Items[0], SwapParams);
   Base.Items[0].Prim := Prim;
   //If the primitive selector returned SwapParams then we only want to
   //try swapped params. If not then we want to try swapped and unswapped in the
@@ -1144,7 +1144,7 @@ begin
     Dest.ResultRegs := Prim.ProcMeta.ResultRegs;
     Dest.ResultInLReg := Prim.ProcMeta.ResultInLReg;
 
-    if cgOverflowCheck in Base.Items[0].Flags then
+    if dfOverflowCheck in Base.Items[0].Flags then
       //TODO: Combo overflow check algorithms??
       if Prim.OverflowCheckProcName <> '' then
         Dest.OverflowAlgo := FragmentNameToAlgo(Prim.OverflowCheckProcName)

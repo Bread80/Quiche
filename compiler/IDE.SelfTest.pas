@@ -755,7 +755,6 @@ procedure TTest.TestVarValue(Step: PTestStep);
   end;
 
 var V: PVariable;
-  ExprType: PUserType;
   Value: TImmValue;
 begin
   V := Vars.FindByNameAllScopes(Step.Name);
@@ -764,12 +763,11 @@ begin
   else
   begin
     IDE.Compiler.LoadSourceString(Step.Value);
-    ExprType := V.UserType;
-    if ParseConstantExpr(Value, ExprType) <> qeNone then
+    if ParseConstantExprAsType(Value, V.UserType) <> qeNone then
       raise Exception.Create('Invalid test expression: ' + Step.Value + #13 +
         IDE.Compiler.ParseErrorString);
 
-    if IsIntegerType(V.UserType) and IsIntegerType(ExprType) then
+    if IsIntegerType(V.UserType) and IsIntegerType(Value.UserType) then
       Check(V.Value.ToInteger = Value.ToInteger, Step, 'VarValue mismatch on ' + V.Name +
           ', wanted ' + Value.ToString + ' got ' + V.Value.ToString + #13)
     else

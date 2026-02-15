@@ -109,6 +109,7 @@ type TQuicheError = (
   qeTooManyArgs,              //Number of arguments being passed his above hard coded limit
                               //No function can have this many arguments anyway, so you have a problem :)
   qeIntegerConstantArgExpected, //For some intrinsics such as INC and DEC
+  qeListVariableArgExpected,  //For SetLength
   qeBytePassedToHiLoSwap,
   qeNotEnoughParameters,
   qeFuncPrimitiveNotFound,    //Not found with matching arg types

@@ -24,11 +24,9 @@ end;
 function ParseIntrinsicFlags(const Field: String): TIntrinsicFlagSet;
 begin
   Result := [];
-  if CompareText(Field, 'arrayasbounds') = 0 then
-    Result := Result + [ifArrayAsBounds]
-  else if CompareText(Field, 'totype') = 0 then
+  if CompareText(Field, 'totype') = 0 then
     Result := Result + [ifToType]
-      else if Field <> '' then
+  else if Field <> '' then
     raise Exception.Create('Invalid flag or flags for Intrinsic: ' + Field);
 end;
 
@@ -47,13 +45,59 @@ const //Column indexes
   fComments       = 12;
 
 procedure LoadIntrinsicsFile(const Filename: String;FuncList: PFuncList);
+
+  procedure ProcessParam(Param: PParameter;const Access, Name, VarType,
+    DefaultValue, Flags: String);
+  var ArrayDef: TArrayDef;
+    UserType: PUserType;
+    IntValue: Integer;
+  begin
+    if CompareText(Access, 'val') = 0 then
+      Param.Access := paVal
+    else
+      if not IdentToAccessSpecifierEX(Access, Param.Access, Param.IsByRef) then
+        raise Exception.Create('Unknown access specifier: ' + Access);
+
+    Param.Name := Name;
+
+    //TODO: Should only include builtin types. Should allow 'base' types
+    Param.UserType := GetSystemType(StringToType(VarType, ArrayDef), @ArrayDef);
+    if Param.UserType = nil then
+      if not StringToSuperType(VarType, Param.SuperType) then
+        raise Exception.Create('Invalid VarType for Intrinsic: ''' + VarType + '''');
+
+    if DefaultValue <> '' then
+      begin //TODO: A proper parse value to TImmValue!
+        if Param.VarType = vtTypeDef then
+        begin
+          UserType := IdentToType(DefaultValue);
+          if UserType = nil then
+            raise Exception.Create('Unable to parse TypeDef default value: ''' + DefaultValue + '''')
+          else
+            Param.DefaultValue.CreateTypeDef(UserType);
+        end
+        else
+        begin
+          //TODO: Set type based on value
+          if not TryStrToInt(DefaultValue, IntValue) then
+            //Test for other valid value types
+            raise Exception.Create('Unable to parse default value: ''' + DefaultValue + '''');
+
+          Param.DefaultValue.CreateTyped(vtInteger, IntValue);
+        end;
+
+        Param.HasDefaultValue := True;
+      end;
+
+    Param.IntrinsicFlags := ParseIntrinsicFlags(Flags);
+  end;
+
 var Data: TStringList;
   Line: String;
   Fields: TArray<String>;
   I: Integer;
   Intrinsic: PFunction;
-  UT: PUserType;
-  IntValue: Integer;
+  ArrayDef: TArrayDef;
 begin
   Data := TStringlist.Create;
   try
@@ -86,20 +130,8 @@ begin
             Intrinsic.ParamCount := 0
           else
           begin
-            if CompareText(Fields[fP1Access], 'val') = 0 then
-              Intrinsic.Params[0].Access := paVal
-            else
-              if not IdentToAccessSpecifier(Fields[fP1Access], Intrinsic.Params[0].Access) then
-                raise Exception.Create('Unknown access specifier: ' + Fields[fP1Access]);
-            Intrinsic.Params[0].Name := Fields[fP1Name];
-
-            //TODO: Should only include builtin types. Should allow 'base' types
-            Intrinsic.Params[0].UserType := GetSystemType(StringToVarType(Fields[fP1VarType]));
-            if Intrinsic.Params[0].UserType = nil then
-              if not StringToSuperType(Fields[fP1VarType], Intrinsic.Params[0].SuperType) then
-                raise Exception.Create('Invalid P1VarType for Intrinsic: ' + Fields[fP1VarType]);
-
-            Intrinsic.Params[0].IntrinsicFlags := ParseIntrinsicFlags(Fields[fP1Flags]);
+            ProcessParam(@Intrinsic.Params[0], Fields[fP1Access], Fields[fP1Name],
+              Fields[fP1VarType], '', Fields[fP1Flags]);
 
             //=================SECOND PARAMETER
 
@@ -108,42 +140,8 @@ begin
             else
             begin
               Intrinsic.ParamCount := 2;
-              if CompareText(Fields[fP2Access], 'val') = 0 then
-                Intrinsic.Params[1].Access := paVal
-              else
-                if not IdentToAccessSpecifier(Fields[fP2Access], Intrinsic.Params[1].Access) then
-                  raise Exception.Create('Unknown access specifier: ' + Fields[fP2Access]);
-              Intrinsic.Params[1].Name := Fields[fP2Name];
-
-              Intrinsic.Params[1].UserType := GetSystemType(StringToVarType(Fields[fP2VarType]));
-              if Intrinsic.Params[1].UserType = nil then
-                if not StringToSuperType(Fields[fP2VarType], Intrinsic.Params[1].SuperType) then
-                  raise Exception.Create('Invalid P2VarType for Intrinsic: ' + Fields[fP2VarType]);
-              if Fields[fP2DefaultValue] <> '' then
-              begin //TODO: A proper parse value to TImmValue!
-                if UTToVT(Intrinsic.Params[1].UserType) = vtTypeDef then
-                begin
-                  UT := IdentToType(Fields[fP2DefaultValue]);
-                  if UT = nil then
-                    raise Exception.Create('Unable to parse TypeDef default value: ' + Fields[fP2DefaultValue])
-                  else
-                  begin
-                    Intrinsic.Params[1].DefaultValue.CreateTypeDef(UT);
-                  end
-                end
-                else
-                begin
-                  //TODO: Set type based on value
-                  if not TryStrToInt(Fields[fP2DefaultValue], IntValue) then
-                    //Test for other valid value types
-                    raise Exception.Create('Unable to parse default value: ' + Fields[fP2DefaultValue]);
-
-                  Intrinsic.Params[1].DefaultValue.CreateTyped(vtInteger, IntValue);
-                end;
-                Intrinsic.Params[1].HasDefaultValue := True;
-              end;
-
-              Intrinsic.Params[1].IntrinsicFlags := ParseIntrinsicFlags(Fields[fP2Flags]);
+              ProcessParam(@Intrinsic.Params[1], Fields[fP2Access], Fields[fP2Name],
+                Fields[fP2VarType], Fields[fP2DefaultValue], Fields[fP2Flags]);
             end;
           end;
 
@@ -159,7 +157,8 @@ begin
             end
             else
             begin
-              Intrinsic.Params[Intrinsic.ParamCount].UserType := GetSystemType(StringToVarType(Fields[fResultType]));
+              Intrinsic.Params[Intrinsic.ParamCount].UserType :=
+                GetSystemType(StringToType(Fields[fResultType], ArrayDef), @ArrayDef);
               if Intrinsic.Params[Intrinsic.ParamCount].UserType = nil then
                 if not StringToSuperType(Fields[fResultType], Intrinsic.Params[Intrinsic.ParamCount].SuperType) then
                   raise Exception.Create('Invalid ResultType for Intrinsic: ' + Fields[fResultType]);

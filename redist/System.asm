@@ -1011,6 +1011,178 @@ stacklocal_exit:
 ;===================================
 ;Chars and Strings
 
+
+;Vector: Address, Length
+;List: Address, Capacity (Length initialised to zero)
+;Data:
+;VarType:
+;1=End of list
+;2=ShortVector
+;3=ShortList
+;4=LongVector
+;5=LongList
+_q_initlocalvars_static
+  ex hl,(sp)  ;HL=Return address/Data address
+  push af
+  push bc
+  push de
+
+.loop
+  ld b,(hl) ;B=VarType
+  inc hl
+  dec b
+  jr z,.done
+
+  ld e,(hl) ;DE=Address
+  inc hl
+  ld d,(hl)
+  inc hl
+
+  ld a,(hl) ;Copy first byte
+  ld (de),a
+  inc hl
+  dec b
+  jr z,.loop	;VarType was 1
+
+  dec b			;VarType was 2
+  jr z,.shortlist
+
+  inc de    ;Copy second byte
+  ld a,(hl)
+  ld (de),a
+  inc hl
+  dec b
+  jr z,.loop	;VarType was 3
+
+  inc de    ;Zero first byte
+  xor a
+  ld (de),a
+
+.shortlist
+  xor a
+  inc de  ;Zero second byte
+  ld (de),a
+  jr .loop
+
+.done
+  pop de
+  pop bc
+  pop af
+  ex hl,(sp)
+  ret
+
+
+;Initialises stack allocated vector and list variables.
+;For a vector initialises the length to value passed
+;For a list initialises capacity to value passed and length to zero
+;The CALL must be followed by an inline list of data records of the format:
+;Byte 0: VarType
+;Bytes 1,2: Offset (low byte first)
+;       If VarType is EndOfList bytes 1,2 MUST NOT be present
+;VarType:
+;		1=End of list
+;		2=ShortVector
+;		3=ShortList
+;		4=LongVector
+;		5=LongList
+;Offset: An offset from the stack base in IX
+_q_initlocalvars_stack
+  ex hl,(sp)  ;HL=Return address/Data address
+  push af
+  push bc
+  push de
+  push ix
+
+.loop
+  ld b,(hl) ;B=VarType
+  inc hl
+  dec b
+  jr z,.done
+
+  ld e,(hl) ;DE=Address
+  inc hl
+  ld d,(hl)
+  inc hl    ;HL=Data field
+
+  pop ix
+  push ix
+  add ix,de	;IX=Destination address
+
+  ld a,(hl) ;Copy first byte
+  ld (ix+0),a
+  inc hl
+  dec b
+  jr z,.loop	;VarType was 1
+
+  dec b			;VarType was 2
+  jr z,.shortlist
+
+  ld a,(hl)     ;Copy second byte
+  inc ix        ;IX=Second byte to copy
+  ld (ix+0),a
+  inc hl
+  dec b
+  jr z,.loop	;VarType was 3
+
+//  inc ix    	;IX is now ptr to the last byte copied
+  ld (ix+2),0	;Zero second byte
+
+.shortlist
+  ld (ix+1),0	;Zero first byte
+  jr .loop
+
+.done
+  pop ix
+  pop de
+  pop bc
+  pop af
+  ex hl,(sp)
+  ret
+
+;Set the length of a ShortList
+;Raise an out-of-range error if the new length is greater than the capacity of
+;the list.
+;On entry:
+;  HL: address of the List (ie the capacity field)
+;  B: the new length
+;On exit:
+;  Carry flag clear
+;  Corrupts HL and all other flags
+__q_setlength_shortlist_error
+  ld a,(hl)			;Get capacity
+  cp b				;Compare to new length
+  jp c,raise_range	;Error if too long
+
+  inc hl			;Point to length field
+  ld (hl),b			;update it
+  ret
+
+;Set the length of a LongList
+;Raise an out-of-range error if the new length is greater than the capacity of
+;the list.
+;On entry:
+;  HL: address of the List (ie the capacity field)
+;  DE: the new length
+;On exit:
+;  Carry flag clear
+;  Corrupts HL, A and all other flags
+__q_setlength_longlist_error
+  ld a,(hl)			;Capacity low
+  inc hl
+  push hl
+  ld h,(hl)			;Capacity high
+  ld l,a			;HL=Capacity
+  and a             ;Clear carry
+  sbc hl,de			;Compare capacity to new length
+  pop hl
+  jp c,raise_range	;Error if too long
+
+  inc hl			;Point to length field
+  ld (hl),e			;update it
+  inc hl
+  ld (hl),d
+  ret
+
 ;Convert a character to uppercase
 ;Entry: A=character
 ;Exit: A=character, Flags corrupt

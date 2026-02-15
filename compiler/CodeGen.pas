@@ -89,8 +89,8 @@ procedure GenPointeredLiteral(C: PConst);
 var S: String;
   Code: String;
 begin
-  case UTToVT(C.UserType) of
-    vtString:
+  case C.VarType of
+    vtArrayType:
     begin
       S := C.Value.StringValue;
       Code := C.Value.ToLabel + ':'#13 +
@@ -113,7 +113,7 @@ begin
   Scope := GetCurrentScope;
   List := Scope.ConstList;
   for I := 0 to List.Count-1 do
-    if IsPointeredType(UTToVT(List.Items[I].UserType)) then
+    if IsPointeredType(List.Items[I].UserType) then
       GenPointeredLiteral(List.Items[I]);
 end;
 
@@ -135,20 +135,47 @@ begin
       case V.AddrMode of
         amStatic:
         begin
-          S := V.GetAsmName + ': ';
+          S := V.GetAsmName + ': db ';
           Bytes := GetTypeSize(V.UserType);
-          case Bytes of
-            0: ;  //TODO: ??
-            1: S := S + 'db 0';
-            2: S := S + '  dw 0';
-          else
-            S := S + 'db ';
-            for C := 1 to Bytes do
+
+          case V.VarType of
+            vtArrayType:
             begin
-              if C <> 1 then
-                S := S + ',';
-              S := S + '0';
+              case V.UserType.ArrayDef.ArrayType of
+                atArray: ; //Nothing
+                atVector:
+                  case V.UserType.ArrayDef.ArraySize of
+                    asShort:  //Length byte
+                      S := S + ByteToStr(V.UserType.VectorLength) + ',';
+                    asLong: //Length word
+                      S := S + ByteToStr(V.UserType.VectorLength and $ff) + ',' +
+                        ByteToStr(V.UserType.VectorLength shr 8 and $ff) + ',';
+                  else
+                    raise EVarType.Create;
+                  end;
+                atList:
+                  case V.UserType.ArrayDef.ArraySize of
+                    asShort:  //Capacity byte, length byte
+                      S := S + ByteToStr(V.UserType.ListCapacity) + ',0,';
+                    asLong: //Capacity word, length word
+                      S := S + ByteToStr(V.UserType.ListCapacity and $ff) + ',' +
+                        ByteToStr(V.UserType.ListCapacity shr 8 and $ff) + ',0,0,';
+                  else
+                    raise EVarType.Create;
+                  end;
+              else
+                raise EVarType.Create;
+              end;
+
+              Bytes := Bytes - V.UserType.ArrayDef.MetaSize;
             end;
+          end;
+
+          for C := 1 to Bytes do
+          begin
+            if C <> 1 then
+              S := S + ',';
+            S := S + '0';
           end;
         end;
         amStaticRef:
@@ -178,7 +205,7 @@ end;
 procedure OverflowCheckAfterPrim(ILItem: PILItem;Prim: PPrimitive);
 begin
   if Prim <> nil then
-    if cgOverflowCheck in ILItem.Flags then
+    if dfOverflowCheck in ILItem.Flags then
       if Prim.OverflowCheckProcName <> '' then
         GenLibraryProc(Prim.OverflowCheckProcName, ILItem)
       else
@@ -192,7 +219,7 @@ var Prim: PPrimitive;
 begin
   begin //OLD METHOD (Without CleverPuppy)
     //Find the Prim based on the operation and parameter data type(s)
-    Prim := ILItemToPrimitive(ILItem, SwapParams);
+    Prim := PrimFindCodeGen(ILItem, SwapParams);
     if not assigned(Prim) then
       AsmError('No primitiveNG found:'#13#10 + ILItem.ToString);
     if SwapParams then
@@ -319,11 +346,11 @@ begin
       GenRegLoad(ILIndex, nil);
       GenBlockCopy(ILItem);
     end;
-    opBlockCopyToOffset:
+    opParamCopyToStack:
     begin
-      TEMPRegAllocBlockCopyToOffset(ILItem);
+      TEMPRegAllocParamCopyToStack(ILItem);
       GenRegLoad(ILIndex, nil);
-      GenBlockCopyToOffset(ILItem);
+      GenParamCopyToStack(ILItem);
     end;
     opBranch: GenUncondBranch(ILItem);
     opBoolVarBranch:  //Branch where condition is a boolean variable (which could

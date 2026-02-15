@@ -120,7 +120,7 @@ end;
 
 procedure TForm1.FormCreate(Sender: TObject);
 begin
-  edConfigFile.Text := 'C:\Dropbox\Delphi\Quiche\redist\Platforms\quiche\Deploy\quiche.emulator';
+  edConfigFile.Text := 'C:\sync\Delphi\Quiche\redist\Platforms\quiche\quiche.emulator';
 
   if not Assigned(FSourceFileView) then
   begin

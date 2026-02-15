@@ -910,9 +910,9 @@
 =addrof_stack_via_de  -p1 stack  -d hl  -corrupts de,cf
   ;ADD only affects CF
   -bytes 7 -cycles 50   ;15+14+10+11
-  push ix
-  pop hl
-  ld de,<p1.rawoffset>
+  ld e,ixl
+  ld d,ixh
+  ld hl,<p1.rawoffset>
   add hl,de
 
 ;Untested
@@ -924,3 +924,144 @@
 ;  add hl,bc
 ;  ld c,l
 ;  ld b,h
+
+;===============================ARRAY TYPES
+
+;--High
+
+=high_shortvector -p1 hl -d a -corrupts f,zf
+  ld a,(hl) ;length
+  dec a
+
+=high_longvector -p1 hl -d de -corrupts hl
+  ld e,(hl) ;Length
+  inc hl
+  ld d,(hl)
+  dec de
+
+;Returns -1 if list is empty
+=high_shortlist -p1 hl -d de -corrupts hl,f,zf
+  -entry d=0
+  inc hl    ;Step over capacity
+  ld e,(hl) ;Count
+  dec de
+
+;Returns -1 if list is empty
+=high_longlist -p1 hl -d de -corrupts hl
+  inc hl    ;Step over capacity
+  inc hl
+  ld e,(hl) ;Count
+  inc hl
+  ld d,(hl)
+  dec de
+
+;--Length & Capacity
+
+;Also Capacity for shortlist
+=length_shortvector -p1 hl -d a
+  ld a,(hl) ;length
+
+;Also capacity for longlist
+=length_longvector -p1 hl -d de -corrupts hl
+  ld e,(hl) ;Length
+  inc hl
+  ld d,(hl)
+
+=length_shortlist -p1 hl -d a -corrupts hl
+  -entry d=0
+  inc hl    ;Step over capacity
+  ld a,(hl) ;Count
+
+=length_longlist -p1 hl -d de -corrupts hl
+  inc hl    ;Step over capacity
+  inc hl
+  ld e,(hl) ;Count
+  inc hl
+  ld d,(hl)
+
+;---Sizeof
+
+;HL=address of data
+;DE=element size
+;Result := DE*Length + MetaLength
+=sizeof_shortvector -p1 hl -p2 de -d hl -corrupts a,de,bc,f,cf,zf
+  ld l,(hl)   ;Length
+  ld h,0
+  call mult16_u_u__u
+  inc hl      ;+ metalength
+
+=sizeof_shortvectorofbyte -p1 hl -d de
+  -entry d=0
+  ld e,(hl) ;length
+  inc de    ;+ meta
+
+=sizeof_longvector -p1 hl -p2 de -d hl -corrupts a,de,bc,f,cf,zf
+  ld a,(hl)   ;Length
+  inc hl
+  ld h,(hl)
+  ld l,a
+  call mult16_u_u__u
+  inc hl      ;+ metalength
+  inc hl
+
+=sizeof_longvectorofbyte -p1 hl -d de -corrupts hl
+  ld e,(hl) ;Length
+  inc hl
+  ld d,(hl)
+  inc de    ;+ meta
+  inc de
+
+=sizeof_shortlist -p1 hl -p2 de -d hl -corrupts a,de,bc,f,cf,zf
+  ld l,(hl)   ;Capacity
+  ld h,0
+  call mult16_u_u__u
+  inc hl      ;+ metalength
+  inc hl
+
+=sizeof_shortlistofbyte -p1 hl -d de
+  -entry d=0
+  ld e,(hl) ;Capacity
+  inc de    ;+ meta
+  inc de
+
+=sizeof_longlist -p1 hl -p2 de -d hl -corrupts a,de,bc,f,cf,zf
+  ld a,(hl)   ;Capacity
+  inc hl
+  ld h,(hl)
+  ld l,a
+  call mult16_u_u__u
+  inc hl      ;+ metalength
+  inc hl
+  inc hl
+  inc hl
+
+=sizeof_longlistofbyte -p1 hl -d de -corrupts hl
+  ld e,(hl) ;Capacity
+  inc hl
+  ld d,(hl)
+  inc de    ;+ meta
+  inc de
+  inc de
+  inc de
+
+;---SetLength
+
+;Set the length of a ShortList. No error checking
+;On entry:
+;  HL: address of the List (ie the capacity field)
+;  A: the new length
+=setlength_shortlist_noerror -p1 hl -p2 a -corrupts hl
+  inc hl			;Point to length field
+  ld (hl),a			;update it
+
+;Set the length of a LongList
+;No error checking
+;On entry:
+;  HL: address of the List (ie the capacity field)
+;  DE the new length
+=setlength_longlist_noerror -p1 hl -p2 de -corrupts hl
+  inc hl			;Point to length field
+  inc hl
+  ld (hl),e			;update it
+  inc hl
+  ld (hl),d

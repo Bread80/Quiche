@@ -549,7 +549,7 @@ begin
   Param.Flags := [];
   Param.LoadType := LoadType;
   if RangeCheck then
-    Param.Flags := Param.Flags + [cgRangeCheck];
+    Param.Flags := Param.Flags + [pfRangeCheck];
 
   CPUStringToState(InState);
   RegStateClearModified;
@@ -1278,7 +1278,7 @@ begin
   Param.VarVersion := 10;
   Param.Flags := [];
   if RangeCheck then
-    Param.Flags := Param.Flags + [cgRangeCheck];
+    Param.Flags := Param.Flags + [pfRangeCheck];
 
   CPUStringToState(InState);
   RegStateClearModified;

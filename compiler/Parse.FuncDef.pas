@@ -206,10 +206,8 @@ end;
 
 function ReadDefaultValue(var Param: TParameter): TQuicheError;
 var Value: TImmValue;
-  ExprType: PUSerType;
 begin
-  ExprType := Param.UserType;
-  Result := ParseConstantExpr(Value, ExprType);
+  Result := ParseConstantExprAsType(Value, Param.UserType);
   if Result <> qeNone then
     EXIT;
 
@@ -346,7 +344,6 @@ function ParseExternDef(Func: PFunction): TQuicheError;
 var IsReg: Boolean;
   P: Integer;
   Slug: TExprSlug;
-  ExprType: PUserType;
 begin
   Slug.Initialise;
 
@@ -359,8 +356,7 @@ begin
         EXIT(Err(qeRegisterParamMismatch));
   end;
 
-  ExprType := nil;
-  Result := ParseExprToSlug(Slug, ExprType);
+  Result := ParseExprToSlug(Slug);
   if Result <> qeNone then
     EXIT;
   if (Slug.ILItem <> nil) or (Slug.Operand.Kind <> pkImmediate) then
@@ -384,7 +380,7 @@ begin
     end;
     ccEXTERN:
     begin
-      if Slug.Operand.Imm.VarType <> vtString then
+      if not Slug.Operand.Imm.UserType.IsStringableType then
         EXIT(err(qeStringExpectedForEXTERN));
       Func.CodeLabel := Slug.Operand.Imm.StringValue;
     end;
@@ -554,17 +550,20 @@ begin
   end;
 end;
 
-//TODO: This /probably/ isn't needed any more
+//**************************************
+//*********Generate the function body***
+//**************************************
+
 function GetParamAddrMode(CallingConvention: TCallingConvention;const Param: TParameter): TAddrMode;
 begin
   case CallingConvention of
     ccRegister:
-      if IsPointeredType(Param.UserType.VarType) then
+      if IsPointeredType(Param.UserType) then
         Result := amStaticRef
       else
         Result := amStatic;
     ccStack:
-      if IsPointeredType(Param.UserType.VarType) then
+      if IsPointeredType(Param.UserType) then
         Result := amStackRef
       else if Param.IsByRef then
         Result := amStackRef
@@ -575,6 +574,69 @@ begin
   end;
 end;
 
+//CopyDataIn parameters will have a value passed as an argument which is the address
+//to copy the data from and will need a variable which defines the actual data storage.
+//They will also need an operation added at function initialisation which copies the
+//data into that storage.
+//In Stack mode the argument is the variable used in the code. It's value will be updated
+//to the stack relative address. The 'hidden' variable defines the storage data.
+//In Register mode the argument is only used for the block copy and, therefore, is
+//the hidden variable. The variable defining the storage is used by the code.
+procedure DoCopyDataInParams(Func: PFunction);
+var I: Integer;
+  Param: PParameter;
+  VarName: String;
+  Variable: PVariable;
+  ArgVariable: PVariable;
+  ILItem: PILItem;
+begin
+  for I := Func.ParamCount + Func.ResultCount - 1 downto 0 do
+    if Func.Params[I].CopyDataIn then
+    begin //CopyDataIn
+      Param := @Func.Params[I];
+
+      //Create a variable to define the storage space for the data
+      Assert(Param.Access <> paResult);
+      case Func.CallingConvention of
+        ccStack: //For Stack we use a hidden variable (the param variable holds a pointer to it)
+          VarName := '_c_' + Param.Name;
+        ccRegister, ccCall, ccRst, ccExtern:
+          //For Register mode this is the variable used in the function
+          VarName := Param.Name;
+      else
+        raise ECallingConvention.Create;
+      end;
+      Variable := Vars.Add(VarName, Param.UserType);
+      Variable.IncVersion;
+      Variable.IsConst := Param.Access = paConst;
+      Variable.FuncParamIndex := I;
+
+      //Find the variable for the argument
+      ArgVariable := GetCurrentScope.VarList.FindVarForArg(I);
+      Assert(Variable <> nil);
+      //Add a CopyBlock op to copy data into local storage (from the address passed as argument)
+      case Func.CallingConvention of
+        ccStack:
+        begin
+          ILItem := ILAppend(opParamCopyToStack);
+          ILItem.Param1.SetVarRef(ArgVariable); //Argument (VarRef?)
+        end;
+        ccRegister, ccCall, ccRst, ccExtern:
+        begin
+          ILItem := ILAppend(opBlockCopy);
+          ILItem.Param1.SetVarSource(ArgVariable); //Argument (VarRef?)
+        end;
+      else
+        raise ECallingConvention.Create;
+      end;
+
+      ILItem.Param2.Kind := pkImmediate;  //Data size
+      ILItem.Param2.Imm := TImmValue.CreateInteger(GetTypeDataSize(Variable.UserType));
+      ILItem.Dest.SetVarRef(Variable); //Local variable
+      ILItem.ResultType := Variable.UserType;
+    end;
+end;
+
 //<function-body> := [ <var-declaration> ]
 //                |  [ <type-declaration> ]
 //                |  [ <const-declaration> ]
@@ -583,8 +645,6 @@ end;
 //Inputs: Func is the function being declared
 function ParseFunctionBody(Func: PFunction): TQuicheError;
 var I: Integer;
-  ParamAddrMode: TAddrMode;
-  LocalAddrMode: TAddrMode;
   ParamName: String;
   ILItem: PILItem;
   Param: PILParam;
@@ -595,44 +655,46 @@ begin
   //Setup scope for function
   CreateCurrentScope(Func, Func.Name);
 
-  ParamAddrMode := Func.GetParamAddrMode;
-  LocalAddrMode := Func.GetLocalAddrMode;
-
   ILItem := nil;
-  //Add Parameters to variables list for the function
+  //Add Parameters to variables list for the function.
   for I := Func.ParamCount + Func.ResultCount - 1 downto 0 do
-    if not Func.Params[I].CopyDataIn then
-    begin
-      //'Result' is accessed via the function name. (Result is syntactic sugar handled
-      //elsewhere
-      if Func.Params[I].Access = paResult then
-        ParamName := Func.Name
+  begin
+    //'Result' is accessed via the function name. (Result is syntactic sugar handled
+    //elsewhere)
+    if Func.Params[I].Access = paResult then
+      ParamName := Func.Name
+    else
+      ParamName := Func.Params[I].Name;
+    case Func.CallingConvention of
+        ccStack: ;  //Nothing
+        ccRegister, ccCall, ccRst, ccExtern:
+          //The parameter will act as a 'hidden' variable which contains the source
+          //address of the data. A BlockCopy will be generated (below) and, after
+          //that the parameter/variable will be discarded and not used again.
+          if Func.Params[I].CopyDataIn then
+            ParamName := '_c_ParamName';
       else
-        ParamName := Func.Params[I].Name;
-      AddrMode := GetParamAddrMode(Func.CallingConvention, Func.Params[I]);
+        raise ECallingConvention.Create;
+      end;
 
-      Variable := Vars.AddParameter(ParamName, Func.Params[I].UserType, AddrMode,
-        Func.Params[I].Access = paResult, Func.Params[I].PassDataIn);
-      //Inc the variables write count to indicate it's be assigned a value by the caller
-      if not (Func.Params[I].Access in [paOut, paResult]) then
-        Variable.IncVersion;
-      Variable.IsConst := Func.Params[I].Access = paConst;
-      Variable.FuncParamIndex := I;
-    end;
+    AddrMode := GetParamAddrMode(Func.CallingConvention, Func.Params[I]);
 
-  //CopyDataIn params need to be created as local variables
-  for I := Func.ParamCount + Func.ResultCount - 1 downto 0 do
-    if Func.Params[I].CopyDataIn then
-    begin
-      Assert(Func.Params[I].Access <> paResult);
-      Variable := Vars.Add(Func.Params[I].Name, Func.Params[I].UserType);
+    Variable := Vars.AddParameter(ParamName, Func.Params[I].UserType, AddrMode,
+      Func.Params[I].Access = paResult, Func.Params[I].PassDataIn);
+    //Inc the variables write count to indicate it's be assigned a value by the caller
+    if not (Func.Params[I].Access in [paOut, paResult]) then
       Variable.IncVersion;
-      Variable.IsConst := Func.Params[I].Access = paConst;
-      Variable.FuncParamIndex := I;
-    end;
+    Variable.IsConst := Func.Params[I].Access = paConst;
+    Variable.FuncParamIndex := I;
+  end;
+
+  //Any parameters which require data to be copied in (Ie. pass-by-value of
+  //Pointered types) require extra data and a BlockCopy operation at function
+  //initialisation
+  DoCopyDataInParams(Func);
 
   //The function code
-  Result := ParseQuiche(pmFuncDecls, LocalAddrMode);
+  Result := ParseQuiche(pmFuncDecls, Func.GetLocalAddrMode);
   if Result <> qeNone then
     EXIT;
 

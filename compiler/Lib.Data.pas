@@ -115,12 +115,16 @@ type
     ProcName: String;     //Name of the Proc (code), Fragment, or Subroutine used
                           //during code generation
     LType: TVarType;      //Left operand type (base type)
+    LArrayDef: TArrayDef; //If LType is atArrayType
     RType: TVarType;      //Right operand type (base type)
+    RArrayDef: TArrayDef; //If RType is atArrayDef
     Commutative: Boolean; //If True the left and right operators can be swapped
     ResultType: TVarType; //Destination (Result) type, unless...
+    ResultArrayDef: TArrayDef;  //If ResultType is atArrayDef
     ResultTypeIsLType: Boolean;
     ResultTypeIsRType: Boolean;
     IfOverflowChecking: TPrimValidation;  //Can this routine be used if overflow checking is on? off? either?
+    IfBoundsChecking: TPrimValidation;  //Can this routine be used if bounds checking is on? off? either?
 
     //Fields for primitive use
     LLoadType: TLoadParamType;  //Special load type for param1 only

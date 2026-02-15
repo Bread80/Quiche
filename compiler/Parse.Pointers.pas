@@ -260,20 +260,53 @@ function ParseArrayIndexEX(var V: PVariable): TQuicheError;
 var IndexSlug: TExprSlug; //Slug for the index expresssion
   ArrayType: PUserType;
   ILItem: PILItem;
+  BoundsType: PUserType;
+  Index: Integer;
 begin
   Assert(Assigned(V));
   Assert(CharInSet(Parser.TestChar, ['[',',']));
   Parser.SkipChar;
 
   ArrayType := V.UserType;
+  Assert(ArrayType <> nil);
   if ArrayType.VarType = vtTypedPointer then
     ArrayType := ArrayType.OfType;
-  Assert(IsArrayType(ArrayType.VarType));
+  Assert(ArrayType <> nil);
+  Assert(ArrayType.VarType = vtArrayType);
 
+  case ArrayType.ArrayDef.ArrayType of
+    atArray: BoundsType := ArrayType.BoundsType;
+    atVector, atList: BoundsType := GetSystemType(ArrayType.ArrayDef.MetaType);
+  else
+    raise EVarType.Create;
+  end;
   //Index expression must be of BoundsType
-  Result := ParseExprToSlug(IndexSlug, ArrayType.BoundsType);
+  Result := ParseExprToSlugWithTypeCheck(IndexSlug, BoundsType);
   if Result <> qeNone then
     EXIT;
+
+  //If we have a literal expression validate against length (vector) or capacity (list)
+  //(Array types bounds will have been trapped by ParseExprTo due to BoundsType range)
+  if IndexSlug.ILItem = nil then
+    case ArrayType.ArrayDef.ArrayType of
+      atArray: ;
+      atVector:
+      begin
+        Assert(IsIntegerType(IndexSlug.ResultType));
+        Index := IndexSlug.Operand.Imm.IntValue;
+        if (Index < 0) or (Index >= ArrayType.VectorLength) then
+          EXIT(Err(qeConstantOutOfRange));
+      end;
+      atList:
+      begin
+        Assert(IsIntegerType(IndexSlug.ResultType));
+        Index := IndexSlug.Operand.Imm.IntValue;
+        if (Index < 0) or (Index >= ArrayType.ListCapacity) then
+          EXIT(Err(qeConstantOutOfRange));
+      end;
+    else
+      raise EVarType.Create;
+    end;
 
   if IndexSlug.ILItem <> nil then
     IndexSlug.AssignToHiddenVar;
@@ -312,7 +345,7 @@ begin
   Assert(Parser.TestChar = '^');
   Parser.SkipChar;
 
-  if not (UTToVT(V.UserType) in [vtTypedPointer, vtPointer]) then
+  if not (V.VarType in [vtTypedPointer, vtPointer]) then
     EXIT(ErrSub(qePointerDerefError, V.UserType.Description));
   Assert(V.AddrMode in [amStatic, amStack], 'TODO');
 
@@ -378,7 +411,7 @@ begin
   if Result <> qeNone then
     EXIT;
   //Generate the Slug with appropriate Kind (eq pkVarPtr)
-  if IsPointeredType(V.UserType.VarType) then
+  if IsPointeredType(V.UserType) then
   begin //Return a VarRef to the data. Caller will have to work out what to do with it
     Slug.Operand.SetVarRef(V);
     Slug.ResultType := V.UserType;
@@ -387,7 +420,7 @@ begin
   else
   begin
     Assert(V.UserType.VarType in [vtPointer, vtTypedPointer]);
-    if IsPointeredType(V.UserType.OfType.VarType) then
+    if IsPointeredType(V.UserType.OfType) then
     begin //Return a VarRef to the data. Caller will have to work out what to do with it
       Slug.Operand.SetVarRef(V);
       Slug.ResultType := V.UserType.OfType;
@@ -421,12 +454,12 @@ begin
     EXIT(Err(qeAssignmentExpected));
 
   //Parse the assignment expression
-  Result := ParseExprToSlug(ExprSlug, ExprType);
+  Result := ParseExprToSlugWithTypeCheck(ExprSlug, ExprType);
   if Result <> qeNone then
     EXIT;
 
   ILItem := ILAppend(opPtrStore);
-  if IsPointeredType(AddrVar.UserType.VarType) then
+  if IsPointeredType(AddrVar.UserType) then
     Assert(False, 'TODO')
 (*    ILItem.Param1.SetVarRef(AddrVar);*)(*TODO*)
   else  //Param is the value of the pointer (the address to read from/write to)

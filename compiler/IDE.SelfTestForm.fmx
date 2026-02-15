@@ -111,8 +111,12 @@ object SelfTestF: TSelfTestF
       Size.PlatformDefault = False
       TabOrder = 2
       object lbTestName: TLabel
+        Anchors = [akLeft, akTop, akRight]
         Position.X = 8.000000000000000000
         Position.Y = 9.000000000000000000
+        Size.Width = 369.000000000000000000
+        Size.Height = 17.000000000000000000
+        Size.PlatformDefault = False
         Text = 'lbTestName'
         TabOrder = 0
       end

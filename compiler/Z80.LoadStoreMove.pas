@@ -171,7 +171,7 @@ begin
   case Param.Kind of
     pkImmediate:
     begin
-      if IsPointeredType(Param.Imm.VarType) then
+      if IsPointeredVarType(Param.Imm.VarType) then
       begin
         //TODO - Is the label already in the register?
         if RegStateEqualsLabel(R, Param.Imm.ToLabel) then
@@ -848,7 +848,7 @@ begin
               FromType := MoveState[Reg].Param.GetUserType;
 
             GenDestParam(MoveState[Reg].Param^, FromType,
-              cgRangeCheck in MoveState[Reg].Param.Flags, nil, Options);
+              pfRangeCheck in MoveState[Reg].Param.Flags, nil, Options);
             MoveState[Reg].Done := True;
           end;
 end;

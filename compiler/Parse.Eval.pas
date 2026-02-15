@@ -88,11 +88,6 @@ begin
     opAdd:
       if IsIntegerVarType(P1.VarType) and IsIntegerVarType(P2.VarType) then
         IntValue := P1.IntValue + P2.IntValue
-      else if (P1.VarType in [vtChar, vtString]) and (P2.VarType in [vtChar, vtString]) then
-      begin
-        Value.CreateString(P1.StringValue + P2.StringValue);
-        EXIT;
-      end
       else
         Error := True;
     opSubtract:
@@ -128,8 +123,11 @@ begin
         Value.CreateBoolean(P1.IntValue = P2.IntValue)
       else if (P1.VarType = vtBoolean) and (P2.VarType = vtBoolean) then
         Value.CreateBoolean(P1.BoolValue = P2.BoolValue)
-      else if (P1.VarType in [vtChar, vtString]) and (P2.VarType in [vtChar, vtString]) then
+      else if (P1.VarType = vtChar) and (P2.VarType = vtChar) then
         Value.CreateBoolean(P1.StringValue = P2.StringValue)
+      else if (P1.VarType in [vtChar, vtArrayType]) and (P2.VarType in [vtChar, vtArrayType]) then
+        Assert(False, 'TODO')
+//        Value.CreateBoolean(P1.StringValue = P2.StringValue)
 (*      else if (P1.VarType = vtTypeDef) and (P2.VarType = vtTypeDef) then
         Value.CreateBoolean(P1.TypeDefValue = P2.TypeDefValue)
 *)      else
@@ -209,6 +207,17 @@ begin
       end
       else
         Error := True;
+
+    opConcat:
+      if P1.UserType.IsStringableType and P2.UserType.IsStringableType then
+      begin
+        Value.CreateString(P1.StringValue + P2.StringValue);
+        EXIT;
+      end
+      else if (P1.VarType = vtArrayType) and (P2.VarType = vtArrayType) then
+        Assert(False, 'TODO')
+      else
+        Error := True;
     opSHL:
       if IsIntegerVarType(P1.VarType) and IsIntegerVarType(P2.VarType) then
         if (P2.IntValue < 0) or (P2.IntValue > 32) then
@@ -241,7 +250,7 @@ begin
       Value.CreateTyped(VarType, IntValue);
       Result := qeNone;
     end
-    else if IsNumericType(Value.VarType) then
+    else if IsNumericVarType(Value.VarType) then
     begin
       VarType := Value.VarType;
       Result := ValueToVarType(IntValue, VarType);
@@ -269,7 +278,7 @@ begin
   P := Param.Imm;
   VarType := vtUnknown;
 
-  if IsNumericType(P.VarType) then
+  if IsNumericVarType(P.VarType) then
   begin
     case Op of
       opComplement:
@@ -301,7 +310,7 @@ begin
     EXIT;
 
   if VarType = vtUnknown then
-    if IsNumericType(Value.VarType) then
+    if IsNumericVarType(Value.VarType) then
     begin
       VarType := Value.VarType;
       Result := ValueToVarType(IntValue, VarType);
@@ -333,7 +342,6 @@ begin
   Evalled := True;
 
   case Op of
-    //-----Maths functions
     opAbs:
       if IsIntegerVarType(P.VarType) then
       begin
@@ -342,16 +350,35 @@ begin
       end
       else
         Error := True;
-    opOdd:
+    opChr:
+    begin
       if IsIntegerVarType(P.VarType) then
-      begin
-        Value.CreateBoolean(odd(P.IntValue));
-        EXIT;
-      end
+        if P.IntValue in [0..255] then
+        begin
+          Value.CreateChar(chr(P.IntValue));
+          EXIT;
+        end
+        else
+          EXIT(Err(qeConstantExpressionOverflow))
       else
         Error := True;
-
-    //-----System functions
+    end;
+    opDowncase:
+    begin
+      if P.VarType = vtChar then
+      {$ifdef fpc}
+        Value.CreateChar(Lowercase(P.CharValue))
+      {$else}
+        Value.CreateChar(P.CharValue.ToLower)
+      {$endif}
+      else if P.VarType = vtArrayType then
+        Assert(False, 'TODO')
+//        Value.CreateString(P.StringValue.ToLower)
+      else
+        Error := True;
+      if not Error then
+        EXIT;
+    end;
     opHi:
       if (GetTypeSize(P.UserType) = 2) and IsIntegerVarType(P.VarType) then
       begin
@@ -362,24 +389,92 @@ begin
         Error := True;
     opHigh:
     begin
-      if P.VarType = vtTypeDef then
-      begin
-        if P.TypeDefValue.VarType = vtBoolean then
-          Value.CreateBoolean(True)
-        else if IsOrdinalType(P.TypeDefValue.VarType) then
-          Value.CreateTyped(P.TypeDefValue, P.TypeDefValue.High)
-        else
-          case P.TypeDefValue.VarType of
-            vtArray:
-              Value.CreateTyped(P.TypeDefValue.BoundsType.OfType, P.TypeDefValue.BoundsType.High);
+      case P.VarType of
+        vtTypeDef:
+        begin
+          if P.TypeDefValue.VarType = vtBoolean then
+            Value.CreateBoolean(True)
+          else if IsOrdinalType(P.TypeDefValue) then
+            Value.CreateTyped(P.TypeDefValue, P.TypeDefValue.High)
+          else if P.TypedefValue.VarType = vtArrayType then
+          begin
+            if P.TypeDefValue.ArrayDef.IsUnbounded then
+              Evalled := False
+            else
+              case P.TypeDefValue.ArrayDef.ArrayType of
+                atArray:
+                  Value.CreateTyped(GetOfType(P.TypeDefValue.BoundsType), P.TypeDefValue.BoundsType.High);
+                atVector: Value.CreateTyped(P.TypeDefValue.ArrayDef.MetaType, P.TypeDefValue.VectorLength-1);
+                atList: Evalled := False;
+              else
+                Error := True;
+              end;
+          end
+          else
+            Error := True;
+        end;
+        vtArrayType:  //Array literal
+          case P.UserType.ArrayDef.ArrayType of
+            atArray:
+              Value.CreateTyped(GetOfType(P.UserType.BoundsType), P.UserType.BoundsType.High);
+            atVector, atList:
+            begin
+              IntValue := P.ArrayLength-1;
+              if IntValue > 255 then
+                VarType := vtWord
+              else
+                VarType := vtByte;
+              Value.CreateTyped(VarType, IntValue);
+            end;
           else
             Error := True;
           end;
-      end
       else
         Error := True;
+      end;
       if not Error then
         EXIT;
+    end;
+    opLength:
+    begin
+      case P.VarType of
+        vtTypeDef:
+        begin
+          if P.TypeDefValue.VarType = vtArrayType then
+          begin
+            if P.TypeDefValue.ArrayDef.IsUnbounded then
+              Evalled := False;
+            case P.TypeDefValue.ArrayDef.ArrayType of
+              atArray:
+                Value.CreateTyped(vtWord, GetTypeItemCount(P.TypeDefValue.BoundsType));
+              atVector:
+                Value.CreateTyped(P.TypeDefValue.ArrayDef.MetaType, P.TypeDefValue.VectorLength);
+              atList: Evalled := False;
+            else
+              Error := True;
+            end
+          end
+          else
+            Error := True;
+          if Error then
+            EXIT(ErrOpUsageSub(qeOpIncompatibleType, VarTypeToName(P.TypeDefValue.VarType), Op));
+          EXIT;
+        end;
+        vtArrayType:  //Array literal
+        begin
+          IntValue := P.ArrayLength;
+          if IntValue > 255 then
+            VarType := vtWord
+          else
+            VarType := vtByte;
+          Value.CreateTyped(VarType, IntValue);
+        end;
+        //Extend for other array types
+      else
+        Error := True;
+      end;
+      if Error then
+        EXIT(ErrOpUsageSub(qeOpIncompatibleType, VarTypeToName(P.TypeDefValue.VarType), Op));
     end;
     opLo:
       if (GetTypeSize(P.UserType) = 2) and IsIntegerVarType(P.VarType) then
@@ -391,25 +486,48 @@ begin
         Error := True;
     opLow:
     begin
-      if P.VarType = vtTypeDef then
-      begin
-        if P.TypeDefValue.VarType = vtBoolean then
-          Value.CreateBoolean(False)
-        else if IsOrdinalType(P.TypeDefValue.VarType) then
-          Value.CreateTyped(P.TypeDefValue, P.TypeDefValue.Low)
-        else
-          case P.TypeDefValue.VarType of
-            vtArray:
-              Value.CreateTyped(P.TypeDefValue.BoundsType.OfType, P.TypeDefValue.BoundsType.Low);
+      case P.VarType of
+        vtTypeDef:
+        begin
+          if P.TypeDefValue.VarType = vtBoolean then
+            Value.CreateBoolean(False)
+          else if IsOrdinalType(P.TypeDefValue) then
+            Value.CreateTyped(P.TypeDefValue, P.TypeDefValue.Low)
+          else if P.TypeDefValue.VarType = vtArrayType then
+            case P.TypeDefValue.ArrayDef.ArrayType of
+              atArray:
+                Value.CreateTyped(GetOfType(P.TypeDefValue.BoundsType), P.TypeDefValue.BoundsType.Low);
+              atVector, atList:
+                Value.CreateTyped(P.TypeDefValue.ArrayDef.MetaType, 0);
+            else
+              Error := True;
+            end
           else
             Error := True;
-          end;
-      end
+        end;
+        vtArrayType:  //Array literal
+        case P.UserType.ArrayDef.ArrayType of
+          atArray:
+            Value.CreateTyped(GetOfType(P.UserType.BoundsType), P.UserType.BoundsType.Low);
+          atVector, atList:
+            Value.CreateTyped(P.UserType.ArrayDef.MetaType, 0);
+        else
+          Error := True;
+        end
       else
         Error := True;
+      end;
       if not Error then
         EXIT;
     end;
+    opOdd:
+      if IsIntegerVarType(P.VarType) then
+      begin
+        Value.CreateBoolean(odd(P.IntValue));
+        EXIT;
+      end
+      else
+        Error := True;
     opOrd:
     begin
       if IsIntegerVarType(P.VarType) then
@@ -452,8 +570,19 @@ begin
     opSizeof:
     begin
       case P.VarType of
-        vtTypeDef: IntValue := GetTypeSize(P.TypeDefValue);
-        vtString: IntValue := Length(P.StringValue);
+        vtTypeDef:
+        begin
+          if P.TypeDefValue.VarType = vtArrayType then
+            //Unbounded arrays can't be evalled at compile time
+            if P.TypeDefValue.ArrayDef.IsUnbounded then
+            begin
+              Evalled := False;
+              EXIT;
+            end;
+          IntValue := GetTypeSize(P.TypeDefValue);
+        end;
+        vtArrayType:
+          IntValue := P.UserType.ArrayDef.MetaSize + (P.ArrayLength * P.UserType.ArrayDef.ElementSize);
       else
         IntValue := GetTypeSize(P.UserType);
       end;
@@ -490,55 +619,6 @@ begin
       end
       else
         Error := True;
-
-    //----- Char/String functions
-    opChr:
-    begin
-      if IsIntegerVarType(P.VarType) then
-        if P.IntValue in [0..255] then
-        begin
-          Value.CreateChar(chr(P.IntValue));
-          EXIT;
-        end
-        else
-          EXIT(Err(qeConstantExpressionOverflow))
-      else
-        Error := True;
-    end;
-    opDowncase:
-    begin
-      if P.VarType = vtChar then
-      {$ifdef fpc}
-        Value.CreateChar(Lowercase(P.CharValue))
-      {$else}
-        Value.CreateChar(P.CharValue.ToLower)
-      {$endif}
-      else if P.VarType = vtString then
-        Value.CreateString(P.StringValue.ToLower)
-      else
-        Error := True;
-      if not Error then
-        EXIT;
-    end;
-    opLength:
-    begin
-      case P.VarType of
-        vtTypeDef:
-          case P.TypeDefValue.VarType of
-            vtArray:
-              Value.CreateTyped(vtWord, GetTypeItemCount(P.TypeDefValue.BoundsType));
-            //Extend for other array types
-          else
-            Error := True;
-          end;
-        //Extend for other array types
-      else
-        Error := True;
-      end;
-      if Error then
-        EXIT(ErrOpUsageSub(qeOpIncompatibleType, VarTypeToName(P.TypeDefValue.VarType), Op));
-      EXIT;
-    end;
     opUpcase:
     begin
       if P.VarType = vtChar then
@@ -547,8 +627,9 @@ begin
       {$else}
       Value.CreateChar(P.CharValue.ToUpper)
       {$endif}
-      else if P.VarType = vtString then
-        Value.CreateString(P.StringValue.ToUpper)
+      else if P.VarType = vtArrayType then
+        Assert(False, 'TODO')
+//        Value.CreateString(P.StringValue.ToUpper)
       else
         Error := True;
       if not Error then
@@ -652,7 +733,7 @@ begin
   end;
 
   if VarType = vtUnknown then
-    if IsNumericType(VarType) then
+    if IsNumericVarType(VarType) then
     begin
       VarType := Value.VarType;
       Result := ValueToVarType(IntValue, VarType);
@@ -674,7 +755,7 @@ end;
 function EvalTypecast(var Value: TImmValue; ToType: PUserType): TQuicheError;
 var NewValue: Integer;
 begin
-  if IsOrdinalType(UTToVT(ToType)) and (IsOrdinalType(Value.VarType)) then
+  if IsOrdinalType(ToType) and (IsOrdinalType(Value.UserType)) then
   begin
     case GetTypeDataSize(ToType) of
       1:

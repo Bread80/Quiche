@@ -25,10 +25,10 @@ type TKeyword = (keyUNKNOWN,
   keyAND, keyARRAY, keyBEGIN,
   keyCONST, keyDIV, keyDO, keyDOWNTO,
   keyELSE, keyEND, keyFOR, keyFUNCTION,
-  keyIF, keyIN, keyLIST,
+  keyIF, keyIN, keyLIST, keyLONG,
   keyMOD, keyNOT, keyOR, keyPROCEDURE, keyPROGRAM,
   keyRECORD, keyREPEAT,
-  keySET, keySHL, keySHR,
+  keySET, keySHL, keySHORT, keySHR,
   keyTHEN, keyTO, keyTYPE, keyUNTIL, keyVAR, keyXOR,
   keyVECTOR,
   keyWHILE
@@ -85,10 +85,6 @@ function ParseUniqueIdentifierIfNone(var Ident: String): TQuicheError;
 //Parses the next item as a keyword.
 //If the next item is not a keyword returns Keyword = keyUnknown
 function ParseKeyword(out Keyword: TKeyword): TQuicheError;
-
-//Parses the next item as a variable type.
-//If the next item is not a known type returns VT = vtUnknown
-function ParseVarTypeName(out VT: TVarType): TQuicheError;
 
 //Test for a Type Suffix Symbol.
 //If found returns the type and consumes the characters,
@@ -184,10 +180,10 @@ const KeywordStrings: array[low(TKeyword)..high(TKeyword)] of String = (
   '',  //Placeholder for Unknown value
   'and', 'array', 'begin', 'const', 'div', 'do', 'downto',
   'else', 'end', 'for', 'function',
-  'if', 'in','list',
+  'if', 'in', 'list', 'long',
   'mod', 'not', 'or', 'procedure', 'program',
   'record', 'repeat',
-  'set', 'shl', 'shr',
+  'set', 'shl', 'short', 'shr',
   'then', 'to', 'type', 'until', 'var', 'xor',
   'vector',
   'while');
@@ -361,18 +357,6 @@ begin
     Keyword := IdentToKeyword(Ident);
 end;
 
-function ParseVarTypeName(out VT: TVarType): TQuicheError;
-var Ident: String;
-begin
-  Result := ParseIdentifier(#0, Ident);
-  if Result <> qeNone then
-    EXIT;
-
-  VT := StringToVarType(Ident);
-  if VT = vtUnknown then
-    EXIT(ErrSub(qeUnknownType, Ident));
-end;
-
 function TestForTypeSymbol(out UserType: PUserType): TQuicheError;
 var Ch: Char;
   VarType: TVarType;
@@ -383,7 +367,7 @@ begin
   Ch := Parser.TestChar;
   case Ch of
     '%': VarType := vtInteger;
-    '$': VarType := vtString;
+    '$': VarType := vtChar;   //We'll convert to string in a moment
     '#': VarType := vtWord;
     '!': VarType := vtReal;
     '^': VarType := vtPointer;
@@ -395,20 +379,27 @@ begin
   if VarType <> vtUnknown then
   begin
     Parser.SkipChar;
-    if VarType in [vtString, vtWord, vtInteger] then
+    if VarType in [vtChar, vtWord, vtInteger] then
     begin
+      //Double sigil
       if Parser.TestChar = Ch then
       begin
         case VarType of
-          vtString:   VarType := vtChar;
+          vtChar:   ; //Stay as is
           vtWord:     VarType := vtByte;
           vtInteger:  VarType := vtInt8;
         end;
         Parser.SkipChar;
-      end;
+      end
+      else  //Not double sigil
+        if VarType = vtChar then
+        begin
+          UserType := GetSystemStringType;
+          EXIT(qeNone);
+        end;
     end;
 
-    if VarType in [vtReal, vtString] then
+    if VarType in [vtReal] then
       EXIT(ErrTODO('Type not yet supported: ' + VarTypeToName(VarType)));
   end;
 

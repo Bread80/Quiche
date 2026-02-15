@@ -17,7 +17,7 @@ procedure InitPrimitives;
 
 implementation
 uses Classes, SysUtils,
-  Def.Operators, Def.VarTypes,
+  Def.Operators, Def.VarTypes, Def.UserTypes,
   Lib.GenFragments,
   CG.Data,
   Z80.LoadStoreMove, Z80.RegAlloc,
@@ -28,6 +28,19 @@ uses Classes, SysUtils,
 
 //Generate the code form the start of a function (ie. generate a stack frame, if needed)
 procedure GenFunctionPreamble(Scope: PScope;BlockType: TBlockType);
+var InitLocalVarsLabel: String;
+  LocalVarsToInit: Boolean;
+  I: Integer;
+  V: PVariable;
+  TypeCode: Integer;
+
+const
+  tcEndOfData = 1;
+  tcShortVector = 2;
+  tcShortList = 3;
+  tcLongVector = 4;
+  tcLongList = 5;
+
 begin
   if Scope.Func = nil then
   begin //We're at global scope
@@ -37,6 +50,7 @@ begin
   else //Scope.Func <> nil - we're generating function code
   begin
     Assert(BlockType = btDefault, 'Can''t override block type for functions');
+    InitLocalVarsLabel := '';
     case Scope.Func.CallingConvention of
       ccRegister:
       begin
@@ -47,19 +61,86 @@ begin
         //Copy registers to global storage (unless the global storage has been
         //optimised away)
         GenFuncArgStore(Scope.Func);
+
+        InitLocalVarsLabel := '_q_initlocalvars_static';
       end;
       ccStack:
       begin
         TEMPRegAllocStackFunc(Scope.Func);
           //TODO: Add register allocation for Result
 //        TODO: if VarGetLocalByteSize > 0 then
-        GenLibraryProc('stacklocal_enter', nil)
-//        else
-;//          ??
+        GenLibraryProc('stacklocal_enter', nil);
+
+        InitLocalVarsLabel := '_q_initlocalvars_stack';
+
+        //TODO: Initialise Vectors and Lists
+        //CALL _q_initlocalvars_stack
+        //List of data - VarType and Offset
+        //Vector: Address, Length
+        //List: Address, Capacity (Length initialised to zero)
+
       end;
     else
-      Assert(False, 'Unknown Calling Convention');
+      raise ECallingConvention.Create;
     end;
+
+    //Types which have meta data need to initialised.
+    //Currently that means vectors and lists.
+    LocalVarsToInit := False;
+    for I := 0 to Scope.VarList.GetCount-1 do
+    begin
+      V := Scope.VarList.IndexToData(I);
+      Assert(V <> nil);
+      if (V.VarType = vtArrayType) and (V.UserType.ArrayDef.ArrayType in [atVector, atList]) then
+        if not V.IsParam then
+        begin //Variable needs initialising
+          //TODO: NOT if it's a CopyDataIn variable - but how to know?
+          if not LocalVarsToInit then
+          begin
+            AsmLine('call ' + InitLocalVarsLabel);
+            LocalVarsToInit := True;
+          end;
+          case V.UserType.ArrayDef.ArrayType of
+            atVector:
+              case V.UserType.ArrayDef.ArraySize of
+                asShort: TypeCode := tcShortVector;
+                asLong: TypeCode := tcLongVector;
+              else
+                raise EVarType.Create;
+              end;
+            atList:
+              case V.UserType.ArrayDef.ArraySize of
+                asShort: TypeCode := tcShortList;
+                asLong: TypeCode := tcLongList;
+              else
+                raise EVarType.Create;
+              end;
+          else
+            raise EVarType.Create;
+          end;
+          //TypeCode
+          AsmLine('db ' + ByteToStr(TypeCode));
+
+          //Address or Offset
+          case V.AddrMode of
+            amStack: AsmLine('dw ' + (*V.GetAsmOffset*) WordToStr(V.Offset));
+            amStatic: AsmLine('dw ' + V.GetAsmName);
+          else
+            raise EAddrMode.Create;
+          end;
+          //Vector length or List Capacity
+          case TypeCode of
+            tcShortVector: AsmLine('db ' + ByteToStr(V.UserType.VectorLength));
+            tcLongVector: AsmLine('dw ' + ByteToStr(V.UserType.VectorLength));
+            tcShortList: AsmLine('db ' + ByteToStr(V.UserType.ListCapacity));
+            tcLongList: AsmLine('dw ' + WordToStr(V.UserType.ListCapacity));
+          else
+            raise EVarType.Create;
+          end;
+        end;
+    end;
+    if LocalVarsToInit then
+      AsmLine('db ' + ByteToStr(tcEndOfData));
   end;
 end;
 

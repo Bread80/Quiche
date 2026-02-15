@@ -5,80 +5,121 @@ uses Def.UserTypes,
   Parse.Errors, Parse.Literals;
 
 
-//Validates whether the ExprType can be assigned to the variable (etc)
-//with type of ToType
-function ValidateAssignmentType(ToType, ExprType: PUserType): TQuicheError;
+//Tests whether a value of type FromType can be assigned to the variable, argument (etc)
+//of type ToType
+function TypeCheck(ToType, FromType: PUserType): TQuicheError;
 
-//Tests whether the expression returned by Slug is compatible with the type
-//given in ToType. If it is returns errNone, otherwise returns a suitable error code
-function ValidateAssignment(ToType: PUserType;const Slug: TExprSlug): TQuicheError;
+//Tests whether the type of the value returned by Slug is compatible with the ToType.
+//If it is returns errNone, otherwise returns a suitable error code
+function TypeCheckFromSlug(ToType: PUserType;const Slug: TExprSlug): TQuicheError;
 
 
 implementation
 uses SysUtils,
   Def.VarTypes, Def.Consts, Def.Operators, Def.IL;
 
-function ValidateAssignmentType(ToType, ExprType: PUserType): TQuicheError;
+//Assignments to an array. Both types are array types, and both are different types
+function TypeCheckArrays(ToType, FromType: PUserType): TQuicheError;
+var ToAT: TArrayType;
+  FromAT: TArrayType;
+begin
+  //Both must match longshort/unknown and both must have the same element size
+  if (ToType.ArrayDef.ArraySize <> FromType.ArrayDef.ArraySize) or
+    (ToType.ArrayDef.ElementSize <> FromType.ArrayDef.ElementSize) then
+    EXIT(ErrSub2(qeTypeMismatch, FromType.Description, ToType.Description));
+
+  //Element types must be compatible
+  Result := TypeCheck(ToType.OfType, FromType.OfType);
+  if Result <> qeNone then
+    EXIT;
+
+  ToAT := ToType.ArrayDef.ArrayType;
+  FromAT := FromType.ArrayDef.ArrayType;
+  if ToType.ArrayDef.IsUnbounded then
+    case ToType.ArrayDef.ArrayType of
+      atArray: EXIT(qeNone);
+      atVector:
+        if FromAT in [atVector, atList] then
+          EXIT(qeNone);
+      atList:
+        if FromAT = atList then
+          EXIT(qeNone);
+    else
+      Assert(False);
+    end
+  else  //ToType is bounded - types must match exactly
+    if ToAT = FromAT then
+      EXIT(qeNone);
+
+  Result := ErrSub2(qeTypeMismatch, FromType.Description, ToType.Description);
+end;
+
+function TypeCheck(ToType, FromType: PUserType): TQuicheError;
 var ToVT: TVarType;
-  ExprVT: TVarType;
+  FromVT: TVarType;
 begin
   Assert(Assigned(ToType));
-  Assert(Assigned(ExprType));
+  Assert(Assigned(FromType));
 
-  if ToType = ExprType then
+  if ToType = FromType then
     EXIT(qeNone);
 
   ToVT := ToType.VarType;
-  ExprVT := ExprType.VarType;
+  FromVT := FromType.VarType;
 
-  if IsOrdinalType(ToVT) then
+  if IsOrdinalType(ToType) then
   begin
     //Numeric types - we can convert between them...
-    if IsNumericType(ToVT) then
+    if IsNumericType(ToType) then
     begin
       //..except from Reals to Integer types (need to use Trunc)
-      if ExprVT = vtReal then
+      if FromVT = vtReal then
         EXIT(Err(qeTypeMismatchImplicitReal));
 
-      if not IsNumericType(ExprVT) then
-          EXIT(ErrSub2(qeTypeMismatch, ExprType.Description, ToType.Description));
+      if not IsNumericType(FromType) then
+          EXIT(ErrSub2(qeTypeMismatch, FromType.Description, ToType.Description));
     end
     else
       //For other ordinals the base type must be the same
-      if IsOrdinalType(ToVT) and IsOrdinalType(ExprVT) then
-        if RemoveSubRange(ToType) <> RemoveSubRange(ExprType) then
-          EXIT(ErrSub2(qeTypeMismatch, ExprType.Description, ToType.Description));
+      if IsOrdinalType(ToType) and IsOrdinalType(FromType) then
+        if RemoveSubRange(ToType) <> RemoveSubRange(FromType) then
+          EXIT(ErrSub2(qeTypeMismatch, FromType.Description, ToType.Description));
 
     //Ordinal ranges must intersect in some way
-    if IsOrdinalType(ToVT) and IsOrdinalType(ExprVT) then
-      if (ToType.High >= ExprType.Low) and (ExprType.High >= ToType.Low) then
+    if IsOrdinalType(ToType) and IsOrdinalType(FromType) then
+      if (ToType.High >= FromType.Low) and (FromType.High >= ToType.Low) then
         EXIT(qeNone)
       else
-        EXIT(ErrSub2(qeTypeMismatchNoOverlap, ExprType.Description, ToType.Description));
+        EXIT(ErrSub2(qeTypeMismatchNoOverlap, FromType.Description, ToType.Description));
   end;
 
+
+  if IsArrayType(ToType) and IsArrayType(FromType) then
+    EXIT(TypeCheckArrays(ToType, ToType));
 
   //Other types. Probably plenty to add here
   case ToVT of
     vtReal:
-      if IsNumericType(ExprVT) then
+      if IsNumericType(FromType) then
         EXIT(qeNone);
-    vtString:
-      if ExprVT in [vtChar, vtString] then
+    vtArrayType:
+      Assert(False, 'TODO');
+(*      if FromVT in [vtChar, vtString] then
         EXIT(qeNone);
-    vtChar: //TODO: if ToType = vtChar we can assign a string of length one to it
-      if ExprVT = vtString then
-        raise Exception.Create('TODO: Add code to allow assigning string of length one to a Char');
+*)    vtChar: //TODO: if ToType = vtChar we can assign a string of length one to it
+      if FromVT = vtArrayType then
+        Assert(False, 'TODO');
+//        raise Exception.Create('TODO: Add code to allow assigning string of length one to a Char');
     vtPointer:  //Typed pointers can be assigned to untyped pointers
-      if ExprVT = vtTypedPointer then
+      if FromVT = vtTypedPointer then
         EXIT(qeNone);
   end;
 
-  Result := ErrSub2(qeTypeMismatch, ExprType.Description, ToType.Description);
+  Result := ErrSub2(qeTypeMismatch, FromType.Description, ToType.Description);
 end;
 
 //Validate whether an immediate value can be assigned to a variable (etc) of type ToType.
-function ValidateAssignImm(ToType: PUserType;const Imm: TImmValue): TQuicheError;
+function TypeCheckImm(ToType: PUserType;const Imm: TImmValue): TQuicheError;
 begin
   if IsIntegerType(ToType) and IsIntegerVarType(Imm.VarType) then
   begin //Integer value in range?
@@ -86,10 +127,10 @@ begin
       EXIT(ErrSub2(qeConstantAssignmentOutOfRange, Imm.ToString, ToType.Description));
     EXIT(qeNone);
   end
-  else if IsOrdinalType(UTToVT(ToType)) and IsOrdinalType(Imm.VarType) then
+  else if IsOrdinalType(ToType) and IsOrdinalType(Imm.UserType) then
   begin //Other ordinal types
     //Are the types compatible?
-    Result := ValidateAssignmentType(ToType, Imm.UserType);//ExprType);
+    Result := TypeCheck(ToType, Imm.UserType);
     if Result <> qeNone then
       EXIT;
 
@@ -100,18 +141,18 @@ begin
     EXIT(qeNone);
   end
   else
-    Result := ValidateAssignmentType(ToType, Imm.UserType);//ExprType);
+    Result := TypeCheck(ToType, Imm.UserType);
 end;
 
-function ValidateAssignment(ToType: PUserType;const Slug: TExprSlug): TQuicheError;
+function TypeCheckFromSlug(ToType: PUserType;const Slug: TExprSlug): TQuicheError;
 begin
   Assert(Assigned(ToType));
 
   if (Slug.Op = OpUnknown) and (Slug.ILItem = nil) and (Slug.Operand.Kind = pkImmediate) then
     //An immediate with no expression - can we assign the Imm to the type?
-    Result := ValidateAssignImm(ToType, Slug.Operand.Imm)
+    Result := TypeCheckImm(ToType, Slug.Operand.Imm)
   else //We either have an operation or a variable - can we assign the type to the type?
-    Result := ValidateAssignmentType(ToType, Slug.ResultType);
+    Result := TypeCheck(ToType, Slug.ResultType);
 end;
 
 end.

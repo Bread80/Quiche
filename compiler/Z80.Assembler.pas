@@ -64,13 +64,13 @@ procedure OpEXHLDE;
 
 procedure OpADD(RAcc, RAdd: TCPUReg);
 procedure OpADDHLSP;
-procedure OpINC(Reg: TCPUReg);
-procedure OpSBC(RAcc, rSub: TCPUReg);
+procedure OpAND(Reg: TCPUReg);
+procedure OpCP(Value: Integer);
 procedure OpDEC(Reg: TCPUReg);
+procedure OpINC(Reg: TCPUReg);
+procedure OpOR(Reg: TCPUReg);
+procedure OpSBC(RAcc, rSub: TCPUReg);
 
-procedure OpcodeOR(Reg: TCPUReg);
-
-procedure OpANDA;
 
 implementation
 uses SysUtils,
@@ -185,7 +185,7 @@ end;
 procedure OpSTO(DestXY: TCPUReg;DestV: PVariable;Source: TCPUReg;ByteIndex: Integer = 0);overload;
 begin
   Assert(DestXY in [rIX, rIY]);
-  Assert(DestV.AddrMode = amStack);
+  Assert(DestV.AddrMode in [amStack, amStackRef]);
 
   if Source in CPURegPairs then
   begin
@@ -286,14 +286,14 @@ begin
   AsmOpcode('add','hl','sp');
 end;
 
-procedure OpINC(Reg: TCPUReg);
+procedure OpAND(Reg: TCPUReg);
 begin
-  AsmOpcode('inc',CPURegStrings[Reg]);
+  AsmOpcode('and',CPURegStrings[Reg]);
 end;
 
-procedure OpSBC(RAcc, RSub: TCPUReg);
+procedure OpCP(Value: Integer);
 begin
-  AsmOpcode('sbc',CPURegStrings[RAcc],CPURegStrings[RSub]);
+  AsmOpcode('cp',ByteToStr(Value));
 end;
 
 procedure OpDEC(Reg: TCPUReg);
@@ -301,14 +301,20 @@ begin
   AsmOpcode('dec',CPURegStrings[Reg]);
 end;
 
-procedure OpcodeOR(Reg: TCPUReg);
+procedure OpINC(Reg: TCPUReg);
+begin
+  AsmOpcode('inc',CPURegStrings[Reg]);
+end;
+
+procedure OpOR(Reg: TCPUReg);
 begin
   AsmOpcode('or',CPURegStrings[Reg]);
 end;
 
-procedure OpANDA;
+procedure OpSBC(RAcc, RSub: TCPUReg);
 begin
-  AsmOpcode('and','a');
+  AsmOpcode('sbc',CPURegStrings[RAcc],CPURegStrings[RSub]);
 end;
+
 
 end.

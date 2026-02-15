@@ -653,7 +653,7 @@ procedure TVarList.SetOffsets;
           case V.AddrMode of
             amStatic, amStaticRef: ;  //Ignore
             amStack:
-              if IsPointeredType(V.VarType) = PointeredTypes then
+              if IsPointeredVarType(V.VarType) = PointeredTypes then
               begin
                 Offset := Offset - Size;
                 V.Offset := Offset;

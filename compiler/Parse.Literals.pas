@@ -1,7 +1,7 @@
 unit Parse.Literals;
 
 interface
-uses Def.Operators, Def.IL, Def.UserTypes,
+uses Def.Operators, Def.IL, Def.UserTypes, Def.VarTypes,
   Parse.Errors;
 
 //Unary prefix operators
@@ -23,6 +23,7 @@ type
 //slug.
 //If there is no operation opNone will be used.
 type
+  PExprSlug = ^TExprSlug;
   TExprSlug = record
     //NOTE: If ILItem is non-nil then Operand will be ignored
     ILItem: PILItem;  //Returns the ILItem of a sub-expression or unary operators
@@ -60,6 +61,10 @@ type
     procedure AssignToHiddenVar;
 
     procedure SetImmediate(AImmType: PUserType);
+
+    function ResultVarType: TVarType;
+    //Is the slugs value an Immediate (ie a literal)
+    function IsImmediate: Boolean;
 
     //Converts the Slug to an ILItem but does not assign a Dest
     //(If the Slug already has an ILItem returns it, otherwise
@@ -100,7 +105,7 @@ function ParseStringOrChar(var Slug: TExprSlug): TQuicheError;
 
 implementation
 uses SysUtils,
-  Def.Variables, Def.Globals, Def.VarTypes,
+  Def.Variables, Def.Globals,
   Parse.Source, Parse.Base;
 
 //===================================== Slugs
@@ -134,9 +139,19 @@ begin
   ResultByRefParam := nil;
 end;
 
+function TExprSlug.IsImmediate: Boolean;
+begin
+  Result := (ILItem = nil) and (Operand.Kind = pkImmediate);
+end;
+
 function TExprSlug.OpData: POpData;
 begin
   Result := @Operations[Op];
+end;
+
+function TExprSlug.ResultVarType: TVarType;
+begin
+  Result := UTToVT(ResultType);
 end;
 
 procedure TExprSlug.SetImmediate(AImmType: PUserType);
@@ -441,7 +456,7 @@ begin
       if Length(S) = 1 then
         UserType := GetSystemType(vtChar)
       else
-        UserType := GetSystemType(vtString);
+        UserType := GetSystemStringType;
 
       Slug.Operand.Kind := pkImmediate;
       if UTToVT(UserType) = vtChar then
