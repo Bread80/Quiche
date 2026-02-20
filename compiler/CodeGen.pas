@@ -136,7 +136,7 @@ begin
         amStatic:
         begin
           S := V.GetAsmName + ': db ';
-          Bytes := GetTypeSize(V.UserType);
+          Bytes := GetTypeDataSize(V.UserType);
 
           case V.VarType of
             vtArrayType:

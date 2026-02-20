@@ -336,7 +336,7 @@ begin
           vtReal, vtFlag, vtTypeDef, vtUnknown: ;//TODO?
           vtSetMem: Result := TImmValue.CreateString('TODO: SetMem type');
 //          vtArray, vtList: Result := TImmValue.CreateArray(ArrayToString(AsmName, AddrMode, UserType));
-          vtArrayType: Result := TImmValue.CreateBlob(UserType, ReadBlob(AsmName, GetTypeSize(UserType)));
+          vtArrayType: Result := TImmValue.CreateBlob(UserType, ReadBlob(AsmName, GetTypeDataSize(UserType)));
           vtRecord: Result := TImmValue.CreateString('TODO: Record types');
           vtFunction: Result := TImmValue.CreateString('TODO: Function types');
         else

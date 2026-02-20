@@ -1,16 +1,2 @@
-//  var A: array[0..500] of Integer
-//  var B := @A[10]
- {
-  A[0] := $21
-  var P: Pointer
-  P := @A
-  var B := P^
-}
-  const S = 'Hello World!'
-//  var P2 := @S
-  var P2 := Pointer(@S)
-//  var P3 := Pointer(P2)
-//  var B2 := P2^
-//  var L := S
-//SetLength('S', 3)
-//  var C := Capacity('Hello')
+var S: array[0..5] of Char
+write S

@@ -971,7 +971,7 @@ begin
   V := Param.Variable;
   Assert((V.VarType = Param.CheckType) or not (pfRangeCheck in Param.Flags), 'TODO - Dest Range checking/type conversion');
   Assert(not Base.GetPrim.ProcMeta.ResultInLReg, 'TODO - Dest ResultInLReg');
-  Assert(GetTypeSize(V.UserType) = 2, 'TODO - Dest TypeSize <> 2');
+  Assert(GetTypeDataSize(V.UserType) = 2, 'TODO - Dest TypeSize <> 2');
 
   case Base.GetPrim.ProcMeta.ResultLoc of
     plNone, plImmediate: Assert(False); //Invalid as Dest
@@ -1027,7 +1027,7 @@ begin
   //TODO: Type conversion?? Range check??
   V := Param.Variable;
   Assert((V.VarType = Param.CheckType) or not (pfRangeCheck in Param.Flags), 'TODO - Source range checking/type conversion');
-  Assert(GetTypeSize(V.UserType) = 2, 'TODO - Source TypeSize <> 2');
+  Assert(GetTypeDataSize(V.UserType) = 2, 'TODO - Source TypeSize <> 2');
 
   //Generate Combo for every possible register
   for Reg in Param.SourceRegs do

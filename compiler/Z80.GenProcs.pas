@@ -881,7 +881,7 @@ begin
   Assert(V.VarType = vtArrayType);
   Assert(Assigned(V.UserType.OfType));
   Assert(Assigned(V.UserType.BoundsType));
-  ElementSize := GetTypeSize(V.UserType.OfType);
+  ElementSize := GetTypeDataSize(V.UserType.OfType);
   FirstIndex := V.UserType.BoundsType.Low;
 
   //Param2 - the index

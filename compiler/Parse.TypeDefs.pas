@@ -438,7 +438,7 @@ begin
         if Result <> qeNone then
           EXIT;
         V.Offset := Offset;
-        Size := GetTypeSize(V.UserType);
+        Size := GetTypeDataSize(V.UserType);
         if Size <= 0 then
           EXIT(Err(qeConcreteOrPointerTypeRequired));
         Offset := Offset + Size;

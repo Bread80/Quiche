@@ -140,7 +140,7 @@ begin
       ILItem.Param1.Reg := rHL
     else
       //If the Dest is 8-bit load it into A, if 16-bit load it into HL
-      case GetTypeSize(ILItem.Dest.GetUserType) of
+      case GetTypeRegSize(ILItem.Dest.GetUserType) of
         1: ILItem.Param1.Reg := rA;
         2: ILItem.Param1.Reg := rHL;
       else
@@ -228,7 +228,7 @@ begin
   Assert(ILItem.Param2.Kind = pkNone);
   Assert(ILItem.Param3.Kind in [pkVarDest{, pkPush, pkPushByte}]);
 
-  ByteCount := GetTypeSize(ILItem.Dest.Variable.UserType);
+  ByteCount := GetTypeDataSize(ILItem.Dest.Variable.UserType);
 
   //pkVarPtr param requires a pointer
   if ILItem.Param1.Reg = rNone then
@@ -252,7 +252,7 @@ begin
   Assert(ILItem.Param2.Kind <> pkNone);
   Assert(ILItem.Param3.Kind = pkNone);
 
-  ByteCount := GetTypeSize(ILItem.Param1.Variable.UserType.OfType);
+  ByteCount := GetTypeDataSize(ILItem.Param1.Variable.UserType.OfType);
 
   //VarPtr param requires a pointer
   if ILItem.Param1.Reg = rNone then
@@ -331,7 +331,7 @@ procedure TEMPRegAllocRegisterFunc(Func: PFunction);
             if Func.Params[I].IsByRef then
               ByteSize := 2
             else
-              ByteSize := GetTypeSize(Func.Params[I].UserType);
+              ByteSize := GetTypeRegSize(Func.Params[I].UserType);
 
             case ByteSize of
               1:

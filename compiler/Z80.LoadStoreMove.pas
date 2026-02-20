@@ -246,7 +246,7 @@ begin
         amStatic, amStaticRef:
                   //LD HL,(v)     ;HL->pointer
                   //LD r,(HL)     ;r->value
-          case GetTypeSize(V.UserType.OfType) of
+          case GetTypeRegSize(V.UserType.OfType) of
             1: Result := mtStaticPtr8;
             2: Result := mtStaticPtr16;
           else
@@ -256,7 +256,7 @@ begin
                   //LD L,(IX+)    ;HL->pointer
                   //LD H,(IX+)
                   //LD r,(HL)     ;r->value
-          case GetTypeSize(V.UserType.OfType) of
+          case GetTypeRegSize(V.UserType.OfType) of
             1: Result := mtStackPtr8;
             2: Result := mtStackPtr16;
           else
@@ -310,7 +310,7 @@ begin
         UserType := V.UserType
       else
         UserType := V.UserType.OfType;
-      case GetTypeSize(UserType) of
+      case GetTypeRegSize(UserType) of
         1: //?? to 8-bit
           if R in CPUReg8Bit then
             Result := ptShrink;

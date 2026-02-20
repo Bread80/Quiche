@@ -302,7 +302,8 @@ procedure GenSubRangeCheckU8(Reg: TCPUReg;FromType, ToType: PUserType;Options: T
 var AMoved: Boolean;
 begin
   Assert(Reg in CPUReg8Bit);
-  Assert(GetTypeSize(FromType) = 1);
+  Assert(IsRegisterType(FromType));
+  Assert(GetTypeRegSize(FromType) = 1);
   Assert(not IsSignedType(FromType));
   Assert(Options * [moPreserveA, moPreserveCF, moPreserveOtherFlags] = []);
 
@@ -347,7 +348,8 @@ procedure GenSubRangeCheckS8(Reg: TCPUReg;FromType, ToType: PUserType;Options: T
 var AMoved: Boolean;
 begin
   Assert(Reg in CPUReg8Bit);
-  Assert(GetTypeSize(FromType) = 1);
+  Assert(IsRegisterType(FromType));
+  Assert(GetTypeRegSize(FromType) = 1);
   Assert(IsSignedType(FromType));
   Assert(Options * [moPreserveA, moPreserveCF, moPreserveOtherFlags] = []);
 
@@ -407,7 +409,8 @@ begin
   //and test bytes individually
   //****************************************
   Assert(Reg in CPURegPairs);
-  Assert(GetTypeSize(FromType) = 2);
+  Assert(IsRegisterType(FromType));
+  Assert(GetTypeRegSize(FromType) = 2);
   Assert(not IsSignedType(FromType));
   Assert(Options * [moPreserveA, moPreserveCF, moPreserveOtherFlags] = []);
 
@@ -512,7 +515,8 @@ begin
   //and test bytes individually
   //****************************************
   Assert(Reg in CPURegPairs);
-  Assert(GetTypeSize(FromType) = 2);
+  Assert(IsRegisterType(FromType));
+  Assert(GetTypeRegSize(FromType) = 2);
   Assert(IsSignedType(FromType));
   Assert(Options * [moPreserveA, moPreserveCF, moPreserveOtherFlags] = []);
 
@@ -676,7 +680,7 @@ begin
   Assert(Assigned(ToType.OfType));
 
   //We're testing an 8-bit value
-  case GetTypeSize(FromType) of
+  case GetTypeRegSize(FromType) of
   1:
 //  if Reg in CPUReg8Bit then
     if IsSignedType(FromType) then

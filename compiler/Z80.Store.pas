@@ -352,7 +352,7 @@ procedure GenStoreLiteralToVariableHigh(Variable: PVariable;const Value: TImmVal
   Options: TMoveOptionSet);
 var Reg: TCPUReg;
 begin
-  Assert(GetTypeSize(Variable.UserType) = 2);
+  Assert(GetTypeDataSize(Variable.UserType) = 2);
 
   case Variable.AddrMode of
     amStack:
@@ -433,7 +433,7 @@ procedure GenStoreReg8BitToVar16Bit(Reg: TCPUReg;FromType: PUserType;
 var ViaA: Boolean;
 begin
   Assert(Reg in CPUReg8Bit);
-  Assert(GetTypeSize(Variable.UserType) = 2);
+  Assert(GetTypeDataSize(Variable.UserType) = 2);
 
   //Store register to low byte of variable
   ViaA := GenVarStore8(Reg, Variable, VarVersion, Options);

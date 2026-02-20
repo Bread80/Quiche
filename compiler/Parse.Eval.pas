@@ -380,7 +380,7 @@ begin
         EXIT;
     end;
     opHi:
-      if (GetTypeSize(P.UserType) = 2) and IsIntegerVarType(P.VarType) then
+      if (GetTypeRegSize(P.UserType) = 2) and IsIntegerVarType(P.VarType) then
       begin
         Value.CreateTyped(vtByte, hi(Word(P.IntValue and $ffff)));
         EXIT;
@@ -477,7 +477,7 @@ begin
         EXIT(ErrOpUsageSub(qeOpIncompatibleType, VarTypeToName(P.TypeDefValue.VarType), Op));
     end;
     opLo:
-      if (GetTypeSize(P.UserType) = 2) and IsIntegerVarType(P.VarType) then
+      if (GetTypeRegSize(P.UserType) = 2) and IsIntegerVarType(P.VarType) then
       begin
         Value.CreateTyped(vtByte, lo(Word(P.IntValue and $ffff)));
         EXIT;
@@ -572,19 +572,25 @@ begin
       case P.VarType of
         vtTypeDef:
         begin
-          if P.TypeDefValue.VarType = vtArrayType then
-            //Unbounded arrays can't be evalled at compile time
-            if P.TypeDefValue.ArrayDef.IsUnbounded then
+          case P.TypeDefValue.VarType of
+            vtArrayType:
             begin
-              Evalled := False;
-              EXIT;
+              //Unbounded arrays can't be evalled at compile time
+              if P.TypeDefValue.ArrayDef.IsUnbounded then
+              begin
+                Evalled := False;
+                EXIT;
+              end;
+            IntValue := GetTypeDataSize(P.TypeDefValue);
             end;
-          IntValue := GetTypeSize(P.TypeDefValue);
+          else
+            IntValue := GetTypeDataSize(P.TypeDefValue);
+          end;
         end;
         vtArrayType:
           IntValue := P.UserType.ArrayDef.MetaSize + (P.ArrayLength * P.UserType.ArrayDef.ElementSize);
       else
-        IntValue := GetTypeSize(P.UserType);
+        IntValue := GetTypeDataSize(P.UserType);
       end;
 
       if IntValue < 256 then
@@ -612,7 +618,7 @@ begin
           EXIT;
       end;
     opSwap:
-      if (GetTypeSize(P.UserType) = 2) and IsIntegerVarType(P.VarType) then
+      if (GetTypeRegSize(P.UserType) = 2) and IsIntegerVarType(P.VarType) then
       begin
         Value.CreateTyped(P.VarType, swap(P.IntValue));
         EXIT;

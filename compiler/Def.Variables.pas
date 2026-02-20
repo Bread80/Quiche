@@ -564,7 +564,7 @@ begin
       if V.RequiresStorage then
         case V.AddrMode of
           amStatic, amStaticRef: ;  //Ignore
-          amStack: Result := Result + GetTypeSize(V.UserType);
+          amStack: Result := Result + GetTypeDataSize(V.UserType);
           amStackRef: Result := Result + GetVarTypeSize(vtPointer);
         else
           raise EAddrMode.Create;
@@ -580,7 +580,7 @@ begin
       if V.RequiresStorage then
         case V.AddrMode of
           amStatic, amStaticRef: ;  //Ignore
-          amStack: Result := Result + GetTypeSize(V.UserType);
+          amStack: Result := Result + GetTypeRegSize(V.UserType);
           amStackRef: Result := Result + GetVarTypeSize(vtPointer);
         else
           raise EAddrMode.Create;

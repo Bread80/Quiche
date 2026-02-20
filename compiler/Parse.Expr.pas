@@ -91,7 +91,7 @@ begin
       ILItem.Param1 := Slug.Operand;
       ILItem.Param1.Kind := pkVarRef;
       ILItem.Param2.Kind := pkImmediate;
-      ILItem.Param2.Imm := TImmValue.CreateTyped(vtWord, GetTypeSize(Slug.ResultType));
+      ILItem.Param2.Imm := TImmValue.CreateTyped(vtWord, GetTypeDataSize(Slug.ResultType));
       //Dest to be set by caller(??)
       ILItem.Dest.Kind := pkNone;
       ILItem.ResultType := Slug.ResultType;

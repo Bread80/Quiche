@@ -409,7 +409,7 @@ var ElementSize: Integer;
   Value: Integer;
 begin
   Assert(AUserType.VarType = vtArrayType);
-  ElementSize := GetTypeSize(AUserType.OfType);
+  ElementSize := GetTypeDataSize(AUserType.OfType);
   case AUserType.ArrayDef.ArrayType of
     atArray:
     begin

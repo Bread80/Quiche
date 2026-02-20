@@ -200,7 +200,7 @@ begin
       OpHi, OpLo, OpSwap:
         //Arg must be > 8 bits wide
         if (Slugs[ArgIndex].ILItem <> nil) or (Slugs[ArgIndex].Operand.Kind <> pkImmediate) then
-          if GetTypeSize(Slugs[ArgIndex].ResultType) = 1 then
+          if GetTypeRegSize(Slugs[ArgIndex].ResultType) = 1 then
             EXIT(errFuncCall(qeBytePassedToHiLoSwap, Func));
       OpPoke:
         //Second arg must be a valid byte value (if Range Check is on)
@@ -863,7 +863,7 @@ begin
     Arg := Func.FindResult;
     Result.ResultType := Arg.UserType;
 
-    case GetTypeSize(Arg.UserType) of
+    case GetTypeRegSize(Arg.UserType) of
       1: Result.Dest.Reg := rA;   //Byte params returned in A
       2: Result.Dest.Reg := rHL;  //2 byte params returned in HL
     else

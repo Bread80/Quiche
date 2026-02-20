@@ -47,31 +47,19 @@ type
     function ToString: String;  //Returns the declaration
 
     case VarType: TVarType of
-(*      vtSparseSet: (
-        //BaseType
-        RangeItems: PSparseRangeItems; //(Or TImmValue?)
-      );
-      vtRange: (
-        //BaseType
-      );
-*)
       vtArrayType: (
         ArrayDef: TArrayDef;
         BoundsType: PUserType;  //If ArrayType = atArray
         VectorLength: Integer;  //If ArrayType = atVector
         ListCapacity: Integer;  //If ArrayType = atList
       );
-
       vtRecord: (
         //We can't directly reference a PScope without creating a circular unit
         //reference (both to Scope, Variables and Functions) so we'll use a
         //generic pointer and hack this with typecasts(!)
         Scope: TScopeHandle;
       );
-(*      vtStream: (
-        //??
-      );
-*)      vtFunction: (
+      vtFunction: (
         Func: TFunctionHandle;  //Function Template
       );
     end;
@@ -170,8 +158,6 @@ function GetTypeItemCount(UserType: PUserType): Integer;
 //Returns the number of bytes required for storage of the given type.
 //Will return -1 if size is unknown, for example for an unbounded array
 //UserType should *not* be nil. If it is results will be unpredictable.
-//***REDACTED***
-function GetTypeSize(UserType: PUserType): Integer;
 function GetTypeDataSize(UserType: PUserType): Integer;
 function GetTypeRegSize(UserType: PUserType): Integer;
 
@@ -228,8 +214,6 @@ begin
     vtSetByte, vtSetWord, vtSetMem,
     vtUnknown: ; //Nothing to do
     vtEnumeration: EnumItems := From.EnumItems;
-(*    vtSparseRange: ;*)
-(*    vtRange: ;*)
     vtArrayType:
     begin
       ArrayDef := From.ArrayDef;
@@ -238,7 +222,6 @@ begin
       ListCapacity := From.ListCapacity;
     end;
     vtRecord: Assert(False);  //TODO
-(*    vtStream: ;*)
     vtFunction: Assert(False);  //TODO
   else
     Assert(False);
@@ -560,8 +543,6 @@ begin
   case UserType.VarType of
     //========== Types which require a full declaration to instantiate
     //User types
-//  vtSparseSet //TODO
-//  vtRange     //TODO
 //  vtSet,      //TODO
 
     //Array types
@@ -574,7 +555,6 @@ begin
 
   //Other complex types
 //  vtRecord    //Not enumerable
-//  vtStream    //Not enumerable
 //  vtFunction  //Not enumerable
 
   //Error/undefined
@@ -613,7 +593,7 @@ begin
   end;
 end;
 
-function GetTypeSize(UserType: PUserType): Integer;
+function GetTypeDataSize(UserType: PUserType): Integer;
 var Size: Integer;
 begin
   Assert(UserType <> nil);
@@ -626,14 +606,10 @@ begin
     vtReal: Result := iRealSize;
 
     //User types
-(*
-    vtSparseSet,  //Parse time only  - contains values and ranges
-    vtRange,        //Run time
-*)
     vtSetByte, vtSetWord, vtSetMem:
     begin
-      Size := Length(UserType.OfType.EnumItems) - 1;
-      Result := (Size - (Size mod 8)) div 8;
+      Size := GetTypeItemCount(UserType.OfType) - 1;
+      Result := (Size shr 3) + 1;
     end;
 
     //Array types
@@ -644,7 +620,7 @@ begin
         atArray:  //Element count * element size
         begin
           Assert(Assigned(UserType.BoundsType));
-          Result := GetTypeItemCount(UserType.BoundsType) * GetTypeSize(UserType.OfType);
+          Result := GetTypeItemCount(UserType.BoundsType) * GetTypeDataSize(UserType.OfType);
         end;
         atVector: //Meta size + Length * element size
           Result := GetArrayMetaSize(UserType) +
@@ -660,17 +636,10 @@ begin
     vtRecord:
       Result := GetRecordTypeSize(UserType);
 
-//  vtStream,       //Readble or writeable sequence of bytes or chars
-  vtFunction: Result := 2;   //Code as data.
+    vtFunction: Result := 2;   //Code as data.
   else
     Assert(False);  //Unknown type
-//    Result := GetVarTypeSize(UserType.VarType);
   end;
-end;
-
-function GetTypeDataSize(UserType: PUserType): Integer;
-begin
-  Result := GetTypeSize(UserType);
 end;
 
 function GetTypeRegSize(UserType: PUserType): Integer;

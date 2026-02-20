@@ -327,7 +327,7 @@ var ChangeSigned: Boolean;
   ViaA: Boolean;
 begin
   Assert(ToReg in CPUReg8Bit);
-  Assert(GetTypeSize(Variable.UserType) = 1);
+  Assert(GetTypeDataSize(Variable.UserType) = 1);
 
   Kind := LoadTypeToKind(LoadType);
   Assert(Kind <> rskVarValueHigh);         //Can't fetch high byte of 8 but value!
@@ -379,7 +379,7 @@ var SignedLoss: Boolean;
   Via: TCPUReg;
 begin
   Assert(ToReg in CPUReg16Bit);
-  Assert(GetTypeSize(Variable.UserType) = 1);
+  Assert(GetTypeDataSize(Variable.UserType) = 1);
 
   Kind := LoadTypeToKind(LoadType);
   Assert(Kind <> rskVarValueHigh);  //Can't fetch high byte of 8-bit value!
@@ -591,7 +591,7 @@ var  Kind: TRegStateKind;
   Scavenge: TCPUReg;
 begin
   Assert(ToReg in CPUReg8Bit);
-  Assert(GetTypeSize(Variable.UserType) = 2);
+  Assert(GetTypeDataSize(Variable.UserType) = 2);
 
   Kind := LoadTypeToKind(LoadType);
 
@@ -728,7 +728,7 @@ procedure GenLoadVar16BitToXY(Variable: PVariable;VarVersion: Integer;ToReg: TCP
 begin
   Assert(ToReg in [rIX, rIY]);
   Assert(Variable.AddrMode = amStatic,'Can''t load stack variables into index register');
-  Assert(GetTypeSize(Variable.UserType) = 2, 'Can''t extend 8-bit load into index register');
+  Assert(GetTypeDataSize(Variable.UserType) = 2, 'Can''t extend 8-bit load into index register');
   Assert(LoadType = lptNormal, 'Can''t load Hi() or Lo() to index register');
 
   OpLOAD(ToReg, Variable);
@@ -748,7 +748,7 @@ begin
   Assert(not (moPreserveA in Options), 'Can''t load boolean to CPU flag');
 
   //Load the variable into A register
-  case GetTypeSize(Variable.UserType) of
+  case GetTypeDataSize(Variable.UserType) of
     1: GenLoadVar8BitToReg8Bit(Variable, VarVersion, rA, lptNormal, GetSystemType(vtBoolean), False, Options);
     2: GenLoadVar16BitToReg8Bit(Variable, VarVersion, rA, lptLow, GetSystemType(vtBoolean), False, Options);
   else

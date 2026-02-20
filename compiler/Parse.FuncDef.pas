@@ -713,7 +713,7 @@ begin
         Assert(Variable <> nil);
         Param.Variable := Variable;
         Param.VarVersion := Variable.Version;
-        case GetTypeSize(Variable.UserType) of
+        case GetTypeRegSize(Variable.UserType) of
           1: Param.Reg := rA;
           2: Param.Reg := rDE;
         else
