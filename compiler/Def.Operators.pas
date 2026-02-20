@@ -136,7 +136,11 @@ type
     opNegate, //Unary minus
     //Note: Unary addition is skipped by parser
     opComplement,    //Unary NOT
-    opAddrOf,  //@ (address of), or address of data or an array element
+    opAddrOf,       //@ (address of), or address of data
+    opAddrElement,  //Address of an element item within an array type. Param2 is the array index.
+    opAddrOffset,   //Address of an offset from a pointered item. Used for records and for
+      //accessing the meta data of vectors and lists. Param2 is the byte offset from the base.
+      //Note that A[0] can be validly referenced by opAddrOf, opAddrElement or opAddrOffset
 
     //Intrinsics
     //These take one or two input parameters (Param1, Param2) and usually (but not always)
@@ -158,7 +162,7 @@ const
   ExtendedOps = [opRegLoadExtended, opRegStoreExtended, opFuncCallExtended];
 
   InfixOps = [opAdd..opSHL];
-  UnaryOps = [opNegate..opAddrOf];
+  UnaryOps = [opNegate..opAddrOffset];  //This is required for primitive search
   IntrinsicOps = [opAbs..opUpcase];
 
 type
@@ -224,7 +228,7 @@ const OpStrings : array[low(TOperator)..high(TOperator)] of String = (
 
   //Unary operators
   'Negate', 'Complement',
-  'AddrOf', {'Deref',}
+  'AddrOf', 'AddrElement', 'AddrOffset', {'Deref',}
 
   //Intrinsics
   'Abs', 'Dec', 'Inc', 'Odd',

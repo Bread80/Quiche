@@ -927,12 +927,15 @@ begin
       begin
         case DeclState of
           dsNone:
+          begin
             if ParseMode in [pmProgram, pmFuncDecls] then
-              EXIT(Err(qeInvalidTopLevel))
-            else
-              //Variable assignment or function call (ie NOT an error!)
-              Result := DoNonKeyword(Ident, AddrMode);
+              EXIT(Err(qeInvalidTopLevel));
+            if ParseMode = pmRootUnknown then
+              ParseMode := pmScript;
 
+            //Variable assignment or function call (ie NOT an error!)
+            Result := DoNonKeyword(Ident, AddrMode);
+          end;
           dsCONST: Result := DoCONST(Ident);
           dsTYPE: Result := DoTYPE(Ident);
           dsVAR:   Result := DoVAR(Ident, AddrMode);

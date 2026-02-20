@@ -55,6 +55,8 @@ type
       //Assert the presence or absence of a runtime error
       //RunTime error|noerror
       //Note that the tester cannot, currently, distinguish the type of runtime error
+    taConsoleLog,
+      //Tests the contents of the console log (output buffer). Parameter is a string constant expression
     taRuntimeError
     );
 
@@ -96,6 +98,9 @@ type
       taRuntimeError: (
         //Name field contains required error
 //        RunTimeError: Integer
+        );
+      taConsoleLog: (
+        //Value field contains the expected output
         );
   end;
 
@@ -191,6 +196,7 @@ type TTestable = class
     procedure TestUsesPrimitive(Step: PTestStep);
     procedure TestVarValue(Step: PTestStep);
     procedure TestVarValueString(Step: PTestStep);
+    procedure TestConsoleLog(Step: PTestStep);
     procedure RunSteps;
 
   public
@@ -200,6 +206,7 @@ type TTestable = class
     function AddUsesPrimitive(Fields: TArray<String>): String;
     function AddVarValue(Fields: TArray<String>): String;
     function AddVarValueString(Fields: TArray<String>): String;
+    function AddConsoleLog(Fields: TArray<String>): String;
     function AddRuntimeError(Fields: TArray<String>): String;
 
     procedure Run;override;
@@ -311,7 +318,7 @@ uses Classes, IOUtils,
   Parse.Errors, Parse.Expr;
 
 const TestActionStrings: array[low(TTestAction)..high(TTestAction)] of String = (
-  'VarType', 'Compile', 'UsesPrimitive', 'VarValue', 'VarValueString', 'Runtime');
+  'VarType', 'Compile', 'UsesPrimitive', 'VarValue', 'VarValueString', 'OutBuffer', 'Runtime');
 
 const StatusStrings: array[low(TTestStatus)..high(TTestStatus)] of String = (
   'Test not run',
@@ -369,6 +376,19 @@ begin
     if not IsValidCompileError(Step.Name) then
       EXIT(errUnknownCompileError + Step.Name);
 *)end;
+
+function TTest.AddConsoleLog(Fields: TArray<String>): String;
+var Step: PTestStep;
+begin
+  if Length(Fields) <> 2 then
+    EXIT(errExpectedTwoFields);
+
+  Result := '';
+  Step := AddStep;
+  Step.Action := taConsoleLog;
+  Step.Name := '';
+  Step.Value := DequoteString(Fields[1]);
+end;
 
 function TTest.AddRuntimeError(Fields: TArray<String>): String;
 var Step: PTestStep;
@@ -555,7 +575,7 @@ begin
     case Step.Action of
       taVarType, taVarValue:
         Result := Result + ' ' + Step.Name + ' ' + Step.Value + #13;
-      taVarValueString:
+      taVarValueString, taConsoleLog:
         Result := Result + ' ' + Step.Name + ' ''' + Step.Value + ''''#13;
       taCompileError, taUsesPrimitive, taRuntimeError:
         Result := Result + ' ' + Step.Name + #13;
@@ -676,6 +696,9 @@ begin
         taVarValueString:
           if (ParseErrorNo = 0) and not FAssembleError and not FEmulateError then
             TestVarValueString(Step);
+        taConsoleLog:
+          if (ParseErrorNo = 0) and not FAssembleError and not FEmulateError then
+            TestConsoleLog(Step);
         taRuntimeError:
           if (ParseErrorNo = 0) and not FAssembleError and not FEmulateError then
             TestRuntimeError(Step);
@@ -713,6 +736,12 @@ begin
   else
     Check(CompareText(Err, Step.Name) = 0, Step, 'Incorrect parse error generated. Expected: ' +
       Step.Name + ' got ' + Err + #13);
+end;
+
+procedure TTest.TestConsoleLog(Step: PTestStep);
+begin
+  Check(ConsoleLog = Step.Value, Step, 'ConsoleLog mismatch. Wanted ' + Step.Value +
+    ' got ''' + ConsoleLog + ''''#13);
 end;
 
 procedure TTest.TestRunTimeError(Step: PTestStep);
@@ -1017,6 +1046,9 @@ begin
           Error := Test.AddVarValue(Fields)
         else if CompareText(Fields[0], 'varvaluestring') = 0 then
           Error := Test.AddVarValueString(Fields)
+        else if CompareText(Fields[0], 'consolelog') = 0 then
+          Error := Test.AddConsoleLog(Fields)
+
         else if CompareText(Fields[0], 'runtime') = 0 then
           Error {:= Test.FWantRuntimeError} := Test.AddRuntimeError(Fields)
         else

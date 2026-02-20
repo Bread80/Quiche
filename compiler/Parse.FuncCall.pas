@@ -24,6 +24,8 @@ const iFunctionMetaByteSize = 4;
 
 type TSlugArray= array[0..MaxFunctionParams] of TExprSlug;
 
+//===================================== ARGUMENTS
+
 //Read an argument from the source code, and return it in a Slug
 function ParseArgument(Func: PFunction;Arg: TParameter;out Slug: TExprSlug): TQuicheError;
 begin
@@ -268,6 +270,8 @@ begin
 
   Result := qeNone;
 end;
+
+//===================================== INTRINSICS
 
 //Generate the IL code for an intrinsic.
 //Func is the function template for the intrinsic
@@ -681,6 +685,26 @@ begin
     IntrinsicGenerateIL(Func, opUnknown, ParamCount, Slugs[0], Slugs[1], Slug);
 end;
 
+//===================================== WRITE(LN)
+
+function WriteOrdinalGenIL(Func: PFunction;const Slug: TExprSlug): TQuicheError;
+var DummySlug: TExprSlug;
+begin
+  //Verify the argument is a type we can handle
+  if not (Slug.ResultVarType in [vtInt8, vtInteger, vtByte, vtWord, vtPointer,
+    vtBoolean, vtChar]) then
+    EXIT(ErrTODO('Unhandled parameter type for Write/ln Ordinal: ' + Slug.ResultType.Description));
+
+  //Generate the code.
+  //NOTE: We need to pass in two slugs. Second will be ignored because of ParamCount value of 1
+  DummySlug.Initialise;
+  DummySlug.ResultType := nil;
+  DummySlug.ImplicitType := nil;
+  IntrinsicGenerateIL(Func, opWrite, 1, Slug, Slug, DummySlug);
+
+  Result := qeNone;
+end;
+
 
 //Write and Writeln are special cases!
 function DispatchWrite(Func: PFunction;NewLine: Boolean): TQuicheError;
@@ -712,17 +736,13 @@ begin
       if Result <> qeNone then
         EXIT;
 
-      //Verify the argument is a type we can handle
-      if not (Slug.ResultVarType in [vtInt8, vtInteger, vtByte, vtWord, vtPointer,
-        vtBoolean, vtChar]) then
-        EXIT(ErrTODO('Unhandled parameter type for Write/ln: ' + Slug.ResultType.Description));
-
       //Generate the code.
-      //NOTE: We need to pass in two slugs. Second will be ignored because of ParamCount value of 1
-      DummySlug.Initialise;
-      DummySlug.ResultType := nil;
-      DummySlug.ImplicitType := nil;
-      IntrinsicGenerateIL(Func, opWrite, 1, Slug, Slug, DummySlug);
+      if IsOrdinalType(Slug.ResultType) then
+        Result := WriteOrdinalGenIL(Func, Slug)
+      else
+        EXIT(ErrTODO('Unhandled parameter type for Write/ln: ' + Slug.ResultType.Description));
+      if Result <> qeNone then
+        EXIT;
 
       Parser.SkipWhite;
       Ch := Parser.TestChar;
@@ -741,6 +761,8 @@ begin
     ILAppend(OpWriteln);
   Result := qeNone;
 end;
+
+//===================================== DISPATCH (EXCEPT INSTRINSICS)
 
 //IL code for Register calling convention
 function DispatchRegister(Func: PFunction;var Slugs: TSlugArray;var Slug: TExprSlug): PILItem;

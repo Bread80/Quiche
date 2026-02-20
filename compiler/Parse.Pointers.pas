@@ -247,7 +247,7 @@ end;
 
 
 //Parse array array reference.
-//Generates an opAddrOf <array-var> <index>
+//Generates an opAddrElement <array-var> <index>
 //<index> may be an immediate or a variable. If the index is a run-time expression
 //then <index> will be a temporary variable to which the index expression is
 //assigned
@@ -312,8 +312,8 @@ begin
     IndexSlug.AssignToHiddenVar;
 
   //Get the address of the element into AddrVar as a typed pointer
-  //opAddrOf will give us @V + ElementSize * Param2 where V is Param1
-  ILItem := ILAppend(opAddrOf);
+  //opAddrElement will give us @V + MetaSize + ElementSize * Param2 where V is Param1
+  ILItem := ILAppend(opAddrElement);
   ILItem.Param1.SetVarRef(V);         //We want the address of the array, not the value
   ILItem.Param2 := IndexSlug.Operand;
   ILItem.ResultType := GetPointerToType(ArrayType.OfType);
