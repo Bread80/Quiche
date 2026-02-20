@@ -1,7 +1,7 @@
 unit Parse.Literals;
 
 interface
-uses Def.Operators, Def.IL, Def.UserTypes, Def.VarTypes,
+uses Def.Operators, Def.IL, Def.UserTypes, Def.VarTypes, Def.Consts,
   Parse.Errors;
 
 //Unary prefix operators
@@ -60,7 +60,8 @@ type
     //ILItem's Dest data to point to it.
     procedure AssignToHiddenVar;
 
-    procedure SetImmediate(AImmType: PUserType);
+    procedure SetImmediate(VarType: TVarType;Value: Integer);overload;
+    procedure SetImmediate(AImmType: PUserType;const Value: TImmValue);overload;
 
     function ResultVarType: TVarType;
     //Is the slugs value an Immediate (ie a literal)
@@ -154,11 +155,17 @@ begin
   Result := UTToVT(ResultType);
 end;
 
-procedure TExprSlug.SetImmediate(AImmType: PUserType);
+procedure TExprSlug.SetImmediate(AImmType: PUserType;const Value: TImmValue);
 begin
   Assert(ILItem = nil);
-  Operand.Kind := pkImmediate;
+  Operand.SetImmediate(Value);
   ResultType := AImmType;
+  ImplicitType := AImmType;
+end;
+
+procedure TExprSlug.SetImmediate(VarType: TVarType;Value: Integer);
+begin
+  SetImmediate(GetSystemType(VarType), TImmValue.CreateTyped(VarType, Value));
 end;
 
 function TExprSlug.ToILItemNoDest: PILItem;
@@ -185,6 +192,7 @@ var S: String;
   Large: Boolean; //If first digit is '0' expand type to vtInteger/vtWord
   Cursor: TParseCursor;
 begin
+  Slug.Initialise;
   if Sign = sgnMinus then
     S := '-'
   else
@@ -218,70 +226,23 @@ begin
       if (Sign <> sgnNone) or optDefaultSignedInteger then
       begin
         if optDefaultSmallestInteger and not Large and (Value >= -128) and (Value <= 127) then
-          Slug.ImplicitType := GetSystemType(vtInt8)
+          Slug.SetImmediate(vtInt8, Value)
         else
-          Slug.ImplicitType := GetSystemType(vtInteger);
+          Slug.SetImmediate(vtInteger, Value);
       end
       else
       begin
         if optDefaultSmallestInteger and not Large and (Value <= 255) then
-          Slug.ImplicitType := GetSystemType(vtByte)
+          Slug.SetImmediate(vtByte, Value)
         else
-          Slug.ImplicitType := GetSystemType(vtWord);
+          Slug.SetImmediate(vtWord, Value);
       end;
-      Slug.Operand.Kind := pkImmediate;
-      Slug.Operand.Imm.CreateTyped(Slug.ImplicitType, Value);
-      Slug.ResultType := Slug.ImplicitType;
       EXIT(qeNone);
     end;
 
     Parser.SkipChar;
   end;
 end;
-
-
-
-//OLD VERSION - retained as it will be useful for on device parsing
-//Will require updating for sign prefixes and implicit types
-
-//Parses and returns an integer literal
-(*function ParseDecimal(var Slug: TExprSlug): TQuicheError;
-var
-  Ch: Char;
-  Value: Integer;
-begin
-  Parser.Mark;
-  Value := 0;
-  while True do
-  begin
-    Ch := Parser.TestChar;
-    case Ch of
-      '0'..'9':
-      begin
-        Value := Value * 10 + (ord(Ch) - ord('0'));
-        if Value > GetMaxValue(vtWord) then
-          EXIT(Err(qeInvalidDecimalNumber));
-      end;
-      '.','e','E': EXIT(ErrTODO('Floating point numbers are not yet supported :('));
-      '_': ; //Ignore
-    else
-      if Value < 256 then
-        Slug.SetImmediate(vtByte)
-      else
-        Slug.SetImmediate(vtInteger);
-      Slug.Operand.Imm.IntValue := Value;
-      Slug.ParamOrigin := poImplicit;
-      if Value > 32767 then
-        Slug.ImplicitType := vtWord
-      else
-        Slug.ImplicitType := vtInteger;
-      EXIT(qeNone);
-    end;
-
-    Parser.SkipChar;
-  end;
-end;
-*)
 
 function ParseNegativeDecimal(var Slug: TExprSlug): TQuicheError;
 begin
@@ -291,11 +252,8 @@ begin
 
   if Slug.Operand.Imm.IntValue <= -(GetMinValue(vtInteger)) then
   begin
-    Slug.Operand.Kind := pkImmediate;
-    Slug.Operand.Imm.CreateTyped(vtInteger, -Slug.Operand.Imm.IntValue);
+    Slug.Operand.SetImmediate(vtInteger, -Slug.Operand.Imm.IntValue);
     Slug.ParamOrigin := poImplicit;
-    Slug.ImplicitType := GetSystemType(vtInteger);
-    Slug.ResultType := GetSystemType(vtInteger);
   end
   else
     EXIT(Err(qeInvalidDecimalNumber));
@@ -327,14 +285,11 @@ begin
       'a'..'f': Digit := ord(Ch) - ord('a') + 10;
       'A'..'F': Digit := ord(Ch) - ord('A') + 10;
       else
-        Slug.Operand.Kind := pkImmediate;
         if Digits <= 2 then
-          Slug.Operand.Imm.CreateTyped(vtByte, Value)
+          Slug.SetImmediate(vtByte, Value)
         else
-          Slug.Operand.Imm.CreateTyped(vtPointer, Value);
+          Slug.SetImmediate(vtPointer, Value);
         Slug.ParamOrigin := poExplicit;
-        Slug.ImplicitType := Slug.Operand.Imm.UserType;
-        Slug.ResultType := Slug.ImplicitType;
         EXIT(qeNone);
       end;
 
@@ -374,14 +329,11 @@ begin
     end
     else if Ch <> '_' then
     begin
-      Slug.Operand.Kind := pkImmediate;
       if Digits <= 8 then
-        Slug.Operand.Imm.CreateTyped(vtByte, Value)
+        Slug.SetImmediate(vtByte, Value)
       else
-        Slug.Operand.Imm.CreateTyped(vtWord, Value);
+        Slug.SetImmediate(vtWord, Value);
       Slug.ParamOrigin := poExplicit;
-      Slug.ImplicitType := Slug.Operand.Imm.UserType;
-      Slug.ResultType := Slug.ImplicitType;
       EXIT(qeNone);
     end;
 
@@ -456,7 +408,7 @@ begin
       if Length(S) = 1 then
         UserType := GetSystemType(vtChar)
       else
-        UserType := GetSystemStringType;
+        UserType := GetSystemStringLiteralType;
 
       Slug.Operand.Kind := pkImmediate;
       if UTToVT(UserType) = vtChar then

@@ -235,18 +235,6 @@ begin
   FIntValue := AValue;
 end;
 
-constructor TImmValue.CreateString(AString: String);
-begin
-  FUserType := GetSystemStringLiteralType;
-  FVarType := FUserType.VarType;
-  FStringConstList := GetCurrentScope.ConstList;
-  Assert(Assigned(FStringConstList));
-  FStringIndex := FStringConstList.Strings.Add(AString);
-
-  FBlobConstList := nil;
-  FBlobIndex := -1;
-end;
-
 constructor TImmValue.CreateTyped(AType: TVarType; AValue: Integer);
 begin
   FUserType := GetSystemType(AType);
@@ -300,6 +288,18 @@ begin
   else
     Assert(False);
   end;
+end;
+
+constructor TImmValue.CreateString(AString: String);
+begin
+  FUserType := GetSystemStringLiteralType;
+  FVarType := FUserType.VarType;
+  FStringConstList := GetCurrentScope.ConstList;
+  Assert(Assigned(FStringConstList));
+  FStringIndex := FStringConstList.Strings.Add(AString);
+
+  FBlobConstList := nil;
+  FBlobIndex := -1;
 end;
 
 constructor TImmValue.CreateTypeDef(AValue: PUserType);

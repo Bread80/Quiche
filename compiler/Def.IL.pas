@@ -220,6 +220,8 @@ type
 
     //These routines set the Kind and (usually) the payload. They also perform
     //validation where possible
+    procedure SetImmediate(const Value: TImmValue);overload;
+    procedure SetImmediate(VarType: TVarType;Value: Integer);overload;
     procedure SetPhiVarSource(ABlockID: Integer; AVarVersion: Integer);
     procedure SetPhiVarDest(AVar: PVariable;AVersion: Integer);
     procedure SetVarSourceAndVersion(AVariable: PVariable; AVersion: Integer);
@@ -678,6 +680,20 @@ begin
   TrueBlockID := -1;
   FalseBlockID := -1;
   BranchInvert := False;
+end;
+
+procedure TILParam.SetImmediate(const Value: TImmValue);
+begin
+  Assert(Kind = pkNone);
+  Kind := pkImmediate;
+  Imm := Value
+end;
+
+procedure TILParam.SetImmediate(VarType: TVarType; Value: Integer);
+begin
+  Assert(Kind = pkNone);
+  Kind := pkImmediate;
+  Imm.CreateTyped(VarType, Value);
 end;
 
 procedure TILParam.SetPhiVarDest(AVar: PVariable; AVersion: Integer);

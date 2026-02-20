@@ -223,7 +223,7 @@ var
 //  ExprType: PUserType;
   Slug: TExprSlug;
   ToVar: PVariable;  //Hidden variable to contain end value for the loop. Nil if value is constant
-  ToValue: TImmValue;  //If EndVar is nil, contants constant endvalue
+  ToValue: TImmValue;  //If EndVar is nil, contains constant endvalue
   EntryBlockID: Integer;
   EntryLastItemIndex: Integer;
   HeaderBlockID: Integer;
@@ -333,10 +333,8 @@ begin
   ExitTestItem.ResultType := GetSystemType(vtBoolean);
   ExitTestItem.Param1.SetVarSource(LoopVar);
   if ToVar = nil then
-  begin //TO value is constant
-    ExitTestItem.Param2.Kind := pkImmediate;
-    ExitTestItem.Param2.Imm := ToValue;
-  end
+    //TO value is constant
+    ExitTestItem.Param2.SetImmediate(ToValue)
   else  //To value is variable
     ExitTestItem.Param2.SetVarSource(ToVar);
   ExitTestItem.Dest.SetCondBranch;
@@ -380,8 +378,7 @@ begin
   ILItem.ResultType := LoopVar.UserType;
   ILItem.Param1.SetVarSource(LoopVar);
   //(Uncomment to add Step value)
-  ILItem.Param2.Kind := pkImmediate;
-  ILItem.Param2.Imm.CreateTyped(vtByte, 1);
+  ILItem.Param2.SetImmediate(vtByte, 1);
 
   ILItem.Dest.SetVarDestAndVersion(LoopVar, LoopVar.IncVersion);
 

@@ -1,2 +1,5 @@
-var S: array[0..5] of Char
-write S
+write('Hello')
+
+  var P :Pointer
+  P := @'Hello World!'
+  var Len := P^

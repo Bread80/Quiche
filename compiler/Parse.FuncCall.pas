@@ -47,11 +47,7 @@ begin
       //If caller wants a TypeDef can we get TypeDef of value?
       //Can't do this for expressions (at least, not yet! - TODO)
       if Slug.ILItem = nil then
-      begin
-        Slug.Operand.Imm.CreateTypeDef(Slug.ResultType);
-        Slug.Operand.Kind := pkImmediate;
-        Slug.ResultType := GetSystemType(vtTypeDef);
-      end;
+        Slug.SetImmediate(GetSystemType(vtTypeDef), TImmValue.CreateTypeDef(Slug.ResultType))
   end
   else
   begin
@@ -414,10 +410,7 @@ begin
   if ElementSize <> 1 then
   begin
     Assert(Slugs[1].Operand.Kind = pkNone);
-    Slugs[1].Operand.Kind := pkImmediate;
-    Slugs[1].Operand.Imm.CreateTyped(Slugs[0].ResultType.ArrayDef.MetaType, ElementSize);
-    Slugs[1].ResultType := GetSystemType(vtWord);
-    Slugs[1].ImplicitType := Slugs[1].ResultType;
+    Slugs[1].SetImmediate(Slugs[0].ResultType.ArrayDef.MetaType, ElementSize);
   end;
 end;
 
@@ -687,14 +680,9 @@ end;
 
 //===================================== WRITE(LN)
 
-function WriteOrdinalGenIL(Func: PFunction;const Slug: TExprSlug): TQuicheError;
+function WriteBasicGenIL(Func: PFunction;const Slug: TExprSlug): TQuicheError;
 var DummySlug: TExprSlug;
 begin
-  //Verify the argument is a type we can handle
-  if not (Slug.ResultVarType in [vtInt8, vtInteger, vtByte, vtWord, vtPointer,
-    vtBoolean, vtChar]) then
-    EXIT(ErrTODO('Unhandled parameter type for Write/ln Ordinal: ' + Slug.ResultType.Description));
-
   //Generate the code.
   //NOTE: We need to pass in two slugs. Second will be ignored because of ParamCount value of 1
   DummySlug.Initialise;
@@ -705,6 +693,47 @@ begin
   Result := qeNone;
 end;
 
+function WriteArrayGenIL(Func: PFunction;var Slug: TExprSlug): TQuicheError;
+var DummySlug: TExprSlug;
+  Slug2: TExprSlug;
+  Value: TImmValue;
+  Count: Integer;
+  ParamCount: Integer;
+begin
+  if Slug.ResultType.OfType.VarType <> vtChar then
+    EXIT(ErrTODO('Unhandled array parameter type for Write/ln: ' + Slug.ResultType.Description));
+
+  Slug2.Initialise;
+  ParamCount := 1;
+
+  //We need address of array, not value
+  if Slug.ILItem = nil then
+    if Slug.Operand.Kind = pkVarSource then
+      Slug.Operand.Kind := pkVarRef;
+
+  case Slug.ResultType.ArrayDef.ArrayType of
+    atArray:
+    begin
+      Count := GetTypeItemCount(Slug.ResultType);
+      if Count < 256 then
+        Slug2.SetImmediate(vtByte, Count)
+      else
+        Slug2.SetImmediate(vtWord, Count);
+      ParamCount := 2;
+    end;
+    atVector, atList: ; //Nothing
+  else
+    EXIT(ErrTODO('Unhandled array parameter type for Write/ln: ' + Slug.ResultType.Description));
+  end;
+
+  //Generate the code.
+  DummySlug.Initialise;
+  DummySlug.ResultType := nil;
+  DummySlug.ImplicitType := nil;
+  IntrinsicGenerateIL(Func, opWrite, ParamCount, Slug, Slug2, DummySlug);
+
+  Result := qeNone;
+end;
 
 //Write and Writeln are special cases!
 function DispatchWrite(Func: PFunction;NewLine: Boolean): TQuicheError;
@@ -737,10 +766,14 @@ begin
         EXIT;
 
       //Generate the code.
-      if IsOrdinalType(Slug.ResultType) then
-        Result := WriteOrdinalGenIL(Func, Slug)
+      case Slug.ResultVarType of
+        vtInt8, vtInteger, vtByte, vtWord, vtPointer, vtBoolean, vtChar:
+          Result := WriteBasicGenIL(Func, Slug);
+        vtArrayType:
+          Result := WriteArrayGenIL(Func, Slug)
       else
         EXIT(ErrTODO('Unhandled parameter type for Write/ln: ' + Slug.ResultType.Description));
+      end;
       if Result <> qeNone then
         EXIT;
 

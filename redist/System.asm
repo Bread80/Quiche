@@ -1205,27 +1205,66 @@ downcase_char:
   add $20
   ret  
   
-  
-;Writes a Pascal style short string to the default output
+
+;Writes a short list of Char to the default output
 ;Entry: HL=address of the string data. 
 ;       The data consists of a length byte followed by the ASCII data
-;Exit: All flags and registers preserved
-__q_writestring:
-  push hl
-  push bc
-  push af
+;Exit: HL, B, A and Flags corrupt
+__q_writeshortlist:
+  inc hl				;HL=length field
   
-  ld b,(hl)				;Get length byte
-  inc b					;Enable test for null string
-  jr .loop_end
+;Writes a short vector of Char to the default output
+;Entry: HL=address of the string data. 
+;       The data consists of a length byte followed by the ASCII data
+;Exit: HL, B, A and Flags corrupt
+__q_writeshortvector:
+  ld a,(hl)				;Get length byte
+  inc hl				;HL=data
+  
+;Writes a short array of Char to the default output
+;Entry: HL=address of the string data. 
+;       A=Length of the string data
+;Exit: HL, B, A and Flags corrupt
+__q_writeshortarray:
+  and a					;Empty string?
+  ret z					;Nothing to print
+  ld b,a				;B=Count
 .loop
-  inc hl				;Next char
   ld a,(hl)				;Get char
   call s_writechar		;Output char
-.loop_end
-  djnz .loop				;Loop if more
-  
-  pop af
-  pop bc
-  pop hl
+  inc hl				;Next char
+  djnz .loop			;Loop if more
   ret
+
+;Writes a long list of Char to the default output
+;Entry: HL=address of the string data. 
+;       The data consists of a length word followed by the ASCII data
+;Exit: HL, BC, A and Flags corrupt
+__q_writelonglist:
+  inc hl
+  inc hl				;HL=length field
+  
+;Writes a long vector of Char to the default output
+;Entry: HL=address of the string data. 
+;       The data consists of a length word followed by the ASCII data
+;Exit: HL, BC, A and Flags corrupt
+__q_writelongvector:
+  ld c,(hl)				;Get length word
+  inc hl
+  ld b,(hl)
+  inc hl				;HL=data
+
+;Writes a long array of Char to the default output
+;Entry: HL=address of the string data. 
+;       BC=Length of the data
+;Exit: HL, BC, A and Flags corrupt  
+__q_writelongarray:
+  ld a,b				;Length=0?
+  or c
+  ret z					;End of string
+  
+  ld a,(hl)				;Get char
+  call s_writechar		;Output char
+  inc hl				;Next char
+  dec bc				;Dec count
+  jr __q_writelongarray	;Loop
