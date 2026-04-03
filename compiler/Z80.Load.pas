@@ -35,7 +35,7 @@ procedure LoadEntryLiterals(const Meta: TCodeProcMeta);
 //Loading an 8-bit static value usually corrupts the A register. (A future version
 //may be able to load static values via the HL register instead, but this is not
 //currently an option).
-procedure GenLoadParam(const Param: TILParam;ToType: PUserType;Options: TMoveOptionSet);
+procedure GenLoadParam(const Param: TILParam;ToType: TUserType;Options: TMoveOptionSet);
 
 //Derefences a pointer - ie. Param is a pointer, loads the value at the address in Param1
 //into the register given in Dest
@@ -319,7 +319,7 @@ end;
 //===============================
 
 procedure GenLoadVar8BitToReg8Bit(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
-  LoadType: TLoadParamType;ToType: PUserType;RangeCheck: Boolean;Options: TMoveOptionSet);
+  LoadType: TLoadParamType;ToType: TUserType;RangeCheck: Boolean;Options: TMoveOptionSet);
 var ChangeSigned: Boolean;
   Kind: TRegStateKind;
   IsTypecast: Boolean;
@@ -370,7 +370,7 @@ begin
 end;
 
 procedure GenLoadVar8BitToReg16Bit(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
-  LoadType: TLoadParamType;ToType: PUserType;RangeCheck: Boolean;Options: TMoveOptionSet);
+  LoadType: TLoadParamType;ToType: TUserType;RangeCheck: Boolean;Options: TMoveOptionSet);
 var SignedLoss: Boolean;
   Kind: TRegStateKind;
   IsTypecast: Boolean;
@@ -478,7 +478,7 @@ end;
 
 //Sub to GetLoadVar16BitToReg8Bit
 procedure GenLoadVar16BitToReg8BitVarValue(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
-  ToType: PUserType;RangeCheck: Boolean;Options: TMoveOptionSet);
+  ToType: TUserType;RangeCheck: Boolean;Options: TMoveOptionSet);
 var ChangeSigned: Boolean;
   Kind: TRegStateKind;
   Scavenge: TCPUReg;
@@ -586,7 +586,7 @@ end;
 
 //Load a 16-bit variable into an 8-bit register
 procedure GenLoadVar16BitToReg8Bit(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
-  LoadType: TLoadParamType;ToType: PUserType;RangeCheck: Boolean;Options: TMoveOptionSet);
+  LoadType: TLoadParamType;ToType: TUserType;RangeCheck: Boolean;Options: TMoveOptionSet);
 var  Kind: TRegStateKind;
   Scavenge: TCPUReg;
 begin
@@ -627,7 +627,7 @@ begin
 end;
 
 procedure GenLoadVar16BitToReg16Bit(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
-  LoadType: TLoadParamType;ToType: PUserType;RangeCheck: Boolean;Options: TMoveOptionSet);
+  LoadType: TLoadParamType;ToType: TUserType;RangeCheck: Boolean;Options: TMoveOptionSet);
 var ChangeSigned: Boolean;
   Kind: TRegStateKind;
   Scavenge: TCPUReg;
@@ -724,7 +724,7 @@ end;
 
 //Load a 16 bit value to an index register
 procedure GenLoadVar16BitToXY(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
-  LoadType: TLoadParamType;ToType: PUserType;RangeCheck: Boolean;Options: TMoveOptionSet);
+  LoadType: TLoadParamType;ToType: TUserType;RangeCheck: Boolean;Options: TMoveOptionSet);
 begin
   Assert(ToReg in [rIX, rIY]);
   Assert(Variable.AddrMode = amStatic,'Can''t load stack variables into index register');
@@ -770,7 +770,7 @@ end;
 
 //Load the value of a variable into the given register
 procedure GenLoadRegVarValue(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
-  LoadType: TLoadParamType;ToType: PUserType;RangeCheck: Boolean;Options: TMoveOptionSet);
+  LoadType: TLoadParamType;ToType: TUserType;RangeCheck: Boolean;Options: TMoveOptionSet);
 begin
   //Value already in register?
   if RegStateEqualsVariable(ToReg, Variable, VarVersion, rskVarValue) then
@@ -936,10 +936,12 @@ begin
 end;
 
 procedure GenLoadLiteralPointer(ToReg: TCPUReg;const Imm: TImmValue; Options: TMoveOptionSet);
+var LLabel: String;
 begin
   Assert(ToReg in CPUReg16Bit);
-  OpMOV(ToReg, Imm.ToLabel);
-  RegStateSetLabel(ToReg, Imm.ToLabel);
+  LLabel := Imm.ToLabel;
+  OpMOV(ToReg, LLabel);
+  RegStateSetLabel(ToReg, LLabel);
 end;
 
 procedure GenLoadRegIndirect(ToReg, PtrReg: TCPUReg;Options: TMoveOptionSet);
@@ -989,7 +991,7 @@ end;
 //Param: The parameter to load, including the desired Reg and VarType if a variable
 //ToType: The type of the destination. Used for range checking. If ToType is vtUnknown
 //  no range checking will be performed
-procedure GenLoadParam(const Param: TILParam; ToType: PUserType;Options: TMoveOptionSet);
+procedure GenLoadParam(const Param: TILParam; ToType: TUserType;Options: TMoveOptionSet);
 begin
   case Param.Kind of
     pkNone: ; //No param to load

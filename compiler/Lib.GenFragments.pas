@@ -80,7 +80,7 @@ begin
 end;
 
 function CodeTypeHigh8(const Param: TILParam;out Comment: String): String;
-var UT: PUserType;
+var UT: TUserType;
 begin
   UT := Param.GetUserType;
   Assert(UT <> nil);

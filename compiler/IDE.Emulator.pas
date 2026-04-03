@@ -250,6 +250,13 @@ begin
     Result := W;
 end;
 
+function ReadReal(const Symbol: String): TRealBinary;
+var I: Integer;
+begin
+  for I := 0 to iRealByteSize-1 do
+    Result[I] := ReadOffsetByte(Symbol, I);
+end;
+
 function ReadBlob(const Symbol: String;Size: Integer): TBlob;
 var I: Integer;
 begin
@@ -322,7 +329,7 @@ begin
   Result := Result + ')';
 end;
 
-function ValueToString(const AsmName: String;AddrMode: TAddrMode;UserType: PUserType): TImmValue;
+function ValueToString(const AsmName: String;AddrMode: TAddrMode;UserType: TUserType): TImmValue;
 begin
   case AddrMode of
     amStatic:
@@ -332,10 +339,9 @@ begin
         vtWord, vtPointer, vtTypedPointer: Result := TImmValue.CreateTyped(UserType, ReadWord(AsmName));
           vtInt8: Result := TImmValue.CreateTyped(UserType, ReadInt8(AsmName));
           vtInteger: Result := TImmValue.CreateTyped(UserType, ReadInteger(AsmName));
-//          vtString: Result := TImmValue.CreateString(ReadMemoryString(ReadWord(AsmName)));
-          vtReal, vtFlag, vtTypeDef, vtUnknown: ;//TODO?
+          vtReal: Result := TImmValue.CreateReal(ReadReal(AsmName));
+          vtFlag, vtTypeDef, vtUnknown: TImmValue.CreateString('TODO: ' + VarTypeToName(UserType.VarType));
           vtSetMem: Result := TImmValue.CreateString('TODO: SetMem type');
-//          vtArray, vtList: Result := TImmValue.CreateArray(ArrayToString(AsmName, AddrMode, UserType));
           vtArrayType: Result := TImmValue.CreateBlob(UserType, ReadBlob(AsmName, GetTypeDataSize(UserType)));
           vtRecord: Result := TImmValue.CreateString('TODO: Record types');
           vtFunction: Result := TImmValue.CreateString('TODO: Function types');

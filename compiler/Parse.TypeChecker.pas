@@ -1,25 +1,28 @@
 unit Parse.TypeChecker;
 
 interface
-uses Def.UserTypes,
+uses Def.UserTypes, Def.Consts,
   Parse.Errors, Parse.Literals;
 
 
 //Tests whether a value of type FromType can be assigned to the variable, argument (etc)
 //of type ToType
-function TypeCheck(ToType, FromType: PUserType): TQuicheError;
+function TypeCheck(ToType, FromType: TUserType): TQuicheError;
+
+//Validate whether an immediate value can be assigned to a variable (etc) of type ToType.
+function TypeCheckImm(ToType: TUserType;const Imm: TImmValue): TQuicheError;
 
 //Tests whether the type of the value returned by Slug is compatible with the ToType.
 //If it is returns errNone, otherwise returns a suitable error code
-function TypeCheckFromSlug(ToType: PUserType;const Slug: TExprSlug): TQuicheError;
+function TypeCheckFromSlug(ToType: TUserType;const Slug: TExprSlug): TQuicheError;
 
 
 implementation
 uses SysUtils,
-  Def.VarTypes, Def.Consts, Def.Operators, Def.IL;
+  Def.VarTypes, Def.Operators, Def.IL;
 
 //Assignments to an array. Both types are array types, and both are different types
-function TypeCheckArrays(ToType, FromType: PUserType): TQuicheError;
+function TypeCheckArrays(ToType, FromType: TUserType): TQuicheError;
 var ToAT: TArrayType;
   FromAT: TArrayType;
 begin
@@ -54,7 +57,7 @@ begin
   Result := ErrSub2(qeTypeMismatch, FromType.Description, ToType.Description);
 end;
 
-function TypeCheck(ToType, FromType: PUserType): TQuicheError;
+function TypeCheck(ToType, FromType: TUserType): TQuicheError;
 var ToVT: TVarType;
   FromVT: TVarType;
 begin
@@ -119,7 +122,7 @@ begin
 end;
 
 //Validate whether an immediate value can be assigned to a variable (etc) of type ToType.
-function TypeCheckImm(ToType: PUserType;const Imm: TImmValue): TQuicheError;
+function TypeCheckImm(ToType: TUserType;const Imm: TImmValue): TQuicheError;
 begin
   if IsIntegerType(ToType) and IsIntegerVarType(Imm.VarType) then
   begin //Integer value in range?
@@ -144,11 +147,11 @@ begin
     Result := TypeCheck(ToType, Imm.UserType);
 end;
 
-function TypeCheckFromSlug(ToType: PUserType;const Slug: TExprSlug): TQuicheError;
+function TypeCheckFromSlug(ToType: TUserType;const Slug: TExprSlug): TQuicheError;
 begin
   Assert(Assigned(ToType));
 
-  if (Slug.Op = OpUnknown) and (Slug.ILItem = nil) and (Slug.Operand.Kind = pkImmediate) then
+  if (Slug.Op = OpUnknown) and (Slug.ILItem = nil) and (Slug.Operand.Kind in [pkImmediate, pkRangeList]) then
     //An immediate with no expression - can we assign the Imm to the type?
     Result := TypeCheckImm(ToType, Slug.Operand.Imm)
   else //We either have an operation or a variable - can we assign the type to the type?

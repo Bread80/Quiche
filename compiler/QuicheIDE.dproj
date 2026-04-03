@@ -450,6 +450,8 @@
         <DCCReference Include="Parse.Pointers.pas"/>
         <DCCReference Include="IDE.CommandLine.pas"/>
         <DCCReference Include="Parse.TypeChecker.pas"/>
+        <DCCReference Include="Parse.RangeLists.pas"/>
+        <DCCReference Include="Def.ScopesEX.pas"/>
         <None Include="Tests.txt"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>

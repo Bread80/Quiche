@@ -11,57 +11,64 @@ uses
   Def.VarTypes, Def.UserTypes;
 
 type PConstList = ^TConstList;
+  PConst = ^TConst;
 
   //Used to store binary data (for complex types)
-  TBlob = array of Byte;
+  TBlob = TArray<Byte>;
 
 //===============TImmValue
 
 //Record to store a typed constant value. Used within ILParams and as default
 //parameters within function definitions
+  PImmValue = ^TImmValue;
   TImmValue = record
   public
     //AValue is converted to the appropriate type, if possible,
     //For complex types, the only acceptable value for AValue is 0, which will
     //result in a default initialisation
     constructor CreateTyped(AType: TVarType;AValue: Integer);overload;
-    constructor CreateTyped(AType: PUserType;AValue: Integer);overload;
+    constructor CreateTyped(AType: TUserType;AValue: Integer);overload;
 
     //For generic integer values
     constructor CreateInteger(AValue: Integer);
 
     constructor CreateChar(AValue: Char);
     constructor CreateBoolean(AValue: Boolean);
-    constructor CreateTypeDef(AValue: PUserType);
+    constructor CreateTypeDef(AValue: TUserType);
 
+    //Pointered types
+    constructor CreateReal(AValue: Double);overload;
+    constructor CreateReal(AValue: TRealBinary);overload;
     constructor CreateString(AString: String);
-    constructor CreateBlob(AType: PUserType;ABlob: TBlob);
+    constructor CreateBlob(AType: TUserType;ABlob: TBlob);
 
     //Can *only* be user for integer types (both new and current)
-    procedure UpdateUserType(NewType: PUserType);
-//    procedure UpdateVarType(NewType: TVarType);
+    procedure UpdateUserType(NewType: TUserType);
 
-    function UserType: PUserType;
+    function UserType: TUserType;
     function VarType: TVarType;
 
+    //Type must be integer numeric. Use ToInteger for other ordinal types
     function IntValue: Integer;
+    //Type must be numeric. Integers will be auto-converted
+    function RealValue: Double;
+    //Type must be numeric. Integers will be auto-converted
+    function RealBinaryValue: TBlob;
     function BoolValue: Boolean;
     function CharValue: Char;
-    function TypeDefValue: PUserType;
+    function TypeDefValue: TUserType;
     //If VarType is vtChar or a vtArrayType of vtChar
     function StringValue: String;
     //If VarType is vtList ... More TODO
     function BlobValue: TBlob;
     //If VarType is vtArrayType
     function ArrayLength: Integer;
+    //Valuable for Pointered types, especially arrays
+    function DataByteSize: Integer;
 
     //For (mostly) code generation
     //Only applicable to ordinal types
     function ToInteger: Integer;
-
-    //Where data the stored as a pointer (ie Strings etc), returns a label for the
-    //constant data
-    function ToLabel: String;
 
     //Returns a string suitable for passing to the assembler.
     //Value returned must be a single byte. Value will be masked (with $ff) if necessary
@@ -71,43 +78,49 @@ type PConstList = ^TConstList;
     //Returns a 16-bit value masked with $ffff
     function ToStringWord: String;
 
-    function GetConstList: PConstList;
+    //Where data the stored as a pointer (ie Strings etc), returns a label for the
+    //constant data
+    function ToLabel: String;
 
     //For debugging. Sometimes for code generation
     function ToString: String;
   private
-    FUserType: PUserType;
+    FUserType: TUserType;
+    FConst: PConst; //For pointered types data is stored in the Const (due to
+                    //Delphi requring such types to be finalized).
+                    //NOTE: For null strings and empty arrays FConst will be nil!
 
     case FVarType: TVarType of
       vtInt8, vtInteger, vtByte, vtWord, vtPointer, vtEnumeration:
         (FIntValue: Integer);
-      vtReal: (); //TODO
+      vtReal: (FRealValue: Double);
       vtBoolean, vtFlag: (FBoolValue: Boolean);
       vtChar: (FCharValue: Char);
-      vtTypeDef: (FTypeDefValue: PUserType);
-      vtArrayType: (
-        //Is the data is a string we'll store it as a string...
-        FStringConstList: PConstList;  //Scope to which the constant belongs
-        FStringIndex: Integer;  //Index into string constants list for Scope
-                  //(We aren't allowed to put strings in a variant section. Instead
-                  //we'll store them elsewhere and put an index to them here.
-
-        //...other we'll store the data as a blob
-        FBlobConstList: PConstList;
-        FBlobIndex: Integer;
+      vtTypeDef: (FTypeDefValue: TUserType);
+      vtArrayType: ( //All data is stored in FConst. String data is stored in strings. Other data is in Blobs
         );
   end;
 
 //==================CONST
 
-  PConst = ^TConst;
   TConst = record
+    ConstList: PConstList;
     Name: String;
-    UserType: PUserType;
+    UserType: TUserType;
     InScope: Boolean;
     Depth: Integer;
-    Value: TImmValue;
 
+    //Only for registered types
+    Value: TImmValue;
+    //For arraytypes, distinguish between string literals (stored as strings) and
+    //other array literals (stored as blobs)
+    IsString: Boolean;
+    StringValue: String;
+    BlobValue: TBlob;
+
+    //Where data the stored as a pointer (ie Strings etc), returns a label for the
+    //constant data
+    function ToLabel: String;
     function VarType: TVarType;
   end;
 
@@ -119,7 +132,7 @@ type PConstList = ^TConstList;
 
     FItems: TList<PConst>;
     MarkPosition: Integer;
-    Strings: TStringList; //String literals defined within this scope
+//    Strings: TStringList; //String literals defined within this scope
     Blobs: TList<TBlob>;
     function GetItems(Index: Integer): PConst;
     function GetCount: Integer;  //Binary literals defined within this scope
@@ -131,7 +144,11 @@ type PConstList = ^TConstList;
     //need to go out of scope
     procedure ScopeDepthDecced(NewDepth: Integer);
 
-    function Add(const AName: String;UType: PUserType;const AValue: TImmValue): PConst;
+    function Add(const AName: String;UType: TUserType;const AValue: TImmValue): PConst;
+    function AddString(const AName: String;UType: TUserType;const AValue: TImmValue;
+      const AStringValue: String): PConst;
+    function AddBlob(const AName: String;UType: TUserType;const AValue: TImmValue;
+      const ABlobValue: TBlob): PConst;
 
     //ONLY for Pointered Types. Finds a pre-existing definition of the same string data.
     //Searches the current ConstList as well as AValue's Const List.
@@ -168,8 +185,9 @@ uses
 function TImmValue.ArrayLength: Integer;
 begin
   Assert(FVarType = vtArrayType);
-  if FStringConstList <> nil then
-    Result := Length(FStringConstList.Strings[FStringIndex])
+  Assert(FConst <> nil);
+  if FConst.IsString then
+    Result := Length(FConst.StringValue)
   else
     Result := (GetTypeDataSize(FUserType) - FUserType.ArrayDef.MetaSize) div FUserType.ArrayDef.ElementSize;
 end;
@@ -179,11 +197,9 @@ begin
   case FVarType of
     vtArrayType, vtRecord:
     begin
-      Assert(Assigned(FBlobConstList));
-      Assert(FBlobIndex <> -1);
-
-      Assert(False, 'TODO: Array blobs');
-      Result := FBlobConstList.Blobs[FBlobIndex];
+      Assert(Assigned(FConst));
+      Assert(not FConst.IsString);
+      Result := FConst.BlobValue;
     end;
   else
     Assert(False);
@@ -202,16 +218,18 @@ begin
   Result := FCharValue;
 end;
 
-constructor TImmValue.CreateBlob(AType: PUserType; ABlob: TBlob);
+constructor TImmValue.CreateBlob(AType: TUserType; ABlob: TBlob);
+var ConstList: PConstList;
 begin
   FVarType := UTToVT(AType);
   FUserType := AType;
-  FBlobConstList := GetCurrentScope.ConstList;
-  Assert(Assigned(FBlobConstList));
-  FBlobIndex := FBlobConstList.Blobs.Add(ABlob);
-
-  FStringConstList := nil;
-  FStringIndex := -1;
+  FConst := nil;
+  ConstList := GetCurrentScope.ConstList;
+  Assert(Assigned(ConstList));
+  //We need to set first because the Const will get a copy of us,
+  //and us will fall out of scope
+  FConst := nil;
+  FConst := ConstList.AddBlob('', AType, Self, ABlob);
 end;
 
 constructor TImmValue.CreateBoolean(AValue: Boolean);
@@ -219,6 +237,7 @@ begin
   FVarType := vtBoolean;
   FUserType := GetSystemType(FVarType);
   FBoolValue := AValue;
+  FConst := nil;
 end;
 
 constructor TImmValue.CreateChar(AValue: Char);
@@ -226,6 +245,7 @@ begin
   FVarType := vtChar;
   FUserType := GetSystemType(FVarType);
   FCharValue := AValue;
+  FConst := nil;
 end;
 
 constructor TImmValue.CreateInteger(AValue: Integer);
@@ -233,94 +253,132 @@ begin
   FVarType := vtInteger;
   FUserType := GetSystemType(FVarType);
   FIntValue := AValue;
+  FConst := nil;
+end;
+
+constructor TImmValue.CreateReal(AValue: Double);
+var ConstList: PConstList;
+begin
+  FVarType := vtReal;
+  FUserType := GetSystemType(FVarType);
+  FConst := nil;
+  FRealValue := AValue;
+  ConstList := GetCurrentScope.ConstList;
+  Assert(Assigned(ConstList));
+  //We need to set first because the Const will get a copy of us,
+  //and us will fall out of scope
+  FConst := ConstList.AddBlob('', FUserType, Self, DoubleToRealBinary(FRealValue));
+end;
+
+constructor TImmValue.CreateReal(AValue: TRealBinary);
+var RB: TRealBinary;
+begin
+  FVarType := vtReal;
+  FUserType := GetSystemType(FVarType);
+  FConst := nil;
+  FRealValue := RealBinaryToDouble(AValue);
+end;
+
+constructor TImmValue.CreateString(AString: String);
+var ConstList: PConstList;
+begin
+  FUserType := GetSystemStringLiteralType;
+  FVarType := FUserType.VarType;
+  ConstList := GetCurrentScope.ConstList;
+  Assert(Assigned(ConstList));
+  //We need to set first because the Const will get a copy of us,
+  //and us will fall out of scope
+  FConst := nil;
+  FConst := ConstList.AddString('', GetSystemStringType, Self, AString);
 end;
 
 constructor TImmValue.CreateTyped(AType: TVarType; AValue: Integer);
 begin
   FUserType := GetSystemType(AType);
   FVarType := AType;
+  FConst := nil;
   case AType of
-    vtInt8, vtInteger, vtByte, vtWord, vtPointer,
-      vtTypedPointer, vtEnumeration: FIntValue := AValue;
-    vtReal: Assert(False); //TODO
-    vtBoolean, vtFlag: FBoolValue:= AValue <> 0;
-    vtChar: FCharValue := chr(AValue);
-    vtTypeDef: FTypeDefValue := PUserType(AValue);
+    vtInt8, vtInteger, vtByte, vtWord, vtPointer, vtTypedPointer, vtEnumeration:
+      FIntValue := AValue;
+    vtReal:
+      CreateReal(0);
+    vtBoolean, vtFlag:
+      FBoolValue:= AValue <> 0;
+    vtChar:
+      FCharValue := chr(AValue);
+    vtTypeDef:
+      FTypeDefValue := TUserType(AValue);
     vtArrayType: //Only empty arrays can be created here (useful for empty strings)
-      if AValue = 0 then
-      begin
-        FStringConstList := nil;
-        FStringIndex := -1;
-        FBlobConstList := nil;
-        FBlobIndex := -1;
-      end
-      else
-        Assert(False);
+      Assert(AValue = 0);
   else
     Assert(False);  //NOTE: We can't do complex types here!!
   end;
 end;
 
-constructor TImmValue.CreateTyped(AType: PUserType; AValue: Integer);
+constructor TImmValue.CreateTyped(AType: TUserType; AValue: Integer);
 begin
   Assert(Assigned(AType));
   FUserType := AType;
   FVarType := AType.VarType;
+  FConst := nil;
   case FVarType of
     vtInt8, vtInteger, vtByte, vtWord, vtPointer,
       vtEnumeration, vtSetByte, vtSetWord,
       vtTypedPointer, vtFunction:
       FIntValue := AValue;
-    vtReal: Assert(False); //TODO
     vtBoolean, vtFlag: FBoolValue:= AValue <> 0;
     vtChar: FCharValue := chr(AValue);
-    vtTypeDef: FTypeDefValue := PUserType(AValue);
-    vtArrayType, vtSetMem, vtRecord:
-      if AValue = 0 then
-      begin
-        FStringConstList := nil;
-        FStringIndex := -1;
-        FBlobConstList := nil;
-        FBlobIndex := -1;
-      end
-      else
-        Assert(False);
+    vtTypeDef: FTypeDefValue := TUserType(AValue);
+
+    //Pointered types. AValue must be 0
+    vtReal, vtArrayType, vtSetMem, vtRecord:
+    begin
+      Assert(AValue = 0);
+      FRealValue := 0;
+    end;
   else
     Assert(False);
   end;
 end;
 
-constructor TImmValue.CreateString(AString: String);
-begin
-  FUserType := GetSystemStringLiteralType;
-  FVarType := FUserType.VarType;
-  FStringConstList := GetCurrentScope.ConstList;
-  Assert(Assigned(FStringConstList));
-  FStringIndex := FStringConstList.Strings.Add(AString);
-
-  FBlobConstList := nil;
-  FBlobIndex := -1;
-end;
-
-constructor TImmValue.CreateTypeDef(AValue: PUserType);
+constructor TImmValue.CreateTypeDef(AValue: TUserType);
 begin
   FVarType := vtTypeDef;
   FUserType := GetSystemType(FVarType);
   FTypeDefValue := AValue;
+  FConst := nil;
 end;
 
-function TImmValue.GetConstList: PConstList;
+function TImmValue.DataByteSize: Integer;
 begin
-  if FStringConstList <> nil then
-    Result := FStringConstList
+  Assert(FConst <> nil);
+
+  if FConst.IsString then
+    Result := FConst.UserType.ArrayDef.MetaSize + Length(FConst.StringValue)
   else
-    Result := FBlobConstList;
+    Result := Length(FConst.BlobValue);
 end;
 
 function TImmValue.IntValue: Integer;
 begin
   Assert(IsIntegerVarType(FVarType) or IsIntegerType(FUserType));
   Result := FIntValue;
+end;
+
+function TImmValue.RealBinaryValue: TBlob;
+begin
+  Assert(VarType = vtReal);
+  Assert(FConst <> nil);
+  Result := FConst.BlobValue;
+end;
+
+function TImmValue.RealValue: Double;
+begin
+  Assert(IsNumericVarType(FVarType));
+  if VarType = vtReal then
+    Result := FRealValue
+  else
+    Result := FIntValue;
 end;
 
 function TImmValue.StringValue: String;
@@ -334,11 +392,13 @@ begin
     end;
     vtArrayType:
     begin
-      Assert(Assigned(FStringConstList));
-      if FStringIndex = -1 then
+      if FConst = nil then
         Result := ''
       else
-        Result := FStringConstList.Strings[FStringIndex];
+      begin
+        Assert(FConst.IsString);
+        Result := FConst.StringValue;
+      end;
     end;
     else
     Assert(False);
@@ -366,13 +426,11 @@ end;
 
 function TImmValue.ToLabel: String;
 begin
-  if FStringConstList <> nil then
-    Result := '__sl_' + FStringConstList.ScopeName.ToLower + '_string' + FStringIndex.ToString
-  else
-    Assert(False);
+  Assert(FConst <> nil);
+  Result := FConst.ToLabel;
 end;
 
-function IntValueToString(AUserType: PUserType;Value: Integer): String;
+function IntValueToString(AUserType: TUserType;Value: Integer): String;
 begin
   case UTToVT(AUserType) of
     vtByte: Result := '$' + IntToHex(Value, 2);
@@ -402,7 +460,7 @@ begin
   end;
 end;
 
-function BlobArrayToString(const Blob: TBlob;AUserType: PUserType;Offset: Integer): String;
+function BlobArrayToString(const Blob: TBlob;AUserType: TUserType;Offset: Integer): String;
 var ElementSize: Integer;
   Count: Integer;
   I: Integer;
@@ -484,25 +542,24 @@ end;
 
 function TImmValue.ToString: String;
 
-  function ToUserTypedString(AUserType: PUserType): String;
+  function ToUserTypedString(AUserType: TUserType): String;
   begin
     case UTToVT(AUserType) of
+      vtReal:
+        Result := FloatToStr(FRealValue);
       vtTypeDef:
       if TypeDefValue <> nil then
         Result := TypeDefValue.Name
       else
         Result := 'nil';
       vtArrayType:
-        if (FStringConstList <> nil) then
-          if FStringIndex = -1 then
-            Result := '<<UNASSIGNED>>'
-          else
-            Result := FStringConstList.Strings[FStringIndex]
+        if FConst = nil then
+          Result := '<UNASSIGNED>'
         else
-          if (FBlobConstList = nil) or (FBlobIndex = -1) then
-            Result := '<<UNASSIGNED>>'
+          if FConst.IsString then
+            Result := FConst.StringValue
           else
-            Result := BlobArrayToString(FBlobConstList.Blobs[FBlobIndex], AUserType, 0)
+            Result := BlobArrayToString(FConst.BlobValue, AUserType, 0);
     else
       Result := IntValueToString(AUserType, ToInteger);
     end;
@@ -535,29 +592,28 @@ begin
   Result := WordToStr(ToInteger);
 end;
 
-function TImmValue.TypeDefValue: PUserType;
+function TImmValue.TypeDefValue: TUserType;
 begin
   Assert(FVarType = vtTypeDef);
   Result := FTypeDefValue;
 end;
 
-procedure TImmValue.UpdateUserType(NewType: PUserType);
+procedure TImmValue.UpdateUserType(NewType: TUserType);
 begin
-  Assert(IsIntegerType(NewType));
-  Assert(IsIntegerType(FUserType));
+  Assert(IsIntegerType(NewType) = IsIntegerType(FUserType));
+  if FUserType = NewType then
+    EXIT;
+
   FVarType := UTToVT(NewType);
   FUserType := NewType;
+  if Assigned(FConst) then
+  begin
+    FConst.UserType := NewType;
+    FConst.Value.UpdateUserType(NewType);
+  end;
 end;
-(*
-procedure TImmValue.UpdateVarType(NewType: TVarType);
-begin
-  Assert(Def.QTypes.IsIntegerVarType(NewType));
-  Assert(Def.QTypes.IsIntegerVarType(FVarType));
-  FVarType := NewType;
-  FUserType := GetSystemType(FVarType);
-end;
-*)
-function TImmValue.UserType: PUserType;
+
+function TImmValue.UserType: TUserType;
 begin
   Result := FUserType;
 end;
@@ -598,6 +654,33 @@ end;
 
 { TConst }
 
+function TConst.ToLabel: String;
+var
+  Prefix: String;
+  NamePrefix: String;
+
+  ScopeName: String;
+  LName: String;
+begin
+  case VarType of
+    vtReal:
+      Prefix := 'real';
+    vtArrayType:
+      if IsString then
+        Prefix := 'string'
+      else
+        Prefix := 'array';
+  else
+    Assert(False);
+  end;
+
+  Result := '__' + Prefix.Chars[0] + 'l_' + ConstList.ScopeName.ToLower + '_';
+  if Name <> '' then
+    Result := Result + Name
+  else
+    Result := Result + Prefix + Integer(@Self).ToString;
+end;
+
 function TConst.VarType: TVarType;
 begin
   Result := UTToVT(UserType);
@@ -605,11 +688,27 @@ end;
 
 { TConstList }
 
-function TConstList.Add(const AName: String; UType: PUserType;
-  const AValue: TImmValue): PConst;
+function TConstList.Add(const AName: String; UType: TUserType;const AValue: TImmValue): PConst;
 var CL: PConstList;
 begin
-  if IsPointeredType(UType) then
+  //Expression parser will return a TImmValue with an unnamed TConst. Handle the
+  //case where that value is being assigned to a CONST
+  if AValue.FConst <> nil then
+  begin
+    if AValue.FConst.Name = '' then
+    begin
+      AValue.FConst.Name := AName;
+      AValue.UpdateUserType(UType);
+      EXIT(AValue.FConst);
+    end;
+    if (AName = '') and (UType = AValue.FConst.UserType) then
+      EXIT(AValue.FConst);
+
+  end;
+
+
+(*  TODO: REWRITE
+  if IsPointeredType(UType) and (UType.VarType <> vtReal) then
   begin
     //Do we already have this Value?
     Result := FindDupValueInScope(AValue);
@@ -623,10 +722,12 @@ begin
     if Result <> nil then
       EXIT;
   end;
+*)
 
   //If not add it
   New(Result);
   FItems.Add(Result);
+  Result.ConstList := @Self;
   Result.Name := AName;
   Result.UserType := UType;
   Result.InScope := True;
@@ -635,6 +736,24 @@ begin
   else
     Result.Depth := 0;
   Result.Value := AValue;
+  Result.Value.FConst := Result;
+  Result.IsString := False;
+end;
+
+function TConstList.AddBlob(const AName: String; UType: TUserType;
+  const AValue: TImmValue; const ABlobValue: TBlob): PConst;
+begin
+  Result := Add(AName, UType, AValue);
+  Result.IsString := False;
+  Result.BlobValue := ABlobValue;
+end;
+
+function TConstList.AddString(const AName: String; UType: TUserType;
+  const AValue: TImmValue;const AStringValue: String): PConst;
+begin
+  Result := Add(AName, UType, AValue);
+  Result.IsString := True;
+  Result.StringValue := AStringValue;
 end;
 
 procedure TConstList.Clear;
@@ -644,7 +763,6 @@ begin
     Dispose(V);
   FItems.Clear;
   MarkPosition := -1;
-  Strings.Clear;
   Blobs.Clear;
 end;
 
@@ -662,17 +780,17 @@ function TConstList.FindDupValueInScope(const AValue: TImmValue): PConst;
 var I: Integer;
 begin
   Assert(IsPointeredType(AValue.UserType));
-
+(*  //TODO: Rewrite
   for I := 0 to FItems.Count-1 do
     case AValue.VarType of
       vtArrayType:
-        if AValue.FStringConstList = FItems[I].Value.FStringConstList then
+        if (AValue.FIsString) and (AValue.FConst <> nil) then
         begin
           if AValue.FStringIndex = FItems[I].Value.FStringIndex then
             EXIT(FItems[I]);
         end
         else
-        if AValue.FBlobConstList = FItems[I].Value.FBlobConstList then
+        if (AValue.FBlobConstList <> nil) and (AValue.FBlobConstList = FItems[I].Value.FBlobConstList) then
         begin
           if AValue.FBlobIndex = FItems[I].Value.FBlobIndex then
             EXIT(FItems[I]);
@@ -680,7 +798,7 @@ begin
     else
       raise Exception.Create('Unknown type');
     end;
-
+*)
   Result := nil;
 end;
 
@@ -698,7 +816,6 @@ procedure TConstList.Initialise;
 begin
   FItems := TList<PConst>.Create;
   MarkPosition := -1;
-  Strings := TStringList.Create;
   Blobs := TList<TBlob>.Create;
 end;
 
@@ -713,13 +830,26 @@ begin
   end;
 end;
 
+
+
 procedure CreateSystemConsts(List: PConstList);
+var SystemFalse: TImmValue;
+  SystemTrue: TImmValue;
+  SystemMaxint: TImmValue;
+  SystemMinint: TImmValue;
+  SystemNil: TImmValue;
 begin
-  List.Add('False', GetSystemType(vtBoolean), TImmValue.CreateBoolean(False));
-  List.Add('True', GetSystemType(vtBoolean), TImmValue.CreateBoolean(True));
-  List.Add('Maxint', GetSystemType(vtInteger), TImmValue.CreateTyped(vtInteger, GetMaxValue(vtInteger)));
-  List.Add('Minint', GetSystemType(vtInteger), TImmValue.CreateTyped(vtInteger, GetMinValue(vtInteger)));
-  List.Add('nil', GetSystemType(vtPointer), TImmValue.CreateTyped(vtPointer, $0000));
+  SystemFalse.CreateBoolean(False);
+  SystemTrue.CreateBoolean(True);
+  SystemMaxint.CreateTyped(vtInteger, GetMaxValue(vtInteger));
+  SystemMinint.CreateTyped(vtInteger, GetMinValue(vtInteger));
+  SystemNil.CreateTyped(vtPointer, $0000);
+
+  List.Add('False', GetSystemType(vtBoolean), SystemFalse);
+  List.Add('True', GetSystemType(vtBoolean), SystemTrue);
+  List.Add('Maxint', GetSystemType(vtInteger), SystemMaxint);
+  List.Add('Minint', GetSystemType(vtInteger), SystemMinint);
+  List.Add('nil', GetSystemType(vtPointer), SystemNil);
 end;
 
 initialization

@@ -127,7 +127,7 @@ procedure SaveObjectCode(Filename: String);
 
 implementation
 uses SysUtils, {$ifdef fpc}FileUtil,{$else}IOUtils,{$endif}
-  Def.Functions, Def.IL, Def.Intrinsics, Def.Operators, Def.Scopes,
+  Def.Functions, Def.IL, Def.Intrinsics, Def.Operators, Def.Scopes, Def.ScopesEX,
   Def.Variables, Def.Consts, Def.VarTypes, Def.UserTypes,
   Parse.Base,
   Lib.Data, Lib.Primitives,
@@ -597,6 +597,8 @@ begin
   TypesToStrings(S);
   S.Add(#13#13'Types');
   S.Add(Types.ToString);
+
+  S.Add(GetCurrentScope.ScopeEX.ToString);
 end;
 
 //====Initialisation

@@ -131,7 +131,7 @@ type
 
     Reg: TCPUReg;         //If the parameter is passed via a register, otherwise rNone
                           //Ignored for Intrinsics
-    UserType: PUserType;  //Parameter type
+    UserType: TUserType;  //Parameter type
     SuperType: TSuperType;  //Only for intrinsics. Only valid where VarType is vtUnknown.
     IntrinsicFlags: TIntrinsicFlagSet;  //Flags for Intrinsic params
 
@@ -180,7 +180,7 @@ type
     ParamCount: Integer;
     ResultCount: Integer;   //Result count of zero = Procedure
 
-    Op: TOperator;          //If this is an intrinsic (otherwise OpUnknown)
+    Op: TOperation;          //If this is an intrinsic (otherwise OpUnknown)
     CodeAddress: Word;      //If implemented in machine code at fixed address
     CodeLabel: String;      //For EXTERN directive - specifies the label of the assembly
                             //routine to call
@@ -258,7 +258,7 @@ function IdentToAccessSpecifierEX(const Ident: String;out Access: TParamAccess;
 //Returns True if a parameter under the given combination of calling convention,
 //access specifier and type will be passed by reference, false otherwise
 function IsPassByRef(CallingConvention: TCallingConvention; Access: TParamAccess;
-  UserType: PUserType): Boolean;
+  UserType: TUserType): Boolean;
 
 function FunctionToFunctionHandle(Func: PFunction): TFunctionHandle;
 function FunctionHandleToFunction(Handle: TFunctionHandle): PFunction;
@@ -268,7 +268,7 @@ var Funcs: PFuncList;
 
 
 implementation
-uses Def.Scopes;
+uses Def.Scopes, Def.ScopesEX;
 
 { ECallingConvention }
 
@@ -357,7 +357,7 @@ begin
 end;
 
 function IsPassByRef(CallingConvention: TCallingConvention; Access: TParamAccess;
-  UserType: PUserType): Boolean;
+  UserType: TUserType): Boolean;
 begin
   case CallingConvention of
     ccRegister, ccCALL, ccRST, ccExtern:

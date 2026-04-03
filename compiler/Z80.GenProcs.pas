@@ -830,6 +830,17 @@ end;
 
 //=================================== ARRAYS
 
+//Generates code to load the address of an offset from static data
+//Value is a statically stored data of a pointered type
+//Offset is the byte offset
+procedure DoGenAddrOfStaticOffsetImm(const Value: TImmValue; Offset: Integer);
+begin
+  Assert(IsPointeredType(Value.UserType));
+  OpMOV(rHL, Value.ToLabel + ' + ' + WordToStr(Offset));
+  //TODO: Update Reg State
+end;
+
+
 //Generates the code to load the address of an element of an array into HL
 //where the index is a compile time literal
 //V is the variable (the array, any array type)
@@ -869,20 +880,20 @@ end;  //HL -> Address of element
 
 //Calculate the addr of an array element where the index is an immediate value
 procedure Proc_AddrOfArrayElemImm(ILItem: PILItem);
-var V: PVariable; //The array
+var ArrayType: TUserType;
   ElementSize: Integer;
   Index: Integer; //of the item we want
   FirstIndex: Integer;  //Low of first item in array
   ArrayOffset: Integer;
 begin
   //Param1 - the array
-  Assert(ILItem.Param1.Kind = pkVarRef);
-  V := ILItem.Param1.Variable;
-  Assert(V.VarType = vtArrayType);
-  Assert(Assigned(V.UserType.OfType));
-  Assert(Assigned(V.UserType.BoundsType));
-  ElementSize := GetTypeDataSize(V.UserType.OfType);
-  FirstIndex := V.UserType.BoundsType.Low;
+  Assert(ILItem.Param1.Kind in [pkVarRef, pkImmediate]);
+  ArrayType  := ILItem.Param1.GetUserType;
+  Assert(ArrayType.VarType = vtArrayType);
+  Assert(Assigned(ArrayType.OfType));
+  Assert(Assigned(ArrayType.BoundsType));
+  ElementSize := GetTypeDataSize(ArrayType.OfType);
+  FirstIndex := ArrayType.BoundsType.Low;
 
   //Param2 - the index
   Assert(ILItem.Param2.Kind = pkImmediate);
@@ -892,19 +903,22 @@ begin
 
   ArrayOffset := ElementSize * (Index - FirstIndex);
   //TODO: Check Reg State: is value already loaded?
-  DoGenAddrOfArrayElemImm(V, ArrayOffset);
+  case ILItem.Param1.Kind of
+    pkImmediate: DoGenAddrOfStaticOffsetImm(ILItem.Param1.Imm, ArrayOffset);
+    pkVarRef: DoGenAddrOfArrayElemImm(ILItem.Param1.Variable, ArrayOffset);
+  else
+    raise EParamKind.Create;
+  end;
 end;
 
 //Calculate the addr of an element of a vector where the index is an immediate value
 procedure Proc_AddrOfVectorElemImm(ILItem: PILItem);
-var V: PVariable; //The array
-  ArrayType: PUserType;
+var ArrayType: TUserType;
   Index: Integer; //of the item we want
   ArrayOffset: Integer;
 begin
-  Assert(ILItem.Param1.Kind = pkVarRef);
-  V := ILItem.Param1.Variable;
-  ArrayType := V.UserType;
+  Assert(ILItem.Param1.Kind in [pkVarRef, pkImmediate]);
+  ArrayType := ILItem.Param1.GetUserType;
   Assert(ArrayType <> nil);
   Assert(ArrayType.VarType = vtArrayType);
 
@@ -920,38 +934,18 @@ begin
 
   //TODO: Check Reg State: is value already loaded?
   ArrayOffset := ArrayType.ArrayDef.ElementSize * Index + ArrayType.ArrayDef.MetaSize;
-  DoGenAddrOfArrayElemImm(V, ArrayOffset);
+  case ILItem.Param1.Kind of
+    pkImmediate: DoGenAddrOfStaticOffsetImm(ILItem.Param1.Imm, ArrayOffset);
+    pkVarRef: DoGenAddrOfArrayElemImm(ILItem.Param1.Variable, ArrayOffset);
+  else
+    raise EParamKind.Create;
+  end;
 end;
 
-//Calculate the addr of an element of a list where the index is an immediate value
-procedure Proc_AddrOfListElemImm(ILItem: PILItem);
-var V: PVariable; //The array
-  ArrayType: PUserType;
-  Index: Integer; //of the item we want
-  ArrayOffset: Integer;
+procedure DoGenAddrOfListElemImm(V: PVariable; Index, ArrayOffset: Integer);
+var ArrayType: TUserType;
 begin
-  //On entry HL -> base address of list
-
-  Assert(ILItem.Param1.Kind = pkVarRef);
-  V := ILItem.Param1.Variable;
   ArrayType := V.UserType;
-  Assert(ArrayType <> nil);
-  Assert(ArrayType.VarType = vtArrayType);
-  Assert(ArrayType.ArrayDef.ArrayType = atList);
-
-  //If Unbounded we need to validate index against vector length-byte
-  Assert(not ArrayType.ArrayDef.IsUnbounded, 'TODO');
-
-  Assert(ILItem.Param2.Kind = pkImmediate);
-  Assert(IsIntegerType(ILItem.Param2.Imm.UserType));
-  Assert(ILItem.Param2.Imm.IntValue >= 0);
-  Index := ILItem.Param2.Imm.ToInteger;
-  Assert((Index >= 0) and (Index < 255));
-  //TODO: Validate array size (if unbounded)
-
-  //TODO: Check Reg State: is value already loaded?
-  ArrayOffset := ArrayType.ArrayDef.ElementSize * Index + ArrayType.ArrayDef.MetaSize;
-
   //  1. HL -> Base addr (addrof) <- Get this passed in as a parameter
   case ArrayType.ArrayDef.ArraySize of
     asShort:
@@ -998,10 +992,45 @@ begin
   end;
 end;
 
-//Generate cdeo to convert the array index (in (H)L to an offset from the array
+//Calculate the addr of an element of a list where the index is an immediate value
+procedure Proc_AddrOfListElemImm(ILItem: PILItem);
+var ArrayType: TUserType;
+  Index: Integer; //of the item we want
+  ArrayOffset: Integer; //to the item we want
+begin
+  //On entry HL -> base address of list
+
+  Assert(ILItem.Param1.Kind in [pkVarRef, pkImmediate]);
+  ArrayType := ILItem.Param1.GetUserType;
+  Assert(ArrayType <> nil);
+  Assert(ArrayType.VarType = vtArrayType);
+  Assert(ArrayType.ArrayDef.ArrayType = atList);
+
+  //If Unbounded we need to validate index against vector length-byte
+  Assert(not ArrayType.ArrayDef.IsUnbounded, 'TODO');
+
+  Assert(ILItem.Param2.Kind = pkImmediate);
+  Assert(IsIntegerType(ILItem.Param2.Imm.UserType));
+  Assert(ILItem.Param2.Imm.IntValue >= 0);
+  Index := ILItem.Param2.Imm.ToInteger;
+  Assert((Index >= 0) and (Index < 255));
+  //TODO: Validate array size (if unbounded)
+
+  //TODO: Check Reg State: is value already loaded?
+  ArrayOffset := ArrayType.ArrayDef.ElementSize * Index + ArrayType.ArrayDef.MetaSize;
+  case ILItem.Param1.Kind of
+    pkImmediate: DoGenAddrOfStaticOffsetImm(ILItem.Param1.Imm, ArrayOffset);
+    pkVarRef: DoGenAddrOfListElemImm(ILItem.Param1.Variable, Index, ArrayOffset);
+  else
+    raise EParamKind.Create;
+  end;
+end;
+
+//Generate code to convert the array index (in (H)L to an offset from the array
 //base, returned in HL
 //Also bounds checks the index value as necessary
-procedure GenIndexToOffset(V: PVariable;IndexParam: PILParam;ArrayType: PUserType; ElementSize: Integer);
+procedure GenIndexToOffset(V: PVariable;IndexParam: PILParam;ArrayType: TUserType;
+ElementSize: Integer;PreserveDE: Boolean);
 var IndexVT: TVarType;    //Index type
 begin
   //TODO: Only for vtArrayType - others use dynamic bounds checking
@@ -1026,73 +1055,125 @@ begin
       RegStateSetUnknowns([rFlags, rCF, rZF]);
     end;
   else
+    if PreserveDE then
+      OpPUSH(rDE);
+
     GenLoadRegLiteral(rDE, TImmValue.CreateInteger(ElementSize), []);
     //HL := HL * DE
     GenLibraryProc(':mult16_u_u__u', nil);
     RegStateSetUnknowns([rFlags, rCF, rZF]);
+
+    if PreserveDE then
+      OpPOP(rDE);
   end;
   //HL -> Index * ElementSize (Offset from array base (ignoring low bound))
 end;
 
-
-//Calc address of array element where:
-// - the array is in a static variable
-// - the index has been pre-loaded into the
-//   - HL register (16-bit value),
-//   - L register (unsigned 8-bit value)
-procedure Proc_AddrOfArrayElemStaticVarSource(ILItem: PILItem);
-var V: PVariable; //The array
-  ArrayType: PUserType; //Array type
-  AddrMode: TAddrMode;
-  Offset: Integer;  //Due to: stack offset; Low bounds; Meta data (length, capacity)
+(* REPLACEMNENT ROUTINE *)
+//Generates code to give the address of an offset from a variables data.
+//Uses the addressing mode supplied in AddrMode NOT that of V. This allows dererencing
+//of pointer variables and parameters
+//The value is returned in the DE register.
+//Reg can accept either rDE, rHL or rUnknown. If a value is passed in the generated
+//code willplace the result into the specified register. If rUnknown is passed in
+//the generated code will place the value into either rHL or rDE depending upon
+//whichever is the most convenient for the code.
+//On exit Reg returns the register which contains the value (ie it will be unchanged
+//if a value is passed in).
+procedure GenAddrOfPlusOffset(V: PVariable;AddrMode: TAddrMode;Offset: Integer;
+  var Reg: TCPUReg;PreserveHL: Boolean);
+var BaseReg: TCPUReg;
+  OffsetReg: TCPUReg; //Only used if we're adding/subtracting the offset
+  I: Integer;
 begin
-  Assert(ILItem.Param1.Kind = pkVarRef);
-  Assert(ILItem.Param2.Kind = pkVarSource);
-  Assert(IsOrdinalType(ILItem.Param2.Variable.UserType));
+  Assert(Reg in [rNone, rDE, rHL]);
 
-  V := ILItem.Param1.Variable;
-  ArrayType := V.UserType;
+  //TODO: Is vale already in register?
 
-  AddrMode := V.AddrMode;
-  //Tweak the addressing mode for typed pointers to simplify code generation
-  //(We can treat then the same as StatcRef/StackRef variables)
-  if ArrayType.VarType = vtTypedPointer then
+  if AddrMode = amStatic then
+  begin //V is static data
+    if Reg = rNone then
+      Reg := rDE;
+
+    //Get static address of array less (or plus) offset of first element (due
+    //to Low bounds of array)
+    if Offset < 0 then
+      OpMOV(Reg, V.GetAsmName + ' - ' + WordToStr(abs(Offset)))
+    else if Offset = 0 then
+      OpMOV(Reg, V.GetAsmName)
+    else  //Offset > 0
+      OpMOV(Reg, V.GetAsmName + ' + ' + WordToStr(Offset));
+    //TODO: Update Reg State
+
+    EXIT; //Reg contains Addr
+  end;
+
+  if abs(Offset) > 4 then
   begin
-    ArrayType := ArrayType.OfType;
-    case AddrMode of
-      amStatic: AddrMode := amstaticRef;
-      amStack: AddrMode := amStackRef;
-    else
-      raise EAddrMode.Create;
-    end;
+    if PreserveHL then
+      OpPUSH(rHL);
+    if Reg = rNone then
+      Reg := rHL;
+    BaseReg := rHL;
+    OffsetReg := rDE;
+  end
+  else if Reg = rNone then
+  begin
+    Reg := rDE;
+    BaseReg := Reg;
   end;
-  Assert(IsArrayType(ArrayType));
-  Assert(Assigned(ArrayType.OfType));
 
-  //Gen code to calculate the offset from array base (ElementSize * Index)
-  GenIndexToOffset(V, @ILItem.Param2, ArrayType, ArrayType.ArrayDef.ElementSize);
-  //HL -> Index * ElementSize (Offset from array base (ignoring low bound))
+  //Get base of array into BaseReg
+  case AddrMode of
+    amStack:
+    begin //Note: Base Offset calculated above includes stack offset from IX
+      OpPUSH(rIX);
+      OpPOP(BaseReg);
+    end;
+    amStaticRef: OpLOAD(BaseReg, V);
+    amStackRef:  OpLOAD(BaseReg, rIX, V, 0);
+  else
+    raise EAddrMode.Create; //Should never get here
+  end;
+  //TODO: Update Reg State
 
-  //Gen code to calculate the array base
-  case ArrayType.ArrayDef.ArrayType of
-    atArray:
+  //Add/Subtract offset from base
+  if abs(Offset) > 4 then
+  begin  //Add/Subtract offset from base
+    if Offset < 0 then
     begin
-      //Offset to data from array base
-      Offset := ArrayType.ArrayDef.ElementSize * -ArrayType.BoundsType.Low;
-      //Offset from stack base
-      if V.AddrMode = amStack then
-        Offset := Offset + V.Offset;
+      GenLoadRegLiteral(OffsetReg, TImmValue.CreateInteger(abs(Offset)), []);
+      GenLoadRegLiteral(rCF, TImmValue.CreateInteger(0), []);  //Clear carry
+      OpSBC(rHL, rDE);
+    end
+    else if Offset > 0 then
+    begin
+      GenLoadRegLiteral(OffsetReg, TImmValue.CreateInteger(abs(Offset)), []);
+      OpADD(rHL, rDE);
     end;
-//    atVector:
-{    atList:
-} else
-    Assert(False);  //Must be array type
-  end;
+    if Reg = rDE then
+      OpEXHLDE;
+    if PreserveHL then
+      OpPOP(rHL);
+    //TODO: Update Reg State (Offset is corrupt(??))
+  end
+  else  //Offset <= 4
+    for I := 0 to abs(Offset) do
+      if Offset < 0 then
+        OpDEC(BaseReg)
+      else
+        OpINC(BaseReg);
+  //TODO: Update Reg State
+end;
 
-      //TODO: Validate array size
-      //TODO: Check Reg State: is value already loaded?
 
-
+(*OLD - TO BE DELETED*)
+//Generates code to give the address of an offset from a variables data.
+//Uses the addressing mode supplied in AddrMode NOT that of V. This allows dererencing
+//of pointer variables and parameters
+//The value is returned in the DE register.
+procedure DoGenAddrOfPlusOffset(V: PVariable;AddrMode: TAddrMode;Offset: Integer);
+begin
   //At this point: HL->Indexed offset into the array
   case AddrMode of
     amStatic:
@@ -1101,7 +1182,9 @@ begin
       //to Low bounds of array)
       if Offset < 0 then
         OpMOV(rDE, V.GetAsmName + ' - ' + WordToStr(abs(Offset)))
-      else
+      else if Offset = 0 then
+        OpMOV(rDE, V.GetAsmName)
+      else  //Offset > 0
         OpMOV(rDE, V.GetAsmName + ' + ' + WordToStr(Offset))
       //TODO: Update Reg State
     end;  //HL -> Offset, DE -> array base
@@ -1138,6 +1221,89 @@ begin
   else
     raise EAddrMode.Create;
   end;
+end;
+(* END OF OLD/TO BE DELETED *)
+
+//Returns the type and addressing mode of a parameter. If the parameters type is
+//a typed pointer returns data for the pointed to data
+//If the data is stack relative StackOffset will return the offset from stack base,
+//  otherwise StackOffset returns 0
+procedure GetVarRefMetaData(const Param: TILParam;out DataType: TUserType;out AddrMode: TAddrMode;
+  out StackOffset: Integer);
+begin
+  //If passed on stack we'll add the offset from stack base
+  StackOffset := 0;
+
+  case Param.Kind of
+    pkVarRef:
+    begin
+      DataType := Param.Variable.UserType;
+      AddrMode := Param.Variable.AddrMode;
+    end;
+    pkImmediate:
+    begin
+      DataType := Param.Imm.UserType;
+      AddrMode := amStatic;
+    end;
+  else
+    raise EParamKind.Create;
+  end;
+
+  //Tweak the addressing mode for typed pointers to simplify code generation
+  //(We can treat then the same as StatcRef/StackRef variables)
+  if DataType.VarType = vtTypedPointer then
+  begin
+    DataType := DataType.OfType;
+    case AddrMode of
+      amStatic: AddrMode := amstaticRef;
+      amStack: AddrMode := amStackRef;
+    else
+      raise EAddrMode.Create;
+    end;
+  end
+  else
+    if (Param.Kind = pkVarRef) and (AddrMode = amStack) then
+      StackOffset := Param.Variable.Offset;
+end;
+
+//Calc address of array element where:
+// - the index has been pre-loaded into the
+//   - HL register (16-bit value),
+//   - L register (unsigned 8-bit value)
+procedure Proc_AddrOfArrayElemStaticVarSource(ILItem: PILItem);
+var V: PVariable; //The array
+  ArrayType: TUserType; //Array type
+  AddrMode: TAddrMode;
+  Offset: Integer;  //Due to: stack offset; Low bounds; Meta data (length, capacity)
+begin
+  Assert(ILItem.Param1.Kind = pkVarRef);
+  Assert(ILItem.Param2.Kind = pkVarSource);
+  Assert(IsOrdinalType(ILItem.Param2.Variable.UserType));
+
+  //Establish the Type and Addressing Mode
+  GetVarRefMetaData(ILItem.Param1, ArrayType, AddrMode, Offset);
+  Assert(IsArrayType(ArrayType));
+  Assert(Assigned(ArrayType.OfType));
+  Assert(ArrayType.ArrayDef.ArrayType = atArray);
+
+  V := ILItem.Param1.Variable;
+
+  //Gen code to calculate the array base
+  //Convert lower bounds value into a byte offset from array base
+  Offset := Offset + ArrayType.ArrayDef.ElementSize * -ArrayType.BoundsType.Low;
+
+  //Gen code to calculate the offset from array base (ElementSize * Index)
+  GenIndexToOffset(V, @ILItem.Param2, ArrayType, ArrayType.ArrayDef.ElementSize, False);
+  //HL -> Index * ElementSize (Offset from array base (ignoring low bound))
+
+
+
+      //TODO: Validate array size
+      //TODO: Check Reg State: is value already loaded?
+
+
+  DoGenAddrOfPlusOffset(V, AddrMode, Offset);
+
 
 
   //Add array base and offset
@@ -1145,6 +1311,74 @@ begin
   OpADD(rHL, rDE);
   RegStateSetVariable(rHL, ILItem.Dest.Variable, ILItem.Dest.VarVersion, rskVarValue);
   RegStateSetUnknowns([rDE, rFlags, rCF, rZF]);
+end;
+
+procedure Proc_AddrOfArrayElemVarSource(ILItem: PILItem);
+(*
+  Array:
+    Validate Index against Bounds (if bounds checking enabled)
+    Get address of data.
+    Subtract Lower bound (if non-zero)
+    Calculate offset to element (Index * ElementSize)
+    Add offset
+*)
+var V: PVariable; //The array
+  ArrayType: TUserType; //Array type
+  AddrMode: TAddrMode;
+  Offset: Integer;  //Due to: stack offset; Low bounds; Meta data (length, capacity)
+  BaseReg: TCPUReg;
+begin
+  Assert(ILItem.Param1.Kind = pkVarRef);
+  Assert(ILItem.Param2.Kind = pkVarSource);
+  Assert(IsOrdinalType(ILItem.Param2.Variable.UserType));
+
+  //Establish the Type, Addressing Mode, and any stack offset to data
+  GetVarRefMetaData(ILItem.Param1, ArrayType, AddrMode, Offset);
+  Assert(IsArrayType(ArrayType));
+  Assert(Assigned(ArrayType.OfType));
+  Assert(ArrayType.ArrayDef.ArrayType = atArray);
+
+  V := ILItem.Param1.Variable;
+
+  //(H)L -> Index
+  BaseReg := rDE;
+  GenAddrOfPlusOffset(V, AddrMode, Offset, BaseReg, True);
+  //(H)L -> Index. DE -> Base addr of data
+
+  GenIndexToOffset(V, @ILItem.Param2, ArrayType, ArrayType.ArrayDef.ElementSize, True);
+  //HL -> Offset from Base. DE -> Base addr of data
+
+  //TODO: Add HL and DE
+  OpADD(rHL, rDE);
+  //TODO: Update CPUState
+end;
+
+procedure Proc_AddrOfVectorElemVarSource(ILItem: PILItem);
+begin
+  //Get address of data
+    //If Vector or List we need address of Length field
+    //(but for Vector addr of data is addr of Length field!)
+
+(*
+  Vector:
+    Get address of data (also address of Length field)
+    Validate Index against Length field (if bounds checking)
+    Advance addr to elements
+    Calculate offset to element (Index * ElementSize)
+    Add offset
+*)
+end;
+
+procedure Proc_AddrOfListElemVarSource(ILItem: PILItem);
+begin
+(*
+  List:
+    Get address of Length field
+    Validate Index against Length field (if bounds checking)
+    Advance addr to elements
+    Calculate offset to element (Index * ElementSize)
+    Add offset
+*)
 end;
 
 procedure Proc_Sizeof(ILItem: PILItem);

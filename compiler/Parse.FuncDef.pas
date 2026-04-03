@@ -133,7 +133,7 @@ var
   Cursor: TParseCursor;
   Ident: String;
   Reg: TCPUReg;
-  UserType: PUserType;
+  UserType: TUserType;
   P: Integer;
 begin
   Parser.SkipWhiteNL;

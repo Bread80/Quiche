@@ -35,10 +35,11 @@ object Form1: TForm1
     end
     object edError: TEdit
       Touch.InteractiveGestures = [LongTap, DoubleTap]
+      Anchors = [akLeft, akTop, akRight]
       TabOrder = 2
       Position.X = 128.000000000000000000
       Position.Y = 48.000000000000000000
-      Size.Width = 385.000000000000000000
+      Size.Width = 633.000000000000000000
       Size.Height = 22.000000000000000000
       Size.PlatformDefault = False
     end
@@ -3125,8 +3126,8 @@ object Form1: TForm1
             Size.Height = 263.000000000000000000
             Size.PlatformDefault = False
             TabOrder = 0
-            Viewport.Width = 433.000000000000000000
-            Viewport.Height = 259.000000000000000000
+            Viewport.Width = 437.000000000000000000
+            Viewport.Height = 263.000000000000000000
           end
         end
       end
@@ -3159,8 +3160,8 @@ object Form1: TForm1
             Size.Height = 265.000000000000000000
             Size.PlatformDefault = False
             TabOrder = 0
-            Viewport.Width = 431.000000000000000000
-            Viewport.Height = 261.000000000000000000
+            Viewport.Width = 435.000000000000000000
+            Viewport.Height = 265.000000000000000000
           end
         end
       end
@@ -3193,8 +3194,8 @@ object Form1: TForm1
             Size.Height = 265.000000000000000000
             Size.PlatformDefault = False
             TabOrder = 0
-            Viewport.Width = 431.000000000000000000
-            Viewport.Height = 261.000000000000000000
+            Viewport.Width = 435.000000000000000000
+            Viewport.Height = 265.000000000000000000
           end
         end
       end
@@ -3229,8 +3230,8 @@ object Form1: TForm1
             Size.Height = 263.000000000000000000
             Size.PlatformDefault = False
             TabOrder = 1
-            Viewport.Width = 431.000000000000000000
-            Viewport.Height = 259.000000000000000000
+            Viewport.Width = 435.000000000000000000
+            Viewport.Height = 263.000000000000000000
           end
         end
       end
@@ -3255,8 +3256,8 @@ object Form1: TForm1
           Size.Height = 277.000000000000000000
           Size.PlatformDefault = False
           TabOrder = 0
-          Viewport.Width = 448.000000000000000000
-          Viewport.Height = 273.000000000000000000
+          Viewport.Width = 452.000000000000000000
+          Viewport.Height = 277.000000000000000000
         end
       end
     end

@@ -39,14 +39,14 @@ function DoVAR(const Ident: String;AddrMode: TAddrMode): TQuicheError;
 
 implementation
 uses SysUtils,
-  Def.Globals, Def.VarTypes, Def.Scopes,
+  Def.Globals, Def.VarTypes, Def.Scopes, Def.ScopesEX,
   Parse.TypeDefs, Parse.Expr;
 
 
 function ParseVarDeclaration(VarStatus: TVarStatus; AssignStatus: TAssignStatus;const Ident: String;
   out Variable: PVariable;AddrMode: TAddrMode): TQuicheError;
 var VarName: String;
-  UserType: PUserType;  //nil if we're using type inference
+  UserType: TUserType;  //nil if we're using type inference
   HaveAssign: Boolean;  //True if we're assigning a value
   Creating: Boolean;
   Keyword: TKeyword;
@@ -115,8 +115,6 @@ begin
       if not Assigned(UserType) then //(This is probably no longer needed)
         EXIT(Err(qeUnknownType));
       case UserType.VarType of
-        vtReal:
-          EXIT(ErrTODO('Type not yet supported: ' + UserType.Name));
         vtArrayType:
           if UserType.ArrayDef.IsUnbounded then
             EXIT(ErrSub2(qeInstantiateUnboundedArray, UserType.Name, UserType.Name));

@@ -24,7 +24,7 @@ procedure GenStoreImm(ILItem: PILItem;Options: TMoveOptionSet);
 //The RangeCheck parameter specifies whether range checking should be carried out
 //or not (again subject to FromType <> vtUnknown, and the relevant types).
 //RangeCheckProc, if not nil, specifies an optimised range checking procedure.
-procedure GenDestParam(const Param: TILParam;FromType: PUserType;RangeCheck: Boolean;
+procedure GenDestParam(const Param: TILParam;FromType: TUserType;RangeCheck: Boolean;
   RangeCheckProc: TRangeCheckProc;Options: TMoveOptionSet);
 
 //Takes the result from the register specified in ILItem.DestAlloc and stores it
@@ -428,7 +428,7 @@ end;
 
 //Stores an 8-bit value to a 16-bit variable, either sign extending or zero extending
 //as necessary
-procedure GenStoreReg8BitToVar16Bit(Reg: TCPUReg;FromType: PUserType;
+procedure GenStoreReg8BitToVar16Bit(Reg: TCPUReg;FromType: TUserType;
   Variable: PVariable;VarVersion: Integer;RangeChecked: Boolean;Options: TMoveOptionSet);
 var ViaA: Boolean;
 begin
@@ -462,7 +462,7 @@ end;
 //If RangeChecked is True it signifies the value has been range check. If so the
 //store routine may be able to simplify the conversion (ie a signed value may be able to
 //be zero extended rather than requiring sign extending
-procedure GenStoreRegVarValue(Reg: TCPUReg;FromType: PUserType;
+procedure GenStoreRegVarValue(Reg: TCPUReg;FromType: TUserType;
   Variable: PVariable;VarVersion: Integer;RangeChecked: Boolean;Options: TMoveOptionSet);
 begin
   case Reg of
@@ -619,7 +619,7 @@ end;
 
 //========================================================PROCESSING DEST PARAMS
 
-procedure GenDestParam(const Param: TILParam;FromType: PUserType;RangeCheck: Boolean;
+procedure GenDestParam(const Param: TILParam;FromType: TUserType;RangeCheck: Boolean;
   RangeCheckProc: TRangeCheckProc;Options: TMoveOptionSet);
 var Reg: TCPUReg;
 begin
@@ -677,8 +677,8 @@ end;
 // * generates code to handle the type conversion (if necessary)
 procedure StoreAfterPrim(ILItem: PILItem;Prim: PPrimitive);
 var RangeCheckProc: TRangeCheckProc;
-  ToType: PUserType;
-  FromType: PUserType;
+  ToType: TUserType;
+  FromType: TUserType;
 begin
   //Update CPU state but ignore kinds which don't have a Variable
   if (ILItem.Dest.Reg <> rNone) and not (ILItem.Dest.Kind in [pkCondBranch, pkPush, pkPushByte]) then

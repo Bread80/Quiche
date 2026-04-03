@@ -44,8 +44,9 @@ function IdentToKeyword(Ident: String): TKeyword;
 //If not found, leaves the parser position unchanged
 function TestAssignment: Boolean;
 
-//If Found consumes the symbol, otherwise consumes nothing
-function TestRangeOperator(out Found: Boolean): TQuicheError;
+//Tests for ..
+//If Found the symbol will be consumed, otherwise consumes nothing
+function TestRangeOperator: Boolean;
 
 //Tests for a specific identifier.
 //Parser must be position on the first char of the identifier
@@ -89,7 +90,7 @@ function ParseKeyword(out Keyword: TKeyword): TQuicheError;
 //Test for a Type Suffix Symbol.
 //If found returns the type and consumes the characters,
 //if not returns vtUnknown and leaves the Parser cursor unchanged
-function TestForTypeSymbol(out UserType: PUserType): TQuicheError;
+function TestForTypeSymbol(out UserType: TUserType): TQuicheError;
 
 //Parses a comma separated list of identifiers.
 //Each must not be a keyword. Each must be unique within the list.
@@ -141,7 +142,7 @@ function ParseLiteralToValue: TImmValue;
 implementation
 uses SysUtils,
   {$ifndef fpc}IOUtils,{$endif}
-  Def.Scopes;
+  Def.Scopes, Def.ScopesEX;
 
 procedure LoadFromString(Source: String);
 begin
@@ -237,17 +238,22 @@ begin
   Result := False;
 end;
 
-function TestRangeOperator(out Found: Boolean): TQuicheError;
+function TestRangeOperator: Boolean;
 var S: String;
   Cursor: TParseCursor;
 begin
   Cursor := Parser.GetCursor;
-  Result := ParseSymbol(S);
-  if Result <> qeNone then
-    EXIT;
-  Found := S = '..';
-  if not Found then
-    Parser.SetCursor(Cursor);
+  if Parser.TestChar = '.' then
+  begin
+    Parser.SkipChar;
+    if Parser.TestChar = '.' then
+    begin
+      Parser.SkipChar;
+      EXIT(True);
+    end;
+  end;
+  Parser.SetCursor(Cursor);
+  Result := False;
 end;
 
 function TestSymbolFirst: Boolean;
@@ -357,7 +363,7 @@ begin
     Keyword := IdentToKeyword(Ident);
 end;
 
-function TestForTypeSymbol(out UserType: PUserType): TQuicheError;
+function TestForTypeSymbol(out UserType: TUserType): TQuicheError;
 var Ch: Char;
   VarType: TVarType;
   Cursor: TParseCursor;
@@ -398,9 +404,6 @@ begin
           EXIT(qeNone);
         end;
     end;
-
-    if VarType in [vtReal] then
-      EXIT(ErrTODO('Type not yet supported: ' + VarTypeToName(VarType)));
   end;
 
   if VarType = vtUnknown then

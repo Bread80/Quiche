@@ -2,18 +2,28 @@ unit Parse.Literals;
 
 interface
 uses Def.Operators, Def.IL, Def.UserTypes, Def.VarTypes, Def.Consts,
-  Parse.Errors;
+  Parse.Errors, Parse.Source;
 
 //Unary prefix operators
 type
   //Subset of operators. Only opNegate and opComplement are permitted.
   //(opAddr is processes differently)
-  TUnaryOperator = TOperator;
+  TUnaryOperator = TOperation;
 
   //Is the operand size explicitly specified within the expression, or
   //implied. Explicitly sized operands should retain that size, implicit ones
   //may be extended or shortened to optimise the code generation
   TParamOrigin = (poImplicit, poExplicit);
+
+  TRangeListItemType = (rlitItem, rlitRangeLow, rlitRangeHigh);
+
+  PRangeListItem = ^TRangeListItem;
+  TRangeListItem = record
+    ItemType: TRangeListItemType;
+    Operand: TILParam;  //Slug: TExprSlug;
+    Cursor: TParseCursor; //For error reporting
+  end;
+  TRangeList = TArray<TRangeListItem>;
 
 
 //The expression parser breaks the input stream down into 'slugs'. Each slug
@@ -28,17 +38,18 @@ type
     //NOTE: If ILItem is non-nil then Operand will be ignored
     ILItem: PILItem;  //Returns the ILItem of a sub-expression or unary operators
                       //(Otherwise, nil);
-
     Operand: TILParam;  //The operand
+    RangeList: TRangeList;
+
     ParamOrigin: TParamOrigin;
 
     Negate: Boolean;    //Used when reading operators - negate next parameter (-)?
     Invert: Boolean;    //As above, invert next parameter (NOT)?
 
-    Op: TOperator;    //Index into Operators list
+    Op: TOperation;    //Index into Operators list
 
-    ResultType: PUserType; //Type for the result
-    ImplicitType: PUserType;//?? Type for type inference
+    ResultType: TUserType; //Type for the result
+    ImplicitType: TUserType;//?? Type for type inference
 
     //Used where the result value of a function call used pass-by-reference.
     //The result will be assigned to a variable (possibly a temp variable). The
@@ -61,7 +72,7 @@ type
     procedure AssignToHiddenVar;
 
     procedure SetImmediate(VarType: TVarType;Value: Integer);overload;
-    procedure SetImmediate(AImmType: PUserType;const Value: TImmValue);overload;
+    procedure SetImmediate(AImmType: TUserType;const Value: TImmValue);overload;
 
     function ResultVarType: TVarType;
     //Is the slugs value an Immediate (ie a literal)
@@ -107,7 +118,7 @@ function ParseStringOrChar(var Slug: TExprSlug): TQuicheError;
 implementation
 uses SysUtils,
   Def.Variables, Def.Globals,
-  Parse.Source, Parse.Base;
+  Parse.Base;
 
 //===================================== Slugs
 
@@ -138,6 +149,7 @@ begin
   ResultType := nil;
   ImplicitType := nil;
   ResultByRefParam := nil;
+  SetLength(RangeList, 0);
 end;
 
 function TExprSlug.IsImmediate: Boolean;
@@ -155,7 +167,7 @@ begin
   Result := UTToVT(ResultType);
 end;
 
-procedure TExprSlug.SetImmediate(AImmType: PUserType;const Value: TImmValue);
+procedure TExprSlug.SetImmediate(AImmType: TUserType;const Value: TImmValue);
 begin
   Assert(ILItem = nil);
   Operand.SetImmediate(Value);
@@ -185,14 +197,54 @@ end;
 
 //======================================Parsing literals
 
+function StrToReal(const S: String): Double;
+begin
+  //TODO - TEMP
+  Result := StrToFloat(S);
+end;
+
+function ReturnReal(var Slug: TExprSlug;const S: String): TQuicheError;
+begin
+  Slug.SetImmediate(GetSystemType(vtReal), TImmValue.CreateReal(StrToReal(S)));
+  Result := qeNone;
+end;
+
+function ReturnInteger(var Slug: TExprSlug;const S: String;Large: Boolean;Sign: TSign): TQuicheError;
+var Value: Integer;
+begin
+  if not TryStrToInt(S, Value) then
+    EXIT(Err(qeInvalidDecimalNumber));
+  if (Sign <> sgnNone) or Large then
+    Slug.ParamOrigin := poExplicit
+  else
+    Slug.ParamOrigin := poImplicit;
+
+  if (Sign <> sgnNone) or optDefaultSignedInteger then
+  begin
+    if optDefaultSmallestInteger and not Large and (Value >= -128) and (Value <= 127) then
+      Slug.SetImmediate(vtInt8, Value)
+    else
+      Slug.SetImmediate(vtInteger, Value);
+  end
+  else
+  begin
+    if optDefaultSmallestInteger and not Large and (Value <= 255) then
+      Slug.SetImmediate(vtByte, Value)
+    else
+      Slug.SetImmediate(vtWord, Value);
+  end;
+  Result := qeNone;
+end;
+
 function ParseDecimal(var Slug: TExprSlug;Sign: TSign): TQuicheError;
-var S: String;
-  Value: Integer;
+var State: (inInteger, inFraction, inExponent);
+  S: String;
   Ch: Char;
   Large: Boolean; //If first digit is '0' expand type to vtInteger/vtWord
   Cursor: TParseCursor;
 begin
   Slug.Initialise;
+  State := inInteger;
   if Sign = sgnMinus then
     S := '-'
   else
@@ -202,45 +254,52 @@ begin
   begin
     Ch := Parser.TestChar;
     case Ch of
-      '0'..'9': S := S + Ch;
-      'e','E':  EXIT(ErrTODO('Floating point numbers are not yet supported :('));
-      '_': ;  //Ignore
+      '0'..'9':
+      begin
+        S := S + Ch;
+        Parser.SkipChar;
+      end;
+      'e','E':
+      begin
+        if State = inExponent then
+          EXIT(ReturnReal(Slug, S));
+
+        State := inExponent;
+        S := S + 'e';
+        Parser.SkipChar;
+        if Parser.TestChar in ['+','-'] then
+        begin
+          S := Parser.TestChar;
+          Parser.SkipChar;
+        end;
+      end;
+      '_': Parser.SkipChar;  //Ignore
     else  //End of /integer/ decimal (could be real)
       if Ch = '.' then
       begin //Do we have a floating point number? (Or, maybe, a range operator or
             //a dotted syntax expression
+        if State <> inInteger then
+          EXIT(ReturnReal(Slug, S));
+
         Cursor := Parser.GetCursor;
         Parser.SkipChar;
-        if CharInSet(Parser.TestChar, ['0'..'9']) then
-          EXIT(ErrTODO('Floating point numbers are not yet supported :('));
-        Parser.SetCursor(Cursor);
-      end;
+        //Next char must be a valid floating point digit, otherwise it's end
+        //of conversion
+        if not CharInSet(Parser.TestChar, ['0'..'9','e','E']) then
+        begin //Parsing ended at the period, so undo the SkipChar
+          Parser.SetCursor(Cursor);
+          EXIT(ReturnInteger(Slug, S, Large, Sign));
+        end;
 
-      if not TryStrToInt(S, Value) then
-        EXIT(Err(qeInvalidDecimalNumber));
-      if (Sign <> sgnNone) or Large then
-        Slug.ParamOrigin := poExplicit
-      else
-        Slug.ParamOrigin := poImplicit;
-
-      if (Sign <> sgnNone) or optDefaultSignedInteger then
-      begin
-        if optDefaultSmallestInteger and not Large and (Value >= -128) and (Value <= 127) then
-          Slug.SetImmediate(vtInt8, Value)
-        else
-          Slug.SetImmediate(vtInteger, Value);
+        State := inFraction;
+        S := S + '.';
       end
       else
-      begin
-        if optDefaultSmallestInteger and not Large and (Value <= 255) then
-          Slug.SetImmediate(vtByte, Value)
+        if State = inInteger then
+          EXIT(ReturnInteger(Slug, S, Large, Sign))
         else
-          Slug.SetImmediate(vtWord, Value);
-      end;
-      EXIT(qeNone);
+          EXIT(ReturnReal(Slug, S));
     end;
-
-    Parser.SkipChar;
   end;
 end;
 
@@ -376,7 +435,7 @@ function ParseStringOrChar(var Slug: TExprSlug): TQuicheError;
 var
   S: String;
   Ch: Char;
-  UserType: PUserType;
+  UserType: TUserType;
 begin
   Parser.Mark;
   S := '';

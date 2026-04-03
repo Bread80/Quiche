@@ -85,17 +85,46 @@ begin
     Result := Result + '''';
 end;
 
+function GenBlobLiteral(C: PConst): String;
+var Blob: TBlob;
+  Line: String;
+  I: Integer;
+begin
+  Blob := C.BlobValue;
+  Result := C.ToLabel + ':'#13;
+  Line := '';
+  for I := 0 to length(Blob)-1 do
+  begin
+    if I mod 16 = 0 then
+    begin
+      if Line <> '' then
+        Result := Result + Line + #13;
+      Line := '    db ';
+    end
+    else
+      Line := Line + ',';
+    Line := Line + ByteToStr(Blob[I]);
+  end;
+  if Line <> '' then
+    Result := Result + Line;
+end;
+
 procedure GenPointeredLiteral(C: PConst);
 var S: String;
   Code: String;
 begin
   case C.VarType of
+    vtReal:
+      Code := GenBlobLiteral(C);
     vtArrayType:
-    begin
-      S := C.Value.StringValue;
-      Code := C.Value.ToLabel + ':'#13 +
-        'db ' + length(S).ToString + ',' + AsmSanitiseString(S);
-    end;
+      if C.UserType.IsStringType then
+      begin
+        S := C.StringValue;
+        Code := C.ToLabel + ':'#13 +
+          'db ' + length(S).ToString + ',' + AsmSanitiseString(S);
+      end
+      else
+        Code := GenBlobLiteral(C);
   else
     raise Exception.Create('Unknown VarType');
   end;

@@ -52,7 +52,7 @@ function ParseQuiche(ParseMode: TParseMode;AddrMode: TAddrMode): TQuicheError;
 
 implementation
 uses SysUtils, Classes,
-  Def.Functions, Def.Globals, Def.IL, Def.Operators, Def.VarTypes, Def.Scopes,
+  Def.Functions, Def.Globals, Def.IL, Def.Operators, Def.VarTypes, Def.Scopes, Def.ScopesEX,
   Def.Consts, Def.UserTypes,
   Parse.Base, Parse.Fixups, Parse.FuncCall, Parse.FuncDef, Parse.Source, Parse.TypeDefs,
   Parse.VarDefs, Parse.Literals;
@@ -112,7 +112,7 @@ end;
 //Anything other syntax will return qeNone, VT as vtUnknown, and leaves the parser
 //cursor unchanged
 //If the <type-name> is unknown will return an error
-function ParseTypeSpecifier(out UT: PUserType): TQuicheError;
+function ParseTypeSpecifier(out UT: TUserType): TQuicheError;
 begin
   if Parser.TestChar = ':' then
   begin
@@ -125,7 +125,6 @@ begin
       EXIT(qeNone);
     end;
 
-    Parser.SkipChar;
     Result := Parser.SkipWhiteNL;
     if Result <> qeNone then
       EXIT;
@@ -144,7 +143,7 @@ end;
 function DoCONST(const Ident: String): TQuicheError;
 var ConstName: String;
   Value: TImmValue;
-  AsType: PUserType;
+  AsType: TUserType;
 begin
   Result := Parser.SkipWhiteNL;
   if Result <> qeNone then
@@ -153,6 +152,10 @@ begin
   //Name
   ConstName := Ident;
   Result := ParseUniqueIdentifierIfNone(ConstName);
+  if Result <> qeNone then
+    EXIT;
+
+  Result := Parser.SkipWhite;
   if Result <> qeNone then
     EXIT;
 
@@ -789,7 +792,7 @@ begin
       //Raise identifier not found
       EXIT(ErrSub(qeUndefinedIdentifier, Ident));
     end;
-    itVar:
+    itVariable:
     begin
       Result := ParseAssignment(IdentData.V);
       if Result <> qeNone then

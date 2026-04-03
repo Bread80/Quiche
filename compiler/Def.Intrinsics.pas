@@ -49,7 +49,7 @@ procedure LoadIntrinsicsFile(const Filename: String;FuncList: PFuncList);
   procedure ProcessParam(Param: PParameter;const Access, Name, VarType,
     DefaultValue, Flags: String);
   var ArrayDef: TArrayDef;
-    UserType: PUserType;
+    UserType: TUserType;
     IntValue: Integer;
   begin
     if CompareText(Access, 'val') = 0 then

@@ -66,7 +66,9 @@ uses
   Parse.Literals in 'Parse.Literals.pas',
   Parse.Pointers in 'Parse.Pointers.pas',
   IDE.CommandLine in 'IDE.CommandLine.pas',
-  Parse.TypeChecker in 'Parse.TypeChecker.pas';
+  Parse.TypeChecker in 'Parse.TypeChecker.pas',
+  Parse.RangeLists in 'Parse.RangeLists.pas',
+  Def.ScopesEX in 'Def.ScopesEX.pas';
 
 {$R *.res}
 

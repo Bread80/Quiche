@@ -27,6 +27,7 @@ Operators table defines available operations:
 }
 
 interface
+uses Def.VarTypes, Def.UserTypes;
 
 //Convert Inc to Add and Dec to Sub for cases of Inc(r, n) and Dec(r, n)
 //where n > this value
@@ -52,7 +53,7 @@ type
 
   //The listing below includes comments on parameter usage within the ILItem record
   //(see ILData unit)
-  TOperator = (
+  TOperation = (
     //Special/system operators
     //------------------------
     //Param Kinds for these are varied.
@@ -126,6 +127,8 @@ type
     opAdd, opSubtract, opMultiply, opRealDiv, opIntDivide, opMod,
     //Logic
     opOR, opAND, opXOR,
+    //Bitwise
+    opBitOR, opBitAND, opBitXOR,
     //Comparisons
     opEqual, opNotEqual, opLess, opGreater, opLessEqual, opGreaterEqual,
     //Misc
@@ -169,8 +172,11 @@ type
   POpData = ^TOpData;
   TOpData = record
     Name: String;         //Internal name of the operation
+//    Operation: TOperation;
+(* TO BE REMOVED (??)*)
     Precedence: Integer;  //In expressions. Higher equal higher.
                           //Only meaningful for binary operators
+(* TO BE REMOVED (??)*)
     SignCombine: Boolean; //Affects how the primitives table is searched when
                           //either parameter is a numerical constant.
                           //(Only affects numerical operations)
@@ -183,32 +189,39 @@ type
                           //of the signedness of both parameters.
                           //If SignCombine is False the size and signedness of
                           //each parameter will be examined separately.
+(* TO BE REMOVED (??)*)
+    Commutative: Boolean; //If True the ordering of operands can be swapped without
+                          //affecting the result.
+
     FirstPrimIndex: Integer;  //Index in PrimListNG of the first entry for this
                           //operator
   end;
 
-var Operations : array[low(TOperator)..high(TOperator)] of TOpData;
+var Operations : array[low(TOperation)..high(TOperation)] of TOpData;
 
 
 //Finds the first operator with the given symbol
-function SymbolToOperator(const Symbol: String): TOperator;
+function SymbolToOperator(const Symbol: String): TOperation;
 
 //Finds the operator with the given Name
-function IdentToInfixOperator(const Name: String): TOperator;
-function IdentToAnyOperator(const Name: String): TOperator;
-function IdentToIntrinsicOperator(const Name: String): TOperator;
+function IdentToInfixOperator(const Name: String): TOperation;
+function IdentToAnyOperator(const Name: String): TOperation;
+function IdentToIntrinsicOperator(const Name: String): TOperation;
+
+function OpCheckInfix(Op: TOperation;LeftType, RightType: TUserType;out ChangeOp: TOperation;
+  out ResultType: TUserType): Boolean;
 
 procedure InitialiseOperators;
 
 procedure LoadOperatorsFile(const Filename: String);
 
 //Convert an operator index to a string explaining it's usage
-function OpToUsage(Op: TOperator): String;
+function OpToUsage(Op: TOperation): String;
 
 function StringToBoolean(S: String): Boolean;
 
 
-const OpStrings : array[low(TOperator)..high(TOperator)] of String = (
+const OpStrings : array[low(TOperation)..high(TOperation)] of String = (
   //System operators
   'UNKNOWN','Typecast',
   'Move','BlockCopy','ParamCopyToStack','StoreImm',
@@ -223,6 +236,7 @@ const OpStrings : array[low(TOperator)..high(TOperator)] of String = (
   //Binary operators
   'Add', 'Subtract', 'Multiply', 'RealDiv', 'Div', 'Mod',
   'OR', 'AND', 'XOR',
+  'BitOR', 'BitAND', 'BitXOR',
   'Equal', 'NotEqual', 'Less', 'Greater', 'LessEqual', 'GreaterEqual',
   'Concat', 'In', 'SHR', 'SHL',
 
@@ -244,16 +258,59 @@ const OpStrings : array[low(TOperator)..high(TOperator)] of String = (
 implementation
 uses Classes, SysUtils;
 
+//Mapping from symbols to operations
+type
+  POpMapping = ^TOpMapping;
+  TOpMapping = record
+    Symbol: String;
+    Name: String;         //Internal name of the operation
+    Op: TOperation;       //(Operator is a reserved word)
+    LeftType: TVarType;
+    LeftSuperType: TSuperType;
+    RightType: TVarType;
+    RightSuperType: TSuperType;
+
+    Operation: TOperation;  //Maps to operation
+
+    Precedence: Integer;  //In expressions. Higher equal higher.
+                          //Only meaningful for binary operators
+    SignCombine: Boolean; //Affects how the primitives table is searched when
+                          //either parameter is a numerical constant.
+                          //(Only affects numerical operations)
+                          //If SignCombine is True: the other (non-constant)
+                          //parameter will be examined. A primitive will be chosen
+                          //based on whether the non-constant parameter is signed
+                          //or not and whether the constant parameter can be
+                          //represented within that type, and if not the type(s)
+                          //of one or both parameters will be expanded on the basis
+                          //of the signedness of both parameters.
+                          //If SignCombine is False the size and signedness of
+                          //each parameter will be examined separately.
+    Commutative: Boolean; //If True the ordering of operands can be swapped without
+                          //affecting the result.
+    ResultType: TVarType;
+    ResultSuperType: TSuperType;
+  end;
+
+//Mapping data for all available operators
+var OpMap: TArray<TOpMapping>;
+
+function AddOpMapping: POpMapping;
+begin
+  SetLength(OpMap, Length(OpMap) + 1);
+  Result := @OpMap[Length(OpMap)-1];
+end;
+
 const
   //Mapping between ASCII and symbolic operators
-  SymbolOps: TArray<TOperator> = [opAdd, opSubtract, opMultiply, opRealDiv,
+  SymbolOps: TArray<TOperation> = [opAdd, opSubtract, opMultiply, opRealDiv,
     opEqual,opNotEqual,opLess,opGreater,opLessEqual,opGreaterEqual];
   SymbolStrings: TArray<String> = ['+','-','*','/','=','<>','<','>','<=','>='];
 
 procedure ClearOpList;
-var Op: TOperator;
+var Op: TOperation;
 begin
-  for Op := low(TOperator) to high(TOperator) do
+  for Op := low(TOperation) to high(TOperation) do
   begin
     Operations[Op].Name := '';
   end;
@@ -262,9 +319,10 @@ end;
 procedure InitialiseOperators;
 begin
   ClearOpList;
+  SetLength(OpMap, 0);
 end;
 
-function SymbolToOperator(const Symbol: String): TOperator;
+function SymbolToOperator(const Symbol: String): TOperation;
 var I: Integer;
 begin
   Assert(Length(SymbolOps) = Length(SymbolStrings));
@@ -275,7 +333,7 @@ begin
   Result := opUnknown;
 end;
 
-function IdentToInfixOperator(const Name: String): TOperator;
+function IdentToInfixOperator(const Name: String): TOperation;
 begin
   for Result in InfixOps do
     if CompareText(Name, OpStrings[Result]) = 0 then
@@ -284,16 +342,16 @@ begin
   Result := opUnknown;
 end;
 
-function IdentToAnyOperator(const Name: String): TOperator;
+function IdentToAnyOperator(const Name: String): TOperation;
 begin
-  for Result := low(TOperator) to high(TOperator) do
+  for Result := low(TOperation) to high(TOperation) do
     if CompareText(Name, OpStrings[Result]) = 0 then
       EXIT;
 
   Result := opUnknown;
 end;
 
-function IdentToIntrinsicOperator(const Name: String): TOperator;
+function IdentToIntrinsicOperator(const Name: String): TOperation;
 begin
   for Result in IntrinsicOps do
     if CompareText(Name, OpStrings[Result]) = 0 then
@@ -303,13 +361,96 @@ begin
 end;
 
 function IdentToOpData(const Name: String): POpData;
-var Op: TOperator;
+var Op: TOperation;
 begin
-  for Op := low(TOperator) to high(TOperator) do
+  for Op := low(TOperation) to high(TOperation) do
     if CompareText(Name, OpStrings[Op]) = 0 then
       EXIT(@Operations[Op]);
 
   Result := nil;
+end;
+
+function OpCheckInfix(Op: TOperation;LeftType, RightType: TUserType;out ChangeOp: TOperation;
+  out ResultType: TUserType): Boolean;
+
+  //VT and ST are from the mapping. UT and from the operand
+  //TODO: Deeper type compatibility checks??
+  function OperandMatch({Mapping: POpMapping; }OpVT: TVarType;OpST: TSuperType;OperandType: TUSerType): Boolean;
+  begin
+    if OpVT = vtUnknown then
+    begin //Use SuperType
+      case OpST of
+        stNumeric: EXIT(IsNumericType(OperandType));
+        stAnyInteger: EXIT(IsIntegerType(OperandType));
+        stOrdinal: EXIT(IsOrdinalType(OperandType));
+        stString:  EXIT(OperandType.IsStringableType);
+        //TODO: More SuperTypes
+      else
+        raise Exception.Create('SuperType TODO');
+      end;
+    end
+    else
+    begin
+(*      if IsOrdinalVarType(OpVT) then
+      begin
+        if IsIntegerVarType(OpVT) then
+          EXIT(IsIntegerType(OperandType));
+        EXIT(OpVT = OperandType.VarType);
+        //TODO: More detail?
+      end
+      else
+*)        EXIT(OpVT = OperandType.VarType);
+    end;
+  end;
+
+  function GetResultType(Mapping: POpMapping;LeftType, RightType: TUserType): TUserType;
+  begin
+    if Mapping.ResultType = vtUnknown then
+    case Mapping.ResultSuperType of
+      stNumeric, stAnyInteger: EXIT(nil); //We'll need to use primitives table to determine the combined type
+      stString: EXIT(GetSystemStringType);
+    else
+    end
+    else
+      case Mapping.ResultType of
+        vtBoolean: EXIT(GetSystemType(vtBoolean));
+      else
+      end;
+
+    //The above handles all the currently used values in the Operators.csv file
+    raise Exception.Create('Unknown Operand combination in OpCheckInfix');
+  end;
+
+var I: Integer;
+  Mapping: POpMapping;
+begin
+  I := 0;
+  //Find first item in mappings table
+  while (I < Length(OpMap)) and (OpMap[I].Op <> Op) do
+    inc(I);
+  if I >= Length(OpMap) then
+    EXIT(False);
+
+  while (I < Length(OpMap)) and (OpMap[I].Op = Op) do
+  begin
+    Mapping := @OpMap[I];
+
+    if OperandMatch(Mapping.LeftType, Mapping.LeftSuperType, LeftType) and
+      OperandMatch(Mapping.RightType, Mapping.RightSuperType, RightType) then
+    begin
+      if (LeftType.VarType = vtEnumeration) then
+        if LeftType.VarType = RightType.VarType then
+          if RemoveSubRange(LeftType) <> RemoveSubRange(RightType) then
+            EXIT(False);
+
+      //TODO: For User Declared Types, verify that the parameters match
+      ChangeOp := Mapping.Operation;
+      ResultType := GetResultType(Mapping, LeftType, RightType);
+      EXIT(True);
+    end;
+    inc(I)
+  end;
+  Result := False;
 end;
 
 //Returns True if the first char of S is Y or y.
@@ -320,9 +461,18 @@ begin
 end;
 
 const
-  fNGOpName = 1;
-  fNGPrecedence = 2;
-  fNGSignCombine = 3;
+  //Operation data
+  fOperation = 1;
+  fPrecedence = 2;
+  fSignCombine = 3;
+  fCommutative = 4;
+
+  //Operator data
+  fSymbol = 5;
+  fOperator = 6;
+  fLeftType = 7;
+  fRightType = 8;
+  fResultType = 9;
 
 procedure LoadOperatorsFile(const Filename: String);
 var Data: TStringList;
@@ -330,6 +480,7 @@ var Data: TStringList;
   Fields: TArray<String>;
   Op: POpData;
   I: Integer;
+  Mapping: POpMapping;
 begin
   Data := TStringList.Create;
   Data.LoadFromFile(Filename);
@@ -341,27 +492,77 @@ begin
         EXIT;
 
       Fields := Line.Split([',']);
-      if Fields[fNGOpName] <> '' then
+      if Fields[fOperation] <> '' then
       begin
+        //======OPERATION DATA
         if Length(Fields) < 11 then
           raise Exception.Create('Operators line too short: ' + Line);
         for I:=0 to Length(Fields)-1 do
           Fields[I] := Fields[I].Trim;
 
-        Op := IdentToOpData(Fields[fNGOpName]);
+        Op := IdentToOpData(Fields[fOperation]);
         if Op = nil then
-          raise Exception.Create('Operator not found: ' + Fields[fNGOpName] +
-            #13#10'On reading the operators file and operator was found which is not definied within Quiche.');
+          raise Exception.Create('Operator not found: ' + Fields[fOperation] +
+            #13#10'On reading the operators file an operator was found which is not definied within Quiche.');
 
         Op.FirstPrimIndex := -1;
-        Op.Name := Fields[fNGOpName];
-        Op.Precedence := StrToInt(Fields[fNGPrecedence]);
-        Op.SignCombine := StringToBoolean(Fields[fNGSignCombine]);
+        Op.Name := Fields[fOperation];
+        Op.Precedence := StrToInt(Fields[fPrecedence]);
+        Op.SignCombine := StringToBoolean(Fields[fSignCombine]);
+      end;
+
+      //======OPERATOR MAPPING/DATA
+      if Fields[fOperator] <> '' then
+      begin
+        Mapping := AddOpMapping;
+        Mapping.Op := IdentToAnyOperator(Fields[fOperator]);
+        if Mapping.Op = opUnknown then
+          raise Exception.Create('Operator not found: ' + Fields[fOperator] +
+            #13#10'On reading the operators file an operator was found which is not definied within Quiche.');
+        Mapping.Name := Fields[fOperator];
+        Mapping.Symbol := Fields[fSymbol];
+
+        if StringToSuperType(Fields[fLeftType], Mapping.LeftSuperType) then
+          Mapping.LeftType := vtUnknown
+        else
+        begin
+          Mapping.LeftType := StringToVarType(Fields[fLeftType]);
+          if Mapping.LeftType = vtUnknown then
+            raise Exception.Create('Invalid LeftType: ' + Fields[fLeftType] + ' in operators file.');
+        end;
+
+        if StringToSuperType(Fields[fRightType], Mapping.RightSuperType) then
+          Mapping.RightType := vtUnknown
+        else
+        begin
+          Mapping.RightType := StringToVarType(Fields[fRightType]);
+          if Mapping.RightType = vtUnknown then
+            if Fields[fRightType] <> '' then
+              raise Exception.Create('Invalid RightType: ' + Fields[fRightType] + ' in operators file.');
+        end;
+
+        Mapping.Operation := IdentToAnyOperator(Fields[fOperation]);
+        if Mapping.Operation = opUnknown then
+          raise Exception.Create('Operation not found: ' + Fields[fOperation] +
+            #13#10'On reading the operators file an operation was found which is not definied within Quiche.');
+        Mapping.Precedence := StrToInt(Fields[fPrecedence]);
+        Mapping.SignCombine := StringToBoolean(Fields[fSignCombine]);
+        Mapping.Commutative := StringToBoolean(Fields[fCommutative]);
+
+        if StringToSuperType(Fields[fResultType], Mapping.ResultSuperType) then
+          Mapping.ResultType := vtUnknown
+        else
+        begin
+          Mapping.ResultType := StringToVarType(Fields[fResultType]);
+          if Mapping.ResultType = vtUnknown then
+            if Fields[fResultType] <> '' then
+              raise Exception.Create('Invalid ResultType: ' + Fields[fResultType] + ' in operators file.');
+        end;
       end;
     end;
 end;
 
-function OpToUsage(Op: TOperator): String;
+function OpToUsage(Op: TOperation): String;
 //var OpData: POpData;
 begin
   //TODO

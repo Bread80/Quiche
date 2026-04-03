@@ -1,5 +1,2 @@
-write('Hello')
-
-  var P :Pointer
-  P := @'Hello World!'
-  var Len := P^
+type E = (a,b,c)
+var x := a

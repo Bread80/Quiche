@@ -200,7 +200,7 @@ end;
 procedure TEMPRegAllocBlockCopy(var ILItem: PILItem);
 begin
   Assert(ILItem.Op = opBlockCopy);
-  Assert(ILItem.Param1.Kind in [pkVarRef, pkVarSource]);
+  Assert(ILItem.Param1.Kind in [pkVarRef, pkVarSource, pkImmediate]);
   Assert(ILItem.Param2.Kind = pkImmediate);
   Assert(ILItem.Dest.Kind = pkVarRef);
   ILItem.Param1.Reg := rHL;

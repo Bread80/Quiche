@@ -8,13 +8,13 @@ interface
 uses Def.Consts, Def.UserTypes,
   Parse.Errors;
 
-function GetTypeLowValue(UserType: PUserType;var Value: TImmValue): TQuicheError;
-function GetTypeHighValue(UserType: PUserType;var Value: TImmValue): TQuicheError;
+function GetTypeLowValue(UserType: TUserType;var Value: TImmValue): TQuicheError;
+function GetTypeHighValue(UserType: TUserType;var Value: TImmValue): TQuicheError;
 
 implementation
 uses Def.VarTypes;
 
-function GetTypeLowValue(UserType: PUserType;var Value: TImmValue): TQuicheError;
+function GetTypeLowValue(UserType: TUserType;var Value: TImmValue): TQuicheError;
 begin
   if not Assigned(UserType) then
     EXIT(ErrSub(qeOrdinalTypeExpected, 'nil'));
@@ -26,7 +26,7 @@ begin
   Result := qeNone;
 end;
 
-function GetTypeHighValue(UserType: PUserType;var Value: TImmValue): TQuicheError;
+function GetTypeHighValue(UserType: TUserType;var Value: TImmValue): TQuicheError;
 begin
   if not Assigned(UserType) then
     EXIT(ErrSub(qeOrdinalTypeExpected, 'nil'));

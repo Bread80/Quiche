@@ -11,7 +11,7 @@ uses Def.UserTypes,
 //a name for the type. A definition is the section after the = in a declaration and
 //is unnamed. A name will be applied on return from this function if it is called as
 //part of a declaration
-function ParseTypeDefinition(out TheType: PUserType;OrdinalTypesOnly: Boolean = False): TQuicheError;
+function ParseTypeDefinition(out TheType: TUserType;OrdinalTypesOnly: Boolean = False): TQuicheError;
 
 //Parse a TYPE statement
 //
@@ -31,13 +31,43 @@ function DoTYPE(const Ident: String): TQuicheError;
 
 implementation
 uses SysUtils,
-  Def.Consts, Def.VarTypes, Def.Scopes, Def.Variables, Def.Functions, Def.Globals,
+  Def.Consts, Def.VarTypes, Def.Scopes, Def.ScopesEX, Def.Variables, Def.Functions, Def.Globals,
   Parse.Base, Parse.Source, Parse.Expr, Parse.FuncDef, Parse.VarDefs;
 
-function ParseSubRangeDefinition(out TheType: PUserType): TQuicheError;
+//Where ValueLow and ValueHigh are ordinal values, finds the optimal common type
+//based on their type and value (for numeric types)
+function FindCommonOrdinalType(ValueLow, ValueHigh: TImmValue;out CommonType: TUserType): TQuicheError;
+begin
+  CommonType := ValueLow.UserType;
+  if IsNumericVarType(ValueLow.VarType) then
+  begin
+    if not IsNumericVarType(ValueHigh.VarType) then
+      EXIT(ErrSub2(qeRangeBoundsTypeMismatch, ValueLow.UserType.Description, ValueHigh.UserType.Description));
+
+    if not TryFindCommonIntegerType(ValueLow.IntValue, ValueHigh.IntValue, CommonType) then
+      EXIT(ErrSub2(qeRangeExprValuesTooWide, ValueLow.ToString, ValueHigh.ToString));
+  end
+  else
+    case ValueLow.VarType of
+      vtBoolean, vtChar:
+        if ValueLow.VarType <> ValueHigh.VarType then
+          EXIT(ErrSub2(qeRangeBoundsTypeMismatch, ValueLow.UserType.Description, ValueHigh.UserType.Description));
+      vtEnumeration:
+        if ValueLow.UserType <> ValueHigh.UserType then
+          EXIT(ErrSub2(qeRangeBoundsTypeMismatch, ValueLow.UserType.Description, ValueHigh.UserType.Description));
+    else
+      Assert(False);  //Unknown type?
+    end;
+
+  if ValueLow.ToInteger >= ValueHigh.ToInteger then
+    //Left value must be < Right value
+    EXIT(ErrSub2(qeRangeValuesMisordered, ValueLow.ToString, ValueHigh.ToString));
+end;
+
+function ParseSubRangeDefinition(out TheType: TUserType): TQuicheError;
 var ValueLow: TImmValue;
   ValueHigh: TImmValue;
-  CommonType: PUserType;  //Common type of upper and lower bounds
+  CommonType: TUserType;  //Common type of upper and lower bounds
   Found: Boolean;
 begin
   Result := Parser.SkipWhite;
@@ -55,13 +85,8 @@ begin
   if Result <> qeNone then
     EXIT;
 
-  //Range operator
-  Result := TestRangeOperator(Found);
-  if Result = qeOperatorExpected then
-    EXIT(Err(qeRangeOperatorExpected));
-  if Result <> qeNone then
-    EXIT;
-  if not Found then
+  //Range operator ..
+  if not TestRangeOperator then
     EXIT(Err(qeRangeOperatorExpected));
 
   if not IsOrdinalVarType(ValueLow.VarType) then
@@ -82,50 +107,7 @@ begin
     EXIT(Err(qeOrdinalConstExprExpected));
 
   //Validate, and find a common type if required (ie for numeric types)
-  CommonType := ValueLow.UserType;
-  if IsNumericVarType(ValueLow.VarType) then
-  begin
-    if not IsNumericVarType(ValueHigh.VarType) then
-      EXIT(ErrSub2(qeRangeBoundsTypeMismatch, ValueLow.UserType.Description, ValueHigh.UserType.Description));
-
-    //If we can't fit all Word values into an Integer type...
-    //(This code is future proofed against wider Integer types)
-    if GetMaxValue(vtInteger) < GetMaxValue(vtWord) then
-      //...and the range of values is too wide to fit into any available Integer type
-      if (ValueLow.IntValue < 0) and (ValueHigh.IntValue > 32767) then
-        EXIT(ErrSub2(qeRangeExprValuesTooWide, ValueLow.ToString, ValueHigh.ToString));
-
-    //Find most suitable common numeric type (if any)
-    if ValueLow.IntValue < -128 then
-      CommonType := ValueLow.UserType
-    else if ValueHigh.IntValue > 32767 then
-      CommonType := ValueHigh.UserType  //We want to preserve any Pointer typing so use parsed types
-    else if ValueLow.IntValue < 0 then
-      if ValueHigh.IntValue > 127 then
-        CommonType := GetSystemType(vtInteger)
-      else
-        CommonType := GetSystemType(vtInt8)
-    else  //ValueLow >= 0
-      if ValueHigh.IntValue > 255 then
-        CommonType := ValueHigh.UserType
-      else
-        CommonType := GetSystemType(vtByte);
-  end
-  else
-    case ValueLow.VarType of
-      vtBoolean, vtChar:
-        if ValueLow.VarType <> ValueHigh.VarType then
-          EXIT(ErrSub2(qeRangeBoundsTypeMismatch, ValueLow.UserType.Description, ValueHigh.UserType.Description));
-      vtEnumeration:
-        if ValueLow.UserType <> ValueHigh.UserType then
-          EXIT(ErrSub2(qeRangeBoundsTypeMismatch, ValueLow.UserType.Description, ValueHigh.UserType.Description));
-    else
-      Assert(False);  //Unknown type?
-    end;
-
-  if ValueLow.ToInteger >= ValueHigh.ToInteger then
-    //Left value must be < Right value
-    EXIT(ErrSub2(qeRangeValuesMisordered, ValueLow.ToString, ValueHigh.ToString));
+  Result := FindCommonOrdinalType(ValueLow, ValueHigh, CommonType);
 
   TheType := Types.AddOfType(CommonType.VarType, CommonType);
 //  TheType := Types.AddOfType('', vtSubRange, CommonType);
@@ -137,7 +119,7 @@ end;
 //If the first identifier is unknown, processes as an enumeration,
 //If the first identifier is a constant, parses as a subrange (with constant expression)
 //The leading ( has not been consumed
-function ParseEnumDefinition(out TheType: PUserType): TQuicheError;
+function ParseEnumDefinition(out TheType: TUserType): TQuicheError;
 var Items: TArray<String>;
 begin
   //Skip opening brace
@@ -157,13 +139,13 @@ begin
 
   //Create type
   TheType := Types.Add(vtEnumeration);
-  TheType.EnumItems := Items;
+  TheType.SetEnumItems(Items);
   TheType.Low := 0;
   TheType.High := Length(Items)-1;
 end;
 
-function ParseSetDefinition(out TheType: PUserType): TQuicheError;
-var OfType: PUserType;
+function ParseSetDefinition(out TheType: TUserType): TQuicheError;
+var OfType: TUserType;
 begin
   Result := Parser.SkipWhite;
   if Result <> qeNone then
@@ -199,12 +181,12 @@ end;
 //array [<low>..<high>,<low>..<high>] of <type>
 //array [<low>..<high>][<low>..<high>] of <type>
 //array [<low>..<high>] of array[<low>..<high>] of <type>
-function ParseArrayDefinition(out TheType: PUserType;InBounds: Boolean = False): TQuicheError;
+function ParseArrayDefinition(out TheType: TUserType;InBounds: Boolean = False): TQuicheError;
 
   //Parse a (Bounds:Element) pair
-  function Recurse(out TheType: PUserType): TQuicheError;
-  var Bounds: PUserType;
-    OfType: PUserType;
+  function Recurse(out TheType: TUserType): TQuicheError;
+  var Bounds: TUserType;
+    OfType: TUserType;
   begin
     Parser.SkipChar;
     Result := ParseTypeDefinition(Bounds, True);
@@ -215,18 +197,18 @@ function ParseArrayDefinition(out TheType: PUserType;InBounds: Boolean = False):
       EXIT;
 
     TheType := Types.AddOfType(vtArrayType, OfType);
-    TheType.ArrayDef.ArrayType := atArray;
+    TheType.ArrayDef.SetArrayType(atArray);
     if (TheType.High-TheType.Low+1) > 255 then
-      TheType.ArrayDef.ArraySize := asLong
+      TheType.ArrayDef.SetArraySize(asLong)
     else
-      TheType.ArrayDef.ArraySize := asShort;
-    TheType.ArrayDef.IsUnbounded := False;
-    TheType.ArrayDef.ElementSize := GetTypeDataSize(OfType);
+      TheType.ArrayDef.SetArraySize(asShort);
+    TheType.ArrayDef.SetIsUnbounded(False);
+    TheType.ArrayDef.SetElementSize(GetTypeDataSize(OfType));
     TheType.BoundsType := Bounds;
   end;
 
 var
-  OfType: PUserType;
+  OfType: TUserType;
 begin
   Result := Parser.SkipWhiteNL;
   if Result <> qeNone then
@@ -283,10 +265,10 @@ begin
   if not InBounds then
   begin //Unbounded array
     TheType := Types.AddOfType(vtArrayType, OfType);
-    TheType.ArrayDef.ArrayType := atArray;
-    TheType.ArrayDef.ArraySize := asUnknown;
-    TheType.ArrayDef.IsUnbounded := True;
-    TheType.ArrayDef.ElementSize := GetTypeDataSize(OfType);
+    TheType.ArrayDef.SetArrayType(atArray);
+    TheType.ArrayDef.SetArraySize(asUnknown);
+    TheType.ArrayDef.SetIsUnbounded(True);
+    TheType.ArrayDef.SetElementSize(GetTypeDataSize(OfType));
     TheType.BoundsType := nil;
   end
   else  //Element
@@ -335,9 +317,9 @@ end;
 //is oversize then a Long size will be used instead.
 //If ArraySize is given explicitly it will be adhered to and an error raised in the specified
 //length/capacity is out of range.
-function ParseVectorOrListDefinition(ArrayType: TArrayType;ArraySize: TArraySize;out TheType: PUserType): TQuicheError;
+function ParseVectorOrListDefinition(ArrayType: TArrayType;ArraySize: TArraySize;out TheType: TUserType): TQuicheError;
 var Size: Integer;
-  OfType: PUserType;
+  OfType: TUserType;
   IsUnbounded: Boolean;
 begin
   assert(ArrayType in [atVector, atList]);
@@ -375,10 +357,10 @@ begin
       EXIT(Err(qeConstantOutOfRange));
 
   TheType := Types.AddOfType(vtArrayType, OfType);
-  TheType.ArrayDef.ArrayType := ArrayType;
-  TheType.ArrayDef.ArraySize := ArraySize;
-  TheType.ArrayDef.IsUnbounded := IsUnbounded;
-  TheType.ArrayDef.ElementSize := GetTypeDataSize(OfType);
+  TheType.ArrayDef.SetArrayType(ArrayType);
+  TheType.ArrayDef.SetArraySize(ArraySize);
+  TheType.ArrayDef.SetIsUnbounded(IsUnbounded);
+  TheType.ArrayDef.SetElementSize(GetTypeDataSize(OfType));
   case ArrayType of
     atVector: TheType.VectorLength := Size;
     atList: TheType.ListCapacity := Size;
@@ -387,9 +369,9 @@ begin
   end;
 end;
 
-function BakeArrayType(FromType: PUserType;out TheType: PUserType): TQuicheError;
+function BakeArrayType(FromType: TUserType;out TheType: TUserType): TQuicheError;
 var Size: Integer;
-  BaseType: PUserType;
+  BaseType: TUserType;
 begin
   Result := ParseVectorOrListSize(Size);
   if Result <> qeNone then
@@ -397,10 +379,10 @@ begin
 
   BaseType := GetBaseType(FromType);
   TheType := Types.AddOfType(BaseType.VarType, BaseType.OfType);
-  TheType.ArrayDef.ArrayType := BaseType.ArrayDef.ArrayType;
-  TheType.ArrayDef.ArraySize := BaseType.ArrayDef.ArraySize;
-  TheType.ArrayDef.IsUnbounded := False;
-  TheType.ArrayDef.ElementSize := BaseType.ArrayDef.ElementSize;
+  TheType.ArrayDef.SetArrayType(BaseType.ArrayDef.ArrayType);
+  TheType.ArrayDef.SetArraySize(BaseType.ArrayDef.ArraySize);
+  TheType.ArrayDef.SetIsUnbounded(False);
+  TheType.ArrayDef.SetElementSize(BaseType.ArrayDef.ElementSize);
   case TheType.ArrayDef.ArrayType of
     atVector: TheType.VectorLength := Size;
     atList:   TheType.ListCapacity := Size;
@@ -461,7 +443,7 @@ end;
 //               <field-list>
 //             end
 //<field> :== <variable-declaration> (??)
-function ParseRecordDefinition(out TheType: PUserType): TQuicheError;
+function ParseRecordDefinition(out TheType: TUserType): TQuicheError;
 var PrevScope: PScope;
   Scope: PScope;
 begin
@@ -485,7 +467,7 @@ begin
 end;
 
 //If IsProc True we're parsing a PROCEDURE, otherwise we're parsing a FUNCTION
-function ParseFuncDefinition(IsProc: Boolean;out TheType: PUserType): TQuicheError;
+function ParseFuncDefinition(IsProc: Boolean;out TheType: TUserType): TQuicheError;
 var
   Func: PFunction;
 begin
@@ -497,7 +479,7 @@ begin
   TheType.Func := TFunctionHandle(Func);
 end;
 
-function ParseTypeDefinition(out TheType: PUserType;OrdinalTypesOnly: Boolean = False): TQuicheError;
+function ParseTypeDefinition(out TheType: TUserType;OrdinalTypesOnly: Boolean = False): TQuicheError;
 var Ch: Char;
   IsPointed: Boolean;
   Ident: String;
@@ -575,16 +557,17 @@ begin
           case IdentData.IdentType of
             itType:
             begin
+              Assert(IdentData.Value <> nil);
               //If identifier is the name of a type we'll assume it's a type synonym
               //(or pointer)...
               if IsPointed then
-                TheType := GetPointerToType(IdentData.T)
+                TheType := GetPointerToType(IdentData.AsType)
               else if (Parser.TestChar = '[') and
-                (IdentData.T.VarType = vtArrayType) and
-                (IdentData.T.ArrayDef.ArrayType in [atVector, atList]) then
-                Result := BakeArrayType(IdentData.T, TheType)
+                (IdentData.AsType.VarType = vtArrayType) and
+                (IdentData.AsType.ArrayDef.ArrayType in [atVector, atList]) then
+                Result := BakeArrayType(IdentData.AsType, TheType)
               else
-                TheType := IdentData.T;
+                TheType := IdentData.AsType;
             end
           else
             if IsPointed and (IdentData.IdentType <> itType) then
@@ -637,7 +620,7 @@ end;
 
 function DoTYPE(const Ident: String): TQuicheError;
 var TypeName: String;
-  TheType: PUserType;
+  TheType: TUserType;
 begin
   //Get the type name
   if Ident <> '' then
@@ -681,7 +664,7 @@ begin
 
   if TheType.Name = '' then
     //We have a newly declared type
-    TheType.Name := TypeName
+    TheType.AssignName(TypeName)
   else
     //We have an existing type and need to
     //create a SYNONYM type pointing to original

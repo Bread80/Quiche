@@ -35,7 +35,9 @@ type
   PVariable = ^TVariable;
   TVariable = record
     Name: String;
-    UserType: PUserType;  //Replaces VarType
+    Disambiguate: Integer;  //Normally -1. Will be >= 0 if we have multiple variables
+                      //In the same scope, but used in different blocks
+    UserType: TUserType;  //Replaces VarType
     InScope: Boolean; //If False the variable has gone out of scope and should be ignored
     Depth: Integer;   //The block depth within the current scope.
                       //Every time we encounted a BEGIN the scopes depth is increased.
@@ -79,7 +81,7 @@ type
     //Set the variables type. Only allowed in the variale is the last on the list.
     //*Only* to be used where the variable needs to be created where the eventual type
     //is unknown, and the type is assigned immediately after.
-    procedure SetType(AUserType: PUserType);
+    procedure SetType(AUserType: TUserType);
 
     //Incremenents the Version of a variable and returns the new value
     //Does not increment if SkipMode is enabled
@@ -135,23 +137,27 @@ type
     function GetCount: Integer;
 
     //-----------Creating
+    //Used when adding a variable. If the name has already been used (ie when the
+    //same name is used within multiple blocks) returns a unique value which can
+    //be used to disambiguate the given variable
+    function Disambiguate(const AName: String): Integer;
     //PRIVATE!!
-    function AddInt(AName: String;UserType: PUserType;AddrMode: TAddrMode): PVariable;
+    function AddInt(const AName: String;UserType: TUserType;AddrMode: TAddrMode): PVariable;
 
     //Creates a new, uniquely named variable. If a variable with that name already exists
     //returns nil. Uses storage type for current Scope (and/or Func)
-    function Add(AName: String;UserType: PUserType): PVariable;
+    function Add(const AName: String;UserType: TUserType): PVariable;
     //Creates a variable with no name. The name *must* be assigned as soon as they
     //are known.
-    function AddUnnamed(UserType: PUserType): PVariable;
-    function AddHidden(UserType: PUserType): PVariable;
+    function AddUnnamed(UserType: TUserType): PVariable;
+    function AddHidden(UserType: TUserType): PVariable;
     //Adds a variable for a function parameter. To be called at the beginning of a function
     //declaration.
     //If Access is vsResult: Results are parsed as local variable to the function. The
     //Offset property for them will be initiated to -1, unless PassDataIn is True in
     //which case the address of tha data will be passed in the parameters and no data
     //will be returned in registers
-    function AddParameter(const AName: String;UserType: PUserType;AddrMode: TAddrMode;
+    function AddParameter(const AName: String;UserType: TUserType;AddrMode: TAddrMode;
       AIsResult, PassDataIn: Boolean): PVariable;
 
     //Returns the number of bytes required for local variables in the current scope
@@ -163,7 +169,7 @@ type
 
     //--------------Finding/accessing
     //Find a variable by name across all current scopes.
-    function FindByNameAllScopes(AName: String): PVariable;
+    function FindByNameAllScopes(const AName: String): PVariable;
 
     //Find in current scope only
     function FindByFuncParamIndex(Index: Integer): PVariable;
@@ -186,8 +192,8 @@ type
     //Set the Offset values for local, relative, variables.
     procedure SetOffsets;
 
-    //Find a varible by name only searching the current Scope (ie list).
-    function FindByNameInScope(AName: String): PVariable;
+    //Find a variable by name only searching the current Scope (ie list).
+    function FindByNameInScope(const AName: String): PVariable;
 
     //---Scopes
 
@@ -228,7 +234,7 @@ var Vars: PVarList;
 
 implementation
 uses {IOUtils,}
-  Def.Globals, Def.Scopes,
+  Def.Globals, Def.Scopes, Def.ScopesEX,
   Parse.Base;
 
 { EAddrMode }
@@ -268,10 +274,16 @@ end;
 procedure TVariable.SetName(AName: String);
 begin
   Assert(Name = '', 'Variable.SetName must only be called when Name is blank');
+  //TODO: This function should get removed when the VAR declaration code gets rewritten
+  //to pre-declare all variables before any expression is parsed. Until then we
+  //must test we're still in the correct Var list
+  Assert(Vars.IndexOf(@Self) >= 0, 'Variable.SetName called from wrong scop');
+  Disambiguate := Vars.Disambiguate(AName);
+
   Name := AName;
 end;
 
-procedure TVariable.SetType(AUserType: PUserType);
+procedure TVariable.SetType(AUserType: TUserType);
 begin
   //Last item in current list??
   Assert(@Self = Vars.Items[Vars.Items.Count-1], 'VarSetType must only be called when it is the last in the VarList');
@@ -322,13 +334,13 @@ begin
     LName := Name;
   Result := '_v_' + Scope.Name + '_' + LName;
 
-  //Index allows us to uniquify the label name within the scope - important due
+  //Disambiguate allows us to uniquify the label name within the scope - important due
   //to the ability to declare variables inline, which means we might end up with
   //multiple variables with the same name.
   //We mustn't do this for function argument variables because they are (very occasionally)
   //used from outside out scope (ie by BlockCopy operations for Pointered types)
-  if FuncParamIndex = -1 then
-    Result := Result + Index.ToString;
+  if Disambiguate <> -1 then
+    Result := Result + '.' + Disambiguate.ToString;
 end;
 
 function TVariable.GetSizeAsParam: Integer;
@@ -392,9 +404,13 @@ end;
 { TVarList }
 
 //Doesn't check whether a variable with that name already exists!
-function TVarList.AddInt(AName: String;UserType: PUserType;AddrMode: TAddrMode): PVariable;
+function TVarList.AddInt(const AName: String;UserType: TUserType;AddrMode: TAddrMode): PVariable;
 begin
   New(Result);
+  Result.Disambiguate := -1;
+  if AName <> '' then
+    Result.Disambiguate := Vars.Disambiguate(AName);
+
   Result.Name := AName;
   Result.UserType := UserType;
   Result.Depth := GetCurrentScope.Depth;
@@ -414,7 +430,7 @@ begin
 end;
 
 
-function TVarList.Add(AName: String; UserType: PUserType): PVariable;
+function TVarList.Add(const AName: String; UserType: TUserType): PVariable;
 begin
   Assert(AName <> '');
   if GetCurrentScope.Search(AName).IdentType <> itUnknown then
@@ -423,14 +439,14 @@ begin
     Result := AddInt(AName, UserType, GetCurrentScope.GetLocalAddrMode);
 end;
 
-function TVarList.AddHidden(UserType: PUserType): PVariable;
+function TVarList.AddHidden(UserType: TUserType): PVariable;
 begin
   Result := AddInt('',UserType, GetCurrentScope.GetLocalAddrMode);
   Result.Name := '_temp' + Items.IndexOf(Result).ToString;
 //  Result.SetName('%'+IntToStr(Index));
 end;
 
-function TVarList.AddParameter(const AName: String; UserType: PUserType;
+function TVarList.AddParameter(const AName: String; UserType: TUserType;
   AddrMode: TAddrMode; AIsResult, PassDataIn: Boolean): PVariable;
 begin
   Result := AddInt(AName, UserType, AddrMode);
@@ -450,7 +466,7 @@ begin
   end;
 end;
 
-function TVarList.AddUnnamed(UserType: PUserType): PVariable;
+function TVarList.AddUnnamed(UserType: TUserType): PVariable;
 begin
   Result := AddInt('', UserType, GetCurrentScope.GetLocalAddrMode);
 end;
@@ -482,6 +498,15 @@ begin
     V.Touched := False;
 end;
 
+function TVarList.Disambiguate(const AName: String): Integer;
+var I: Integer;
+begin
+  Result := -1;
+  for I := 0 to Items.Count-1 do
+    if CompareText(Items[I].Name, AName) = 0 then
+      Result := Items[I].Disambiguate + 1;
+end;
+
 procedure TVarList.ExecClear;
 var V: PVariable;
 begin
@@ -503,17 +528,17 @@ begin
   Result := nil;
 end;
 
-function TVarList.FindByNameAllScopes(AName: String): PVariable;
+function TVarList.FindByNameAllScopes(const AName: String): PVariable;
 var IdentData: TIdentData;
 begin
   IdentData := GetCurrentScope.SearchAllInScope(AName);
-  if IdentData.IdentType = itVar then
+  if IdentData.IdentType = itVariable then
     EXIT(IdentData.V);
 
   Result := nil;
 end;
 
-function TVarList.FindByNameInScope(AName: String): PVariable;
+function TVarList.FindByNameInScope(const AName: String): PVariable;
 var I: Integer;
 begin
   //Result pseudo variable

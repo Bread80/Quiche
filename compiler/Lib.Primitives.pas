@@ -4,7 +4,8 @@ Primitives are routines available to the code generator
 unit Lib.Primitives;
 
 interface
-uses Def.IL, Def.Operators, Def.VarTypes, Def.Variables, Def.UserTypes,
+uses Classes,
+  Def.IL, Def.Operators, Def.VarTypes, Def.Variables, Def.UserTypes,
   Parse.Literals,
   Lib.Data,
   Z80.Hardware;
@@ -20,10 +21,10 @@ uses Def.IL, Def.Operators, Def.VarTypes, Def.Variables, Def.UserTypes,
 //Returns the result type that the selected routine will return.
 //If no suitable routine was found returns vtUnknown
 //If the parameter type were expanded then LType and RType return the expanded type(s)
-function PrimFindParse(Op: TOperator;const Left, Right: TExprSlug;
-  out LeftType, RightType: PUserType;var ResultType: PUserType): Boolean;
-function PrimFindParseUnary(Op: TOperator;const Left: TExprSlug;
-  out LeftType: PUserType;var ResultType: PUserType): Boolean;
+function PrimFindParse(Op: TOperation;const Left, Right: TExprSlug;
+  out LeftType, RightType: TUserType;var ResultType: TUserType): Boolean;
+function PrimFindParseUnary(Op: TOperation;const Left: TExprSlug;
+  out LeftType: TUserType;var ResultType: TUserType): Boolean;
 
 //---Codegen-time
 
@@ -57,7 +58,7 @@ procedure LoadPrimitivesFile(const Filename: String);
 procedure ValidatePrimitives;
 
 implementation
-uses Generics.Collections, Classes, SysUtils;
+uses Generics.Collections, SysUtils;
 
 type TValProcMap = record
     Name: String;
@@ -175,7 +176,7 @@ end;
 type
   PSearchRecParam = ^TSearchRecParam;
   TSearchRecParam = record
-    UserType: PUserType;
+    UserType: TUserType;
     VarType: TVarType;
     IsRange: Boolean;
     Range: TNumberRange;
@@ -184,7 +185,7 @@ type
   end;
 
 type TPrimSearchRec = record
-    Op: TOperator;
+    Op: TOperation;
     GenTime: Boolean; //Are we code generating? If so does deeper matching.
                       //Parse time only needs to know a routine is available.
                       //CodeGen time needs to select the exact routine
@@ -206,9 +207,9 @@ type TPrimSearchRec = record
     //If these are non-nil then these values should be
     //returned (PrimParse), otherwise the values passed
     //in should be retained
-    ReturnLUserType: PUserType;
-    ReturnRUserType: PUserType;
-    ReturnResultUserType: PUserType;
+    ReturnLUserType: TUserType;
+    ReturnRUserType: TUserType;
+    ReturnResultUserType: TUserType;
 
     PrimIndex: Integer;
     SwapParams: Boolean;
@@ -583,10 +584,10 @@ begin
     Search.Range := IntToNumberRange(Slug.Operand.Imm.IntValue);
 end;
 
-function PrimFindParse(Op: TOperator;const Left, Right: TExprSlug;
-  out LeftType, RightType: PUserType;var ResultType: PUserType): Boolean;
+function PrimFindParse(Op: TOperation;const Left, Right: TExprSlug;
+  out LeftType, RightType: TUserType;var ResultType: TUserType): Boolean;
 var SearchRec: TPrimSearchRec;
-  TempType: PUserType;
+  TempType: TUserType;
 begin
   SearchRec.Op := Op;
   SearchRec.GenTime := False;
@@ -647,8 +648,8 @@ begin
   end;
 end;
 
-function PrimFindParseUnary(Op: TOperator;const Left: TExprSlug;
-  out LeftType: PUserType;var ResultType: PUserType): Boolean;
+function PrimFindParseUnary(Op: TOperation;const Left: TExprSlug;
+  out LeftType: TUserType;var ResultType: TUserType): Boolean;
 var SearchRec: TPrimSearchRec;
 begin
   SearchRec.Op := Op;

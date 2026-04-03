@@ -325,8 +325,8 @@ begin
   IDE.Compiler.GetILText(mmIL.Lines);
   IDE.Compiler.GetVarsText(mmVariables.Lines, True);
   IDE.Compiler.GetFunctionsText(mmFunctions.Lines);
-//  IDE.Compiler.GetTypesText(mmFunctions.Lines);
-*)
+*)  IDE.Compiler.GetTypesText(mmFunctions.Lines);
+
   if not Result then
   begin
     if IDE.Compiler.ParseErrorNo <> 0 then

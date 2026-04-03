@@ -12,25 +12,25 @@ uses SysUtils,
 ////////////////////////////////////////////////////////////////////////////////
 
 //Evaulate an operator with two parameters
-function EvalBi(Op: TOperator;Param1, Param2: PILParam;
+function EvalBi(Op: TOperation;Param1, Param2: PILParam;
   out Value: TImmValue): TQuicheError;
 
 //Evaluate and operator woth a single parameter
-function EvalUnary(Op: TOperator; Param: PILParam;
+function EvalUnary(Op: TOperation; Param: PILParam;
   out Value: TImmValue): TQuicheError;
 
 //Evaluate and intrinsic with a single parameter
 //Returns Evalled as False if the op can't be evalled at compile time
-function EvalIntrinsicUnary(Op: TOperator;const Param: TILParam;
+function EvalIntrinsicUnary(Op: TOperation;const Param: TILParam;
   out Value: TImmValue;out Evalled: Boolean): TQuicheError;
 
 //Evaulate an instrinsic with two parameters
 //Returns RunTimeOnly as True if the op can't be evalled at compile time
-function EvalIntrinsicBi(Op: TOperator;const Param1, Param2: TILParam;
+function EvalIntrinsicBi(Op: TOperation;const Param1, Param2: TILParam;
   out Value: TImmValue;out Evalled: Boolean): TQuicheError;
 
 //Typecast an ImmValue to the given type
-function EvalTypecast(var Value: TImmValue; ToType: PUserType): TQuicheError;
+function EvalTypecast(var Value: TImmValue; ToType: TUserType): TQuicheError;
 
 implementation
 uses {$ifndef fpc}System.Character,{$endif}
@@ -65,17 +65,40 @@ begin
   end;
 end;
 
+
 //If both operand are immediate values, and we have a suitable routine available,
 //Evaluate LeftSlug := LeftSlug.Operand <LeftSlug.Operation> RightSlug.Operand
 //Returns True if the operation was evaluated.
 //If so, RightSlug is now spare
-function EvalBi(Op: TOperator;Param1, Param2: PILParam;
+function EvalBi(Op: TOperation;Param1, Param2: PILParam;
   out Value: TImmValue): TQuicheError;
 var P1: TImmValue;  //First parameter value
   P2: TImmValue;    //Second parameter value
+
+function AssignIntCombine(IntValue: Integer;out Value: TImmValue): TQuicheError;
+var VarType: TVarType;
+begin
+  Assert(Operations[Op].SignCombine);
+
+  VarType := GetImmSignCombineType(IntValue, P1.VarType, P2.VarType);
+  if VarType = vtUnknown then
+    EXIT(Err(qeConstantExpressionOverflow));
+  Value.CreateTyped(VarType, IntValue);
+  Result := qeNone;
+end;
+
+function AssignReal(RealValue: Double;out Value: TImmValue): TQuicheError;
+begin
+  Value.CreateReal(RealValue);
+  Result := qeNone;
+end;
+
+var
   Error: Boolean;
   IntValue: Integer;
   VarType: TVarType;  //Of result
+  RealParam: Boolean; //If either is real
+  NumericParams: Boolean; //If both are numeric
 begin
   Error := False;
   Result := qeNone;
@@ -83,11 +106,15 @@ begin
   P2 := Param2.Imm;
   VarType := vtUnknown;
   IntValue := 0;
+  RealParam := (P1.VarType = vtReal) or (P2.VarType = vtReal);
+  NumericParams := IsNumericType(P1.UserType) and IsNumericType(P2.UserType);
 
   case Op of
     opAdd:
-      if IsIntegerVarType(P1.VarType) and IsIntegerVarType(P2.VarType) then
-        IntValue := P1.IntValue + P2.IntValue
+      if RealParam then
+        EXIT(AssignReal(P1.RealValue + P2.RealValue, Value))
+      else if NumericParams then
+        EXIT(AssignIntCombine(P1.IntValue + P2.IntValue, Value))
       else
         Error := True;
     opSubtract:
@@ -119,10 +146,19 @@ begin
 
     opEqual, opNotEqual:
     begin
-      if IsIntegerVarType(P1.VarType) and IsIntegerVarType(P2.VarType) then
-        Value.CreateBoolean(P1.IntValue = P2.IntValue)
-      else if (P1.VarType = vtBoolean) and (P2.VarType = vtBoolean) then
-        Value.CreateBoolean(P1.BoolValue = P2.BoolValue)
+      if IsOrdinalVarType(P1.VarType) and IsOrdinalVarType(P2.VarType) then
+      begin
+        if P1.VarType = P2.VarType then
+          if P1.VarType = vtEnumeration then
+            if GetBaseType(P1.UserType) = GetBaseType(P2.UserType) then
+              Value.CreateBoolean(P1.IntValue = P2.IntValue)
+            else
+              Error := True
+          else
+            Value.CreateBoolean(P1.IntValue = P2.IntValue)
+        else
+          Error := True;
+      end
       else if (P1.VarType = vtChar) and (P2.VarType = vtChar) then
         Value.CreateBoolean(P1.StringValue = P2.StringValue)
       else if (P1.VarType in [vtChar, vtArrayType]) and (P2.VarType in [vtChar, vtArrayType]) then
@@ -130,7 +166,8 @@ begin
 //        Value.CreateBoolean(P1.StringValue = P2.StringValue)
 (*      else if (P1.VarType = vtTypeDef) and (P2.VarType = vtTypeDef) then
         Value.CreateBoolean(P1.TypeDefValue = P2.TypeDefValue)
-*)      else
+*)
+      else
         Error := True;
       if Op = opNotEqual then
         Value.CreateBoolean(not Value.BoolValue);
@@ -269,7 +306,7 @@ begin
       VarTypeToName(Param2.Imm.VarType), Op));
 end;
 
-function EvalUnary(Op: TOperator; Param: PILParam; out Value: TImmValue): TQuicheError;
+function EvalUnary(Op: TOperation; Param: PILParam; out Value: TImmValue): TQuicheError;
 var P: TImmValue;
   VarType: TVarType;
   IntValue: Integer;
@@ -326,7 +363,7 @@ begin
 end;
 
 //Evaluate and intrinsic with a single parameter
-function EvalIntrinsicUnary(Op: TOperator;const Param: TILParam;
+function EvalIntrinsicUnary(Op: TOperation;const Param: TILParam;
   out Value: TImmValue;out Evalled: Boolean): TQuicheError;
 var P: TImmValue;
   Error: Boolean;
@@ -462,19 +499,25 @@ begin
         end;
         vtArrayType:  //Array literal
         begin
-          IntValue := P.ArrayLength;
-          if IntValue > 255 then
-            VarType := vtWord
+          if P.UserType.ArrayDef.IsUnbounded then
+            Evalled := False
           else
-            VarType := vtByte;
-          Value.CreateTyped(VarType, IntValue);
-        end;
+          begin
+            IntValue := P.ArrayLength;
+            if IntValue < 256 then
+              Value.CreateTyped(vtByte, IntValue)
+            else
+              Value.CreateTyped(vtWord, IntValue);
+          end;
+          EXIT;
+        end
         //Extend for other array types
       else
         Error := True;
       end;
       if Error then
         EXIT(ErrOpUsageSub(qeOpIncompatibleType, VarTypeToName(P.TypeDefValue.VarType), Op));
+      EXIT;
     end;
     opLo:
       if (GetTypeRegSize(P.UserType) = 2) and IsIntegerVarType(P.VarType) then
@@ -588,7 +631,14 @@ begin
           end;
         end;
         vtArrayType:
-          IntValue := P.UserType.ArrayDef.MetaSize + (P.ArrayLength * P.UserType.ArrayDef.ElementSize);
+          case P.UserType.ArrayDef.ArrayType of
+            atArray, atVector:
+              IntValue := P.UserType.ArrayDef.MetaSize + (P.ArrayLength * P.UserType.ArrayDef.ElementSize);
+            atList:
+              IntValue := P.UserType.ArrayDef.MetaSize + (P.UserType.ListCapacity * P.UserType.ArrayDef.ElementSize);
+          else
+            raise EVarType.Create;
+          end;
       else
         IntValue := GetTypeDataSize(P.UserType);
       end;
@@ -668,7 +718,7 @@ begin
 end;
 
 //Evaulate an instrinsic with two parameters
-function EvalIntrinsicBi(Op: TOperator;const Param1, Param2: TILParam;
+function EvalIntrinsicBi(Op: TOperation;const Param1, Param2: TILParam;
   out Value: TImmValue;out Evalled: Boolean): TQuicheError;
 var P1, P2: TImmValue;
   Error: Boolean;
@@ -758,7 +808,7 @@ begin
       VarTypeToName(Param2.Imm.VarType), Op));
 end;
 
-function EvalTypecast(var Value: TImmValue; ToType: PUserType): TQuicheError;
+function EvalTypecast(var Value: TImmValue; ToType: TUserType): TQuicheError;
 var NewValue: Integer;
 begin
   if IsOrdinalType(ToType) and (IsOrdinalType(Value.UserType)) then

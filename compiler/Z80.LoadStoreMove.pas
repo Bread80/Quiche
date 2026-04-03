@@ -91,7 +91,7 @@ type
     Done: Boolean;  //Set to True once param has been loaded/stored
     //Parameter data
     Param: PILParam;
-    CheckType: PUserType;  //Set if we need to range check or overflow check the
+    CheckType: TUserType;  //Set if we need to range check or overflow check the
                           //move (otherwise vtUnknown).
                           //For a load this is the target type (parameter, operand)
                           //For a store this is the source type (result parameter, operation)
@@ -275,7 +275,7 @@ end;
 function AssessProcessType(Param: PILParam): TProcessType;
 var R: TCPUReg;
   V: PVariable;
-  UserType: PUserType;
+  UserType: TUserType;
 begin
   R := Param.Reg;
 
@@ -284,13 +284,10 @@ begin
 
   case Param.Kind of
     pkImmediate: ;  //Nothing
-    pkVarSource, pkVarPtr, pkVarRef:
+    pkVarSource:
     begin
       V := Param.ToVariable;
-      if Param.Kind = pkVarSource then
-        UserType := V.UserType
-      else
-        UserType := V.UserType.OfType;
+      UserType := V.UserType;
       case GetTypeRegSize(UserType) of
         1:  //8-bit to ??
           if (V.VarType = vtInt8) and (R in CPUReg16Bit) then
@@ -303,13 +300,12 @@ begin
       end;
       //TODO: Range check other values/type conversions
     end;
+    pkVarPtr, pkVarRef:
+      Assert(R in CPUReg16Bit);
     pkVarDest:
     begin
       V := Param.ToVariable;
-      if Param.Kind = pkVarDest then
-        UserType := V.UserType
-      else
-        UserType := V.UserType.OfType;
+      UserType := V.UserType;
       case GetTypeRegSize(UserType) of
         1: //?? to 8-bit
           if R in CPUReg8Bit then
@@ -329,7 +325,7 @@ end;
 
 //======================================LOAD DATA
 
-procedure CopyParamToMoveState(Param: PILParam;CheckType: PUserType);
+procedure CopyParamToMoveState(Param: PILParam;CheckType: TUserType);
 begin
   //Verify we're not double-loading any registers.
   //(If the reg isn't part of a pair etc the lookup will return rNone,
@@ -378,7 +374,7 @@ function SetMoveState(ILIndex: Integer;Prim: PPrimitive;Loading: Boolean): Integ
 var
   ParamIndex: Integer;
   Param: PILParam;
-  CheckType: PUserType;
+  CheckType: TUserType;
   ILItem: PILItem;
   Func: PFunction;  //If this is a function call. Otherwise nil
 begin
@@ -601,7 +597,7 @@ end;
 procedure GenDataLoadParams(Regs: TCPURegSet;MoveTypes: TMoveTypeSet;
   ProcessTypes: TProcessTypeSet;Options: TMoveOptionSet);
 var Reg: TCPUReg;
-  ToType: PUserType;
+  ToType: TUserType;
 begin
   for Reg := low(MoveState) to High(MoveState) do
     if not MoveState[Reg].Done then
@@ -833,7 +829,7 @@ procedure GenDataStoreParams(Regs: TCPURegSet;MoveTypes: TMoveTypeSet;
   ProcessTypes: TProcessTypeSet;
   Options: TMoveOptionSet);
 var Reg: TCPUReg;
-  FromType: PUserType;
+  FromType: TUserType;
 begin
   for Reg := low(MoveState) to High(MoveState) do
     if Reg in Regs then

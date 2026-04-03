@@ -15,7 +15,7 @@ Function, Types and Consts when searching and, occasionally, when adding, items.
 In such uses the CurrentScope must be obtained and restored after setting and searching
 parent scopes.
 
-The parser also stores ILData and Assembly output for each scope for debigging etc
+The parser also stores ILData and Assembly output for each scope for debugging etc
 purposes.
 *)
 
@@ -23,17 +23,23 @@ unit Def.Scopes;
 
 interface
 uses Classes,
-  Def.Functions, Def.IL, Def.Variables, Def.Consts, Def.UserTypes,
+  Def.Functions, Def.IL, Def.Variables, Def.Consts, Def.UserTypes, Def.ScopesEX,
   CleverPuppy;
 
 type
 //========== SEARCH FOR IDENTIFIERS
-  TIdentType = (itUnknown, itVar, itFunction, itConst, itType, itEnumItem);
-
   TIdentData = record
+    Value: TIdentifier;
+
+    function AsEnumItem: TEnumItem;
+    function AsType: TUserType;
+
+    function GetUserType: TUserType;
+    function GetAddrMode: TAddrMode;
+
     case IdentType: TIdentType of
       itUnknown: ();
-      itVar: (
+      itVariable: (
         V: PVariable;
         );
       itFunction: (
@@ -42,14 +48,12 @@ type
       itConst: (
         C: PConst;
         );
-      itType, itEnumItem: (
-        T: PUserType;
-        Index: Integer; //Not used for itType
-        );
     end;
 
-  PScope= ^TScope;
-  TScope = record
+  PScope= ^TScopeOLD;
+  TScopeOLD = record
+    ScopeEX: TScope;  //FOR MIGRATION.
+                      //NOTE: WE WILL LEAK THESE UNTIL MIGRATION IS COMPLETE
     Parent: PScope;   //The next higher Scope, or nil in none
     Name: String;     //For the scope. For reference only
     Depth: Integer;   //The block depth within the current scope. Used to determine
@@ -103,7 +107,7 @@ function GetCurrentScope: PScope;
 //Name is the name of the scope. If Name is '' the name will be retrieved from Func.
 function CreateCurrentScope(Func: PFunction;const Name: String): PScope;
 
-//Creates a new scope to be used in a record deefinition.
+//Creates a new scope to be used in a record definition.
 //Scope will be created a selected as the current scope such that variable and
 //function definitions will be created in the appropriate lists.
 //NOTE:
@@ -132,7 +136,7 @@ function ScopeGetDepth: Integer;
 
 
 //Searches all current scopes for a typed pointer to the given UserType
-function SearchScopesForAnonTypedPointer(UserType: PUserType): PUserType;
+function SearchScopesForAnonTypedPointer(UserType: TUserType): TUserType;
 
 //Searched /all/ scopes for the given variable
 function FindScopeForVar(AVar: PVariable;out Index: Integer): PScope;
@@ -148,7 +152,7 @@ procedure ScopesToStrings(S: TStrings);
 function ScopeSelectByName(Name: String): Boolean;
 
 //For 'built-in' types, consts and functions (intrinsics)
-var SystemScope: TScope;
+var SystemScope: TScopeOLD;
 
 //A couple of functions to hack our way around circular unit references.
 //(NEVER directly typecast one to the other, just in case this changes)
@@ -252,10 +256,14 @@ begin
 end;
 
 procedure InitSystemScope;
+var SCope: PScope;
 begin
   SystemScope.Initialise('System', nil);
+  Scope := GetCUrrentScope;
+  SetCurrentScope(@SystemScope);
   CreateSystemTypes(SystemScope.TypeList);
   CreateSystemConsts(SystemScope.ConstList);
+  SetCurrentScope(Scope);
 end;
 
 procedure InitialiseScopes;
@@ -293,7 +301,7 @@ begin
   Result := nil;
 end;
 
-function SearchScopesForAnonTypedPointer(UserType: PUserType): PUserType;
+function SearchScopesForAnonTypedPointer(UserType: TUserType): TUserType;
 var Scope: PScope;
 begin
   Scope := GetCurrentScope;
@@ -364,7 +372,7 @@ end;
 
 { TScope }
 
-function TScope.GetLocalAddrMode: TAddrMode;
+function TScopeOLD.GetLocalAddrMode: TAddrMode;
 begin
   if Func = nil then
     Result := optDefaultAddrMode
@@ -382,9 +390,13 @@ begin
   Result := PScope(Handle);
 end;
 
-procedure TScope.Initialise(const AName: String;AParent: PScope);
+procedure TScopeOLD.Initialise(const AName: String;AParent: PScope);
 begin
   Parent := AParent;
+  if AParent <> nil then
+    ScopeEX := TSCope.Create(AName, AParent.ScopeEX)
+  else
+    ScopeEX := TScope.Create(AName, nil);
   Name := AName;
   Depth := 0;
   Func := nil;
@@ -398,8 +410,15 @@ begin
   CleverPuppy := nil;
 end;
 
-function TScope.Search(const Ident: String; IgnoreFuncs: Boolean): TIdentData;
+function TScopeOLD.Search(const Ident: String; IgnoreFuncs: Boolean): TIdentData;
 begin
+  Result.Value := ScopeEX.SearchLocal(Ident, IgnoreFuncs);
+  if Result.Value <> nil then
+  begin
+    Result.IdentType := Result.Value.IdentType;
+    EXIT;
+  end;
+
   //Consts
   if Assigned(ConstList) then
   begin
@@ -412,7 +431,7 @@ begin
   end;
 
   //Types and Enumerations
-  if Assigned(TypeList) then
+(*  if Assigned(TypeList) then
   begin
     Result.T := TypeList.FindByNameInScope(Ident);
     if Result.T <> nil then
@@ -420,13 +439,13 @@ begin
       Result.IdentType := itType;
       EXIT;
     end;
-    Result.T := TypeList.FindByEnumNameInScope(Ident, Result.Index);
+*)(*    Result.T := TypeList.FindByEnumNameInScope(Ident, Result.Index);
     if Result.T <> nil then
     begin
       Result.IdentType := itEnumItem;
       EXIT;
     end;
-  end;
+*)//  end;
 
   //Variables
   if Assigned(VarList) then
@@ -434,7 +453,7 @@ begin
     Result.V := VarList.FindByNameInScope(Ident);
     if Result.V <> nil then
     begin
-      Result.IdentType := itVar;
+      Result.IdentType := itVariable;
       EXIT;
     end;
   end;
@@ -453,9 +472,16 @@ begin
   Result.IdentType := itUnknown;;
 end;
 
-function TScope.SearchAllInScope(const Ident: String; IgnoreFuncs: Boolean): TIdentData;
+function TScopeOLD.SearchAllInScope(const Ident: String; IgnoreFuncs: Boolean): TIdentData;
 var Scope: PScope;
 begin
+  Result.Value := ScopeEX.SearchUpScopes(Ident, IgnoreFuncs);
+  if Result.Value <> nil then
+  begin
+    Result.IdentType := Result.Value.IdentType;
+    EXIT;
+  end;
+
   Scope := @Self;
 
   repeat
@@ -469,6 +495,42 @@ begin
   //Search libraries (more TODO)
   Scope := @SystemScope;
   Result := Scope.Search(Ident, IgnoreFuncs);
+end;
+
+{ TIdentData }
+
+function TIdentData.AsEnumItem: TEnumItem;
+begin
+  Assert(IdentType = itEnumItem);
+  Assert(Value is TEnumItem);
+  Result := Value as TEnumItem;
+end;
+
+function TIdentData.AsType: TUserType;
+begin
+  Assert(IdentType = itType);
+  Assert(Value is TUserType);
+  Result := Value as TUserType;
+end;
+
+function TIdentData.GetAddrMode: TAddrMode;
+begin
+  case IdentType of
+    itVariable: Result := V.AddrMode;
+    itConst: Result := amStatic;
+  else
+    raise Exception.Create('Invalid IdentVar.UserType');
+  end;
+end;
+
+function TIdentData.GetUserType: TUserType;
+begin
+  case IdentType of
+    itVariable: Result := V.UserType;
+    itConst: Result := C.UserType;
+  else
+    raise Exception.Create('Invalid IdentVar.UserType');
+  end;
 end;
 
 initialization

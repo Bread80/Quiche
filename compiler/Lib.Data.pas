@@ -110,7 +110,7 @@ type
   PPrimitive = ^TPrimitive;
   TPrimitive = record
     //Fields to use for primitive selection
-    Op: TOperator;
+    Op: TOperation;
     Fragment: PFragment;  //If the item is a fragment
     ProcName: String;     //Name of the Proc (code), Fragment, or Subroutine used
                           //during code generation

@@ -51,6 +51,12 @@
 	, or ) expected
 =CloseSquareBraceExpected	
 	] expected
+=CommaOrDotDotExpected
+	, or .. expected
+=CommaExpectedInArray
+	, expected between array elements	
+=ArrayElementTypeMismatch
+	Mismatch between types of array elements: '%s' and '%s'
 	
 ;FOR loops
 =TOorDOWNTOExpected
@@ -103,7 +109,7 @@
 =InvalidTypeDefinition
 	Type specifier, type name, enumeration or constant range expression expected
 =UndeclaredTypeOrInvalidTypeDef
-	Undeclared type name, of invalid type declaration ('%s')
+	Undeclared type name, or invalid type declaration ('%s')
 =PointedTypeNameExpected
     Type name expected after ^
 =RangeOperatorExpected
@@ -286,6 +292,8 @@
 	Enumeration item not valid here: '%s'
 =InstantiateUnboundedArray
 	Attempting to instantiate (create a variable which is) an unbounded array ('%s'). Did you mean to create a pointer to an unbounded array type ('^%s')?
+=ArrayLengthMismatch
+	Array length mismatch. Unable to assign an array of length %s to one of length %s. You might want to use an unbounded array type or a different array type.
 
 	
 ;Expressions

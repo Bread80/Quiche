@@ -10,15 +10,22 @@ const
   iCPUWordSize  = 2;  //For OG Z80
   iCPUWordMask  = $ffff;  //Mask for 'bitness' of an integer
   iIntegerMin   = $8000;  //Lowest value for an integer. Used when massing type values
-  iRealSize     = 5;  //Byte size of a float on the current target. 5 is CPC size :)
+  iRealByteSize = 5;  //Byte size of a float on the current target. 5 is CPC size :)
+
+type RealFormats = (rfAmstradCPC);
+const
+  iRealFormat = rfAmstradCPC;
+
+type TRealBinary = array[0..iRealByteSize-1] of Byte;
 
 //========================Super types
 
 //Used in data file for Intrinsics
 type TSuperType = (
   stParameterized,  //Actual type is given by a TypeDef parameter
-  stAny, stNumeric, stAnyInteger, stOrdinal);
+  stAny, stNumeric, stAnyInteger, stOrdinal, stString);
 
+//Returns True if S was the name of a supertype
 function StringToSuperType(const S: String;out Super: TSuperType): Boolean;
 function SuperTypeToString(Super: TSuperType): String;
 
@@ -47,7 +54,6 @@ type TVarType = (
   //User types
   vtEnumeration,
 (*
-  vtSparseSet,  //Parse time only  - contains values and ranges
   vtRange,        //Run time
 *)
   vtSetByte,    //A set which fits into a byte (1..8 elements)
@@ -95,6 +101,12 @@ type TVarType = (
     ArraySize: TArraySize;  //How bit is our meta data
     IsUnbounded: Boolean;   //Is this an unbounded array?
     ElementSize: Integer;   //Could be used for element-typeless parameters
+
+    procedure SetArrayType(AT: TArrayType);
+    procedure SetArraySize(Size: TArraySize);
+    procedure SetIsUnbounded(UB: Boolean);
+    procedure SetElementSize(Size: Integer);
+
 
     //Returns the byte size of meta data for this type
     function MetaSize: Integer;
@@ -187,6 +199,15 @@ function GetImmSignCombineType(Value: Integer;LType, RType: TVarType): TVarType;
 function GetMaxValue(VarType: TVarType): Integer;
 function GetMinValue(VarType: TVarType): Integer;
 
+//Convert a floating point value from the target machine representation to the
+//compilers representation (IEE754)
+function RealBinaryToDouble(Value: TRealBinary): Double;
+
+//Convert a floating point number from compiler representation to target machine
+//representation
+function DoubleToRealBinary(Value: Double): TArray<Byte>;
+
+
 type EVarType = class(Exception)
     constructor Create;
   end;
@@ -195,7 +216,7 @@ implementation
 uses Def.Globals;
 
 const SuperTypeNames: array[low(TSuperType)..high(TSuperType)] of String = (
-  'Parameterized', 'Any', 'Numeric', 'AnyInteger', 'Ordinal');
+  'Parameterized', 'Any', 'Numeric', 'AnyInteger', 'Ordinal', 'String');
 
 function StringToSuperType(const S: String;out Super: TSuperType): Boolean;
 var LSuper: TSuperType;
@@ -220,7 +241,7 @@ const VarTypeNames: array[low(TVarType)..high(TVarType)] of String = (
   'Real',
   'Boolean', '<Flag>',
   'Char', 'TypeDef',
-  'Enumeration', (*'<SparseRange>', 'Range',*)
+  'Enumeration', (*'Range',*)
   'Set','Set','Set',  //SetByte, SetWord, SetMem
   '<Array>',  //Use type specific name
   'Record',
@@ -248,11 +269,11 @@ end;
 //TODO: Clarify if we want the pointer size or the data size!
 const VarTypeSizes: array[low(TVarType)..high(TVarType)] of Integer = (
   1,2,1,2,2,2,  //Integers and pointers
-  iRealSize,    //Reals
+  iRealByteSize,  //Reals
   1,1,      //Boolean,<Flag>
   1,0,      //Char, TypeDef
   1,        //Enumeration
-(*-1, 2,*)  //SparseRange, Range
+(*2,*)  //Range
   1, 2, 0,  //SetByte, SetWord, SetMem
   0,        //ArrayType
   0,        //Record
@@ -271,7 +292,7 @@ end;
 const VarTypeIsPointered: array[low(TVarType)..high(TVarType)] of Boolean = (
   False, False, False, False, //Integers
   False, False, //Pointers
-  False,        //Real
+  True,         //Real
   False, False, //Booleans
   False, False, //Char, TypeDef (?)
   False, (* True, True, *) //Misc
@@ -384,6 +405,9 @@ function GetImmSignCombineType(Value: Integer;LType, RType: TVarType): TVarType;
 begin
   Assert(IsNumericVarType(LType) and IsNumericVarType(RType));
 
+  if (LType = vtReal) or (RType = vtReal) then
+    EXIT(vtReal);
+
   if LType = RType  then
     Result := LType
   else if IsSignedVarType(LType) and IsSignedVarType(RType) then
@@ -433,6 +457,95 @@ const MetaTypes: array[low(TArraySize)..high(TArraySize)] of TVarType =
   ( vtUnknown, vtByte, vtWord);
 begin
   Result := MetaTypes[ArraySize];
+end;
+
+
+procedure TArrayDef.SetArraySize(Size: TArraySize);
+begin
+  ArraySize := Size;
+end;
+
+procedure TArrayDef.SetArrayType(AT: TArrayType);
+begin
+  ArrayType := AT;
+end;
+
+procedure TArrayDef.SetElementSize(Size: Integer);
+begin
+  ElementSize := Size;
+end;
+
+procedure TArrayDef.SetIsUnbounded(UB: Boolean);
+begin
+  IsUnbounded := UB;
+end;
+
+function RealBinaryToDouble(Value: TRealBinary): Double;
+var Mantissa: UInt64;
+  Exponent: Integer;
+  Sign: Boolean;
+begin
+  case iRealFormat of
+    rfAmstradCPC:
+    begin
+      if Value[4] = 0 then
+        //Special case
+        Result := 0
+      else
+      begin
+        //Byte 4 with bias of 128
+        Exponent := Value[4] - 128 - 1{+ 1023}; //TODO: Do we need to add bias back?
+        //Bit 7 of 3rd byte
+        Sign := Value[3] and $80 <> 0;
+        //Fraction is 31 bits (52 for Double)
+        Mantissa := Value[3] or $80;  //I **think** we need to explicitly set the implicit leading 1 bit.
+        Mantissa := Mantissa shl 8 or Value[2];
+        Mantissa := Mantissa shl 8 or Value[1];
+        Mantissa := Mantissa shl 8 or Value[0];
+        Mantissa := Mantissa shl (52-31);
+        Result.BuildUp(Sign, Mantissa, Exponent);
+      end;
+    end;
+  else
+    raise Exception.Create('Unsuported binary real format in RealBinaryToDouble');
+  end;
+end;
+
+function DoubleToRealBinary(Value: Double): TArray<Byte>;
+var Exponent: Integer;
+  Mantissa: UInt64;
+begin
+  SetLength(Result, iRealByteSize);
+  case iRealFormat of
+    rfAmstradCPC:
+    begin
+      if Value = 0 then
+      begin
+        Result[4] := 0;
+        Mantissa := 0;
+      end
+      else
+      begin
+        Exponent := Value.Exponent + 1{- 1023};
+        if (Exponent < -127) or (Exponent > 127) then
+          raise Exception.Create('Floating point value out of range'); //TODO: Return error
+        Result[4] := Exponent + 128;
+        Mantissa := Value.Mantissa;
+      end;
+      Mantissa := Mantissa shr (52-31);
+      Result[0] := Mantissa and $ff;
+      Mantissa := Mantissa shr 8;
+      Result[1] := Mantissa and $ff;
+      Mantissa := Mantissa shr 8;
+      Result[2] := Mantissa and $ff;
+      Mantissa := Mantissa shr 8;
+      Result[3] := Mantissa and $7f;  //Mask out 1 bit prefix
+      if Value.Sign then
+        Result[3] := Result[3] or $80;
+    end;
+  else
+    raise Exception.Create('Unsuported binary real format in DoubleToRealBinary');
+  end;
 end;
 
 end.

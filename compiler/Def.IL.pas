@@ -114,7 +114,7 @@ code generator.
 unit Def.IL;
 
 interface
-uses Generics.Collections, Classes,
+uses Generics.Collections, Classes, SysUtils,
   Def.Functions, Def.Operators, Def.VarTypes, Def.Consts, Def.Variables, Def.UserTypes,
   Lib.Data,
   Z80.Hardware, Z80.Algos;
@@ -133,6 +133,9 @@ type TILParamKind = (
     pkVarPtr,       //Reference to data pointed /to/ by the value (a pointer dereference)
                     //ONLY for not pointered types
     pkVarRef,       //Address of the data - ONLY for pointered types.
+    pkRangeList,    //The parameter is a RangeList - an array or set literal. This
+                    //must be baked down to an actual kind when more is known about
+                    //the expression.
     pkPop,          //The stack
     pkPopByte,      //Single byte on the stack
     pkPush,
@@ -236,7 +239,7 @@ type
     function ToVariable: PVariable;
 
     function GetVarType: TVarType;
-    function GetUserType: PUserType;
+    function GetUserType: TUserType;
 
     //For error messages
     function ImmValueToString: String;
@@ -264,7 +267,7 @@ type
       pkPop: ();                //Currently invalid for input params
       pkPopByte: ();            //Currently invalid for input params
       pkPush, pkPushByte: (
-        PushType: PUserType; ); //Type of the value to be pushed
+        PushType: TUserType; ); //Type of the value to be pushed
       pkBranch: (               //For unconditional branches.
         BranchBlockID: Integer; );  //Block number to branch to
       pkCondBranch: (           //For conditional branches
@@ -287,8 +290,8 @@ type
     SourceLineNo: Integer;  //For commented code generation
     Comments: String;       //For debugging <g>. Current only used if BlockID <> -1
 
-    Op: TOperator;          //The operation
-    ResultType: PUserType;  //CURRENT: The type which will be output by the Operation
+    Op: TOperation;          //The operation
+    ResultType: TUserType;  //CURRENT: The type which will be output by the Operation
                             //OLD: If overflow checking is on, specifies the output type
                             //May also be used by typecasts to change/reduce value size
     Func: PFunction;        //If OpIndex is OpFuncCall this contains details of the function
@@ -325,7 +328,7 @@ type
 
     //Creates a hidden variable of the given type, sets it as the Dest,
     //and sets DestType to dtData using SetDestType
-    function AssignToHiddenVar(UserType: PUserType): PVariable;
+    function AssignToHiddenVar(UserType: TUserType): PVariable;
 
     procedure SwapParams;   //For Operations. Swap order of Param1 and Param2
     function ToString: String;  //For debugging
@@ -360,12 +363,12 @@ function GetCurrBlockID: Integer;
 function GetNextBlockID: Integer;
 
 //Allocates a new IL item and appends it to the list
-function ILAppend(AnOp: TOperator): PILItem;
+function ILAppend(AnOp: TOperation): PILItem;
 //Allocates a new IL item and inserts it into the IL list at the given Index
 //The new ILItem will be a part of the same block as the existing ILItem at that index
 //(Ie. if the existing item is the start of a block it's BlockID will be moved to the
 //new item
-function ILInsert(Index: Integer;AnOp: TOperator): PILItem;
+function ILInsert(Index: Integer;AnOp: TOperation): PILItem;
 
 //Append an ILItem for an unconditional branch
 function ILAppendBranch(BranchID: Integer): PILItem;
@@ -419,9 +422,12 @@ procedure ILToStrings(S: TStrings);
 
 var NewSourceLine: Boolean;
 
+type EParamKind = class(Exception)
+    constructor Create;
+  end;
+
 implementation
-uses SysUtils,
-  Def.Globals,
+uses Def.Globals,
   Parse.Base, Parse.Source,
   Z80.AlgoData;
 
@@ -530,14 +536,14 @@ begin
   Result.Param3.Initialise;
 end;
 
-function ILAppend(AnOp: TOperator): PILItem;
+function ILAppend(AnOp: TOperation): PILItem;
 begin
   Result := ILCreate;
   Result.Op := AnOp;
   ILList.Add(Result);
 end;
 
-function ILInsert(Index: Integer;AnOp: TOperator): PILItem;
+function ILInsert(Index: Integer;AnOp: TOperation): PILItem;
 var After: PILItem;
 begin
   After := ILIndexToData(Index);
@@ -563,7 +569,7 @@ begin
   Result.SetBranchBlockID(BranchID);
 end;
 
-function ILAppendExtendable(var ILItem: PILItem;Basic, Ext: TOperator): PILParam;
+function ILAppendExtendable(var ILItem: PILItem;Basic, Ext: TOperation): PILParam;
 begin
   Result := nil;
   if ILItem <> nil then
@@ -684,7 +690,7 @@ end;
 
 procedure TILParam.SetImmediate(const Value: TImmValue);
 begin
-  Assert(Kind = pkNone);
+  Assert(Kind in [pkNone, pkRangeList]);
   Kind := pkImmediate;
   Imm := Value
 end;
@@ -755,7 +761,7 @@ begin
   VarVersion := AVersion;
 end;
 
-function TILParam.GetUserType: PUserType;
+function TILParam.GetUserType: TUserType;
 begin
   case Kind of
     pkNone, pkPhiVarSource, pkPhiVarDest: EXIT(nil);
@@ -940,7 +946,7 @@ end;
 
 { TILItem }
 
-function TILItem.AssignToHiddenVar(UserType: PUserType): PVariable;
+function TILItem.AssignToHiddenVar(UserType: TUserType): PVariable;
 begin
   Result := Vars.AddHidden(UserType);
   Result.IncVersion;
@@ -1085,6 +1091,13 @@ begin
       S.Add('   ' + IntToStr(Item.BlockID)+':  ' + Item.Comments);
     S.Add(IntToStr(I)+'- ' + Item.ToString);
   end;
+end;
+
+{ EParamKind }
+
+constructor EParamKind.Create;
+begin
+  inherited Create('Unknown ParamKind');
 end;
 
 initialization

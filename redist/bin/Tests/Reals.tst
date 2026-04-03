@@ -1,0 +1,1 @@
+;============REAL NUMBERS;=================== INSTANTIATE VARIABLEcode Declarations  var R1: Real  var R2 :Real = 0  var R3 := 0.0endcodevarvalue R2 0.0varvalue R3 0.0 ;=================== OPERATORScode Add Compile Time  var R1 := 1.0 + 1.0endcodevarvalue R1 2.0code Add Runtime  var R1 := 1.0  var R2 := 1.0  var R3 := R1 + R2endcodevarvalue R2 2.0

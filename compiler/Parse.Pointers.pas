@@ -189,7 +189,7 @@ unit Parse.Pointers;
 
 interface
 uses Parse.Literals, Parse.Errors,
-  Def.Variables, Def.UserTypes, Def.IL;
+  Def.Consts, Def.Scopes, Def.ScopesEX, Def.Variables, Def.UserTypes, Def.IL;
 
 const PtrSuffix = ['^','[','.'];
 
@@ -205,20 +205,22 @@ function TestForPtrSuffix: Boolean;
 //  X^[12]^.Field
 
 //Parses pointered references on the right hand side of an expression
-//V is the variable (or temp var if (eg) function result)
+//Deref is the item to be derefenced (variable, const, function etc)
 //Creates a hidden pointer variable which contains the resultant address and
 //assigns that variable to a Slug.
-//The slugs Param Kind will reflect the type of the created variable,
+//The slug's Param Kind will reflect the type of the created variable,
 //pkVarRef for Pointered types
 //pkVarPtr for non Pointered types
 //opPtrLoad is used to assign the value to the slug's variable
-function ParsePtrSuffixLoad(var Slug: TExprSlug;V: PVariable): TQuicheError;
+function ParsePtrSuffixLoad(var Slug: TExprSlug;const Deref: TIdentData): TQuicheError;
 
-//Parses pointered references on the left hand side of an expression.
-//AddrVar is the variable with the suffix (or a temp var for function results etc)
-//The routine will parse the pointered references then parse the assignment
-//expression and generate IL code to assign the expression to the pointer variable
+//Parses a dereference on the assignment side of an expression.
+//Uses ParsePointedSuffix to parse the code to dereference the item, then
+//parses an assignment and expression. Then generates IL code to assign the expression
+//to the dereferenced item.
+//AddrVar is the variable being dereferenced.
 //opPtrStore is used to store the expression's result to the parsed address
+//TODO: Update to use a TIdentData so we can also dereference functions
 function ParseAssignPtrSuffixStore(AddrVar: PVariable): TQuicheError;
 
 implementation
@@ -245,29 +247,27 @@ begin
   Parser.SetCursor(Cursor);
 end;
 
-
 //Parse array array reference.
 //Generates an opAddrElement <array-var> <index>
 //<index> may be an immediate or a variable. If the index is a run-time expression
 //then <index> will be a temporary variable to which the index expression is
 //assigned
 //Parse must be positioned at the opening [
-//V is the variable being dereferenced, or nil if we're referencing a constant array(???)
-//  If V is nil the expression must be a constant one.
+//Deref is the item being dereferenced, which can be a variable, constant or function (for the result)
 //  If the expression is not a constant one it's value will be validated against the
-//  type and V (if given)
-function ParseArrayIndexEX(var V: PVariable): TQuicheError;
+//  type of Deref
+//AddrVar returns tha variable to which the data pointer is assigned.
+function ParseArrayIndexEX(const Deref: TIdentData;out AddrVar: PVariable): TQuicheError;
 var IndexSlug: TExprSlug; //Slug for the index expresssion
-  ArrayType: PUserType;
+  ArrayType: TUserType;
   ILItem: PILItem;
-  BoundsType: PUserType;
+  BoundsType: TUserType;
   Index: Integer;
 begin
-  Assert(Assigned(V));
   Assert(CharInSet(Parser.TestChar, ['[',',']));
   Parser.SkipChar;
 
-  ArrayType := V.UserType;
+  ArrayType := Deref.GetUserType;
   Assert(ArrayType <> nil);
   if ArrayType.VarType = vtTypedPointer then
     ArrayType := ArrayType.OfType;
@@ -314,10 +314,17 @@ begin
   //Get the address of the element into AddrVar as a typed pointer
   //opAddrElement will give us @V + MetaSize + ElementSize * Param2 where V is Param1
   ILItem := ILAppend(opAddrElement);
-  ILItem.Param1.SetVarRef(V);         //We want the address of the array, not the value
+  //First parameter is the address of the array
+  case Deref.IdentType of
+    itVariable: ILItem.Param1.SetVarRef(Deref.V);
+    itConst: ILItem.Param1.SetImmediate(Deref.C.Value);
+  else
+    raise Exception.Create('Unknown IdentType');
+  end;
+
   ILItem.Param2 := IndexSlug.Operand;
   ILItem.ResultType := GetPointerToType(ArrayType.OfType);
-  V := ILItem.AssignToHiddenVar(ILItem.ResultType);
+  AddrVar := ILItem.AssignToHiddenVar(ILItem.ResultType);
 
   Result := Parser.SkipWhite;
   if Result <> qeNone then
@@ -337,61 +344,71 @@ begin
 end;
 
 //Parses ^ suffix (pointer dereference)
-//Verifies that V is a pointer variable.
-function ParsePtrSuffix(var V: PVariable): TQuicheError;
+//Deref is the item being derefenced (variable, constant or (function result))
+//AddrVar returns the variable holding the data pointer
+function ParsePtrSuffix(const Deref: TIdentData;out AddrVar: PVariable): TQuicheError;
 var ILItem: PILItem;
-  ResultVar: PVariable;
+  DerefType: TUserType;
 begin
   Assert(Parser.TestChar = '^');
   Parser.SkipChar;
+  DerefType := Deref.GetUserType;
 
-  if not (V.VarType in [vtTypedPointer, vtPointer]) then
-    EXIT(ErrSub(qePointerDerefError, V.UserType.Description));
-  Assert(V.AddrMode in [amStatic, amStack], 'TODO');
+  if not (DerefType.VarType in [vtTypedPointer, vtPointer]) then
+    EXIT(ErrSub(qePointerDerefError, DerefType.Description));
+  Assert(Deref.GetAddrMode in [amStatic, amStack], 'TODO');
 
   //Gen IL code to assign var to a temp var with addressing mode StaticPtr/StackPtr
   //and Type which is the OfType of V
   ILItem := ILAppend(opMove);    //A Sugar op - no data actually changes...
   begin
-    ILItem.Param1.SetVarSource(V);
-    if V.VarType = vtPointer then
+    case Deref.IdentType of
+      itVariable: ILItem.Param1.SetVarSource(Deref.V);
+    else
+      raise exception.Create('TODO: IdentType');
+    end;
+
+    if DerefType.VarType = vtPointer then
       ILItem.ResultType := GetPointerToType(GetSystemType(vtByte))
     else
-      ILItem.ResultType := V.UserType;
+      ILItem.ResultType := DerefType;
   end;
 
-  ResultVar := ILItem.AssignToHiddenVar(ILItem.ResultType);
-  case V.AddrMode of              //...but we need to update the addressing mode
-    amStatic, amStaticRef: ResultVar.AddrMode := amStatic;//Ptr;
-    amStack{, amStackPtr}: ResultVar.AddrMode := amStack;//Ptr;
+  AddrVar := ILItem.AssignToHiddenVar(ILItem.ResultType);
+  case Deref.GetAddrMode of              //...but we need to update the addressing mode
+    amStatic, amStaticRef: AddrVar.AddrMode := amStatic;//Ptr;
+    amStack{, amStackPtr}: AddrVar.AddrMode := amStack;//Ptr;
     //?? What if already StackPtr.StaticPtr?
   else
     Assert(False);
   end;
-  V := ResultVar;
   Result := qeNone;
 end;
 
-//Parses the ^ after an identifier (or function call etc)
-//V is the variable to which to is the suffix.
-//Returns with V updated to be a variable which contains the value of V (ie the
-//address it is pointing to).
+//Parses pointer suffixes.
 //Generates IL code to load the pointers *value* into a temp var.
 //IL generated may be somewhat redundant depending on the addressing mode of the
 //variable, but will be needed where the address of V itself also has to be retrieved
 //(ie. for StaticPtr and StackPtr variables).
-function ParsePointedSuffix(var V: PVariable): TQuicheError;
-var Ch: Char;                                 //TODO: Add PtrType as the type to be written
+//Suffuxes:
+//  ^           to dereference a pointer
+//  [<index>]   to address an array element
+//  .<field>    to access a record field
+//Deref is the item to be dereferenced (a variable, constant or function (result))
+//AddrVar returns a variable holding the address of the data (ie a pointer)
+function ParsePointedSuffix(const Deref: TIdentData;out AddrVar: PVariable): TQuicheError;
+var Ch: Char;
+  CurrIdent: TIdentData;
 begin
   Assert(CharInSet(Parser.TestChar, PtrSuffix));
+  CurrIdent := Deref;
 
   while True do
   begin
     Ch := Parser.TestChar;
     case Ch of
-      //V will be replaced with the result of the operation
-      '^': Result := ParsePtrSuffix(V);
-      '[': Result := ParseArrayIndexEX(V);
+      '^': Result := ParsePtrSuffix(CurrIdent, AddrVar);
+      '[': Result := ParseArrayIndexEX(CurrIdent, AddrVar);
       '.':  //Dotted syntax for record fields
         Assert(False, 'TODO');
     else
@@ -399,43 +416,50 @@ begin
     end;
     if Result <> qeNone then
       EXIT;
+
+    CurrIdent.IdentType := itVariable;
+    CurrIdent.V := AddrVar;
   end;
 end;
 
-
-function ParsePtrSuffixLoad(var Slug: TExprSlug;V: PVariable): TQuicheError;
+//As ParsePointedSuffix but also generates IL to load the value being dereferenced.
+//Returns a Slug with the code.
+function ParsePtrSuffixLoad(var Slug: TExprSlug;const Deref: TIdentData): TQuicheError;
 var ILItem: PILItem;
+  AddrVar: PVariable;
+  DestVar: PVariable;
 begin
   //Call PassPointedSuffix
-  Result := ParsePointedSuffix(V);
+  Result := ParsePointedSuffix(Deref, AddrVar);
   if Result <> qeNone then
     EXIT;
+
   //Generate the Slug with appropriate Kind (eq pkVarPtr)
-  if IsPointeredType(V.UserType) then
+  if IsPointeredType(AddrVar.UserType) then
   begin //Return a VarRef to the data. Caller will have to work out what to do with it
-    Slug.Operand.SetVarRef(V);
-    Slug.ResultType := V.UserType;
+    Slug.Operand.SetVarRef(AddrVar);
+    Slug.ResultType := AddrVar.UserType;
     Slug.ImplicitType := Slug.ResultType;
   end
   else
   begin
-    Assert(V.UserType.VarType in [vtPointer, vtTypedPointer]);
-    if IsPointeredType(V.UserType.OfType) then
+    Assert(AddrVar.UserType.VarType in [vtPointer, vtTypedPointer]);
+    if IsPointeredType(AddrVar.UserType.OfType) then
     begin //Return a VarRef to the data. Caller will have to work out what to do with it
-      Slug.Operand.SetVarRef(V);
-      Slug.ResultType := V.UserType.OfType;
+      Slug.Operand.SetVarRef(AddrVar);
+      Slug.ResultType := AddrVar.UserType.OfType;
       Slug.ImplicitType := Slug.ResultType;
     end
     else
     begin
       //Load the actual data with a PtrLoad operation
       ILItem := ILAppend(opPtrLoad);
-      ILItem.Param1.SetVarPtr(V);
-      ILItem.ResultType := V.UserType.OfType;
-      V := ILItem.AssignToHiddenVar(ILItem.ResultType);
+      ILItem.Param1.SetVarPtr(AddrVar);
+      ILItem.ResultType := AddrVar.UserType.OfType;
+      DestVar := ILItem.AssignToHiddenVar(ILItem.ResultType);
 
-      Slug.Operand.SetVarSource(V);
-      Slug.ResultType := V.UserType;
+      Slug.Operand.SetVarSource(DestVar);
+      Slug.ResultType := DestVar.UserType;
       Slug.ImplicitType := Slug.ResultType;
     end;
   end;
@@ -444,7 +468,7 @@ end;
 //Where AddrVar is a variable containing the address to store data to,
 //parses the assignment operator then the expression to be assigned and
 //generates the IL code for the PtrStore
-function DoAssignPtrStore(AddrVar: PVariable;ExprType: PUserType): TQuicheError;
+function DoAssignPtrStore(AddrVar: PVariable;ExprType: TUserType): TQuicheError;
 var ExprSlug: TExprSlug;
   ILItem: PILItem;
 begin
@@ -478,16 +502,20 @@ begin
 end;
 
 function ParseAssignPtrSuffixStore(AddrVar: PVariable): TQuicheError;
-var WriteType: PUserType;
+var WriteType: TUserType;
+  Deref: TIdentData;
+  DestVar: PVariable;
 begin
-  Result := ParsePointedSuffix(AddrVar);
+  Deref.IdentType := itVariable;
+  Deref.V := AddrVar;
+  Result := ParsePointedSuffix(Deref, DestVar);
   if Result <> qeNone then
     EXIT;
 
   //Get the type we're actually writing
-  WriteType := AddrVar.UserType.OfType;
+  WriteType := DestVar.UserType.OfType;
   //Parse Assignment expression
-  Result := DoAssignPtrStore(AddrVar, WriteType.OfType);
+  Result := DoAssignPtrStore(DestVar, WriteType.OfType);
 end;
 
 end.

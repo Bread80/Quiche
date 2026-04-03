@@ -70,7 +70,7 @@ begin
   //We have a pointered literal - it needs adding to a ConstList...
   if (Slug.ILItem = nil) and (Slug.Operand.Kind = pkImmediate) then
     if IsPointeredType(Slug.ResultType) then
-        Consts.Add('<Unnamed>', Slug.ResultType, Slug.Operand.Imm);
+        Consts.Add('', Slug.ResultType, Slug.Operand.Imm);
 
   //Validate argument:
   case Arg.Access of
@@ -281,7 +281,7 @@ end;
 //Slug is the slug to be returned.
 //  NOTE: Slug MUST have been initialised. Slug ResultType and ImplicitType should
 //    be set /before/ the call to this function
-procedure IntrinsicGenerateIL(Func: PFunction;OpOverride: TOperator;ParamCount: Integer;
+procedure IntrinsicGenerateIL(Func: PFunction;OpOverride: TOperation;ParamCount: Integer;
   const Left, Right: TExprSlug;var Slug: TExprSlug);
 var V: PVariable;
 begin
@@ -418,7 +418,7 @@ end;
 //as an argument.
 //Param is the relevant parameter
 //SlugIndex is the index of the parameter which is being passed an array
-function MassageArrayArgument(Op: TOperator;Param: PParameter;var Slugs: TSlugArray;
+function MassageArrayArgument(Op: TOperation;Param: PParameter;var Slugs: TSlugArray;
   SlugIndex: Integer): TQuicheError;
 var Slug: PExprSlug;
   IsTypeDef: Boolean; //We have a TypeDef - Ie the argument was a type (immediate) not a variable
@@ -430,7 +430,7 @@ var Slug: PExprSlug;
                         //  - We may need to do runtime processing to establish the result
                         //  - Ie if the variable is a list, or is an unbounded array.
   IsUnbounded: Boolean; //We have an unbounded array
-  ArrayUT: PUserType;
+  ArrayUT: TUserType;
   ArrayType: TArrayType;
 begin
   //TODO: Should this should raise a TypeMismatch error?
@@ -547,7 +547,7 @@ end;
 //that parameter and the result to the compile time value of that TypeDef parameter.
 //Also handles parameters tagged with ifToType. These need to be converted to a
 //Immediate of type vtVarType which is the same as the parameterised result.
-function SolidifyParameterisedResultType(Func: PFunction;var Slugs: TSlugArray;var ResultType: PUserType): TQuicheError;
+function SolidifyParameterisedResultType(Func: PFunction;var Slugs: TSlugArray;var ResultType: TUserType): TQuicheError;
 var Param: PParameter;
   Slug: PExprSlug;
   I: Integer;
@@ -595,12 +595,12 @@ end;
 
 function DispatchIntrinsic(Func: PFunction;var Slugs: TSlugArray;out Slug: TExprSlug): TQuicheError;
 var
-  ResultType: PUserType;
-  ResultTypeDebug: PUserType; //Only used for error messaging
-  PrimResultType: PUserType;
+  ResultType: TUserType;
+  ResultTypeDebug: TUserType; //Only used for error messaging
+  PrimResultType: TUserType;
   Found: Boolean;
-  LType: PUserType;
-  RType: PUserType;
+  LType: TUserType;
+  RType: TUserType;
   Msg: String;
   Evalled: Boolean;
   ParamCount: Integer;

@@ -5,17 +5,16 @@ uses Def.IL, Def.Operators, Def.VarTypes, Def.UserTypes, Def.Consts, Def.Variabl
   Parse.Errors, Parse.Literals;
 
 //Creates IL to assign the slug to a dest (variable or other)
-//  Variable must be assigned,
-//  ??? and must be a pointer type
+//  If Variable is nil it will be created (as unnamed)
 //  If AsType is nil:
 //    If the variable is being created it will be assigned the implicit type of the expression
-//    Otherwise the variable will be checked for compatibility with the expressions result type
+//    Otherwise the variable will be checked for compatibility with the expression's result type
 procedure AssignSlugToDest(const Slug: TExprSlug;var Variable: PVariable;
-  AsType: PUserType);
+  AsType: TUserType);
 
 //Parses an expression and returns it's data in an ExprSlug.
 function ParseExprToSlug(out Slug: TExprSlug): TQuicheError;
-function ParseExprToSlugWithTypeCheck(out Slug: TExprSlug;AsType: PUserType): TQuicheError;
+function ParseExprToSlugWithTypeCheck(out Slug: TExprSlug;AsType: TUserType): TQuicheError;
 
 (*  //Removed because it wasn't being used
 //Parses an expression to an ILItem with a single parameter and no operation
@@ -28,7 +27,7 @@ function ParseExprToILItem(out ILItem: PILItem;out UType: PUserType): TQuicheErr
 //On entry a value of vtUnknown may be passed for ExprType. If so ExprType will
 //return the type of the expression parsed
 function ParseConstantExpr(out Value: TImmValue): TQuicheError;
-function ParseConstantExprAsType(out Value: TImmValue;AsType: PUserType): TQuicheError;
+function ParseConstantExprAsType(out Value: TImmValue;AsType: TUserType): TQuicheError;
 
 //Parses an expression (After the <varname> := has been parsed) and creates IL
 //to assign it to the Variable which has been passed in. VarIndex is the index of
@@ -40,7 +39,7 @@ function ParseConstantExprAsType(out Value: TImmValue;AsType: PUserType): TQuich
 //*after* the expression has been evaluated. If the variable is created before
 //then it will be possible to reference the variable within the expression which
 //would, of course, be an bug.
-function ParseAssignmentExpr(var Variable: PVariable;AsType: PUserType): TQuicheError;
+function ParseAssignmentExpr(var Variable: PVariable;AsType: TUserType): TQuicheError;
 
 //Parse an assignment statement
 // <varname> := <assignment-expression>
@@ -56,14 +55,14 @@ procedure SlugToTypeDef(var Slug: TExprSlug);
 
 implementation
 uses SysUtils,
-  Def.Globals, Def.Scopes,
+  Def.Globals, Def.Scopes, Def.ScopesEX,
   Lib.Primitives,
   Parse.Base, Parse.Eval, Parse.FuncCall, Parse.Source, Parse.Pointers,
-  Parse.TypeChecker;
+  Parse.RangeLists, Parse.TypeChecker;
 
 
 procedure AssignSlugToDest(const Slug: TExprSlug;var Variable: PVariable;
-  AsType: PUserType);
+  AsType: TUserType);
 var VarVersion: Integer;
   ILItem: PILItem;
 begin
@@ -80,9 +79,30 @@ begin
   begin
     if Slug.Operand.Kind = pkImmediate then
     begin      //TODO: Immediate Pointered data
-      ILItem := ILAppend(OpStoreImm);
+    //NOTE: THIS CODE IS NOT USED ANYWHERE (EXCEPT TEST CODE WHICH FAILS!!!!
+    //We're assigning a (pointered) literal to a pointered variable.
+    //Ie we need to validate the types (eg destination length for an array)
+    //then issue a blockcopy (or other) to copy the data.
+    //May need varying if the types differ.
+       if Slug.ResultVarType = vtArrayType then
+        if Variable <> nil then
+        begin
+          //Check sizes are compatible. NOTE: Strings bight be copiable into a variable of larger
+          //capacity depending on the variable type!!
+          //Array types will need to be typecast as required
+          Assert(GetTypeDataSize(Slug.ResultType) = GetTypeDataSize(Variable.UserType));
+        end
+        else if AsType <> nil then
+          Assert(GetTypeDataSize(Slug.ResultType) = GetTypeDataSize(AsType));
+
+      ILItem := ILAppend(OpBlockCopy);
+      //Source
       ILItem.Param1 := Slug.Operand;
-      ILItem.Param2.Kind := pkNone;
+//      ILItem.Param1.Kind := pkVarRef;
+      //ByteSize
+      ILItem.Param2.SetImmediate(vtWord, Slug.Operand.Imm.DataByteSize);
+      //Dest to be set by caller(??)
+      ILItem.Dest.Kind := pkNone;
       ILItem.ResultType := Slug.ResultType;
     end
     else
@@ -114,6 +134,7 @@ begin
 
   if Variable = nil then
   begin
+    //TODO: IF we have an array type, harden if required
     if Assigned(AsType) then
       Variable := Vars.AddUnnamed(AsType)
     else
@@ -137,7 +158,7 @@ end;
 
 //=================================Complex operands, and operators
 
-function ParseTypecast(ToType: PUserType;var Slug: TExprSlug): TQuicheError;
+function ParseTypecast(ToType: TUserType;var Slug: TExprSlug): TQuicheError;
 var ILItem: PILItem;
 begin
   Assert(Parser.TestChar = '(');
@@ -174,8 +195,8 @@ end;
 
 function ParseOperand(var Slug: TExprSlug;UnaryOp: TUnaryOperator): TQuicheError; forward;
 
-//Parses identifiers as expression parameters.
-//Identifiers can be constants, variables or functions or types
+//Parses operands where the operand is an identifier.
+//Identifiers can be constants, variables, functions, types or enumeration items.
 function ParseOperandIdentifier(var Slug: TExprSlug;Ident: String): TQuicheError;
 var IdentData: TIdentData;
 begin
@@ -186,14 +207,17 @@ begin
       EXIT(ErrSub(qeUndefinedIdentifier, Ident));
     itConst:
     begin
+      if TestForPtrSuffix then
+        EXIT(ParsePtrSuffixLoad(Slug, IdentData));
+
       Slug.SetImmediate(IdentData.C.UserType, IdentData.C.Value);
       Slug.ParamOrigin := poExplicit;
       EXIT(qeNone);
      end;
-    itVar:
+    itVariable:
     begin
       if TestForPtrSuffix then
-        EXIT(ParsePtrSuffixLoad(Slug, IdentData.V));
+        EXIT(ParsePtrSuffixLoad(Slug, IdentData));
 
       Slug.Operand.SetVarSource(IdentData.V);
       Slug.ParamOrigin := poExplicit;
@@ -202,22 +226,28 @@ begin
       EXIT(qeNone);
     end;
     itType:
+    begin
+      Assert(IdentData.Value <> nil);
+
       //If it is a typecast it will be followed by open bracket.
       if Parser.TestChar = '(' then
       begin
-        Result := ParseTypecast(IdentData.T, Slug);
+        Result := ParseTypecast(IdentData.AsType, Slug);
         if Result <> qeNone then
           EXIT;
       end
       else
       begin //Not a typecast - return a TypeDef
-        Slug.SetImmediate(GetSystemType(vtTypeDef), TImmValue.CreateTypeDef(IdentData.T));
+        Slug.SetImmediate(GetSystemType(vtTypeDef), TImmValue.CreateTypeDef(IdentData.AsType));
         Slug.ParamOrigin := poExplicit;
         EXIT(qeNone);
       end;
+    end;
     itEnumItem:
     begin
-      Slug.SetImmediate(IdentData.T, TImmValue.CreateTyped(IdentData.T, IdentData.Index));
+      Assert(IdentData.Value <> nil);
+      Slug.SetImmediate(IdentData.AsEnumItem.UserType,
+        TImmValue.CreateTyped(IdentData.AsEnumItem.UserType, IdentData.AsEnumItem.Index));
       Slug.ParamOrigin := poExplicit;
       EXIT(qeNone);
     end;
@@ -233,8 +263,8 @@ begin
 end;
 
 function DoUnaryOp(UnaryOp: TUnaryOperator;var Slug: TExprSlug): TQuicheError;
-var VType: PUserType; //Dummy(??)
-  ResultType: PUserType;
+var VType: TUserType; //Dummy(??)
+  ResultType: TUserType;
 begin
   Assert(UnaryOp in UnaryOps);
   Result := qeNone;
@@ -295,7 +325,7 @@ begin //Sub-expressions
 
   //We have a pointered literal - it needs adding to a ConstList...
   if Slug.IsImmediate and IsPointeredType(Slug.ResultType) then
-    Consts.Add('<Unnamed>', Slug.ResultType, Slug.Operand.Imm);
+    Consts.Add('', Slug.ResultType, Slug.Operand.Imm);
 
   Slug.ILItem := ILAppend(OpAddrOf);
   Slug.ILItem.Param1 := Slug.Operand;
@@ -370,6 +400,10 @@ begin
 
       if Result <> qeNone then
         EXIT;
+    end;
+    '[':  //Array or set literal
+    begin
+      Result := ParseArrayOrSetLiteral(Slug);
     end;
 //    csDecimalFirst
     '0'..'9': //Numeric constants
@@ -482,9 +516,6 @@ begin
     EXIT;
 
   Result := ParseInfixOperator(Slug);
-  if Slug.Op = opAdd then
-    if Slug.ResultVarType in [vtChar, vtArrayType] then
-      Slug.Op := opConcat;
 end;
 
 //==============================Expressions
@@ -497,14 +528,23 @@ end;
 //Returns False if operands are incompatible with the operator/available primitives
 function AssignSlugTypes(var Left, Right: TExprSlug): Boolean;
 var
-  LType: PUserType;
-  RType: PUserType;
-  ResultType: PUserType;
+  LType: TUserType;
+  RType: TUserType;
+  ResultType: TUserType;
 begin
   LType := nil;
   RType := nil;
   ResultType := nil;  //Find routines with any result type
-  Result := PrimFindParse(Left.Op, Left, Right, LType, RType, ResultType);
+  Result := OpCheckInfix(Left.Op, Left.ResultType, Right.ResultType, Left.Op, ResultType);
+  if Result then
+  begin
+    //TODO: Check operand type compatibility for user defined types
+    //(Ie enumerations are of the same type)
+    if ResultType = nil then
+      //Deeper tests needed to establish the ResultType, which will depend on available
+      //Primitives
+      Result := PrimFindParse(Left.Op, Left, Right, LType, RType, ResultType);
+  end;
   if not Result then
     EXIT;
 
@@ -534,6 +574,7 @@ end;
 function ParseSubExpr(var Left: TExprSlug;out ILItem: PILItem): TQuicheError;
 var Right: TExprSlug;
   Evalled: Boolean;
+  Dummy: TUSerType;
 begin
   while True do
   begin
@@ -568,12 +609,21 @@ begin
         Right.Operand.SetVarSource(ILItem.AssignToHiddenVar(Left.ResultType));
     end;
 
+(*      if not AssignSlugTypes(Left, Right) then
+        EXIT(ErrOpUsageSub2(qeOpIncompatibleTypes,
+          VarTypeToName(Left.Operand.GetVarType),
+          VarTypeToName(Right.Operand.GetVarType), Left.Op));
+*)
     //Evaluate constant expressions
     Evalled := False;
     if (Left.Operand.Kind = pkImmediate) and (Right.Operand.Kind = pkImmediate) then
     begin
-      //If possible, evaluate and replace Slug.Operand
-      Result := EvalBi(Left.Op, @Left.Operand, @Right.Operand, Left.Operand.Imm);
+      if OpCheckInfix(Left.Op, Left.ResultType, Right.ResultType, Left.Op, {???}Dummy) then
+        //If possible, evaluate and replace Slug.Operand
+        Result := EvalBi(Left.Op, @Left.Operand, @Right.Operand, Left.Operand.Imm)
+      else
+        ;
+        //TODO: RAISE ERROR
       if Result <> qeNone then
         EXIT;
 
@@ -668,7 +718,7 @@ begin
   Result := qeNone;
 end;
 
-function ParseExprToSlugWithTypeCheck(out Slug: TExprSlug;AsType: PUserType): TQuicheError;
+function ParseExprToSlugWithTypeCheck(out Slug: TExprSlug;AsType: TUserType): TQuicheError;
 begin
   Result := ParseExprToSlug(Slug);
   if Result <> qeNone then
@@ -676,9 +726,20 @@ begin
 
   if AsType <> nil then
   begin
+    if Slug.Operand.Kind = pkRangeList then
+      EXIT(HardenRangeListToType(Slug, AsType));
+
+    //Convert Integer literals to Real literals
+    if Slug.IsImmediate then
+    begin
+      if AsType.VarType = vtReal then
+        if IsIntegerType(Slug.ResultType) and (AsType.VarType = vtReal) then
+        begin
+          Slug.Operand.Imm.CreateReal(Slug.Operand.Imm.IntValue);
+          Slug.ResultType := AsType;
+        end;
+    end;
     Result := TypeCheckFromSlug(AsType, Slug);
-    if Result <> qeNone then
-      EXIT;
   end;
 end;
 
@@ -723,20 +784,115 @@ begin
   Value := Slug.Operand.Imm;
 end;
 
-function ParseConstantExprAsType(out Value: TImmValue;AsType: PUSerType): TQuicheError;
+function ParseConstantExprAsType(out Value: TImmValue;AsType: TUSerType): TQuicheError;
 var Slug: TExprSlug;
+  AsArrayDef: PArrayDef;
+  ValueArrayDef: PArrayDef;
+  ValueLength: Integer;
+  NewType: TUserType;
 begin
   Result := ParseExprToSlugWithTypeCheck(Slug, AsType);
   if Result <> qeNone then
     EXIT;
 
+  if Slug.Operand.Kind = pkRangeList then
+  begin
+    if AsType = nil then
+    begin //Determine the type from the RangeList data
+      Result := HardenRangeListToInferredArrayType(Slug, NewType);
+      Value := Slug.Operand.Imm;
+      EXIT;
+    end
+    else
+      EXIT(HardenRangeListToType(Slug, AsType));
+  end;
+
   if Slug.Operand.Kind <> pkImmediate then
     EXIT(Err(qeConstantExpressionExpected));
 
   Value := Slug.Operand.Imm;
+
+  //When parsing array literals assumtions will have been made about the type
+  //We the assumed type does not match the AsType we will need to generate a
+  //new type for the Value, and update the Value's type.
+  if IsArrayType(AsType) then
+    if IsUnboundedArray(AsType) or not CompareArrayDefs(Value.UserType, AsType) then
+(*  if ArrayLiteralTypeNeedsHardening(Value.UserType, AsType) then
+*)  begin
+    AsArrayDef := @AsType.ArrayDef;
+    ValueArrayDef := @Value.UserType.ArrayDef;
+    ValueLength := Value.ArrayLength;
+
+    //Value will be using a generic type.
+    //We need to create a new type and use it to replace the current type in Value
+    NewType := Types.AddOfType(vtArrayType, Value.UserType.OfType);
+    NewType.ArrayDef.SetArrayType(AsArrayDef.ArrayType);
+    if (ValueLength > 255) or (AsArrayDef.ArraySize = asLong) then
+      NewType.ArrayDef.SetArraySize(asLong)
+    else
+      NewType.ArrayDef.SetArraySize(asShort);
+    NewType.ArrayDef.SetIsUnbounded(False);
+    NewType.ArrayDef.SetElementSize(ValueArrayDef.ElementSize);
+
+    case AsArrayDef.ArrayType of
+      atArray:
+      begin
+        //If caller wants a bounded array then the lengths requested must match the data length
+        if AsArrayDef.IsUnbounded then
+        begin //Add bounds
+          if NewType.ArrayDef.ArraySize = asShort then
+            NewType.BoundsType := Types.Add(vtByte)
+//            GetSystemType(vtByte)
+          else
+            NewType.BoundsType := Types.Add(vtWord);
+            //GetSystemType(vtWord);
+          NewType.BoundsType.Low := 0;
+          NewType.BoundsType.High := ValueLength-1;
+        end
+        else
+        begin
+          if GetTypeItemCount(AsType) <> ValueLength then
+            EXIT(ErrSub2(qeArrayLengthMismatch, GetTypeItemCount(AsType).ToString, ValueLength.ToString));
+          NewType.BoundsType := AsType.BoundsType;
+        end;
+
+//        NewType.Low := 0; //We'll used zero based integer bounds
+//        NewType.High := ValueLength-1;
+      end;
+      atVector:
+      begin
+        //If caller wants a bounded array then the lengths requested must match the data length
+        if not AsArrayDef.IsUnbounded then
+          if AsType.VectorLength <> ValueLength then
+            EXIT(ErrSub2(qeArrayLengthMismatch, AsType.VectorLength.ToString, ValueLength.ToString));
+
+        NewType.VectorLength := ValueLength;
+      end;
+      atList:
+      begin
+        //If caller wants a bounded array then the lengths requested must match the data length
+        if not AsArrayDef.IsUnbounded then
+        begin
+          if AsType.ListCapacity < ValueLength then
+            EXIT(ErrSub2(qeArrayLengthMismatch, AsType.ListCapacity.ToString, ValueLength.ToString));
+
+          NewType.ListCapacity := AsType.ListCapacity;
+        end
+        else
+          NewType.ListCapacity := ValueLength;
+      end;
+      else
+      raise EVarType.Create;
+    end;
+
+    //Update the Value's type
+    Value.UpdateUserType(NewType);
+  end;
+
+  Result := qeNone;
 end;
 
-function ParseAssignmentExpr(var Variable: PVariable;AsType: PUserType): TQuicheError;
+function ParseAssignmentExpr(var Variable: PVariable;AsType: TUserType): TQuicheError;
 var Slug: TExprSlug;
 begin
   Result := ParseExprToSlugWithTypeCheck(Slug, AsType);
@@ -775,7 +931,7 @@ end;
 //Parse an assignment statement
 // <varname> := <assignment-expression>
 function ParseAssignment(Variable: PVariable): TQuicheError;
-var UserType: PUserType;
+var UserType: TUserType;
 begin
   Assert(Assigned(Variable));
 
