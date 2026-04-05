@@ -30,7 +30,7 @@ function GetOptimisedRangeCheckProc(Prim: PPrimitive;FromType: TVarType): TRange
 //Options specifies limitaions as to which registers can be used/must be preserved.
 //  If the operation can't be performed without trashing these registers an assertion
 //  will be raised. (This parmeter si mainly for validation of the code generator/regiser allocater);
-procedure GenRangeCheck(Reg: TCPUReg;FromType, ToType: TUserType;Prim: PPrimitive;Options: TMoveOptionSet);
+procedure GenRangeCheck(Reg: TCPUReg;FromType, ToType: TOrdinalType;Prim: PPrimitive;Options: TMoveOptionSet);
 
 //These routines operate the same as the above, but operate on individual bytes
 //of a 16-bit value. They can be used to optimise range checking the loading of a
@@ -46,7 +46,7 @@ procedure GenRangeCheckLowByte(Reg: TCPUReg;FromType, ToType: TUserType;Options:
 //Used when loading a 16-bit value into an 8-bit value
 //!!!On entry the high byte/bits have been validated as within range for the OfType (Byte or Int8)
 //This routine valdates that the Low byte (in Reg) is within range of ToType
-procedure GenSubRangeCheckLowByte(Reg: TCPUReg;FromType, ToType: TUserType;Options: TMoveOptionSet);
+procedure GenSubRangeCheckLowByte(Reg: TCPUReg;FromType, ToType: TOrdinalType;Options: TMoveOptionSet);
 
 
 //These two routines perform a High9NEQRangeCheck in two parts - useful when bytes
@@ -298,12 +298,12 @@ end;
 //================================SubRanges
 
 //As SubRangeCheck for unsigned 8-bit variable to SubRange
-procedure GenSubRangeCheckU8(Reg: TCPUReg;FromType, ToType: TUserType;Options: TMoveOptionSet);
+procedure GenSubRangeCheckU8(Reg: TCPUReg;FromType, ToType: TOrdinalType;Options: TMoveOptionSet);
 var AMoved: Boolean;
 begin
   Assert(Reg in CPUReg8Bit);
   Assert(IsRegisterType(FromType));
-  Assert(GetTypeRegSize(FromType) = 1);
+  Assert(FromType.RegSize = 1);
   Assert(not IsSignedType(FromType));
   Assert(Options * [moPreserveA, moPreserveCF, moPreserveOtherFlags] = []);
 
@@ -344,12 +344,12 @@ begin
 end;
 
 //As SubRangeCheck for signed 8-bit variable to SubRange
-procedure GenSubRangeCheckS8(Reg: TCPUReg;FromType, ToType: TUserType;Options: TMoveOptionSet);
+procedure GenSubRangeCheckS8(Reg: TCPUReg;FromType, ToType: TOrdinalType;Options: TMoveOptionSet);
 var AMoved: Boolean;
 begin
   Assert(Reg in CPUReg8Bit);
   Assert(IsRegisterType(FromType));
-  Assert(GetTypeRegSize(FromType) = 1);
+  Assert(FromType.RegSize = 1);
   Assert(IsSignedType(FromType));
   Assert(Options * [moPreserveA, moPreserveCF, moPreserveOtherFlags] = []);
 
@@ -397,7 +397,7 @@ begin
 end;
 
 //As SubRangeCheck for unsigned 16-bit variable to SubRange
-procedure GenSubRangeCheckU16(Reg: TCPUReg;FromType, ToType: TUserType;Options: TMoveOptionSet);
+procedure GenSubRangeCheckU16(Reg: TCPUReg;FromType, ToType: TOrdinalType;Options: TMoveOptionSet);
 var LowPass: String;  //Labels
   TestCarry: String;
   HighPass: String;
@@ -410,7 +410,7 @@ begin
   //****************************************
   Assert(Reg in CPURegPairs);
   Assert(IsRegisterType(FromType));
-  Assert(GetTypeRegSize(FromType) = 2);
+  Assert(FromType.RegSize = 2);
   Assert(not IsSignedType(FromType));
   Assert(Options * [moPreserveA, moPreserveCF, moPreserveOtherFlags] = []);
 
@@ -501,7 +501,7 @@ begin
 end;
 
 //As SubRangeCheck for unsigned 16-bit variable to SubRange
-procedure GenSubRangeCheckS16(Reg: TCPUReg;FromType, ToType: TUserType;Options: TMoveOptionSet);
+procedure GenSubRangeCheckS16(Reg: TCPUReg;FromType, ToType: TOrdinalType;Options: TMoveOptionSet);
 var LowPass: String;  //Labels
   TestCarry: String;
   LowPassP: String;
@@ -516,7 +516,7 @@ begin
   //****************************************
   Assert(Reg in CPURegPairs);
   Assert(IsRegisterType(FromType));
-  Assert(GetTypeRegSize(FromType) = 2);
+  Assert(FromType.RegSize = 2);
   Assert(IsSignedType(FromType));
   Assert(Options * [moPreserveA, moPreserveCF, moPreserveOtherFlags] = []);
 
@@ -672,15 +672,14 @@ end;
 
 //Where ToType is a SubRange. Generate code to range check it's assignment from ToType
 //Parameters as GenRangeCheck
-procedure GenSubRangeCheck(Reg: TCPUReg;FromType, ToType: TUserType;Options: TMoveOptionSet);
+procedure GenSubRangeCheck(Reg: TCPUReg;FromType, ToType: TOrdinalType;Options: TMoveOptionSet);
 begin
   Assert(Assigned(FromType));
   Assert(Assigned(ToType));
   Assert(ToType.IsSubRange);
-  Assert(Assigned(ToType.OfType));
 
   //We're testing an 8-bit value
-  case GetTypeRegSize(FromType) of
+  case FromType.RegSize of
   1:
 //  if Reg in CPUReg8Bit then
     if IsSignedType(FromType) then
@@ -762,7 +761,7 @@ const ValidationMatrix: array[vtInt8..vtPointer,vtInt8..vtPointer] of TRangeChec
 {Word}    (GenHigh9NZRangeCheck,  GenBit15SetRangeCheck, GenHighNZRangeCheck,  nil,                   nil),
 {Pointer} (GenHigh9NZRangeCheck,  GenBit15SetRangeCheck, GenHighNZRangeCheck,  nil,                   nil));
 
-procedure GenRangeCheck(Reg: TCPUReg;FromType, ToType: TUserType;Prim: PPrimitive;Options: TMoveOptionSet);
+procedure GenRangeCheck(Reg: TCPUReg;FromType, ToType: TOrdinalType;Prim: PPrimitive;Options: TMoveOptionSet);
 var Proc: TRangeCheckProc;
   Optimised: TRangeCheckProc;
   FType, TType: TVarType;
@@ -844,7 +843,7 @@ end;
 //Used when loading a 16-bit value into an 8-bit value
 //!!!On entry the high byte/bits have been validated as within range for the OfType (Byte or Int8)
 //This routine valdates that the Low byte (in Reg) is within range of ToType
-procedure GenSubRangeCheckLowByte(Reg: TCPUReg;FromType, ToType: TUserType;Options: TMoveOptionSet);
+procedure GenSubRangeCheckLowByte(Reg: TCPUReg;FromType, ToType: TOrdinalType;Options: TMoveOptionSet);
 var FType, TType: TVarType;
 begin
   Assert(Assigned(FromType));

@@ -189,7 +189,7 @@ begin
   if FConst.IsString then
     Result := Length(FConst.StringValue)
   else
-    Result := (GetTypeDataSize(FUserType) - FUserType.ArrayDef.MetaSize) div FUserType.ArrayDef.ElementSize;
+    Result := (FUserType.DataSize - (FUserType as TArrayType).MetaSize) div (FUserType as TArrayType).ElementSize;
 end;
 
 function TImmValue.BlobValue: TBlob;
@@ -354,7 +354,7 @@ begin
   Assert(FConst <> nil);
 
   if FConst.IsString then
-    Result := FConst.UserType.ArrayDef.MetaSize + Length(FConst.StringValue)
+    Result := (FConst.UserType as TArrayType).MetaSize + Length(FConst.StringValue)
   else
     Result := Length(FConst.BlobValue);
 end;
@@ -388,7 +388,7 @@ begin
     vtEnumeration:
     begin
       Assert(Assigned(FUserType));
-      Result := UserType.EnumItemToString(FIntValue);
+      Result := (UserType as TEnumeration).EnumItemToString(FIntValue);
     end;
     vtArrayType:
     begin
@@ -453,29 +453,29 @@ begin
     vtEnumeration:
     begin
       Assert(Assigned(AUserType));
-      Result := AUserType.EnumItemToString(Value) + '(' + Value.ToString + ')';
+      Result := (AUserType as TEnumeration).EnumItemToString(Value) + '(' + Value.ToString + ')';
     end;
   else
     Assert(False);
   end;
 end;
 
-function BlobArrayToString(const Blob: TBlob;AUserType: TUserType;Offset: Integer): String;
+function BlobArrayToString(const Blob: TBlob;AUserType: TArrayType;Offset: Integer): String;
 var ElementSize: Integer;
   Count: Integer;
   I: Integer;
   Value: Integer;
 begin
   Assert(AUserType.VarType = vtArrayType);
-  ElementSize := GetTypeDataSize(AUserType.OfType);
-  case AUserType.ArrayDef.ArrayType of
+  ElementSize := AUserType.OfType.DataSize;
+  case AUserType.ArrayKind of
     atArray:
     begin
-      Count := AUserType.BoundsType.High-AUserType.BoundsType.Low+1;
+      Count := (AUserType as TPascalArrayType).BoundsType.High-(AUserType as TPascalArrayType).BoundsType.Low+1;
       Offset := 0;
     end;
     atVector:
-      case AUserType.ArrayDef.ArraySize of
+      case AUserType.ArraySize of
         asShort:
         begin //Length byte
           Count := Blob[0];
@@ -490,7 +490,7 @@ begin
         raise EVarType.Create;
       end;
     atList:
-      case AUserType.ArrayDef.ArraySize of
+      case AUserType.ArraySize of
         asShort:
         begin //Capacity and length bytes
           Count := Blob[1];
@@ -559,7 +559,7 @@ function TImmValue.ToString: String;
           if FConst.IsString then
             Result := FConst.StringValue
           else
-            Result := BlobArrayToString(FConst.BlobValue, AUserType, 0);
+            Result := BlobArrayToString(FConst.BlobValue, AUserType as TArrayType, 0);
     else
       Result := IntValueToString(AUserType, ToInteger);
     end;

@@ -554,7 +554,7 @@ begin
   CPUStringToState(InState);
   RegStateClearModified;
 
-  GenLoadParam(Param, GetSystemType(ToType), Options);  //<--- This is the big call
+  GenLoadParam(Param, GetSystemOrdinalType(ToType), Options);  //<--- This is the big call
   Code := PeekAssembly;
   State := CPUStateToString;
   Check(Code = OutCode, 'Expected ' + OutCode + ', got ' + Code + ' with ' + State);
@@ -1283,7 +1283,7 @@ begin
   CPUStringToState(InState);
   RegStateClearModified;
 
-  GenDestParam(Param, GetSystemType(FromType), RangeCheck, nil, Options);  //<--- This is the big call
+  GenDestParam(Param, GetSystemOrdinalType(FromType), RangeCheck, nil, Options);  //<--- This is the big call
 
   Code := PeekAssembly;
   State := CPUStateToString;

@@ -61,7 +61,6 @@ type
                       //Depth is increased for every BEGIN and decreased for every END
     Func: PFunction;  //The function which owns this scope. Nil for main/global code
     ConstList: PConstList;  //Constants declared at this scope level
-    TypeList: PTypeList;    //Ditto for Types
     VarList: PVarList;      //Ditto for Variables
     FuncList: PFuncList;    //Functions declared in this scope
 
@@ -135,9 +134,6 @@ function ScopeGetDepth: Integer;
 
 
 
-//Searches all current scopes for a typed pointer to the given UserType
-function SearchScopesForAnonTypedPointer(UserType: TUserType): TUserType;
-
 //Searched /all/ scopes for the given variable
 function FindScopeForVar(AVar: PVariable;out Index: Integer): PScope;
 
@@ -185,8 +181,6 @@ begin
     //Free items owned by the scope??
     Scope.ConstList.Clear;
     Dispose(Scope.ConstList);
-    Scope.TypeList.Clear;
-    Dispose(Scope.TypeList);
     Scope.VarList.Clear;
     Dispose(Scope.VarList);
     Scope.FuncList.Clear;
@@ -207,7 +201,6 @@ procedure SetCurrentScope(Scope: PScope);
 begin
   CurrentScope := Scope;
   SetCurrentConstList(Scope.ConstList);
-  SetCurrentTypeList(Scope.TypeList);
   SetCurrentVarList(Scope.VarList);
   SetCurrentFuncList(Scope.FuncList);
   //AsmCode - nowt to do
@@ -261,7 +254,7 @@ begin
   SystemScope.Initialise('System', nil);
   Scope := GetCUrrentScope;
   SetCurrentScope(@SystemScope);
-  CreateSystemTypes(SystemScope.TypeList);
+  CreateSystemTypes(SystemScope.ScopeEX);
   CreateSystemConsts(SystemScope.ConstList);
   SetCurrentScope(Scope);
 end;
@@ -299,30 +292,6 @@ begin
       EXIT(Scope);
 
   Result := nil;
-end;
-
-function SearchScopesForAnonTypedPointer(UserType: TUserType): TUserType;
-var Scope: PScope;
-begin
-  Scope := GetCurrentScope;
-
-  repeat
-    //Search scope
-    Result := Types.FindAnonPointerForType(UserType);
-    if Assigned(Result) then
-    begin
-      //Restore original scope
-      SetCurrentScope(Scope);
-      EXIT;
-    end;
-  until not SetParentScope;
-
-  //Search System scope
-  SetCurrentScope(@SystemScope);
-  Result := Types.FindAnonPointerForType(UserType);
-
-  //Restore original scope
-  SetCurrentScope(Scope);
 end;
 
 procedure ScopeIncDepth;
@@ -401,7 +370,6 @@ begin
   Depth := 0;
   Func := nil;
   ConstList := CreateConstList(AName);
-  TypeList := CreateTypeList;
   VarList := CreateVarList;
   FuncList := CreateFuncList;
   AsmCode := TStringlist.Create;
@@ -429,23 +397,6 @@ begin
       EXIT;
     end;
   end;
-
-  //Types and Enumerations
-(*  if Assigned(TypeList) then
-  begin
-    Result.T := TypeList.FindByNameInScope(Ident);
-    if Result.T <> nil then
-    begin
-      Result.IdentType := itType;
-      EXIT;
-    end;
-*)(*    Result.T := TypeList.FindByEnumNameInScope(Ident, Result.Index);
-    if Result.T <> nil then
-    begin
-      Result.IdentType := itEnumItem;
-      EXIT;
-    end;
-*)//  end;
 
   //Variables
   if Assigned(VarList) then
@@ -475,6 +426,7 @@ end;
 function TScopeOLD.SearchAllInScope(const Ident: String; IgnoreFuncs: Boolean): TIdentData;
 var Scope: PScope;
 begin
+  //Search current scope
   Result.Value := ScopeEX.SearchUpScopes(Ident, IgnoreFuncs);
   if Result.Value <> nil then
   begin
@@ -482,6 +434,15 @@ begin
     EXIT;
   end;
 
+  //Search SystemScope
+  Result.Value := SystemScope.ScopeEX.SearchUpScopes(Ident, IgnoreFuncs);
+  if Result.Value <> nil then
+  begin
+    Result.IdentType := Result.Value.IdentType;
+    EXIT;
+  end;
+
+  //----OLD
   Scope := @Self;
 
   repeat

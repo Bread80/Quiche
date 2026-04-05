@@ -140,7 +140,7 @@ begin
       ILItem.Param1.Reg := rHL
     else
       //If the Dest is 8-bit load it into A, if 16-bit load it into HL
-      case GetTypeRegSize(ILItem.Dest.GetUserType) of
+      case ILItem.Dest.GetUserType.RegSize of
         1: ILItem.Param1.Reg := rA;
         2: ILItem.Param1.Reg := rHL;
       else
@@ -159,8 +159,8 @@ begin
   Assert(ILItem.Param1.Kind = pkVarSource);
   Assert(ILItem.Param2.Kind = pkNone);
   Assert(ILItem.Dest.Kind = pkVarDest);
-  FromSize := GetTypeRegSize(ILItem.Param1.Variable.UserType);
-  ToSize := GetTypeRegSize(ILItem.ResultType);
+  FromSize := ILItem.Param1.Variable.UserType.RegSize;
+  ToSize := ILItem.ResultType.RegSize;
   case FromSize of
     1:
       case ToSize of
@@ -228,7 +228,7 @@ begin
   Assert(ILItem.Param2.Kind = pkNone);
   Assert(ILItem.Param3.Kind in [pkVarDest{, pkPush, pkPushByte}]);
 
-  ByteCount := GetTypeDataSize(ILItem.Dest.Variable.UserType);
+  ByteCount := ILItem.Dest.Variable.UserType.DataSize;
 
   //pkVarPtr param requires a pointer
   if ILItem.Param1.Reg = rNone then
@@ -245,6 +245,7 @@ end;
 
 procedure TEMPRegAllocPtrStore(var ILItem: PILItem);
 var ByteCount: Integer;
+  UT: TUserType;
 begin
   Assert(ILItem.Op = opPtrStore);
   Assert(ILItem.Param1.Kind in [pkVarPtr, pkVarSource]);
@@ -252,7 +253,9 @@ begin
   Assert(ILItem.Param2.Kind <> pkNone);
   Assert(ILItem.Param3.Kind = pkNone);
 
-  ByteCount := GetTypeDataSize(ILItem.Param1.Variable.UserType.OfType);
+  UT := ILItem.Param1.Variable.UserType;
+  Assert(UT is TTypedPointer);
+  ByteCount := (UT as TTypedPointer).OfType.DataSize;
 
   //VarPtr param requires a pointer
   if ILItem.Param1.Reg = rNone then
@@ -331,7 +334,7 @@ procedure TEMPRegAllocRegisterFunc(Func: PFunction);
             if Func.Params[I].IsByRef then
               ByteSize := 2
             else
-              ByteSize := GetTypeRegSize(Func.Params[I].UserType);
+              ByteSize := Func.Params[I].UserType.RegSize;
 
             case ByteSize of
               1:
@@ -375,7 +378,7 @@ begin
   if Param.ReturnsData then
   begin
     Assert(Param.Reg = rNone, 'Already allocated!');
-    case GetTypeRegSize(Param.UserType) of
+    case Param.UserType.RegSize of
       1: Param.Reg := rA;
       2: Param.Reg := rHL;
     else

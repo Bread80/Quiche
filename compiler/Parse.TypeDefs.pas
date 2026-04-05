@@ -109,11 +109,8 @@ begin
   //Validate, and find a common type if required (ie for numeric types)
   Result := FindCommonOrdinalType(ValueLow, ValueHigh, CommonType);
 
-  TheType := Types.AddOfType(CommonType.VarType, CommonType);
-//  TheType := Types.AddOfType('', vtSubRange, CommonType);
-  TheType.IsSubRange := True;
-  TheType.Low := ValueLow.ToInteger;
-  TheType.High := ValueHigh.ToInteger;
+  Assert(CommonType is TOrdinalType, 'Oops');
+  TheType := TTypes.CreateSubRange(CommonType as TOrdinalType, ValueLow.ToInteger, ValueHigh.ToInteger);
 end;
 
 //If the first identifier is unknown, processes as an enumeration,
@@ -138,14 +135,20 @@ begin
   Parser.SkipChar;
 
   //Create type
-  TheType := Types.Add(vtEnumeration);
-  TheType.SetEnumItems(Items);
-  TheType.Low := 0;
-  TheType.High := Length(Items)-1;
+  TheType := TTypes.CreateEnumeration(Items);
+end;
+
+function ParseOrdinalTypeDefinition(out TheType: TOrdinalType): TQuicheError;
+var NewType: TUserType;
+begin
+  Result := ParseTypeDefinition(NewType, True);
+  if Result <> qeNone then
+    EXIT;
+  TheType := NewType as TOrdinalType;
 end;
 
 function ParseSetDefinition(out TheType: TUserType): TQuicheError;
-var OfType: TUserType;
+var OfType: TOrdinalType;
 begin
   Result := Parser.SkipWhite;
   if Result <> qeNone then
@@ -154,14 +157,14 @@ begin
   if not TestForIdent('of') then
     EXIT(Err(qeOfExpected));
 
-  Result := ParseTypeDefinition(OfType, True);
+  Result := ParseOrdinalTypeDefinition(OfType);
   if Result <> qeNone then
     EXIT;
 
   //TODO: When we implement data for sets we'll need to establish
   //whether the element count is suitable, and which internal set type to use
 
-  TheType := Types.AddOfType(vtSetMem, OfType);
+  TheType := TTypes.CreateSetType(vtSetMem, OfType);
 end;
 
 //Parses an array definition.
@@ -185,26 +188,22 @@ function ParseArrayDefinition(out TheType: TUserType;InBounds: Boolean = False):
 
   //Parse a (Bounds:Element) pair
   function Recurse(out TheType: TUserType): TQuicheError;
-  var Bounds: TUserType;
+  var Bounds: TOrdinalType;
     OfType: TUserType;
+    Size: TArraySize;
   begin
     Parser.SkipChar;
-    Result := ParseTypeDefinition(Bounds, True);
+    Result := ParseOrdinalTypeDefinition(Bounds);
     if Result <> qeNone then
       EXIT;
     Result := ParseArrayDefinition(OfType, True);
     if Result <> qeNone then
       EXIT;
-
-    TheType := Types.AddOfType(vtArrayType, OfType);
-    TheType.ArrayDef.SetArrayType(atArray);
-    if (TheType.High-TheType.Low+1) > 255 then
-      TheType.ArrayDef.SetArraySize(asLong)
+    if (Bounds.High-Bounds.Low+1) > 255 then
+      Size := asLong
     else
-      TheType.ArrayDef.SetArraySize(asShort);
-    TheType.ArrayDef.SetIsUnbounded(False);
-    TheType.ArrayDef.SetElementSize(GetTypeDataSize(OfType));
-    TheType.BoundsType := Bounds;
+      Size := asShort;
+    TheType := TTypes.CreateArrayType(atArray, Size, Bounds, -1, OfType);
   end;
 
 var
@@ -263,14 +262,8 @@ begin
     EXIT;
 
   if not InBounds then
-  begin //Unbounded array
-    TheType := Types.AddOfType(vtArrayType, OfType);
-    TheType.ArrayDef.SetArrayType(atArray);
-    TheType.ArrayDef.SetArraySize(asUnknown);
-    TheType.ArrayDef.SetIsUnbounded(True);
-    TheType.ArrayDef.SetElementSize(GetTypeDataSize(OfType));
-    TheType.BoundsType := nil;
-  end
+    //Unbounded array
+    TheType := TTypes.CreateUnboundedArrayType(atArray, asUnknown, OfType)
   else  //Element
     TheType := OfType;
 end;
@@ -317,12 +310,12 @@ end;
 //is oversize then a Long size will be used instead.
 //If ArraySize is given explicitly it will be adhered to and an error raised in the specified
 //length/capacity is out of range.
-function ParseVectorOrListDefinition(ArrayType: TArrayType;ArraySize: TArraySize;out TheType: TUserType): TQuicheError;
-var Size: Integer;
+function ParseVectorOrListDefinition(ArrayKind: TArrayKind;ArraySize: TArraySize;out TheType: TUserType): TQuicheError;
+var LengthOrCapacity: Integer;
   OfType: TUserType;
   IsUnbounded: Boolean;
 begin
-  assert(ArrayType in [atVector, atList]);
+  assert(ArrayKind in [atVector, atList]);
 
   Result := Parser.SkipWhiteNL;
   if Result <> qeNone then
@@ -330,10 +323,10 @@ begin
 
   IsUnbounded := Parser.TestChar <> '[';
   if IsUnbounded then
-    Size := 0
+    LengthOrCapacity := -1
   else
   begin
-    Result := ParseVectorOrListSize(Size);
+    Result := ParseVectorOrListSize(LengthOrCapacity);
     if Result <> qeNone then
       EXIT;
   end;
@@ -347,48 +340,30 @@ begin
 
   if ArraySize = asUnknown then
   begin
-    if Size > 255 then
+    if LengthOrCapacity > 255 then
       ArraySize := asLong
     else
       ArraySize := optDefaultArraySize;
   end
   else
-    if (Size > 255) and (ArraySize <> asLong) then
+    if (LengthOrCapacity > 255) and (ArraySize <> asLong) then
       EXIT(Err(qeConstantOutOfRange));
 
-  TheType := Types.AddOfType(vtArrayType, OfType);
-  TheType.ArrayDef.SetArrayType(ArrayType);
-  TheType.ArrayDef.SetArraySize(ArraySize);
-  TheType.ArrayDef.SetIsUnbounded(IsUnbounded);
-  TheType.ArrayDef.SetElementSize(GetTypeDataSize(OfType));
-  case ArrayType of
-    atVector: TheType.VectorLength := Size;
-    atList: TheType.ListCapacity := Size;
+  if IsUnbounded then
+    TheType := TTypes.CreateUnboundedArrayType(ArrayKind, ArraySize, OfType)
   else
-    Assert(False);
-  end;
+    TheType := TTypes.CreateArrayType(ArrayKind, ArraySize, nil, LengthOrCapacity, OfType);
 end;
 
-function BakeArrayType(FromType: TUserType;out TheType: TUserType): TQuicheError;
-var Size: Integer;
-  BaseType: TUserType;
+function BakeArrayType(FromType: TArrayType;out TheType: TUserType): TQuicheError;
+var LengthOrCapacity: Integer;
 begin
-  Result := ParseVectorOrListSize(Size);
+  Result := ParseVectorOrListSize(LengthOrCapacity);
   if Result <> qeNone then
     EXIT;
 
-  BaseType := GetBaseType(FromType);
-  TheType := Types.AddOfType(BaseType.VarType, BaseType.OfType);
-  TheType.ArrayDef.SetArrayType(BaseType.ArrayDef.ArrayType);
-  TheType.ArrayDef.SetArraySize(BaseType.ArrayDef.ArraySize);
-  TheType.ArrayDef.SetIsUnbounded(False);
-  TheType.ArrayDef.SetElementSize(BaseType.ArrayDef.ElementSize);
-  case TheType.ArrayDef.ArrayType of
-    atVector: TheType.VectorLength := Size;
-    atList:   TheType.ListCapacity := Size;
-  else
-    raise EVarType.Create; //Invalid type
-  end;
+  TheType := TTypes.CreateArrayType(FromType.ArrayKind, FromType.ArraySize, nil,
+    LengthOrCapacity, FromType.OfType);
 end;
 
 function ParseRecordFields(Scope: PScope): TQuicheError;
@@ -420,7 +395,7 @@ begin
         if Result <> qeNone then
           EXIT;
         V.Offset := Offset;
-        Size := GetTypeDataSize(V.UserType);
+        Size := V.UserType.DataSize;
         if Size <= 0 then
           EXIT(Err(qeConcreteOrPointerTypeRequired));
         Offset := Offset + Size;
@@ -462,8 +437,7 @@ begin
   SetCurrentScope(PrevScope);
 
   //Create the type
-  TheType := Types.Add(vtRecord);
-  TheType.Scope := ScopeToScopeHandle(Scope);
+  TheType := TTypes.CreateRecordType(ScopeToScopeHandle(Scope));
 end;
 
 //If IsProc True we're parsing a PROCEDURE, otherwise we're parsing a FUNCTION
@@ -475,8 +449,7 @@ begin
   if Result <> qeNone then
     EXIT;
 
-  TheType := Types.Add(vtFunction);
-  TheType.Func := TFunctionHandle(Func);
+  TheType := TTypes.CreateFunctionType(TFunctionHandle(Func));
 end;
 
 function ParseTypeDefinition(out TheType: TUserType;OrdinalTypesOnly: Boolean = False): TQuicheError;
@@ -561,11 +534,11 @@ begin
               //If identifier is the name of a type we'll assume it's a type synonym
               //(or pointer)...
               if IsPointed then
-                TheType := GetPointerToType(IdentData.AsType)
+                TheType := TTypes.SearchScopesForAnonTypedPointer(IdentData.AsType)
               else if (Parser.TestChar = '[') and
                 (IdentData.AsType.VarType = vtArrayType) and
-                (IdentData.AsType.ArrayDef.ArrayType in [atVector, atList]) then
-                Result := BakeArrayType(IdentData.AsType, TheType)
+                ((IdentData.AsType as TArrayType).ArrayKind in [atVector, atList]) then
+                Result := BakeArrayType(IdentData.AsType as TArrayType, TheType)
               else
                 TheType := IdentData.AsType;
             end
@@ -658,8 +631,9 @@ begin
   if Result <> qeNone then
     EXIT;
 
+  //Check they haven't declared a member with the name of the type
   if TheType.VarType = vtEnumeration then
-    if IdentToEnumIndex(TheType, TypeName) <> -1 then
+    if (TheType as TEnumeration).StringToEnumIndex(TypeName) <> -1 then
       EXIT(ErrSub(qeIdentifierRedeclared, TypeName));
 
   if TheType.Name = '' then
@@ -668,7 +642,8 @@ begin
   else
     //We have an existing type and need to
     //create a SYNONYM type pointing to original
-    Types.AddSynonym(TypeName, TheType);
+    TTypes.CreateSynonym(TypeName, TheType);
+(*    Types.AddSynonym(TypeName, TheType);*)
 end;
 
 end.

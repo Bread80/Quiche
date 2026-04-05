@@ -22,13 +22,13 @@ uses SysUtils,
   Def.VarTypes, Def.Operators, Def.IL;
 
 //Assignments to an array. Both types are array types, and both are different types
-function TypeCheckArrays(ToType, FromType: TUserType): TQuicheError;
-var ToAT: TArrayType;
-  FromAT: TArrayType;
+function TypeCheckArrays(ToType, FromType: TArrayType): TQuicheError;
+var ToAT: TArrayKind;
+  FromAT: TArrayKind;
 begin
   //Both must match longshort/unknown and both must have the same element size
-  if (ToType.ArrayDef.ArraySize <> FromType.ArrayDef.ArraySize) or
-    (ToType.ArrayDef.ElementSize <> FromType.ArrayDef.ElementSize) then
+  if (ToType.ArraySize <> FromType.ArraySize) or
+    (ToType.ElementSize <> FromType.ElementSize) then
     EXIT(ErrSub2(qeTypeMismatch, FromType.Description, ToType.Description));
 
   //Element types must be compatible
@@ -36,10 +36,10 @@ begin
   if Result <> qeNone then
     EXIT;
 
-  ToAT := ToType.ArrayDef.ArrayType;
-  FromAT := FromType.ArrayDef.ArrayType;
-  if ToType.ArrayDef.IsUnbounded then
-    case ToType.ArrayDef.ArrayType of
+  ToAT := ToType.ArrayKind;
+  FromAT := FromType.ArrayKind;
+  if ToType.IsUnbounded then
+    case ToType.ArrayKind of
       atArray: EXIT(qeNone);
       atVector:
         if FromAT in [atVector, atList] then
@@ -85,12 +85,13 @@ begin
     else
       //For other ordinals the base type must be the same
       if IsOrdinalType(ToType) and IsOrdinalType(FromType) then
-        if RemoveSubRange(ToType) <> RemoveSubRange(FromType) then
+        if (ToType as TOrdinalType).BaseType <> (FromType as TOrdinalType).BaseType then
           EXIT(ErrSub2(qeTypeMismatch, FromType.Description, ToType.Description));
 
     //Ordinal ranges must intersect in some way
     if IsOrdinalType(ToType) and IsOrdinalType(FromType) then
-      if (ToType.High >= FromType.Low) and (FromType.High >= ToType.Low) then
+      if ((ToType as TOrdinalType).High >= (FromType as TOrdinalType).Low) and
+        ((FromType as TOrdinalType).High >= (ToType as TOrdinalType).Low) then
         EXIT(qeNone)
       else
         EXIT(ErrSub2(qeTypeMismatchNoOverlap, FromType.Description, ToType.Description));
@@ -98,7 +99,7 @@ begin
 
 
   if IsArrayType(ToType) and IsArrayType(FromType) then
-    EXIT(TypeCheckArrays(ToType, ToType));
+    EXIT(TypeCheckArrays(ToType as TArrayType, ToType as TArrayType));
 
   //Other types. Probably plenty to add here
   case ToVT of
@@ -116,6 +117,9 @@ begin
     vtPointer:  //Typed pointers can be assigned to untyped pointers
       if FromVT = vtTypedPointer then
         EXIT(qeNone);
+    vtTypedPointer:
+      if FromVT = vtTypedPointer then
+        EXIT(TypeCheck((ToType as TTypedPointer).OfType, (FromType as TTypedPointer).OfType));
   end;
 
   Result := ErrSub2(qeTypeMismatch, FromType.Description, ToType.Description);
@@ -126,7 +130,7 @@ function TypeCheckImm(ToType: TUserType;const Imm: TImmValue): TQuicheError;
 begin
   if IsIntegerType(ToType) and IsIntegerVarType(Imm.VarType) then
   begin //Integer value in range?
-    if not ((Imm.IntValue >= ToType.Low) and (Imm.IntValue <= ToType.High)) then
+    if not ((Imm.IntValue >= (ToType as TOrdinalType).Low) and (Imm.IntValue <= (ToType as TOrdinalType).High)) then
       EXIT(ErrSub2(qeConstantAssignmentOutOfRange, Imm.ToString, ToType.Description));
     EXIT(qeNone);
   end
@@ -139,7 +143,7 @@ begin
 
     //Is the value in range?
     if ToType.VarType <> vtBoolean then //(Boolean ranges are different)
-      if not ((Imm.ToInteger >= ToType.Low) and (Imm.ToInteger <= ToType.High)) then
+      if not ((Imm.ToInteger >= (ToType as TOrdinalType).Low) and (Imm.ToInteger <= (ToType as TOrdinalType).High)) then
         EXIT(ErrSub2(qeConstantAssignmentOutOfRange, Imm.ToString, ToType.Description));
     EXIT(qeNone);
   end

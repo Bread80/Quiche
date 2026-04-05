@@ -223,7 +223,7 @@ procedure GenStoreLiteralToVariable(Variable: PVariable;const Value: TImmValue;
   Options: TMoveOptionSet);
 var Reg: TCPUReg;
 begin
-  case GetTypeDataSize(Variable.UserType) of
+  case Variable.UserType.DataSize of
     1:
     case Variable.AddrMode of
       amStack:
@@ -352,7 +352,7 @@ procedure GenStoreLiteralToVariableHigh(Variable: PVariable;const Value: TImmVal
   Options: TMoveOptionSet);
 var Reg: TCPUReg;
 begin
-  Assert(GetTypeDataSize(Variable.UserType) = 2);
+  Assert(Variable.UserType.DataSize = 2);
 
   case Variable.AddrMode of
     amStack:
@@ -433,7 +433,7 @@ procedure GenStoreReg8BitToVar16Bit(Reg: TCPUReg;FromType: TUserType;
 var ViaA: Boolean;
 begin
   Assert(Reg in CPUReg8Bit);
-  Assert(GetTypeDataSize(Variable.UserType) = 2);
+  Assert(Variable.UserType.DataSize = 2);
 
   //Store register to low byte of variable
   ViaA := GenVarStore8(Reg, Variable, VarVersion, Options);
@@ -467,14 +467,14 @@ procedure GenStoreRegVarValue(Reg: TCPUReg;FromType: TUserType;
 begin
   case Reg of
     rA..rL:
-      case GetTypeRegSize(Variable.UserType) of
+      case Variable.UserType.RegSize of
         1: GenVarStore8(Reg, Variable, VarVersion, Options);
         2: GenStoreReg8BitToVar16Bit(Reg, FromType, Variable, VarVersion, RangeChecked, Options);
       else
         Assert(False);
       end;
     rHL..rBC:
-      case GetTypeRegSize(Variable.UserType) of
+      case Variable.UserType.RegSize of
         1: GenVarStore8(CPURegPairToLow[Reg], Variable, VarVersion, Options);
         2: GenVarStore16(Reg, Variable, VarVersion, Options);
       else
@@ -642,16 +642,17 @@ begin
   //TODO: Move range check to /after/ storing.
   //TODO: If stored via A reg range check against value already in A
   //Range check
-  if RangeCheck then
+  //(No need to range check pointers)
+  if RangeCheck and (FromType is TOrdinalType) then (*Param.GetVarType in [vtPointer, vtTypedPointer]) then*)
     if Assigned(RangeCheckProc) then
       RangeCheckProc(Reg, Options)
     else
     case Param.Kind of
       pkNone: ;
       pkVarDest:
-        GenRangeCheck(Reg, FromType, Param.Variable.UserType, nil, []);
+        GenRangeCheck(Reg, FromType as TOrdinalType, Param.Variable.UserType as TOrdinalType, nil, []);
       pkPush, pkPushByte:
-        GenRangeCheck(Reg, FromType, Param.PushType, nil, []);
+        GenRangeCheck(Reg, FromType as TOrdinalType, Param.PushType as TOrdinalType, nil, []);
     else
       Assert(False);
     end;
@@ -692,14 +693,17 @@ begin
     pkPush, pkPushByte: ToType := ILItem.Dest.PushType;
   end;
   RangeCheckProc := nil;
-  if ToType <> nil then
-    if not ToType.IsSubRange then
+  if (ToType <> nil) then
+    //If not a subrange
+    if not (ToType is TOrdinalType) or not (ToType as TOrdinalType).IsSubRange then
       RangeCheckProc := GetOptimisedRangeCheckProc(Prim, ToType.VarType);
 
   //We assume the result of an expression is a generic value - NOT a subrange and
   //therefore needs range checking into the DestType (if range checks are on).
-  FromType := RemoveSubRange(ILItem.ResultType);
-  GenDestParam(ILItem.Dest, FromType, pfRangeCheck in ILItem.Dest.Flags, RangeCheckProc, []);
+  FromType := ILItem.ResultType;
+  if FromType is TOrdinalType then
+    FromType := (FromType as TOrdinalType).BaseType;
+  GenDestParam(ILItem.Dest, FromType as TRegisteredType, pfRangeCheck in ILItem.Dest.Flags, RangeCheckProc, []);
 end;
 
 end.

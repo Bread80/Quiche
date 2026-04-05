@@ -91,7 +91,7 @@ begin
     begin
       V := Scope.VarList.IndexToData(I);
       Assert(V <> nil);
-      if (V.VarType = vtArrayType) and (V.UserType.ArrayDef.ArrayType in [atVector, atList]) then
+      if (V.VarType = vtArrayType) and ((V.UserType as TArrayType).ArrayKind in [atVector, atList]) then
         if not V.IsParam then
         begin //Variable needs initialising
           //TODO: NOT if it's a CopyDataIn variable - but how to know?
@@ -100,16 +100,16 @@ begin
             AsmLine('call ' + InitLocalVarsLabel);
             LocalVarsToInit := True;
           end;
-          case V.UserType.ArrayDef.ArrayType of
+          case (V.UserType as TArrayType).ArrayKind of
             atVector:
-              case V.UserType.ArrayDef.ArraySize of
+              case (V.UserType as TArrayType).ArraySize of
                 asShort: TypeCode := tcShortVector;
                 asLong: TypeCode := tcLongVector;
               else
                 raise EVarType.Create;
               end;
             atList:
-              case V.UserType.ArrayDef.ArraySize of
+              case (V.UserType as TArrayType).ArraySize of
                 asShort: TypeCode := tcShortList;
                 asLong: TypeCode := tcLongList;
               else
@@ -130,10 +130,10 @@ begin
           end;
           //Vector length or List Capacity
           case TypeCode of
-            tcShortVector: AsmLine('db ' + ByteToStr(V.UserType.VectorLength));
-            tcLongVector: AsmLine('dw ' + ByteToStr(V.UserType.VectorLength));
-            tcShortList: AsmLine('db ' + ByteToStr(V.UserType.ListCapacity));
-            tcLongList: AsmLine('dw ' + WordToStr(V.UserType.ListCapacity));
+            tcShortVector: AsmLine('db ' + ByteToStr((V.UserType as TVectorType).Length));
+            tcLongVector: AsmLine('dw ' + ByteToStr((V.UserType as TVectorType).Length));
+            tcShortList: AsmLine('db ' + ByteToStr((V.UserType as TListType).Capacity));
+            tcLongList: AsmLine('dw ' + WordToStr((V.UserType as TListType).Capacity));
           else
             raise EVarType.Create;
           end;

@@ -62,6 +62,7 @@ type
     function ToString: String;
 
     property Parent: TScope read FParent;
+    property Items: TObjectList<TScopedItem> read FItems;
 (*
 
     Depth: Integer;   //The block depth within the current scope. Used to determine

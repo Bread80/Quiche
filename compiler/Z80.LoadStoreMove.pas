@@ -220,7 +220,7 @@ begin
         else
         case V.AddrMode of
           amStatic:
-            case GetTypeRegSize(V.UserType) of
+            case V.UserType.RegSize of
               1: Result := mtStatic8;
               2: Result := mtStatic16;
             else
@@ -246,22 +246,28 @@ begin
         amStatic, amStaticRef:
                   //LD HL,(v)     ;HL->pointer
                   //LD r,(HL)     ;r->value
-          case GetTypeRegSize(V.UserType.OfType) of
-            1: Result := mtStaticPtr8;
-            2: Result := mtStaticPtr16;
+          if V.UserType is TTypedPointer then
+            case (V.UserType as TTypedPointer).OfType.RegSize of
+              1: Result := mtStaticPtr8;
+              2: Result := mtStaticPtr16;
+            else
+              System.Assert(False);
+            end
           else
-            System.Assert(False);
-          end;
+            System.Assert(False);  //vtPointer??
         amStack{, amStackPtr}:
                   //LD L,(IX+)    ;HL->pointer
                   //LD H,(IX+)
                   //LD r,(HL)     ;r->value
-          case GetTypeRegSize(V.UserType.OfType) of
+          if V.UserType is TTypedPointer then
+          case (V.UserType as TTypedPointer).OfType.RegSize of
             1: Result := mtStackPtr8;
             2: Result := mtStackPtr16;
           else
             System.Assert(False);
-          end;
+          end
+          else
+            System.Assert(False); //vtPointer?
       else
         Assert(False);
       end;
@@ -288,7 +294,7 @@ begin
     begin
       V := Param.ToVariable;
       UserType := V.UserType;
-      case GetTypeRegSize(UserType) of
+      case UserType.RegSize of
         1:  //8-bit to ??
           if (V.VarType = vtInt8) and (R in CPUReg16Bit) then
             Result := ptSignExtend;
@@ -306,7 +312,7 @@ begin
     begin
       V := Param.ToVariable;
       UserType := V.UserType;
-      case GetTypeRegSize(UserType) of
+      case UserType.RegSize of
         1: //?? to 8-bit
           if R in CPUReg8Bit then
             Result := ptShrink;

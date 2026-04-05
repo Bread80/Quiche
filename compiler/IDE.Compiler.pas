@@ -588,16 +588,10 @@ end;
 procedure GetFunctionsText(S: TStrings);
 begin
   S.Add(Funcs.ToString);
-  S.Add(#13#13'Types');
-  S.Add(Types.ToString);
 end;
 
 procedure GetTypesText(S: TStrings);
 begin
-  TypesToStrings(S);
-  S.Add(#13#13'Types');
-  S.Add(Types.ToString);
-
   S.Add(GetCurrentScope.ScopeEX.ToString);
 end;
 
@@ -671,7 +665,7 @@ begin
 
   InitialiseSkipMode;
   InitialiseConsts;
-  InitialiseTypes;
+(*  InitialiseTypes;*)
   InitialiseVars;
   InitialiseScopes;
 

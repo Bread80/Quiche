@@ -342,7 +342,7 @@ begin
           vtReal: Result := TImmValue.CreateReal(ReadReal(AsmName));
           vtFlag, vtTypeDef, vtUnknown: TImmValue.CreateString('TODO: ' + VarTypeToName(UserType.VarType));
           vtSetMem: Result := TImmValue.CreateString('TODO: SetMem type');
-          vtArrayType: Result := TImmValue.CreateBlob(UserType, ReadBlob(AsmName, GetTypeDataSize(UserType)));
+          vtArrayType: Result := TImmValue.CreateBlob(UserType, ReadBlob(AsmName, UserType.DataSize));
           vtRecord: Result := TImmValue.CreateString('TODO: Record types');
           vtFunction: Result := TImmValue.CreateString('TODO: Function types');
         else
@@ -364,7 +364,7 @@ begin
         end;
       end;
 *)
-    amStaticRef: Result := TImmValue.CreateTyped(GetPointerToType(UserType), ReadWord(AsmName));
+    amStaticRef: Result := TImmValue.CreateTyped(TTypes.SearchScopesForAnonTypedPointer(UserType), ReadWord(AsmName));
   else
       Assert(False);
   end;

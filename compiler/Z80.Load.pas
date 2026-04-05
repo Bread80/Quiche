@@ -319,7 +319,7 @@ end;
 //===============================
 
 procedure GenLoadVar8BitToReg8Bit(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
-  LoadType: TLoadParamType;ToType: TUserType;RangeCheck: Boolean;Options: TMoveOptionSet);
+  LoadType: TLoadParamType;ToType: TRegisteredType;RangeCheck: Boolean;Options: TMoveOptionSet);
 var ChangeSigned: Boolean;
   Kind: TRegStateKind;
   IsTypecast: Boolean;
@@ -327,7 +327,7 @@ var ChangeSigned: Boolean;
   ViaA: Boolean;
 begin
   Assert(ToReg in CPUReg8Bit);
-  Assert(GetTypeDataSize(Variable.UserType) = 1);
+  Assert(Variable.UserType.DataSize = 1);
 
   Kind := LoadTypeToKind(LoadType);
   Assert(Kind <> rskVarValueHigh);         //Can't fetch high byte of 8 but value!
@@ -365,12 +365,12 @@ begin
   begin
     if ViaA then
       ToReg := rA;
-    GenRangeCheck(ToReg, Variable.UserType, ToType, nil, Options);
+    GenRangeCheck(ToReg, Variable.UserType as TOrdinalType, ToType as TOrdinalType, nil, Options);
   end;
 end;
 
 procedure GenLoadVar8BitToReg16Bit(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
-  LoadType: TLoadParamType;ToType: TUserType;RangeCheck: Boolean;Options: TMoveOptionSet);
+  LoadType: TLoadParamType;ToType: TRegisteredType;RangeCheck: Boolean;Options: TMoveOptionSet);
 var SignedLoss: Boolean;
   Kind: TRegStateKind;
   IsTypecast: Boolean;
@@ -379,7 +379,7 @@ var SignedLoss: Boolean;
   Via: TCPUReg;
 begin
   Assert(ToReg in CPUReg16Bit);
-  Assert(GetTypeDataSize(Variable.UserType) = 1);
+  Assert(Variable.UserType.DataSize = 1);
 
   Kind := LoadTypeToKind(LoadType);
   Assert(Kind <> rskVarValueHigh);  //Can't fetch high byte of 8-bit value!
@@ -453,7 +453,7 @@ begin
     //Range check
     //Don't range check typecasts
     if RangeCheck and not IsTypecast then
-      GenRangeCheck(Via, Variable.UserType, ToType, nil, Options);
+      GenRangeCheck(Via, Variable.UserType as TOrdinalType, ToType as TOrdinalType, nil, Options);
 
     //From To       Range Extend
     //Int8 Integer  Y     Signed
@@ -478,7 +478,7 @@ end;
 
 //Sub to GetLoadVar16BitToReg8Bit
 procedure GenLoadVar16BitToReg8BitVarValue(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
-  ToType: TUserType;RangeCheck: Boolean;Options: TMoveOptionSet);
+  ToType: TOrdinalType;RangeCheck: Boolean;Options: TMoveOptionSet);
 var ChangeSigned: Boolean;
   Kind: TRegStateKind;
   Scavenge: TCPUReg;
@@ -508,7 +508,7 @@ begin
   begin
     if Scavenge in CPURegPairs then
     begin //We already have the full value in registers, do regular range check
-      GenRangeCheck(Scavenge, Variable.UserType, ToType, nil, Options);
+      GenRangeCheck(Scavenge, Variable.UserType as TOrdinalType, ToType, nil, Options);
       GenRegMove(CPURegPairToLow[Scavenge], ToReg, False, Options);
     end
     else
@@ -576,7 +576,7 @@ begin
         ToReg := rA;
       //Low byte of a 16-bit value
       if ToType.IsSubRange then
-        GenSubRangeCheckLowByte(ToReg, Variable.UserType, ToType, Options)
+        GenSubRangeCheckLowByte(ToReg, Variable.UserType as TOrdinalType, ToType, Options)
       else
         GenRangeCheckLowByte(ToReg, Variable.UserType, ToType, Options);
     end;
@@ -586,12 +586,12 @@ end;
 
 //Load a 16-bit variable into an 8-bit register
 procedure GenLoadVar16BitToReg8Bit(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
-  LoadType: TLoadParamType;ToType: TUserType;RangeCheck: Boolean;Options: TMoveOptionSet);
+  LoadType: TLoadParamType;ToType: TRegisteredType;RangeCheck: Boolean;Options: TMoveOptionSet);
 var  Kind: TRegStateKind;
   Scavenge: TCPUReg;
 begin
   Assert(ToReg in CPUReg8Bit);
-  Assert(GetTypeDataSize(Variable.UserType) = 2);
+  Assert(Variable.UserType.DataSize = 2);
 
   Kind := LoadTypeToKind(LoadType);
 
@@ -619,7 +619,7 @@ begin
         GenVarLoad16Low(Variable, VarVersion, ToReg, Kind, Options);
     end;
     rskVarValue:
-      GenLoadVar16BitToReg8BitVarValue(Variable, VarVersion, ToReg, ToType,
+      GenLoadVar16BitToReg8BitVarValue(Variable, VarVersion, ToReg, ToType as TOrdinalType,
         RangeCheck, Options);
   else
     Assert(False);
@@ -627,13 +627,13 @@ begin
 end;
 
 procedure GenLoadVar16BitToReg16Bit(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
-  LoadType: TLoadParamType;ToType: TUserType;RangeCheck: Boolean;Options: TMoveOptionSet);
+  LoadType: TLoadParamType;ToType: TRegisteredType;RangeCheck: Boolean;Options: TMoveOptionSet);
 var ChangeSigned: Boolean;
   Kind: TRegStateKind;
   Scavenge: TCPUReg;
 begin
   Assert(ToReg in CPUReg16Bit);
-  Assert(GetTypeRegSize(Variable.UserType) = 2);
+  Assert(Variable.UserType.RegSize = 2);
 
   Kind := LoadTypeToKind(LoadType);
 
@@ -714,8 +714,8 @@ begin
         //We know what's in to low byte but not the high byte
         RegStateSetVariable(CPURegPairToLow[ToReg], Variable, VarVersion, rskVarValueLow);
 
-      if RangeCheck then
-        GenRangeCheck(ToReg, Variable.UserType, ToType, nil, Options);
+      if RangeCheck and not (Variable.VarType in [vtPointer, vtTypedPointer]) then
+          GenRangeCheck(ToReg, Variable.UserType as TOrdinalType, ToType as TOrdinalType, nil, Options);
     end;
   else
     Assert(False);
@@ -724,11 +724,11 @@ end;
 
 //Load a 16 bit value to an index register
 procedure GenLoadVar16BitToXY(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
-  LoadType: TLoadParamType;ToType: TUserType;RangeCheck: Boolean;Options: TMoveOptionSet);
+  LoadType: TLoadParamType;ToType: TRegisteredType;RangeCheck: Boolean;Options: TMoveOptionSet);
 begin
   Assert(ToReg in [rIX, rIY]);
   Assert(Variable.AddrMode = amStatic,'Can''t load stack variables into index register');
-  Assert(GetTypeDataSize(Variable.UserType) = 2, 'Can''t extend 8-bit load into index register');
+  Assert(Variable.UserType.DataSize = 2, 'Can''t extend 8-bit load into index register');
   Assert(LoadType = lptNormal, 'Can''t load Hi() or Lo() to index register');
 
   OpLOAD(ToReg, Variable);
@@ -737,7 +737,7 @@ begin
   if RangeCheck then
     //PS this will fail as can't currently range check index registers.
     //But maybe fixed later
-    GenRangeCheck(ToReg, Variable.UserType, ToType, nil, Options);
+    GenRangeCheck(ToReg, Variable.UserType as TOrdinalType, ToType as TOrdinalType, nil, Options);
 end;
 
 //Load and convert a boolean variable into a CPU flag (ready for a conditional branch)
@@ -748,9 +748,9 @@ begin
   Assert(not (moPreserveA in Options), 'Can''t load boolean to CPU flag');
 
   //Load the variable into A register
-  case GetTypeDataSize(Variable.UserType) of
-    1: GenLoadVar8BitToReg8Bit(Variable, VarVersion, rA, lptNormal, GetSystemType(vtBoolean), False, Options);
-    2: GenLoadVar16BitToReg8Bit(Variable, VarVersion, rA, lptLow, GetSystemType(vtBoolean), False, Options);
+  case Variable.UserType.DataSize of
+    1: GenLoadVar8BitToReg8Bit(Variable, VarVersion, rA, lptNormal, GetSystemOrdinalType(vtBoolean), False, Options);
+    2: GenLoadVar16BitToReg8Bit(Variable, VarVersion, rA, lptLow, GetSystemOrdinalType(vtBoolean), False, Options);
   else
     Assert(False);
   end;
@@ -770,7 +770,7 @@ end;
 
 //Load the value of a variable into the given register
 procedure GenLoadRegVarValue(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
-  LoadType: TLoadParamType;ToType: TUserType;RangeCheck: Boolean;Options: TMoveOptionSet);
+  LoadType: TLoadParamType;ToType: TRegisteredType;RangeCheck: Boolean;Options: TMoveOptionSet);
 begin
   //Value already in register?
   if RegStateEqualsVariable(ToReg, Variable, VarVersion, rskVarValue) then
@@ -778,14 +778,14 @@ begin
 
   case ToReg of
     rA..rL:
-      case GetTypeRegSize(Variable.UserType) of
+      case Variable.UserType.RegSize of
         1: GenLoadVar8BitToReg8Bit(Variable, VarVersion, ToReg, LoadType, ToType, RangeCheck, Options);
         2: GenLoadVar16BitToReg8Bit(Variable, VarVersion, ToReg, LoadType, ToType, RangeCheck, Options);
       else
         Assert(False);
       end;
     rHL..rBC:
-      case GetTypeRegSize(Variable.UserType) of
+      case Variable.UserType.RegSize of
         1: GenLoadVar8BitToReg16Bit(Variable, VarVersion, ToReg, LoadType, ToType, RangeCheck, Options);
         2: GenLoadVar16BitToReg16Bit(Variable, VarVersion, ToReg, LoadType, ToType, RangeCheck, Options);
       else
@@ -891,6 +891,9 @@ begin
     amStatic:
       OpMOV(ToReg, Variable.GetAsmName);
       //TODO: CPU State
+    amStaticRef:
+      OpLOAD(ToReg, Variable.GetAsmName);
+      //TODO: CPU State
     amStack:  //Result := rIX + V.Offset
     begin
       //Preserve stuff - TODO: Optimise so we only preserve as needed
@@ -932,7 +935,6 @@ begin
   else
     Assert(False);
   end;
-
 end;
 
 procedure GenLoadLiteralPointer(ToReg: TCPUReg;const Imm: TImmValue; Options: TMoveOptionSet);
@@ -1003,7 +1005,7 @@ begin
         else
           GenLoadRegLiteral(Param.Reg, Param.Imm, Options);
     pkVarSource:
-      GenLoadRegVarValue(Param.Variable, Param.VarVersion, Param.Reg, Param.LoadType, ToType,
+      GenLoadRegVarValue(Param.Variable, Param.VarVersion, Param.Reg, Param.LoadType, ToType as TRegisteredType,
         pfRangeCheck in Param.Flags, Options);
     pkVarRef:
       GenLoadRegVarRef(Param.Variable, Param.VarVersion, Param.Reg, Options);
@@ -1016,7 +1018,7 @@ end;
 procedure GenPtrLoad(const Item: TILItem;Options: TMoveOptionSet);
 begin
   //Load address into Param1.Reg
-  GenLoadParam(Item.Param1, GetSystemType(vtPointer), Options);  //Tweak Type(?)
+  GenLoadParam(Item.Param1, GetSystemOrdinalType(vtPointer), Options);  //Tweak Type(?)
   //Load value into Dest.Reg
   GenLoadRegIndirect(Item.Dest.Reg, Item.Param1.Reg, Options);
 end;
@@ -1024,10 +1026,10 @@ end;
 procedure GenPtrStore(const Item: TILItem;Options: TMoveOptionSet);
 begin
   //Load data - from Param2
-  GenLoadParam(Item.Param2, Item.Param2.GetUserType, Options);
+  GenLoadParam(Item.Param2, Item.Param2.GetUserType as TRegisteredType, Options);
 
   //Load address into Param1.Reg - we'll use Param2's VarType
-  GenLoadParam(Item.Param1, GetSystemType(vtPointer), Options);  //Tweak type(?)
+  GenLoadParam(Item.Param1, GetSystemOrdinalType(vtPointer), Options);  //Tweak type(?)
 
   GenStoreRegIndirect(Item.Param1.Reg, Item.Param2.Reg, Options);
 end;

@@ -165,30 +165,30 @@ begin
         amStatic:
         begin
           S := V.GetAsmName + ': db ';
-          Bytes := GetTypeDataSize(V.UserType);
+          Bytes := V.UserType.DataSize;
 
           case V.VarType of
             vtArrayType:
             begin
-              case V.UserType.ArrayDef.ArrayType of
+              case (V.UserType as TArrayType).ArrayKind of
                 atArray: ; //Nothing
                 atVector:
-                  case V.UserType.ArrayDef.ArraySize of
+                  case (V.UserType as TArrayType).ArraySize of
                     asShort:  //Length byte
-                      S := S + ByteToStr(V.UserType.VectorLength) + ',';
+                      S := S + ByteToStr((V.UserType as TVectorType).Length) + ',';
                     asLong: //Length word
-                      S := S + ByteToStr(V.UserType.VectorLength and $ff) + ',' +
-                        ByteToStr(V.UserType.VectorLength shr 8 and $ff) + ',';
+                      S := S + ByteToStr((V.UserType as TVectorType).Length and $ff) + ',' +
+                        ByteToStr((V.UserType as TVectorType).Length shr 8 and $ff) + ',';
                   else
                     raise EVarType.Create;
                   end;
                 atList:
-                  case V.UserType.ArrayDef.ArraySize of
+                  case (V.UserType as TArrayType).ArraySize of
                     asShort:  //Capacity byte, length byte
-                      S := S + ByteToStr(V.UserType.ListCapacity) + ',0,';
+                      S := S + ByteToStr((V.UserType as TListType).Capacity) + ',0,';
                     asLong: //Capacity word, length word
-                      S := S + ByteToStr(V.UserType.ListCapacity and $ff) + ',' +
-                        ByteToStr(V.UserType.ListCapacity shr 8 and $ff) + ',0,0,';
+                      S := S + ByteToStr((V.UserType as TListType).Capacity and $ff) + ',' +
+                        ByteToStr((V.UserType as TListType).Capacity shr 8 and $ff) + ',0,0,';
                   else
                     raise EVarType.Create;
                   end;
@@ -196,7 +196,7 @@ begin
                 raise EVarType.Create;
               end;
 
-              Bytes := Bytes - V.UserType.ArrayDef.MetaSize;
+              Bytes := Bytes - (V.UserType as TArrayType).MetaSize;
             end;
           end;
 
@@ -365,7 +365,7 @@ begin
       //When loading: load to type specified in Dest (extend, range check etc).
       //GenOpMove(ILItem);
       TEMPRegAllocMove(ILItem); //(??)
-      GenLoadParam(ILItem.Param1, ILItem.Dest.GetUserType, []);
+      GenLoadParam(ILItem.Param1, ILItem.Dest.GetUserType as TRegisteredType, []);
       //Range checking and extending (if required) is done while loading
       GenDestParam(ILItem.Dest, nil, False, nil, [])
     end;
@@ -387,7 +387,7 @@ begin
     begin //TODO: Rework this to be neater
       //GenOpMove(ILItem);
       TEMPRegAllocBoolVarBranch(ILItem); //(??)
-      GenLoadParam(ILItem.Param1, GetSystemType(vtFlag), []);
+      GenLoadParam(ILItem.Param1, GetSystemOrdinalType(vtFlag), []);
       GenDestParam(ILItem.Dest, nil, False, nil, [])
      end;
     opPtrLoad:

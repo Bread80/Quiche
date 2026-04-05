@@ -259,24 +259,24 @@ end;
 //AddrVar returns tha variable to which the data pointer is assigned.
 function ParseArrayIndexEX(const Deref: TIdentData;out AddrVar: PVariable): TQuicheError;
 var IndexSlug: TExprSlug; //Slug for the index expresssion
-  ArrayType: TUserType;
+  ArrayType: TArrayType;
   ILItem: PILItem;
-  BoundsType: TUserType;
+  BoundsType: TOrdinalType;
   Index: Integer;
 begin
   Assert(CharInSet(Parser.TestChar, ['[',',']));
   Parser.SkipChar;
 
-  ArrayType := Deref.GetUserType;
-  Assert(ArrayType <> nil);
-  if ArrayType.VarType = vtTypedPointer then
-    ArrayType := ArrayType.OfType;
+  if Deref.GetUserType is TTypedPointer then
+    ArrayType := (Deref.GetUserType as TTypedPointer).OfType as TArrayType
+  else
+    ArrayType := Deref.GetUserType as TArrayType;
   Assert(ArrayType <> nil);
   Assert(ArrayType.VarType = vtArrayType);
 
-  case ArrayType.ArrayDef.ArrayType of
-    atArray: BoundsType := ArrayType.BoundsType;
-    atVector, atList: BoundsType := GetSystemType(ArrayType.ArrayDef.MetaType);
+  case ArrayType.ArrayKind of
+    atArray: BoundsType := (ArrayType as TPascalArrayType).BoundsType;
+    atVector, atList: BoundsType := ArrayType.IndexMetaType;
   else
     raise EVarType.Create;
   end;
@@ -288,20 +288,20 @@ begin
   //If we have a literal expression validate against length (vector) or capacity (list)
   //(Array types bounds will have been trapped by ParseExprTo due to BoundsType range)
   if IndexSlug.ILItem = nil then
-    case ArrayType.ArrayDef.ArrayType of
+    case ArrayType.ArrayKind of
       atArray: ;
       atVector:
       begin
         Assert(IsIntegerType(IndexSlug.ResultType));
         Index := IndexSlug.Operand.Imm.IntValue;
-        if (Index < 0) or (Index >= ArrayType.VectorLength) then
+        if (Index < 0) or (Index >= (ArrayType as TVectorType).Length) then
           EXIT(Err(qeConstantOutOfRange));
       end;
       atList:
       begin
         Assert(IsIntegerType(IndexSlug.ResultType));
         Index := IndexSlug.Operand.Imm.IntValue;
-        if (Index < 0) or (Index >= ArrayType.ListCapacity) then
+        if (Index < 0) or (Index >= (ArrayType as TListType).Capacity) then
           EXIT(Err(qeConstantOutOfRange));
       end;
     else
@@ -323,7 +323,7 @@ begin
   end;
 
   ILItem.Param2 := IndexSlug.Operand;
-  ILItem.ResultType := GetPointerToType(ArrayType.OfType);
+  ILItem.ResultType := TTypes.SearchScopesForAnonTypedPointer(ArrayType.OfType);
   AddrVar := ILItem.AssignToHiddenVar(ILItem.ResultType);
 
   Result := Parser.SkipWhite;
@@ -369,7 +369,7 @@ begin
     end;
 
     if DerefType.VarType = vtPointer then
-      ILItem.ResultType := GetPointerToType(GetSystemType(vtByte))
+      ILItem.ResultType := TTypes.SearchScopesForAnonTypedPointer(GetSystemType(vtByte))
     else
       ILItem.ResultType := DerefType;
   end;
@@ -428,6 +428,7 @@ function ParsePtrSuffixLoad(var Slug: TExprSlug;const Deref: TIdentData): TQuich
 var ILItem: PILItem;
   AddrVar: PVariable;
   DestVar: PVariable;
+  OfType: TUserType;
 begin
   //Call PassPointedSuffix
   Result := ParsePointedSuffix(Deref, AddrVar);
@@ -444,19 +445,20 @@ begin
   else
   begin
     Assert(AddrVar.UserType.VarType in [vtPointer, vtTypedPointer]);
-    if IsPointeredType(AddrVar.UserType.OfType) then
+    OfType := (AddrVar.UserType as TTypedPointer).OfType;
+    if IsPointeredType(OfType) then
     begin //Return a VarRef to the data. Caller will have to work out what to do with it
       Slug.Operand.SetVarRef(AddrVar);
-      Slug.ResultType := AddrVar.UserType.OfType;
-      Slug.ImplicitType := Slug.ResultType;
+      Slug.ResultType := OfType;
+      Slug.ImplicitType := OfType;
     end
     else
     begin
       //Load the actual data with a PtrLoad operation
       ILItem := ILAppend(opPtrLoad);
       ILItem.Param1.SetVarPtr(AddrVar);
-      ILItem.ResultType := AddrVar.UserType.OfType;
-      DestVar := ILItem.AssignToHiddenVar(ILItem.ResultType);
+      ILItem.ResultType := OfType;
+      DestVar := ILItem.AssignToHiddenVar(OfType);
 
       Slug.Operand.SetVarSource(DestVar);
       Slug.ResultType := DestVar.UserType;
@@ -513,9 +515,10 @@ begin
     EXIT;
 
   //Get the type we're actually writing
-  WriteType := DestVar.UserType.OfType;
+  Assert(DestVar.UserType is TTypedPointer);
+  WriteType := (DestVar.UserType as TTypedPointer).OfType;
   //Parse Assignment expression
-  Result := DoAssignPtrStore(DestVar, WriteType.OfType);
+  Result := DoAssignPtrStore(DestVar, WriteType);
 end;
 
 end.

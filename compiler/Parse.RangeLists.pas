@@ -39,7 +39,7 @@ function HardenRangeListToType(var Slug: TExprSlug;var AsType: TUserType): TQuic
 //Where Slug's operand is a RangeType, converts the RangeList data to an array.
 //The element type and size of the array are inferred from the RangeList data.
 //AsType returns the type of the hardened data.
-function HardenRangeListToInferredArrayType(var Slug: TExprSlug;out AsType: TUSerType): TQuicheError;
+function HardenRangeListToInferredArrayType(var Slug: TExprSlug;out AsType: TArrayType): TQuicheError;
 
 
 implementation
@@ -301,7 +301,7 @@ begin
   end;
 end;
 
-function RangeListToArrayConstant(const RangeList: TRangeList;ArrayType: TUserType): TImmValue;
+function RangeListToArrayConstant(const RangeList: TRangeList;ArrayType: TArrayType): TImmValue;
 
   //Returns the updated Index
   //Absolutely no validation is performed, either on data size, index or value!
@@ -342,24 +342,24 @@ var Data: TBlob;  //Array of Byte
   ItemSize: Integer;
   Count: Integer;
 begin
-  SetLength(Data, GetTypeDataSize(ArrayType));
+  SetLength(Data, ArrayType.DataSize);
 
   I := 0;
   //Add meta data
-  case ArrayType.ArrayDef.ArrayType of
+  case ArrayType.ArrayKind of
     atArray: ;  //No meta
     atVector:
-      I := AddMeta(Data, I, ArrayType.VectorLength, ArrayType.ArrayDef.ArraySize);
+      I := AddMeta(Data, I, (ArrayType as TVectorType).Length, ArrayType.ArraySize);
     atList:
     begin
-      I := AddMeta(Data, I, ArrayType.ListCapacity, ArrayType.ArrayDef.ArraySize);
-      I := AddMeta(Data, I, ArrayType.ListCapacity, ArrayType.ArrayDef.ArraySize);
+      I := AddMeta(Data, I, (ArrayType as TLIstType).Capacity, ArrayType.ArraySize);
+      I := AddMeta(Data, I, (ArrayType as TListType).Capacity, ArrayType.ArraySize);
     end;
   else
     raise EVarType.Create;
   end;
 
-  ItemSize := GetTypeDataSize(ArrayType.OfType);
+  ItemSize := ArrayType.OfType.DataSize;
   for Item in RangeList do
   begin
     Assert(IsRegisterType(ArrayType.OfType)); //TEMPORARY
@@ -369,7 +369,7 @@ begin
   end;
 
   //If we have a List where the Range leaves empty entries
-  if ArrayType.ArrayDef.ArrayType = atList then
+  if ArrayType.ArrayKind = atList then
     while I < Length(Data) do
       I := AddMeta(Data, I, 0, asShort);
 (*
@@ -383,10 +383,15 @@ end;
 
 //===================================== HARDEN RANGELISTS
 
-function HardenRangeListToArrayType(var Slug: TExprSlug;var AsType: TUserType): TQuicheError;
-var ResultType: TUserType;
-  BoundsType: TUserType;
+function HardenRangeListToArrayType(var Slug: TExprSlug;AsType: TArrayType;out ResultType: TUserType): TQuicheError;
+var Newtype: TArrayType;
+  BoundsType: TOrdinalType;
   Value: TImmValue;
+
+  //For the new type:
+  Kind: TArrayKind;
+  Size: TArraySize;
+  LengthOrCapacity: Integer;
 begin
   Assert(AsType.VarType = vtArrayType);
   Assert(Slug.Operand.Kind = pkRangeList);
@@ -400,54 +405,47 @@ begin
     EXIT;
 
   //Create type for the array: ArrayType = Vector[RangeList.Length] of ElementType
-  if AsType.ArrayDef.IsUnbounded then
+  if AsType.IsUnbounded then
   begin
-    ResultType := Types.AddOfType(vtArrayType, AsType.OfType);
-    ResultType.ArrayDef.SetArrayType(AsType.ArrayDef.ArrayType);
+    Kind := AsType.ArrayKind;
     if Length(Slug.RangeList) > 255 then
-      ResultType.ArrayDef.SetArraySize(asLong)
+      Size := asLong
     else
-      ResultType.ArrayDef.SetArraySize(asShort);
-    ResultType.ArrayDef.SetIsUnbounded(False);
-    ResultType.ArrayDef.SetElementSize(AsType.ArrayDef.ElementSize);
-
+      Size := asShort;
     //Set array bounds/length/capacity
-    case AsType.ArrayDef.ArrayType of
+    case AsType.ArrayKind of
       atArray:
       begin //Create a bounds type!!
         if Length(Slug.RangeList) > 255 then
-          BoundsType := Types.Add(vtWord)
+          BoundsType := TTypes.CreateIntegerType(vtWord, 0, Length(Slug.RangeList)-1)
         else
-          BoundsType := Types.Add(vtByte);
-        BoundsType.Low := 0;
-        BoundsType.High := Length(Slug.RangeList)-1;
-        ResultType.BoundsType := BoundsType;
+          BoundsType := TTypes.CreateIntegerType(vtWord, 0, Length(Slug.RangeList)-1);
       end;
-      atVector: ResultType.VectorLength := Length(Slug.RangeList);
-      atList: ResultType.ListCapacity := Length(Slug.RangeList);
+      atVector, atList: LengthOrCapacity := Length(Slug.RangeList);
     else
       raise EVarType.Create;
     end;
+    NewType := TTypes.CreateArrayType(Kind, Size, BoundsType, LengthOrCapacity, AsType.OfType);
   end
   else  //Bounded array - verify the element count matches that of the RangeList
   begin
-    case AsType.ArrayDef.ArrayType of
+    case AsType.ArrayKind of
       atArray:
-        if GetTypeItemCount(AsType) <> Length(Slug.RangeList) then
+        if AsType.GetItemCount <> Length(Slug.RangeList) then
           EXIT(qeArrayLengthMismatch);
       atVector:
-        if AsType.VectorLength <> Length(Slug.RangeList) then
+        if (AsType as TVectorType).Length <> Length(Slug.RangeList) then
           EXIT(qeArrayLengthMismatch);
       atList:
-        if AsType.ListCapacity < Length(Slug.RangeList) then
+        if (AsType as TListType).Capacity < Length(Slug.RangeList) then
           EXIT(qeArrayLengthMismatch);
     else
       raise EVarType.Create;
     end;
-    ResultType := AsType;
+    NewType := AsType;
   end;
-
-   Value := RangeListToArrayConstant(Slug.RangeList, ResultType);
+  Value := RangeListToArrayConstant(Slug.RangeList, NewType);
+  ResultType := NewType;
 
   Slug.SetImmediate(AsType, Value);
   Result := qeNone;
@@ -455,6 +453,7 @@ end;
 
 function HardenRangeListToType(var Slug: TExprSlug;var AsType: TUserType): TQuicheError;
 var Value: TImmValue;
+  ResultType: TUserType;
 begin
   Assert(AsType <> nil);
   Assert(Slug.ILItem = nil);
@@ -463,15 +462,22 @@ begin
   case AsType.VarType of
     vtSetByte, vtSetWord, vtSetMem: Assert(False, 'TODO');
     vtArrayType:  //TODO??? - this happens in expr evaluator??
-      Result := HardenRangeListToArrayType(Slug, AsType);
+    begin
+      Result := HardenRangeListToArrayType(Slug, AsType as TArrayType, ResultType);
+      if Result <> qeNone then
+        EXIT;
+      AsType := ResultType;
+    end;
   else
     EXIT(ErrSub2(qeTypeMismatch,'<array-or-set>', AsType.ToString));
   end;
 end;
 
-function HardenRangeListToInferredArrayType(var Slug: TExprSlug;out AsType: TUSerType): TQuicheError;
+function HardenRangeListToInferredArrayType(var Slug: TExprSlug;out AsType: TArrayType): TQuicheError;
 var ElementType: TUserType;
   Value: TImmValue;
+
+  Size: TArraySize;
 begin
   Assert(Slug.Operand.Kind = pkRangeList);
 
@@ -484,15 +490,11 @@ begin
     EXIT;
 
   //Create type for the array: ArrayType = Vector[RangeList.Length] of ElementType
-  AsType := Types.AddOfType(vtArrayType, ElementType);
-  AsType.ArrayDef.SetArrayType(atVector);   //Default to vector
-  AsType.VectorLength := Length(Slug.RangeList);
   if Length(Slug.RangeList) > 255 then
-    AsType.ArrayDef.SetArraySize(asLong)
+    Size := asLong
   else
-    AsType.ArrayDef.SetArraySize(asShort);
-  AsType.ArrayDef.SetIsUnbounded(False);
-  AsType.ArrayDef.SetElementSize(GetTypeDataSize(ElementType));
+    Size := asShort;
+  AsType := TTypes.CreateArrayType(atVector, Size, nil, Length(Slug.RangeList), ElementType);
 
   //Convert array data to a constant
   Value := RangeListToArrayConstant(Slug.RangeList, AsType);

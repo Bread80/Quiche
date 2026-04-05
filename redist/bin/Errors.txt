@@ -192,7 +192,7 @@
 =IntegerExpectedForCALLOrRST
 	Integer value expected for CALL or RST directive
 =StringExpectedForEXTERN
-	String value expected for EXTEN directive
+	String value expected for EXTERN directive
 	An EXTERN directive must be follwed by a string constant expression giving the label of the assembly routine to call
 =CallDirectiveOutOfRange
 	CALL directive value out of range

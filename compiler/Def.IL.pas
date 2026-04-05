@@ -773,11 +773,11 @@ begin
       if IsPointeredVarType(Variable.VarType) then
         Result := Variable.UserType
       else
-        Result := GetPointerToType(Variable.UserType);
+        Result := TTypes.SearchScopesForAnonTypedPointer(Variable.UserType);
     pkVarPtr:
     begin
       case Variable.VarType of
-        vtTypedPointer: Result := Variable.UserType.OfType;
+        vtTypedPointer: Result := (Variable.UserType as TTypedPointer).OfType;
         vtPointer: Result := GetSystemType(vtByte);
       else
         Assert(False);
@@ -787,7 +787,7 @@ begin
     pkVarRef:
     begin
       case Variable.VarType of
-        vtTypedPointer: Result := Variable.UserType.OfType;
+        vtTypedPointer: Result := (Variable.UserType as TTypedPointer).OfType;
         vtPointer: Result := GetSystemType(vtByte);
       else
         Result := Variable.UserType;

@@ -75,7 +75,7 @@ type TVarType = (
   );
 
   //How is array data stored?
-  TArrayType = (
+  TArrayKind = (
     atUnknown,    //Used by library routines to specify any array type
     atArray,      //An array with no run-time meta data. All data about bounds,
                   //length and capacity is stored in the type data and accessible
@@ -97,12 +97,12 @@ type TVarType = (
   //Extra type data for array definitions
   PArrayDef = ^TArrayDef;
   TArrayDef = record
-    ArrayType: TArrayType;  //How data is stored
+    ArrayType: TArrayKind;  //How data is stored
     ArraySize: TArraySize;  //How bit is our meta data
     IsUnbounded: Boolean;   //Is this an unbounded array?
     ElementSize: Integer;   //Could be used for element-typeless parameters
 
-    procedure SetArrayType(AT: TArrayType);
+    procedure SetArrayType(AT: TArrayKind);
     procedure SetArraySize(Size: TArraySize);
     procedure SetIsUnbounded(UB: Boolean);
     procedure SetElementSize(Size: Integer);
@@ -110,7 +110,7 @@ type TVarType = (
 
     //Returns the byte size of meta data for this type
     function MetaSize: Integer;
-    //Returns the VarType required to store the mate data for this type (vtUnknown for atArray)
+    //Returns the VarType required to store the meta data for this type (vtUnknown for atArray)
     function MetaType: TVarType;
   end;
 
@@ -446,7 +446,7 @@ end;
 function TArrayDef.MetaSize: Integer;
 const MetaUnitSize: array[low(TArraySize)..high(TArraySize)] of Integer =
   (0,1,2);
-const MetaUnitCount: array[low(TArrayType)..high(TArrayType)] of Integer =
+const MetaUnitCount: array[low(TArrayKind)..high(TArrayKind)] of Integer =
   (0,0,1,2);
 begin
   Result := MetaUnitSize[ArraySize] * MetaUnitCount[ArrayType];
@@ -465,7 +465,7 @@ begin
   ArraySize := Size;
 end;
 
-procedure TArrayDef.SetArrayType(AT: TArrayType);
+procedure TArrayDef.SetArrayType(AT: TArrayKind);
 begin
   ArrayType := AT;
 end;

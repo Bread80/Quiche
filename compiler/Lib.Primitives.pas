@@ -316,18 +316,18 @@ end;
 //Assess fitness between types, for non-numeric types
 function GetFitnessArrays(const SearchParam: TSearchRecParam; const PrimArrayDef: TArrayDef): Integer;
 var Fail: Boolean;
-var SearchDef: PArrayDef;
+  SearchArray: TArrayType;
 begin
   Assert(SearchParam.UserType <> nil);
-  SearchDef := @SearchParam.UserType.ArrayDef;
+  SearchArray := SearchParam.UserType as TArrayType;
 
   //***To be refined
   Fail := False;
   case PrimArrayDef.ArrayType of
     atUnknown: ;  //Matches anything
-    atArray: Fail := SearchDef.ArrayType <> atArray;
-    atVector: Fail := SearchDef.ArrayType <> atVector;
-    atList: Fail := SearchDef.ArrayType <> atList;
+    atArray: Fail := SearchArray.ArrayKind <> atArray;
+    atVector: Fail := SearchArray.ArrayKind <> atVector;
+    atList: Fail := SearchArray.ArrayKind <> atList;
   else
     raise EVarType.Create;
   end;
@@ -336,8 +336,8 @@ begin
 
   case PrimArrayDef.ArraySize of
     asUnknown: ;
-    asShort: Fail := SearchDef.ArraySize <> asShort;
-    asLong: Fail := SearchDef.ArraySize <> asLong;
+    asShort: Fail := SearchArray.ArraySize <> asShort;
+    asLong: Fail := SearchArray.ArraySize <> asLong;
   else
     raise EVarType.Create;
   end;
@@ -491,7 +491,7 @@ begin
   //If both sides are enumerations then both types must be the same type, or OfType
   if (SearchRec.Left.VarType = vtEnumeration) then
     if SearchRec.Left.VarType = SearchRec.Right.VarType then
-      if RemoveSubRange(SearchRec.Left.UserType) <> RemoveSubRange(SearchRec.Right.UserType) then
+      if (SearchRec.Left.UserType as TEnumeration).BaseType <> (SearchRec.Right.UserType as TEnumeration).BaseType then
         EXIT(False);
 
   SearchRec.ReturnLUserType := nil;
@@ -701,7 +701,7 @@ begin
   //Deduce the initial types to search for
   Search.UserType := ILParam.GetUserType;
   Search.VarType := ILParam.GetVarType;
-  Search.IsRange := False;
+//  Search.IsRange := False;
   Search.Kind := ILParam.Kind;
   if Search.Kind in [pkVarSource, pkVarAddr] then
   begin
@@ -711,6 +711,10 @@ begin
       if V.AddrMode = amStaticRef then
         Search.AddrMode := amStaticRef;
   end;
+
+  Search.IsRange := (Search.Kind = pkImmediate) and IsNumericVarType(Search.VarType);
+  if Search.IsRange then
+    Search.Range := IntToNumberRange(ILParam.Imm.IntValue);
 end;
 
 function PrimFindCodeGen(const ILItem: TILItem;out SwapParams: Boolean): PPrimitive;

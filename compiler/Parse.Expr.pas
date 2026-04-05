@@ -90,10 +90,10 @@ begin
           //Check sizes are compatible. NOTE: Strings bight be copiable into a variable of larger
           //capacity depending on the variable type!!
           //Array types will need to be typecast as required
-          Assert(GetTypeDataSize(Slug.ResultType) = GetTypeDataSize(Variable.UserType));
+          Assert(Slug.ResultType.DataSize = Variable.UserType.DataSize);
         end
         else if AsType <> nil then
-          Assert(GetTypeDataSize(Slug.ResultType) = GetTypeDataSize(AsType));
+          Assert(Slug.ResultType.DataSize = AsType.DataSize);
 
       ILItem := ILAppend(OpBlockCopy);
       //Source
@@ -111,7 +111,7 @@ begin
       ILItem := ILAppend(opBlockCopy);
       ILItem.Param1 := Slug.Operand;
       ILItem.Param1.Kind := pkVarRef;
-      ILItem.Param2.SetImmediate(vtWord, GetTypeDataSize(Slug.ResultType));
+      ILItem.Param2.SetImmediate(vtWord, Slug.ResultType.DataSize);
       //Dest to be set by caller(??)
       ILItem.Dest.Kind := pkNone;
       ILItem.ResultType := Slug.ResultType;
@@ -153,6 +153,8 @@ begin
     ILItem.Dest.SetVarRef(Variable)
   else
     ILItem.Dest.SetVarDestAndVersion(Variable, VarVersion);
+  if ILItem.Dest.GetVarType in [vtPointer, vtTypedPointer] then
+    ILItem.Dest.Flags := ILItem.Dest.Flags - [pfRangeCheck];
 end;
 
 
@@ -337,7 +339,7 @@ begin //Sub-expressions
     Slug.Operand.Kind := pkNone;
   end;
 
-  Slug.ILItem.ResultType := GetPointerToType(Slug.ResultType);
+  Slug.ILItem.ResultType := TTypes.SearchScopesForAnonTypedPointer(Slug.ResultType);
   Slug.ResultType := Slug.ILItem.ResultType;
   Slug.ImplicitType := Slug.ResultType;
 
@@ -784,12 +786,91 @@ begin
   Value := Slug.Operand.Imm;
 end;
 
+function OptimiseArrayLiteralType(Value: TImmValue;AsType: TArrayType): TQuicheError;
+var ValueLength: Integer;
+  NewType: TArrayType;
+  Kind: TArrayKind;
+  Size: TArraySize;
+  BoundsType: TOrdinalType;
+  LengthOrCapacity: Integer;
+begin
+  if IsUnboundedArray(AsType) or not CompareArrayDefs(Value.UserType as TArrayType, AsType) then
+(*  if ArrayLiteralTypeNeedsHardening(Value.UserType, AsType) then
+*)  begin
+    ValueLength := Value.ArrayLength;
+
+    //Value will be using a generic type.
+    //We need to create a new type and use it to replace the current type in Value
+//    NewType := Types.AddOfType(vtArrayType, Value.UserType.OfType);
+    Kind := AsType.ArrayKind;
+    if (ValueLength > 255) or (AsType.ArraySize = asLong) then
+      Size := asLong
+    else
+      Size := asShort;
+//    NewType.ArrayDef.SetIsUnbounded(False);
+//    NewType.ArrayDef.SetElementSize(ValueArrayDef.ElementSize);
+
+    case AsType.ArrayKind of
+      atArray:
+      begin
+        //If caller wants a bounded array then the lengths requested must match the data length
+        if AsType.IsUnbounded then
+        begin //Add bounds
+          if Size = asShort then
+            BoundsType := TTypes.CreateIntegerType(vtByte, 0, ValueLength-1)
+          else
+            BoundsType := TTypes.CreateIntegerType(vtWord, 0, ValueLength-1)
+        end
+        else
+        begin
+          if AsType.GetItemCount <> ValueLength then
+            EXIT(ErrSub2(qeArrayLengthMismatch, AsType.GetItemCount.ToString, ValueLength.ToString));
+          BoundsType := (AsType as TPascalArrayType).BoundsType;
+        end;
+
+//        NewType.Low := 0; //We'll used zero based integer bounds
+//        NewType.High := ValueLength-1;
+      end;
+      atVector:
+      begin
+        //If caller wants a bounded array then the lengths requested must match the data length
+        if not AsType.IsUnbounded then
+          if (AsType as TVectorType).Length <> ValueLength then
+            EXIT(ErrSub2(qeArrayLengthMismatch, (AsType as TVectorType).Length.ToString, ValueLength.ToString));
+
+        LengthOrCapacity := ValueLength;
+      end;
+      atList:
+      begin
+        //If caller wants a bounded array then the lengths requested must match the data length
+        if not AsType.IsUnbounded then
+        begin
+          if (AsType as TListType).Capacity < ValueLength then
+            EXIT(ErrSub2(qeArrayLengthMismatch, (AsType as TListType).Capacity.ToString, ValueLength.ToString));
+
+          LengthOrCapacity := (AsType as TListType).Capacity;
+        end
+        else
+          LengthOrCapacity := ValueLength;
+      end;
+      else
+      raise EVarType.Create;
+    end;
+    NewType := TTypes.CreateArrayType(Kind, Size, BoundsType, LengthOrCapacity, AsType.OfType);
+
+    //Update the Value's type
+    Value.UpdateUserType(NewType);
+  end;
+
+  Result := qeNone;
+end;
+
 function ParseConstantExprAsType(out Value: TImmValue;AsType: TUSerType): TQuicheError;
 var Slug: TExprSlug;
   AsArrayDef: PArrayDef;
   ValueArrayDef: PArrayDef;
   ValueLength: Integer;
-  NewType: TUserType;
+  NewType: TArrayType;
 begin
   Result := ParseExprToSlugWithTypeCheck(Slug, AsType);
   if Result <> qeNone then
@@ -816,80 +897,9 @@ begin
   //We the assumed type does not match the AsType we will need to generate a
   //new type for the Value, and update the Value's type.
   if IsArrayType(AsType) then
-    if IsUnboundedArray(AsType) or not CompareArrayDefs(Value.UserType, AsType) then
-(*  if ArrayLiteralTypeNeedsHardening(Value.UserType, AsType) then
-*)  begin
-    AsArrayDef := @AsType.ArrayDef;
-    ValueArrayDef := @Value.UserType.ArrayDef;
-    ValueLength := Value.ArrayLength;
-
-    //Value will be using a generic type.
-    //We need to create a new type and use it to replace the current type in Value
-    NewType := Types.AddOfType(vtArrayType, Value.UserType.OfType);
-    NewType.ArrayDef.SetArrayType(AsArrayDef.ArrayType);
-    if (ValueLength > 255) or (AsArrayDef.ArraySize = asLong) then
-      NewType.ArrayDef.SetArraySize(asLong)
-    else
-      NewType.ArrayDef.SetArraySize(asShort);
-    NewType.ArrayDef.SetIsUnbounded(False);
-    NewType.ArrayDef.SetElementSize(ValueArrayDef.ElementSize);
-
-    case AsArrayDef.ArrayType of
-      atArray:
-      begin
-        //If caller wants a bounded array then the lengths requested must match the data length
-        if AsArrayDef.IsUnbounded then
-        begin //Add bounds
-          if NewType.ArrayDef.ArraySize = asShort then
-            NewType.BoundsType := Types.Add(vtByte)
-//            GetSystemType(vtByte)
-          else
-            NewType.BoundsType := Types.Add(vtWord);
-            //GetSystemType(vtWord);
-          NewType.BoundsType.Low := 0;
-          NewType.BoundsType.High := ValueLength-1;
-        end
-        else
-        begin
-          if GetTypeItemCount(AsType) <> ValueLength then
-            EXIT(ErrSub2(qeArrayLengthMismatch, GetTypeItemCount(AsType).ToString, ValueLength.ToString));
-          NewType.BoundsType := AsType.BoundsType;
-        end;
-
-//        NewType.Low := 0; //We'll used zero based integer bounds
-//        NewType.High := ValueLength-1;
-      end;
-      atVector:
-      begin
-        //If caller wants a bounded array then the lengths requested must match the data length
-        if not AsArrayDef.IsUnbounded then
-          if AsType.VectorLength <> ValueLength then
-            EXIT(ErrSub2(qeArrayLengthMismatch, AsType.VectorLength.ToString, ValueLength.ToString));
-
-        NewType.VectorLength := ValueLength;
-      end;
-      atList:
-      begin
-        //If caller wants a bounded array then the lengths requested must match the data length
-        if not AsArrayDef.IsUnbounded then
-        begin
-          if AsType.ListCapacity < ValueLength then
-            EXIT(ErrSub2(qeArrayLengthMismatch, AsType.ListCapacity.ToString, ValueLength.ToString));
-
-          NewType.ListCapacity := AsType.ListCapacity;
-        end
-        else
-          NewType.ListCapacity := ValueLength;
-      end;
-      else
-      raise EVarType.Create;
-    end;
-
-    //Update the Value's type
-    Value.UpdateUserType(NewType);
-  end;
-
-  Result := qeNone;
+    Result := OptimiseArrayLiteralType(Value, AsType as TArrayType)
+  else
+    Result := qeNone;
 end;
 
 function ParseAssignmentExpr(var Variable: PVariable;AsType: TUserType): TQuicheError;

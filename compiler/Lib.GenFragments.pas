@@ -80,9 +80,9 @@ begin
 end;
 
 function CodeTypeHigh8(const Param: TILParam;out Comment: String): String;
-var UT: TUserType;
+var UT: TOrdinalType;
 begin
-  UT := Param.GetUserType;
+  UT := Param.GetUserType as TOrdinalType;
   Assert(UT <> nil);
   Assert(UT.High < 255);  //Code will fail if enum has 256 elements (!) TODO
                           //(will need to use a different fragment)

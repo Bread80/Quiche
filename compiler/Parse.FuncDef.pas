@@ -619,19 +619,19 @@ begin
         ccStack:
         begin
           ILItem := ILAppend(opParamCopyToStack);
-          ILItem.Param1.SetVarRef(ArgVariable); //Argument (VarRef?)
+          ILItem.Param1.SetVarRef(ArgVariable); //Argument
         end;
         ccRegister, ccCall, ccRst, ccExtern:
         begin
           ILItem := ILAppend(opBlockCopy);
-          ILItem.Param1.SetVarSource(ArgVariable); //Argument (VarRef?)
+          ILItem.Param1.SetVarRef(ArgVariable); //Argument
         end;
       else
         raise ECallingConvention.Create;
       end;
 
       ILItem.Param2.Kind := pkImmediate;  //Data size
-      ILItem.Param2.Imm := TImmValue.CreateInteger(GetTypeDataSize(Variable.UserType));
+      ILItem.Param2.Imm := TImmValue.CreateInteger(Variable.UserType.DataSize);
       ILItem.Dest.SetVarRef(Variable); //Local variable
       ILItem.ResultType := Variable.UserType;
     end;
@@ -713,7 +713,7 @@ begin
         Assert(Variable <> nil);
         Param.Variable := Variable;
         Param.VarVersion := Variable.Version;
-        case GetTypeRegSize(Variable.UserType) of
+        case Variable.UserType.RegSize of
           1: Param.Reg := rA;
           2: Param.Reg := rDE;
         else

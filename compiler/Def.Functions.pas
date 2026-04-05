@@ -494,7 +494,7 @@ begin
   while ArgIndex < ParamCount + ResultCount do
   begin
     if Params[ArgIndex].PassDataIn then
-      Result := Result + GetTypeRegSize(Params[ArgIndex].UserType);
+      Result := Result + Params[ArgIndex].UserType.RegSize;
     Inc(ArgIndex);
   end;
 end;

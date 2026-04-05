@@ -440,7 +440,7 @@ begin
     begin
       if (LeftType.VarType = vtEnumeration) then
         if LeftType.VarType = RightType.VarType then
-          if RemoveSubRange(LeftType) <> RemoveSubRange(RightType) then
+          if (LeftType as TEnumeration).BaseType <> (RightType as TEnumeration).BaseType then
             EXIT(False);
 
       //TODO: For User Declared Types, verify that the parameters match

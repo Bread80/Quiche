@@ -348,7 +348,7 @@ begin
   case AddrMode of
     amStatic, amStaticRef: Result := 0;  //Not passed on stack
     amStack:  //Passed as data
-      Result := GetTypeDataSize(UserType);
+      Result := UserType.DataSize;
     amStackRef: //Passed as pointer
       Result := GetVarTypeSize(vtPointer);
   else
@@ -589,7 +589,7 @@ begin
       if V.RequiresStorage then
         case V.AddrMode of
           amStatic, amStaticRef: ;  //Ignore
-          amStack: Result := Result + GetTypeDataSize(V.UserType);
+          amStack: Result := Result + V.UserType.DataSize;
           amStackRef: Result := Result + GetVarTypeSize(vtPointer);
         else
           raise EAddrMode.Create;
@@ -605,7 +605,7 @@ begin
       if V.RequiresStorage then
         case V.AddrMode of
           amStatic, amStaticRef: ;  //Ignore
-          amStack: Result := Result + GetTypeRegSize(V.UserType);
+          amStack: Result := Result + V.UserType.RegSize;
           amStackRef: Result := Result + GetVarTypeSize(vtPointer);
         else
           raise EAddrMode.Create;

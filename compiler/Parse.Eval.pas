@@ -417,7 +417,7 @@ begin
         EXIT;
     end;
     opHi:
-      if (GetTypeRegSize(P.UserType) = 2) and IsIntegerVarType(P.VarType) then
+      if (P.UserType.RegSize = 2) and IsIntegerVarType(P.VarType) then
       begin
         Value.CreateTyped(vtByte, hi(Word(P.IntValue and $ffff)));
         EXIT;
@@ -432,16 +432,16 @@ begin
           if P.TypeDefValue.VarType = vtBoolean then
             Value.CreateBoolean(True)
           else if IsOrdinalType(P.TypeDefValue) then
-            Value.CreateTyped(P.TypeDefValue, P.TypeDefValue.High)
+            Value.CreateTyped(P.TypeDefValue, (P.TypeDefValue as TOrdinalType).High)
           else if P.TypedefValue.VarType = vtArrayType then
           begin
-            if P.TypeDefValue.ArrayDef.IsUnbounded then
+            if (P.TypeDefValue as TArrayType).IsUnbounded then
               Evalled := False
             else
-              case P.TypeDefValue.ArrayDef.ArrayType of
+              case (P.TypeDefValue as TArrayType).ArrayKind of
                 atArray:
-                  Value.CreateTyped(GetOfType(P.TypeDefValue.BoundsType), P.TypeDefValue.BoundsType.High);
-                atVector: Value.CreateTyped(P.TypeDefValue.ArrayDef.MetaType, P.TypeDefValue.VectorLength-1);
+                  Value.CreateTyped((P.TypeDefValue as TPascalArrayType).BoundsType.BaseType, (P.TypeDefValue as TPascalArrayType).BoundsType.High);
+                atVector: Value.CreateTyped((P.TypeDefValue as TVectorType).IndexMetaType, (P.TypeDefValue as TVectorType).Length-1);
                 atList: Evalled := False;
               else
                 Error := True;
@@ -451,9 +451,9 @@ begin
             Error := True;
         end;
         vtArrayType:  //Array literal
-          case P.UserType.ArrayDef.ArrayType of
+          case (P.UserType as TArrayType).ArrayKind of
             atArray:
-              Value.CreateTyped(GetOfType(P.UserType.BoundsType), P.UserType.BoundsType.High);
+              Value.CreateTyped((P.UserType as TPascalArrayType).BoundsType.BaseType, (P.UserType as TPascalArrayType).BoundsType.High);
             atVector, atList:
             begin
               IntValue := P.ArrayLength-1;
@@ -479,13 +479,13 @@ begin
         begin
           if P.TypeDefValue.VarType = vtArrayType then
           begin
-            if P.TypeDefValue.ArrayDef.IsUnbounded then
+            if (P.TypeDefValue as TArrayType).IsUnbounded then
               Evalled := False;
-            case P.TypeDefValue.ArrayDef.ArrayType of
+            case (P.TypeDefValue as TArrayType).ArrayKind of
               atArray:
-                Value.CreateTyped(vtWord, GetTypeItemCount(P.TypeDefValue.BoundsType));
+                Value.CreateTyped(vtWord, (P.TypeDefValue as TPascalArrayType).BoundsType.GetItemCount);
               atVector:
-                Value.CreateTyped(P.TypeDefValue.ArrayDef.MetaType, P.TypeDefValue.VectorLength);
+                Value.CreateTyped((P.TypeDefValue as TArrayType).IndexMetaType, (P.TypeDefValue as TVectorType).Length);
               atList: Evalled := False;
             else
               Error := True;
@@ -499,7 +499,7 @@ begin
         end;
         vtArrayType:  //Array literal
         begin
-          if P.UserType.ArrayDef.IsUnbounded then
+          if (P.UserType as TArrayType).IsUnbounded then
             Evalled := False
           else
           begin
@@ -520,7 +520,7 @@ begin
       EXIT;
     end;
     opLo:
-      if (GetTypeRegSize(P.UserType) = 2) and IsIntegerVarType(P.VarType) then
+      if (P.UserType.RegSize = 2) and IsIntegerVarType(P.VarType) then
       begin
         Value.CreateTyped(vtByte, lo(Word(P.IntValue and $ffff)));
         EXIT;
@@ -535,13 +535,13 @@ begin
           if P.TypeDefValue.VarType = vtBoolean then
             Value.CreateBoolean(False)
           else if IsOrdinalType(P.TypeDefValue) then
-            Value.CreateTyped(P.TypeDefValue, P.TypeDefValue.Low)
+            Value.CreateTyped(P.TypeDefValue, (P.TypeDefValue as TOrdinalType).Low)
           else if P.TypeDefValue.VarType = vtArrayType then
-            case P.TypeDefValue.ArrayDef.ArrayType of
+            case (P.TypeDefValue as TArrayType).ArrayKind of
               atArray:
-                Value.CreateTyped(GetOfType(P.TypeDefValue.BoundsType), P.TypeDefValue.BoundsType.Low);
+                Value.CreateTyped((P.TypeDefValue as TPascalArrayType).BoundsType.BaseType, (P.TypeDefValue as TPascalArrayType).BoundsType.Low);
               atVector, atList:
-                Value.CreateTyped(P.TypeDefValue.ArrayDef.MetaType, 0);
+                Value.CreateTyped((P.TypeDefValue as TArrayType).IndexMetaType, 0);
             else
               Error := True;
             end
@@ -549,11 +549,11 @@ begin
             Error := True;
         end;
         vtArrayType:  //Array literal
-        case P.UserType.ArrayDef.ArrayType of
+        case (P.UserType as TArrayType).ArrayKind of
           atArray:
-            Value.CreateTyped(GetOfType(P.UserType.BoundsType), P.UserType.BoundsType.Low);
+            Value.CreateTyped((P.UserType as TPascalArrayType).BoundsType.BaseType, (P.UserType as TPascalArrayType).BoundsType.Low);
           atVector, atList:
-            Value.CreateTyped(P.UserType.ArrayDef.MetaType, 0);
+            Value.CreateTyped((P.UserType as TArrayType).IndexMetaType, 0);
         else
           Error := True;
         end
@@ -619,28 +619,28 @@ begin
             vtArrayType:
             begin
               //Unbounded arrays can't be evalled at compile time
-              if P.TypeDefValue.ArrayDef.IsUnbounded then
+              if (P.TypeDefValue as TArrayType).IsUnbounded then
               begin
                 Evalled := False;
                 EXIT;
               end;
-            IntValue := GetTypeDataSize(P.TypeDefValue);
+            IntValue := P.TypeDefValue.DataSize;
             end;
           else
-            IntValue := GetTypeDataSize(P.TypeDefValue);
+            IntValue := P.TypeDefValue.DataSize;
           end;
         end;
         vtArrayType:
-          case P.UserType.ArrayDef.ArrayType of
+          case (P.UserType as TArrayType).ArrayKind of
             atArray, atVector:
-              IntValue := P.UserType.ArrayDef.MetaSize + (P.ArrayLength * P.UserType.ArrayDef.ElementSize);
+              IntValue := (P.UserType as TArrayType).MetaSize + (P.ArrayLength * (P.UserType as TArrayType).ElementSize);
             atList:
-              IntValue := P.UserType.ArrayDef.MetaSize + (P.UserType.ListCapacity * P.UserType.ArrayDef.ElementSize);
+              IntValue := (P.UserType as TArrayType).MetaSize + ((P.UserType as TListType).Capacity * (P.UserType as TArrayType).ElementSize);
           else
             raise EVarType.Create;
           end;
       else
-        IntValue := GetTypeDataSize(P.UserType);
+        IntValue := P.UserType.DataSize;
       end;
 
       if IntValue < 256 then
@@ -668,7 +668,7 @@ begin
           EXIT;
       end;
     opSwap:
-      if (GetTypeRegSize(P.UserType) = 2) and IsIntegerVarType(P.VarType) then
+      if (P.UserType.RegSize = 2) and IsIntegerVarType(P.VarType) then
       begin
         Value.CreateTyped(P.VarType, swap(P.IntValue));
         EXIT;
@@ -813,7 +813,7 @@ var NewValue: Integer;
 begin
   if IsOrdinalType(ToType) and (IsOrdinalType(Value.UserType)) then
   begin
-    case GetTypeDataSize(ToType) of
+    case ToType.DataSize of
       1:
       begin
         NewValue := Value.ToInteger and $ff;

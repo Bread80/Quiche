@@ -22,7 +22,7 @@ begin
   if not IsEnumerableType(UserType) then
     EXIT(ErrSub(qeOrdinalTypeExpected, UserType.Name));
 
-  Value.CreateTyped(UserType, UserType.Low);
+  Value.CreateTyped(UserType, (UserType as TOrdinalType).Low);
   Result := qeNone;
 end;
 
@@ -32,12 +32,12 @@ begin
     EXIT(ErrSub(qeOrdinalTypeExpected, 'nil'));
 
   if IsArrayType(UserType) then
-    UserType := UserType.BoundsType
+    UserType := (UserType as TArrayType).IndexMetaType
   else
     if not IsEnumerableType(UserType) then
       EXIT(ErrSub(qeOrdinalTypeExpected, UserType.Name));
 
-  Value.CreateTyped(UserType, UserType.High);
+  Value.CreateTyped(UserType, (UserType as TOrdinalType).High);
   Result := qeNone;
 end;
 

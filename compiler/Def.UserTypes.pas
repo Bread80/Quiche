@@ -8,116 +8,84 @@ type
   TScopeHandle = Pointer;
   TFunctionHandle = Pointer;
 
-  TEnumItem = class;
-
-  (* TODO: Subclass types classes
-type
-  TUserType = type(TIdentifier)
-    property VarType: TVarType;
-    property IsNumeric: Boolean;
-    property IsEnumerable: Boolean;
-
-  TOrdinalType(TUserType)
-    property IsSubRange: Boolean;
-    property Low: Integer;
-    property High: Integer;
-
-  TIntegerType(TOrdinalType)
-
-  TEnumeratedType(TOrdinalType)
-
-  TRealType(TUserType)
-
-  TSetType(TUserType)
-
-  TArrayType(TUserType)
-    TRawArrayType(TArrayType)
-    TVectorType(TArrayType)
-    TListType(TArrayType)
-
-  TRecordType(TUserType)
-
-  TFunctionType(TUserType)
-
-  TFileType(TUserType)
-*)
-
-
   TUserType = class(TIdentifier)
   private
-    FEnumItems: TArray<TEnumItem>;
-    FLow: Integer;
-    FOfType: TUserType;
-    FHigh: Integer;
-    FIsSubRange: Boolean;
-    FParentType: TUserType;
+    FSynonymOf: TUserType;
     FVarType: TVarType;
-    FBoundsType: TUserType;
-    FVectorLength: Integer;
-    FListCapacity: Integer;
-    FArrayDef: TArrayDef;
-    FScope: TScopeHandle;
-    FFunc: TFunctionHandle;
   public
-    constructor Create(const AName: String;AOwner: TScope);
+    constructor Create(const AName: String;AOwner: TScope);overload;
+    constructor Create(const AName: String;AOwner: TScope;AVarType: TVarType);overload;
+    //Clones From *except* Name
+    constructor CreateClone(const AName: String;AOwner: TScope;From: TUserType);virtual;
     function IdentType: TIdentType;override;
 
-    property VarType: TVarType read FVarType write FVarType;
+    function GetItemCount: Integer;virtual;abstract;
+
+    property VarType: TVarType read FVarType;
     //Used for type synomyms. Ie. when this type is an exact duplicate of another
     //type. Otherwise nil.
-    property ParentType: TUserType read FParentType write FParentType;
-    //Used for:
-    //SubRanges: The base type of the emuneration
-    //Sets: The element type
-    //Arrays (etc): The element type
-    //Typed pointers: the type of the pointed to data
-    property OfType: TUserType read FOfType write FOfType;
+    property SynonymOf: TUserType read FSynonymOf;
+
+
+    //Returns True if the vtArrayType of vtChar
+    function IsStringType: Boolean;virtual;
+    //Returns True if the type is a vtChar or a vtArrayType of vtChar
+    function IsStringableType: Boolean;
+    //Returns the bytesize of the stored data for the type
+    function DataSize: Integer;virtual;abstract;
+    //Returns the size of register required to refer to the type.
+    //For registered types this will equal DataSize. For pointered types this
+    //will be the pointer size
+    function RegSize: Integer;virtual;abstract;
+
+    //Returns the name, if the type had one. Otherwise returns the DefinitionString
+    function Description: String;
+    function DefinitionString: String;virtual;
+    function ToString: String;override;  //Returns the declaration
+  end;
+
+  //Types where the value can be stored in register(s)
+  TRegisteredType = class(TUserType);
+
+  TOrdinalType = class(TRegisteredType)
+  private
+    FSubrangeOf: TOrdinalType;
+    FLow: Integer;
+    FHigh: Integer;
+    function GetIsSubRange: Boolean;
+  public
+    constructor Create(const AName: String; AOwner: TScope; AVarType: TVarType;
+      ALow, AHigh: Integer);
+    constructor CreateSubRange(const AName: String; AOwner: TScope; ASubRangeOf: TOrdinalType;
+      ALow, AHigh: Integer);
+    constructor CreateClone(const AName: String;AOwner: TScope;From: TUserType);override;
+    function GetItemCount: Integer;override;
+    function DataSize: Integer;override;
+    function RegSize: Integer;override;
+    function DefinitionString: String;override;
+
+    //If we are a subrange, returns the type we are a SubRangeOf, otherwise
+    //returns Self
+    function BaseType: TOrdinalType;
+    //If we are a subrange. Especially useful for enumerated types - for others
+    //we can infer the base type from the VarType
+    property SubRangeOf: TOrdinalType read FSubrangeOf;
     //True if this type is a SubRange of another enumerated type.
     //If so, if it's a subrange of a user created type
     //(ie. an enumeration) then OfType will point to the base type,
     //otherwise VarType will contain the base type
-    property IsSubRange: Boolean read FIsSubRange write FIsSubRange;
+    property IsSubRange: Boolean read GetIsSubRange;
     //Specified for any ordinal type. High must be > Low.
-    property Low: Integer read FLow write FLow;
+    property Low: Integer read FLow;
     //Ditto
-    property High: Integer read FHigh write FHigh;
-    //For enumeration *only*
-    property EnumItems: TArray<TEnumItem> read FEnumItems;
+    property High: Integer read FHigh;
 
-//    case VarType: TVarType of
-//      vtArrayType: (
-        property ArrayDef: TArrayDef read FArrayDef write FArrayDef;
-        property BoundsType: TUserType read FBoundsType write FBoundsType;  //If ArrayType = atArray
-        property VectorLength: Integer read FVectorLength write FVectorLength;  //If ArrayType = atVector
-        property ListCapacity: Integer read FListCapacity write FListCapacity;  //If ArrayType = atList
-//      );
-//      vtRecord: (
-        //We can't directly reference a PScope without creating a circular unit
-        //reference (both to Scope, Variables and Functions) so we'll use a
-        //generic pointer and hack this with typecasts(!)
-        property Scope: TScopeHandle read FScope write FScope;
-//      );
-//      vtFunction: (
-        property Func: TFunctionHandle read FFunc write FFunc;  //Function Template
-//      );
-    procedure SetEnumItems(Items: TArray<String>);
+  end;
 
-    //Clones From *except* Name
-    procedure CloneTypeData(From: TUserType);
-
-    //Where VarType is vtEnumeration
-    function EnumItemToString(Index: Integer): String;
-
-    //Returns True if the vtArrayType of vtChar
-    function IsStringType: Boolean;
-    //Returns True if the type is a vtChar or a vtArrayType of vtChar
-    function IsStringableType: Boolean;
-
-    //Returns the name, if the type had one. Otherwise returns the DefinitionString
-    function Description: String;
-    function RecordDefToString: String;
-    function DefinitionString: String;
-    function ToString: String;  //Returns the declaration
+  TIntegerType = class(TOrdinalType)
+  public
+    constructor CreateSubRange(const AName: String; AOwner: TScope; AOfType: TIntegerType;
+      ALow, AHigh: Integer);
   end;
 
   TEnumItem = class(TIdentifier)
@@ -132,31 +100,201 @@ type
     property Index: Integer read FIndex;
   end;
 
-  PTypeList = ^TTypeList;
-  TTypeList = record
+  //User defined enumeration (and SubRanges thereeof)
+  TEnumeration = class(TOrdinalType)
   private
-    Items: TList<TUserType>;
+    FEnumItems: TArray<TEnumItem>;
+    procedure SetEnumItems(Items: TArray<String>);
   public
-    procedure Initialise;
-    procedure Clear;
+    constructor Create(const AName: String;AOwner: TScope;Items: TArray<String>);
+    constructor CreateSubRange(const AName: String; AOwner: TScope; ASubRangeOf: TEnumeration;
+      ALow, AHigh: Integer);
+    constructor CreateClone(const AName: String;AOwner: TScope;From: TUserType);override;
 
-    function Add(AVarType: TVarType): TUserType;
-    function AddOfType(AVarType: TVarType;AOfType: TUserType): TUserType;
-    //Creates a new type as a copy of FromType with name AName.
-    //The new types BaseType will be FromType
-    function AddSynonym(const AName: String;AParentType: TUserType): TUserType;
+    function EnumItemToString(Index: Integer): String;
+    function StringToEnumIndex(const Ident: String): Integer;
+    function DefinitionString: String;override;
 
-    function FindByNameInScope(const AName: String): TUserType;
-    //Searches enumeration types. If AName is a member of an enumeration
-    //returns the type containing it
-    function FindByEnumNameInScope(const AName: String;out Index: Integer): TUserType;
-
-    //If an anonymous TypedPointer type for UserType exists return it,
-    //otherwise return nil
-    function FindAnonPointerForType(UserType: TUserType): TUserType;
-
-    function ToString: String;
+    property EnumItems: TArray<TEnumItem> read FEnumItems;
   end;
+
+  TBooleanType = class(TEnumeration)
+  public
+    constructor Create(const AName: String;AOwner: TScope;VarType: TVarType);
+  end;
+
+  TTypedPointer = class(TRegisteredType)
+  private
+    FOfType: TUserType;
+  public
+    constructor Create(const AName: String;AOwner: TScope;AOfType: TUserType);
+    function DefinitionString: String;override;
+    constructor CreateClone(const AName: String;AOwner: TScope;From: TUserType);override;
+    function DataSize: Integer;override;
+    function RegSize: Integer;override;
+    property OfType: TUserType read FOfType;
+  end;
+
+
+
+  TPointeredType = class(TUserType)
+  public
+    function RegSize: Integer;override;
+  end;
+
+  TRealType = class(TPointeredType)
+    function DataSize: Integer;override;
+  end;
+
+  TSetMemType = class(TPointeredType)
+  private
+    FOfType: TOrdinalType;
+  public
+    constructor Create(const AName: String;AOwner: TScope;AOfType: TOrdinalType);
+    function DataSize: Integer;override;
+    function DefinitionString: String;override;
+    constructor CreateClone(const AName: String;AOwner: TScope;From: TUserType);override;
+    property OfType: TOrdinalType read FOfType;
+  end;
+
+  TRecordType = class(TPointeredType)
+  private
+    FScope: TScopeHandle;
+  public
+    constructor Create(const AName: String;AOwner: TScope;AScopeHandle: TScopeHandle);
+    constructor CreateClone(const AName: String;AOwner: TScope;From: TUserType);override;
+    function DataSize: Integer;override;
+    function DefinitionString: String;override;
+    //We can't directly reference a PScope without creating a circular unit
+    //reference (both to Scope, Variables and Functions) so we'll use a
+    //generic pointer and hack this with typecasts(!)
+    property Scope: TScopeHandle read FScope;
+  end;
+
+  TFunctionType = class(TPointeredType)
+  private
+    FFunc: TFunctionHandle;
+  public
+    constructor Create(const AName: String;AOwner: TScope;AFuncHandle: TFunctionHandle);
+    constructor CreateClone(const AName: String;AOwner: TScope;From: TUserType);override;
+    function DataSize: Integer;override;
+    function DefinitionString: String;override;
+    property Func: TFunctionHandle read FFunc;  //Function Template
+  end;
+
+(*
+  TFileType(TPointeredType)
+*)
+
+  TTypeDef = class(TPointeredType)
+  public
+    constructor Create(const AName: String;AOwner: TScope);
+    function DataSize: Integer;override;
+  end;
+
+  TArrayType = class(TPointeredType)
+  private
+    FArraySize: TArraySize;
+    FIsUnbounded: Boolean;
+    FOfType: TUserType;
+    FElementSize: Integer;
+  public
+    constructor Create(const AName: String;AOwner: TScope;AArraySize: TArraySize;AOfType: TUserType);
+    constructor CreateClone(const AName: String;AOwner: TScope;From: TUserType);override;
+
+    function ArrayKind: TArrayKind;virtual;abstract;
+    function IndexMetaType: TOrdinalType;virtual;
+    property ArraySize: TArraySize read FArraySize;
+    //Number of bytes of meta data
+    function MetaSize: Integer;
+    //Returns the type to use for indexing the arrau
+    function IsStringType: Boolean;override;
+
+    //The element type
+    property OfType: TUserType read FOfType;
+    property IsUnbounded: Boolean read FIsUnbounded;
+    property ElementSize: Integer read FElementSize;
+  end;
+
+  TPascalArrayType = class(TArrayType)
+  private
+    FArraySize: TArraySize;
+    FBoundsType: TOrdinalType;
+  public
+    constructor Create(const AName: String;AOwner: TScope;AArraySize: TArraySize;ABoundsType: TOrdinalType;
+      AOfType: TUserType);
+    constructor CreateUnbounded(const AName: String;AOwner: TScope;AArraySize: TArraySize;
+      AOfType: TUserType);
+    constructor CreateClone(const AName: String;AOwner: TScope;From: TUserType);override;
+    function DataSize: Integer;override;
+
+    function ArrayKind: TArrayKind;override;
+    function IndexMetaType: TOrdinalType;override;
+    function GetItemCount: Integer;override;
+    function DefinitionString: String;override;
+    property BoundsType: TOrdinalType read FBoundsType;
+  end;
+
+  TVectorType = class(TArrayType)
+  private
+    FLength: Integer;
+  public
+    constructor Create(const AName: String;AOwner: TScope;AArraySize: TArraySize;ALength: Integer;AOfType: TUserType);
+    constructor CreateUnbounded(const AName: String;AOwner: TScope;AArraySize: TArraySize;
+      AOfType: TUserType);
+    constructor CreateClone(const AName: String;AOwner: TScope;From: TUserType);override;
+    function DataSize: Integer;override;
+    function ArrayKind: TArrayKind;override;
+    function GetItemCount: Integer;override;
+    function DefinitionString: String;override;
+    property Length: Integer read FLength;
+  end;
+
+  TListType = class(TArrayType)
+  private
+    FCapacity: Integer;
+  public
+    constructor Create(const AName: String;AOwner: TScope;AArraySize: TArraySize;ACapacity: Integer;AOfType: TUserType);
+    constructor CreateUnbounded(const AName: String;AOwner: TScope;AArraySize: TArraySize;
+      AOfType: TUserType);
+    constructor CreateClone(const AName: String;AOwner: TScope;From: TUserType);override;
+    function DataSize: Integer;override;
+    function ArrayKind: TArrayKind;override;
+    function DefinitionString: String;override;
+    function GetItemCount: Integer;override;
+    property Capacity: Integer read FCapacity;
+  end;
+
+
+
+  TTypes = class
+  private
+    class function SearchScopeForAnonTypedPointer(Scope: TScope;UserType: TUserType): TTypedPointer;
+  public
+    class function CreateIntegerType(const AName: String;AVarType: TVarType;ALow, AHigh: Integer): TIntegerType;overload;
+    class function CreateIntegerType(AVarType: TVarType;ALow, AHigh: Integer): TIntegerType;overload;
+    class function CreateOrdinalType(const AName: String;AVarType: TVarType;ALow, AHigh: Integer): TOrdinalType;
+    class function CreateEnumeration(EnumItems: TArray<String>): TEnumeration;
+    class function CreateBooleanType(const AName: String;AVarType: TVarType): TBooleanType;overload;
+    class function CreateSubRange(CommonType: TOrdinalType; ALow, AHigh: Integer): TOrdinalType;
+    class function CreateTypedPointer(AOfType: TUserType): TTypedPointer;
+    class function CreateRealType(const AName: String;AVarType: TVarType): TRealType;
+    class function CreateSetType(AVarType: TVarType;AOfType: TOrdinalType): TSetMemType;
+    class function CreateRecordType(AScope: TScopeHandle): TRecordType;
+    class function CreateFunctionType(AScope: TScopeHandle): TFunctionType;
+    class function CreateTypeDef(const AName: String): TTypeDef;
+    class function CreateArrayType(Kind: TArrayKind; Size: TArraySize;
+      BoundsType: TOrdinalType; LengthOrCapacity: Integer; OfType: TUserType): TArrayType;
+    class function CreateUnboundedArrayType(Kind: TArrayKind; Size: TArraySize;OfType: TUserType): TArrayType;overload;
+    class function CreateUnboundedArrayType(const AName: String;Kind: TArrayKind; Size: TArraySize;OfType: TUserType): TArrayType;overload;
+
+    class function CreateSynonym(const AName: String;FromType: TUserType): TUserType;
+
+    //Returns an anonymous type which is a typed pointer to the UserType.
+    //The anonymous type will be created if it does not exist.
+    class function SearchScopesForAnonTypedPointer(UserType: TUserType): TTypedPointer;
+  end;
+
 
 function UTToVT(UserType: TUserType): TVarType;
 
@@ -201,218 +339,82 @@ function IsArrayType(UserType: TUserType): Boolean;
 //with capacity of iUnboundedArray
 function IsUnboundedArray(UserType: TUserType): Boolean;
 
+//Returns the type required to represent a TArraySize. Returns nil if the size is unknown!
+function ArraySizeToType(Size: TArraySize): TOrdinalType;
+
 //Are the array types the same?
 //Returns False if either array is Unbounded, or if any other fields in the ArrayDef
 //differ.
-function CompareArrayDefs(DataType, AsType: TUserType): Boolean;
+function CompareArrayDefs(DataType, AsType: TArrayType): Boolean;
 
 //If the UserType is a subtype - either a SubRange or Synonym, returns the
 //BaseType. Will recurse up BaseTypes if necessary
 //For all other cases returns UserType
 function GetBaseType(UserType: TUserType): TUSerType;
 
-//If UserType has an OfType returns it, otherwise returns UserType
-//Used by array types to get the base type of the bounds type
-function GetOfType(UserType: TUserType): TUserType;
-
-//If UserType is a SubRange returns it's 'Of' type,
-//otherwise returns UserType
-//Intended to use with SubRanges to find the basic type
-function RemoveSubRange(UserType: TUserType): TUserType;
-
-//Returns an anonymous type which is a typed pointer to the UserType
-//The anonymous type will be created if it does not exist
-function GetPointerToType(UserType: TUserType): TUserType;
-
 //Where ValueLow and ValueHigh are numbers, finds the optimal common integer type
 //based on their type and value
 function TryFindCommonIntegerType(ValueLow, ValueHigh: Integer;out CommonType: TUserType): Boolean;
-
-//For any enumerable type, returns the total number of discrete values.
-//Ie. An Int8 has an ItemCount of 256 (-128..127).
-function GetTypeItemCount(UserType: TUserType): Integer;
-
-//Returns the number of bytes required for storage of the given type.
-//Will return -1 if size is unknown, for example for an unbounded array
-//UserType should *not* be nil. If it is results will be unpredictable.
-function GetTypeDataSize(UserType: TUserType): Integer;
-function GetTypeRegSize(UserType: TUserType): Integer;
-
-//Where AType is an enumeration, if Ident is a member of the enumeration returns
-//it's index within the enumeration, otherwise returns -1.
-function IdentToEnumIndex(AType: TUserType;const Ident: String): Integer;
-
-function CreateTypeList: PTypeList;
-procedure SetCurrentTypeList(List: PTypeList);
 
 //Parses a type definition string. These strings are used in library data files.
 //If the definition string is for an array type (vtArrayDef) returns extra array
 //data in ArrayDef. (In all other cases ArrayDef is invalid)
 function StringToType(TypeString: String;out ArrayDef: TArrayDef): TVarType;
 
-procedure InitialiseTypes;
-
 //Create global/system types. CurrentScope must be SystemScope
-procedure CreateSystemTypes(List: PTypeList);
+procedure CreateSystemTypes(Scope: TScope);
 
 //Returns the UserType for a VarType. If VarType is vtArrayType then ArrayDef will be
 //used to find a matching type. If the relevant type does not exist it will be created.
 function GetSystemType(VarType: TVarType;ArrayDef: PArrayDef = nil): TUserType;
+function GetSystemOrdinalType(VarType: TVarType): TOrdinalType;
 
 function GetSystemStringType: TUserType;
 function GetSystemStringLiteralType: TUserType;
 
 function IdentToType(const Ident: String): TUserType;
 
-
-var Types: PTypeList;
-
-procedure TypesToStrings(S: TStrings);
-
-
 implementation
-uses SysUtils,
+uses SysUtils, RTTI,
   Def.Functions, Def.Scopes, Def.Variables;
+
 { TUserType }
 
-procedure TUserType.CloneTypeData(From: TUserType);
+constructor TUserType.CreateClone(const AName: String;AOwner: TScope;From: TUserType);
 begin
+  inherited Create(AName, AOwner);
   FVarType := From.VarType;
-  FParentType := From.ParentType;
-  FOfType := From.OfType;
-  FIsSubRange := From.IsSubRange;
-  FLow := From.Low;
-  FHigh := From.High;
-  case VarType of
-    vtReal,
-    vtBoolean, vtFlag,
-    vtTypeDef,
-    vtInt8, vtInteger, vtByte, vtWord, vtPointer,
-    vtChar,
-    vtSetByte, vtSetWord, vtSetMem,
-    vtUnknown: ; //Nothing to do
-    vtEnumeration: FEnumItems := From.EnumItems;
-    vtArrayType:
-    begin
-      ArrayDef := From.ArrayDef;
-      BoundsType := From.BoundsType;
-      VectorLength := From.VectorLength;
-      ListCapacity := From.ListCapacity;
-    end;
-    vtRecord: Assert(False);  //TODO
-    vtFunction: Assert(False);  //TODO
-  else
-    Assert(False);
-  end;
+  FSynonymOf := From.SynonymOf;
 end;
 
 constructor TUserType.Create(const AName: String; AOwner: TScope);
 begin
   inherited Create(AName, AOwner);
 
-  FParentType := nil;
-  FOfType := nil;
+  FSynonymOf := nil;
   FVarType := vtUnknown;
-  FBoundsType := nil;
-  FIsSubRange := False;
-  FLow := -1;
-  FHigh := -2;
+end;
+
+constructor TUserType.Create(const AName: String; AOwner: TScope;
+  AVarType: TVarType);
+begin
+  inherited Create(AName, AOwner);
+
+  FSynonymOf := nil;
+  FVarType := AVarType;
 end;
 
 function TUserType.DefinitionString: String;
 var S: String;
   EI: TEnumItem;
 begin
-  if ParentType <> nil then
+  if SynonymOf <> nil then
     //We're a synonym of the base type
-    EXIT(ParentType.Description);
-
-  //OfType and BoundsType must both be base types
-  if Assigned(OfType) then
-    Assert(OfType.ParentType = nil);
-
-  if IsSubRange then
-  begin
-    if Assigned(OfType) and (OfType.VarType = vtEnumeration) then
-      Result := Result + OfType.EnumItems[Low].Name + '(' + Low.ToString + ')..' +
-        OfType.EnumItems[High].Name + '(' + High.ToString + ')'
-    else  //TODO: Non integer types??
-      Result := Result + Low.ToString + '..' + High.ToString;
-  end
+    Result := SynonymOf.Name
+  else if VarType = vtUnknown then
+    Result := '<Unknown>'
   else
-  case VarType of
-    vtInt8, vtInteger, vtByte, vtWord, vtPointer,
-    vtReal,
-    vtBoolean, vtFlag,
-    vtTypeDef,
-    vtChar,
-    vtUnknown:
-      //If ParentType is nil we're the base type,
-      //(otherwise we'd be a synonym for the ParentType)
-      Result := Name;
-    vtEnumeration:
-    begin
-      Result := '';
-      for EI in EnumItems do
-      begin
-        if Result <> '' then
-          Result := Result + ',';
-        Result := Result + S;
-      end;
-      Result := '(' + Result + ')';
-    end;
-    vtSetByte, vtSetWord, vtSetMem:
-    begin
-      Assert(Assigned(OfType));
-      Result := Result + 'set of ' + OfType.Description;
-    end;
-    vtArrayType:
-    begin
-      Assert(Assigned(OfType));
-
-      case ArrayDef.ArraySize of
-        asUnknown: ;  //Nothing
-        asShort: Result := Result + 'short ';
-        asLong: Result := Result + 'long ';
-      else
-        raise EVarType.Create;
-      end;
-      case ArrayDef.ArrayType of
-        atArray: Result := Result + 'array';
-        atVector: Result := Result + 'vector';
-        atList: Result := Result + 'list';
-      else
-        raise EVarType.Create;
-      end;
-
-      if not ArrayDef.IsUnbounded then
-        case ArrayDef.ArrayType of
-          atArray:
-          begin
-            Assert(Assigned(BoundsType));
-            Assert(BoundsType.ParentType = nil);
-            Result := Result + '[' + BoundsType.Description + ']';
-          end;
-          atVector:
-            Result := Result + '[' + VectorLength.ToString + ']';
-          atList:
-            Result := Result + '[' + ListCapacity.ToString + ']';
-        else
-          raise EVarType.Create;
-        end;
-
-      Result := Result + ' of ' + OfType.Description;
-    end;
-    vtRecord: Result := RecordDefToString;
-    vtFunction: Result := FunctionHandleToFunction(Func).ToString;
-    vtTypedPointer:
-    begin
-      Assert(Assigned(OfType));
-      Result := Result + '^' + OfType.Description;
-    end;
-  else
-    Assert(False);
-  end;
+    Result := '';
 end;
 
 function TUserType.Description: String;
@@ -423,17 +425,6 @@ begin
     Result := DefinitionString;
 end;
 
-function TUserType.EnumItemToString(Index: Integer): String;
-begin
-  Assert(VarType = vtEnumeration);
-  if IsSubRange then
-    Result := OfType.EnumItemToString(Index)
-  else if (Index >= 0) and (Index < length(EnumItems)) then
-    Result := EnumItems[Index].Name
-  else
-    Result := '<Enumeration value out of range>';
-end;
-
 function TUserType.IsStringableType: Boolean;
 begin
   Result := (VarType = vtChar) or IsStringType;
@@ -441,7 +432,7 @@ end;
 
 function TUserType.IsStringType: Boolean;
 begin
-  Result := (VarType = vtArrayType) and (OfType.VarType = vtChar);
+  Result := False;
 end;
 
 function TUserType.IdentType: TIdentType;
@@ -449,7 +440,308 @@ begin
   Result := itType;
 end;
 
-function TUserType.RecordDefToString: String;
+function TUserType.ToString: String;
+begin
+  if Name <> '' then
+    Result := Name
+  else
+    Result := '<anon>';
+  Result := Result + ' = ' + DefinitionString;
+end;
+
+{ TOrdinalType }
+
+function TOrdinalType.BaseType: TOrdinalType;
+begin
+  Result := Self;
+  if IsSubRange then
+  begin
+    Result := SubRangeOf;
+    Assert(Result <> nil);
+  end;
+end;
+
+constructor TOrdinalType.CreateClone(const AName: String;AOwner: TScope;From: TUserType);
+begin
+  inherited;
+  FSubRangeOf := (From as TOrdinalType).SubRangeOf;
+  FLow := (From as TOrdinalType).Low;
+  FHigh := (From as TOrdinalType).High;
+end;
+
+constructor TOrdinalType.Create(const AName: String; AOwner: TScope;
+  AVarType: TVarType; ALow, AHigh: Integer);
+begin
+  inherited Create(AName, AOwner, AVarType);
+  FLow := ALow;
+  FHigh := AHigh;
+  FSubRangeOf := nil;
+end;
+
+constructor TOrdinalType.CreateSubRange(const AName: String; AOwner: TScope;
+  ASubRangeOf: TOrdinalType; ALow, AHigh: Integer);
+begin
+  inherited Create(AName, AOwner, ASubRangeOf.VarType);
+  FSubRangeOf := ASubRangeOf;
+  FLow := ALow;
+  FHigh := AHigh;
+end;
+
+function TOrdinalType.DataSize: Integer;
+begin
+  Result := GetVarTypeSize(VarType);
+end;
+
+function TOrdinalType.DefinitionString: String;
+begin
+  if IsSubRange then
+    Result := Low.ToString + '..' + High.ToString
+  else
+    //If ParentType is nil we're the base type,
+    //(otherwise we'd be a synonym for the ParentType)
+    Result := Name;
+end;
+
+function TOrdinalType.GetIsSubRange: Boolean;
+begin
+  Result := SubRangeOf <> nil;
+end;
+
+function TOrdinalType.GetItemCount: Integer;
+begin
+  Result := High-Low+1;
+end;
+
+function TOrdinalType.RegSize: Integer;
+begin
+  Result := DataSize;
+end;
+
+{ TIntegerType }
+
+constructor TIntegerType.CreateSubRange(const AName: String; AOwner: TScope;
+  AOfType: TIntegerType; ALow, AHigh: Integer);
+begin
+  inherited CreateSubRange(AName, AOwner, AOfType, ALow, AHigh);
+end;
+
+{ TEnumItem }
+
+constructor TEnumItem.Create(const AName: String; AOwner: TScope;
+  AUserType: TUserType; AnIndex: Integer);
+begin
+  inherited Create(AName, AOwner);
+  FUserType := AUserType;
+  FIndex := AnIndex;
+end;
+
+function TEnumItem.IdentType: TIdentType;
+begin
+  Result := itEnumItem;
+end;
+
+function TEnumItem.ToString: String;
+begin
+  Result := Name + ' (EnumItem ' + Index.ToString + ' of ' + UserType.Name + ')';
+end;
+
+{ TEnumeration }
+
+constructor TEnumeration.CreateClone(const AName: String;AOwner: TScope;From: TUserType);
+begin
+  inherited;
+  FEnumItems := (From as TEnumeration).EnumItems;
+end;
+
+constructor TEnumeration.Create(const AName: String; AOwner: TScope;
+  Items: TArray<String>);
+begin
+  inherited Create(AName, AOwner, vtEnumeration, 0, Length(Items)-1);
+  SetEnumItems(Items);
+end;
+
+constructor TEnumeration.CreateSubRange(const AName: String; AOwner: TScope;
+  ASubRangeOf: TEnumeration; ALow, AHigh: Integer);
+begin
+  inherited CreateSubRange(AName, AOwner, ASubRangeOf, ALow, AHigh);
+  FEnumItems := ASubRangeOf.EnumItems;
+end;
+
+function TEnumeration.DefinitionString: String;
+var Item: TEnumItem;
+begin
+  if IsSubRange then
+  begin
+    Assert(Assigned(SubRangeOf));
+    Assert(SubRangeOf is TEnumeration);
+    Result := (SubRangeOf as TEnumeration).EnumItems[Low].Name + '(' + Low.ToString + ')..' +
+        (SubRangeOf as TEnumeration).EnumItems[High].Name + '(' + High.ToString + ')';
+  end
+  else
+  begin
+    Result := '';
+    for Item in EnumItems do
+    begin
+      if Result <> '' then
+        Result := Result + ',';
+      Result := Result + Item.Name;
+    end;
+    Result := '(' + Result + ')';
+  end;
+end;
+
+function TEnumeration.EnumItemToString(Index: Integer): String;
+begin
+  if IsSubRange then
+    Result := (SubRangeOf as TEnumeration).EnumItemToString(Index)
+  else if (Index >= 0) and (Index < length(EnumItems)) then
+    Result := EnumItems[Index].Name
+  else
+    Result := '<Enumeration value out of range>';
+end;
+
+procedure TEnumeration.SetEnumItems(Items: TArray<String>);
+var I: Integer;
+  Scope: PScope;
+begin
+  SetLength(FEnumItems, Length(Items));
+  Scope := GetCurrentScope;
+  for I := 0 to Length(Items)-1 do
+  begin
+    EnumItems[I] := TEnumItem.Create(Items[I], Scope.ScopeEX, Self, I);
+    Scope.ScopeEX.Add(EnumItems[I]);
+  end;
+end;
+
+function TEnumeration.StringToEnumIndex(const Ident: String): Integer;
+var Item: TEnumItem;
+begin
+  for Item in EnumItems do
+    if CompareText(Ident, Item.Name) = 0 then
+      EXIT(Item.Index);
+
+  Result := -1;
+end;
+
+{ TBooleanType }
+
+constructor TBooleanType.Create(const AName: String; AOwner: TScope;
+  VarType: TVarType);
+begin
+  if VarType = vtBoolean then
+    inherited Create(AName, AOwner, ['False', 'True'])
+  else
+    inherited Create(AName, AOwner, ['<False>', '<True>']);
+  FVarType := VarType;
+end;
+
+{ TTypedPointer }
+
+constructor TTypedPointer.CreateClone(const AName: String;AOwner: TScope;From: TUserType);
+begin
+  inherited;
+  FOfType := (From as TTypedPointer).OfType;
+end;
+
+constructor TTypedPointer.Create(const AName: String; AOwner: TScope;
+  AOfType: TUserType);
+begin
+  inherited Create(AName, AOwner, vtTypedPointer);
+  FOfType := AOfType;
+end;
+
+function TTypedPointer.DataSize: Integer;
+begin
+  Result := 2;
+end;
+
+function TTypedPointer.DefinitionString: String;
+begin
+  Assert(Assigned(OfType));
+  Result := Result + '^' + OfType.Description;
+end;
+
+function TTypedPointer.RegSize: Integer;
+begin
+  Result := 2;
+end;
+
+{ TPointeredType }
+
+function TPointeredType.RegSize: Integer;
+begin
+  Result := 2;
+end;
+
+{ TRealType }
+
+function TRealType.DataSize: Integer;
+begin
+  Result := iRealByteSize;
+end;
+
+{ TSetMemType }
+
+constructor TSetMemType.CreateClone(const AName: String;AOwner: TScope;From: TUserType);
+begin
+  inherited;
+  FOfType := (From as TSetMemType).OfType;
+end;
+
+constructor TSetMemType.Create(const AName: String; AOwner: TScope;
+  AOfType: TOrdinalType);
+begin
+  inherited Create(AName, AOwner, vtSetMem{TODO});
+  FOfType := AOfType;
+end;
+
+function TSetMemType.DataSize: Integer;
+var Size: Integer;
+begin
+  Size := OfType.GetItemCount - 1;
+  Result := (Size shr 3) + 1;
+end;
+
+function TSetMemType.DefinitionString: String;
+begin
+  Result := 'set of ' + OfType.DefinitionString;
+end;
+
+{ TRecordType }
+
+constructor TRecordType.CreateClone(const AName: String;AOwner: TScope;From: TUserType);
+begin
+  inherited;
+  FScope := (From as TRecordType).Scope;
+end;
+
+constructor TRecordType.Create(const AName: String; AOwner: TScope;
+  AScopeHandle: TScopeHandle);
+begin
+  inherited Create(AName, AOwner, vtRecord);
+  FScope := AScopeHandle;
+end;
+
+function TRecordType.DataSize: Integer;
+var LScope: PScope;
+  I: Integer;
+  V: PVariable;
+  NewSize: Integer;
+begin
+  Result := 0;
+  LScope := ScopeHandleToScope(Scope);
+  for I := 0 to LScope.VarList.GetCount-1 do
+  begin
+    V := LScope.VarList.IndexToData(I);
+    //V.Offset is set when we parse the VarDef. When we add variant records some
+    //fields will overlap (ie each offset will not be contiguous)
+    NewSize := V.Offset + V.UserType.DataSize;
+    if NewSize > Result then
+      Result := NewSize;
+  end;
+end;
+
+function TRecordType.DefinitionString: String;
 var
   PrevScope: PScope;
   I: Integer;
@@ -474,36 +766,275 @@ begin
   Result := Result + 'end';
 end;
 
-procedure TUserType.SetEnumItems(Items: TArray<String>);
-var I: Integer;
-  Scope: PScope;
+{ TFunctionType }
+
+constructor TFunctionType.CreateClone(const AName: String;AOwner: TScope;From: TUserType);
 begin
-  SetLength(FEnumItems, Length(Items));
-  Scope := GetCurrentScope;
-  for I := 0 to Length(Items)-1 do
-  begin
-    EnumItems[I] := TEnumItem.Create(Items[I], Scope.ScopeEX, Self, I);
-    Scope.ScopeEX.Add(EnumItems[I]);
-  end;
+  inherited;
+  FFunc := (From as TFunctionType).Func;
 end;
 
-function TUserType.ToString: String;
+constructor TFunctionType.Create(const AName: String; AOwner: TScope;
+  AFuncHandle: TFunctionHandle);
 begin
-  if Name <> '' then
-    Result := Name
+  inherited Create(AName, AOwner, vtFunction);
+  FFunc := AFuncHAndle;
+end;
+
+function TFunctionType.DataSize: Integer;
+begin
+  Result := 2;   //Code as data(??)
+end;
+
+function TFunctionType.DefinitionString: String;
+begin
+  Result := FunctionHandleToFunction(Func).ToString;
+end;
+
+{ TTypeDef }
+
+constructor TTypeDef.Create(const AName: String; AOwner: TScope);
+begin
+  inherited Create(AName, AOwner, vtTypeDef);
+end;
+
+function TTypeDef.DataSize: Integer;
+begin
+  Result := 2;  //??
+end;
+
+{ TArrayType }
+
+constructor TArrayType.CreateClone(const AName: String;AOwner: TScope;From: TUserType);
+begin
+  inherited;
+  FArraySize := (From as TArrayType).ArraySize;
+  FOfType := (From as TArrayType).OfType;
+  FIsUnbounded := (From as TArrayType).IsUnbounded;
+  FElementSize := (From as TArrayType).ElementSize;
+end;
+
+constructor TArrayType.Create(const AName: String; AOwner: TScope;AArraySize: TArraySize;
+  AOfType: TUserType);
+begin
+  inherited Create(AName, AOwner, vtArrayType);
+  FArraySize := AArraySize;
+  FOfType := AOfType;
+  FElementSize := OfType.DataSize;
+end;
+
+function TArrayType.IndexMetaType: TOrdinalType;
+begin
+  Result := ArraySizeToType(ArraySize);
+end;
+
+function TArrayType.IsStringType: Boolean;
+begin
+  Result := OfType.VarType = vtChar;
+end;
+
+function TArrayType.MetaSize: Integer;
+const MetaUnitSize: array[low(TArraySize)..high(TArraySize)] of Integer =
+  (0,1,2);
+const MetaUnitCount: array[low(TArrayKind)..high(TArrayKind)] of Integer =
+  (0,0,1,2);
+begin
+  Result := MetaUnitSize[ArraySize] * MetaUnitCount[ArrayKind];
+end;
+
+{ TPascalArrayType }
+
+function TPascalArrayType.ArrayKind: TArrayKind;
+begin
+  Result := atArray;
+end;
+
+constructor TPascalArrayType.CreateClone(const AName: String;AOwner: TScope;From: TUserType);
+begin
+  inherited;
+  FArraySize := (From as TPascalArrayType).ArraySize;
+  FBoundsType := (From as TPascalArrayType).BoundsType;
+end;
+
+constructor TPascalArrayType.Create(const AName: String; AOwner: TScope;
+  AArraySize: TArraySize;ABoundsType: TOrdinalType; AOfType: TUserType);
+begin
+  inherited Create(AName, AOwner, AArraySize, AOfType);
+  FBoundsType := ABoundsType;
+  FIsUnbounded := False;
+end;
+
+constructor TPascalArrayType.CreateUnbounded(const AName: String;
+  AOwner: TScope;AArraySize: TArraySize; AOfType: TUserType);
+begin
+  inherited Create(AName, AOwner, AArraySize, AOfType);
+  FBoundsType := nil;
+  FIsUnbounded := True;
+end;
+
+function TPascalArrayType.DataSize: Integer;
+begin
+  Assert(not FIsUnbounded);
+  //Element count * element size
+  Assert(Assigned(BoundsType));
+  Result := BoundsType.GetItemCount * OfType.DataSize;
+end;
+
+function TPascalArrayType.DefinitionString: String;
+begin
+  case ArraySize of
+    asUnknown: Result := '';
+    asShort: Result := Result + 'short ';
+    asLong: Result := Result + 'long ';
   else
-    Result := '<anon>';
-  Result := Result + ' = ' + DefinitionString;
+    raise EVarType.Create;
+  end;
+  Result := Result + 'array';
+
+  if not IsUnbounded then
+  begin
+    Assert(Assigned(BoundsType));
+    Assert(BoundsType.SynonymOf = nil);
+    Result := Result + '[' + BoundsType.Description + ']';
+  end;
+
+  Result := Result + ' of ' + OfType.Description;
 end;
 
-function IdentToEnumIndex(AType: TUserType;const Ident: String): Integer;
+function TPascalArrayType.GetItemCount: Integer;
 begin
-  Assert(AType.VarType = vtEnumeration);
-  for Result := 0 to Length(AType.EnumItems)-1 do
-    if CompareText(Ident, AType.EnumItems[Result].Name) = 0 then
-      EXIT;
-  Result := -1;
+  Assert(not IsUnbounded);
+  Result := BoundsType.GetItemCount;
 end;
+
+function TPascalArrayType.IndexMetaType: TOrdinalType;
+begin
+  if IsUnbounded then
+    Result := inherited
+  else
+    Result := BoundsType;
+end;
+
+{ TVectorType }
+
+function TVectorType.ArrayKind: TArrayKind;
+begin
+  Result := atVector;
+end;
+
+constructor TVectorType.CreateClone(const AName: String;AOwner: TScope;From: TUserType);
+begin
+  inherited;
+  FLength := (From as TVectorType).Length;
+end;
+
+constructor TVectorType.Create(const AName: String; AOwner: TScope;AArraySize: TArraySize;
+  ALength: Integer; AOfType: TUserType);
+begin
+  inherited Create(AName, AOwner, AArraySize, AOfType);
+  FLength := ALength;
+  FIsUnbounded := False;
+end;
+
+constructor TVectorType.CreateUnbounded(const AName: String; AOwner: TScope;AArraySize: TArraySize;
+  AOfType: TUserType);
+begin
+  inherited Create(AName, AOwner, AArraySize, AOfType);
+  FLength := -1;
+  FIsUnbounded := True;
+end;
+
+function TVectorType.DataSize: Integer;
+begin
+  Assert(not IsUnbounded);
+  //Meta size + Length * element size
+  Assert(Length <> -1); //String literal with unhardened type?
+  Result := MetaSize + Length * ElementSize;
+end;
+
+function TVectorType.DefinitionString: String;
+begin
+  case ArraySize of
+    asUnknown: Result := '';
+    asShort: Result := Result + 'short ';
+    asLong: Result := Result + 'long ';
+  else
+    raise EVarType.Create;
+  end;
+  Result := Result + 'vector';
+
+  if not IsUnbounded then
+    Result := Result + '[' + Length.ToString + ']';
+
+  Result := Result + ' of ' + OfType.Description;
+end;
+
+function TVectorType.GetItemCount: Integer;
+begin
+  Assert(not IsUnbounded);
+  Result := Length;
+end;
+
+{ TListType }
+
+function TListType.ArrayKind: TArrayKind;
+begin
+  Result := atList;
+end;
+
+constructor TListType.CreateClone(const AName: String;AOwner: TScope;From: TUserType);
+begin
+  inherited;
+  FCapacity := (From as TListType).Capacity;
+end;
+
+constructor TListType.Create(const AName: String; AOwner: TScope;AArraySize: TArraySize;
+  ACapacity: Integer; AOfType: TUserType);
+begin
+  inherited Create(AName, AOwner, AArraySize, AOfType);
+  FCapacity := ACapacity;
+  FIsUnbounded := False;
+end;
+
+constructor TListType.CreateUnbounded(const AName: String; AOwner: TScope;AArraySize: TArraySize;
+  AOfType: TUserType);
+begin
+  inherited Create(AName, AOwner, AArraySize, AOfType);
+  FCapacity := -1;
+  FIsUnbounded := True;
+end;
+
+function TListType.DataSize: Integer;
+begin
+  Assert(not IsUnbounded);
+  //Meta size + Capacity * element size
+  Result := MetaSize + Capacity * ElementSize;
+end;
+
+function TListType.DefinitionString: String;
+begin
+  case ArraySize of
+    asUnknown: Result := '';  //Nothing
+    asShort: Result := Result + 'short ';
+    asLong: Result := Result + 'long ';
+  else
+    raise EVarType.Create;
+  end;
+  Result := Result + 'list';
+
+  if not IsUnbounded then
+    Result := Result + '[' + Capacity.ToString + ']';
+
+  Result := Result + ' of ' + OfType.Description;
+end;
+
+function TListType.GetItemCount: Integer;
+begin
+  Assert(not IsUnbounded);
+  Result := Capacity;
+end;
+
+{-----}
 
 function UTToVT(UserType: TUserType): TVarType;
 begin
@@ -590,61 +1121,41 @@ end;
 
 function IsUnboundedArray(UserType: TUserType): Boolean;
 begin
-  Result := (UTToVT(UserType) = vtArrayType) and UserType.ArrayDef.IsUnbounded;
+  Result := (UserType is TArrayType) and (UserType as TArrayType).IsUnbounded;
 end;
 
-function CompareArrayDefs(DataType, AsType: TUserType): Boolean;
+function ArraySizeToType(Size: TArraySize): TOrdinalType;
+begin
+  case Size of
+    asShort: Result := GetSystemOrdinalType(vtByte);
+    asLong: Result := GetSystemOrdinalType(vtWord);
+  else
+    Result := nil;
+  end;
+end;
+
+function CompareArrayDefs(DataType, AsType: TArrayType): Boolean;
 begin
   Assert(IsArrayType(DataType));
   Assert(IsArrayType(AsType));
 
   //Unbounded arrays are inherently different
-  if DataType.ArrayDef.IsUnbounded then
+  if DataType.IsUnbounded then
     EXIT(False);
-  if AsType.ArrayDef.IsUnbounded then
+  if AsType.IsUnbounded then
     EXIT(False);
 
-  Result := (DataType.ArrayDef.ArrayType = AsType.ArrayDef.ArrayType) and
-  (DataType.ArrayDef.ArraySize = AsType.ArrayDef.ArraySize) and
-  (DataType.ArrayDef.ElementSize = AsType.ArrayDef.ElementSize);
+  Result := (DataType.ArrayKind = AsType.ArrayKind) and
+  (DataType.ArraySize = AsType.ArraySize) and
+  (DataType.ElementSize = AsType.ElementSize);
 end;
 
 function GetBaseType(UserType: TUserType): TUserType;
 begin
   Result := UserType;
   if Assigned(Result) then
-    while Assigned(Result.ParentType) do
-      Result := Result.ParentType
-end;
-
-function GetOfType(UserType: TUserType): TUserType;
-begin
-  Result := UserType;
-  if Assigned(Result) then
-    if Result.OfType <> nil then
-      Result := Result.OfType;
-end;
-
-function RemoveSubRange(UserType: TUserType): TUserType;
-begin
-  Result := UserType;
-  if UserType = nil then
-    EXIT;
-
-  if UserType.IsSubRange then
-  begin
-    Result := UserType.OfType;
-    Assert(Result <> nil);
-  end;
-end;
-
-function GetPointerToType(UserType: TUserType): TUserType;
-begin
-  Result := SearchScopesForAnonTypedPointer(UserType);
-  if not Assigned(Result) then
-  begin
-    Result := Types.AddOfType(vtTypedPointer, UserType);
-  end;
+    while Assigned(Result.SynonymOf) do
+      Result := Result.SynonymOf
 end;
 
 //Where ValueLow and ValueHigh are numbers, finds the optimal common integer type
@@ -679,135 +1190,13 @@ begin
   Result := True;
 end;
 
-function GetTypeItemCount(UserType: TUserType): Integer;
-begin
-  Assert(UserType <> nil);
-
-  if IsOrdinalType(UserType) then
-    EXIT(UserType.High-UserType.Low+1);
-
-  case UserType.VarType of
-    //========== Types which require a full declaration to instantiate
-    //User types
-//  vtSet,      //TODO
-
-    //Array types
-    vtArrayType:
-      if not UserType.ArrayDef.IsUnbounded then
-        case UserType.arrayDef.ArrayType of
-          atArray: EXIT(GetTypeItemCount(UserType.BoundsType));
-          atVector: EXIT(UserType.VectorLength);
-        end;
-
-  //Other complex types
-//  vtRecord    //Not enumerable
-//  vtFunction  //Not enumerable
-
-  //Error/undefined
-//  vtUnknown   //Not enumerable
-  end;
-
-  raise Exception.Create('Enumerable type expected');
-end;
-
 //Where UserType is an array based type, returns the bytecount of the types
 //meta data. Meta data is the Length and Capacity fields (if used). The returned
 //value takes into account the byte-size of the fields (ie. byte, word etc).
-function GetArrayMetaSize(UserType: TUserType): Integer;
+function GetArrayMetaSize(UserType: TArrayType): Integer;
 begin
   Assert(Assigned(UserType));
-  Result := UserType.ArrayDef.MetaSize;
-end;
-
-function GetRecordTypeSize(UserType: TUserType): Integer;
-var Scope: PScope;
-  I: Integer;
-  V: PVariable;
-  NewSize: Integer;
-begin
-  Assert(UserType.VarType = vtRecord);
-  Result := 0;
-  Scope := ScopeHandleToScope(UserType.Scope);
-  for I := 0 to Scope.VarList.GetCount-1 do
-  begin
-    V := Scope.VarList.IndexToData(I);
-    //V.Offset is set when we parse the VarDef. When we add variant records some
-    //fields will overlap (ie each offset will not be contiguous)
-    NewSize := V.Offset + GetTypeDataSize(V.UserType);
-    if NewSize > Result then
-      Result := NewSize;
-  end;
-end;
-
-function GetTypeDataSize(UserType: TUserType): Integer;
-var Size: Integer;
-begin
-  Assert(UserType <> nil);
-
-  case UserType.VarType of
-    vtInt8, vtByte, vtChar, vtBoolean, vtEnumeration:
-      Result := 1;
-    vtInteger, vtWord, vtPointer, vtTypedPointer:
-      Result := 2;
-    vtReal: Result := iRealByteSize;
-
-    //User types
-    vtSetByte, vtSetWord, vtSetMem:
-    begin
-      Size := GetTypeItemCount(UserType.OfType) - 1;
-      Result := (Size shr 3) + 1;
-    end;
-
-    //Array types
-    vtArrayType:
-    begin
-      Assert(not UserType.ArrayDef.IsUnbounded);
-      case UserType.ArrayDef.ArrayType of
-        atArray:  //Element count * element size
-        begin
-          Assert(Assigned(UserType.BoundsType));
-          Result := GetTypeItemCount(UserType.BoundsType) * GetTypeDataSize(UserType.OfType);
-        end;
-        atVector: //Meta size + Length * element size
-        begin
-          Assert(UserType.VectorLength <> -1); //String literal with unhardened type?
-          Result := GetArrayMetaSize(UserType) +
-            UserType.VectorLength * UserType.ArrayDef.ElementSize;
-        end;
-        atList:   //Meta size + Capacity * element size
-          Result := GetArrayMetaSize(UserType) +
-            UserType.ListCapacity * UserType.ArrayDef.ElementSize;
-      else
-        raise EVarType.Create;
-      end;
-    end;
-
-    vtRecord:
-      Result := GetRecordTypeSize(UserType);
-
-    vtFunction: Result := 2;   //Code as data.
-  else
-    Assert(False);  //Unknown type
-  end;
-end;
-
-function GetTypeRegSize(UserType: TUserType): Integer;
-begin
-  if IsPointeredType(UserType) then
-    Result := 2
-  else
-    Result := GetTypeDataSize(UserType);
-end;
-
-procedure SetCurrentTypeList(List: PTypeList);
-begin
-  Types := List;
-end;
-
-function CreateTypeList: PTypeList;
-begin
-  New(Result);
-  Result.Initialise;
+  Result := UserType.MetaSize;
 end;
 
 var SystemTypes: array[low(TVarType)..high(TVarType)] of TUserType;
@@ -817,6 +1206,7 @@ var SystemTypes: array[low(TVarType)..high(TVarType)] of TUserType;
 
 function StringToType(TypeString: String;out ArrayDef: TArrayDef): TVarType;
 var Fields: TArray<String>;
+  ArrayType: TArrayType;
 begin
   Result := StringToVarType(TypeString);
   if Result <> vtUnknown then
@@ -824,7 +1214,11 @@ begin
 
   if CompareText(TypeString, 'String') = 0 then
   begin
-    ArrayDef := GetSystemStringType.ArrayDef;
+    ArrayType := GetSystemStringType as TArrayType;
+    ArrayDef.ArrayType := ArrayType.ArrayKind;
+    ArrayDef.ArraySize := ArrayType.ArraySize;
+    ArrayDef.IsUnbounded := ArrayType.IsUnbounded;
+    ArrayDef.ElementSize := ArrayType.ElementSize;
     EXIT(vtArrayType);
   end;
 
@@ -869,18 +1263,34 @@ begin
   Result := vtUnknown;
 end;
 
-function CreateSystemType(List: PTypeList;const Name: String;VarType: TVarType): TUserType;
+function CreateIntegerSystemType(const Name: String;VarType: TVarType;Low, High: Integer): TIntegerType;
 begin
-  Result := List.Add(VarType);
-  Result.AssignName(Name);
+  Result := TTypes.CreateIntegerType(Name, VarType, Low, High);
   SystemTypes[VarType] := Result;
 end;
 
-function CreateEnumSystemType(List: PTypeList;const Name: String;VarType: TVarType;Low, High: Integer): TUserType;
+function CreateOrdinalSystemType(const Name: String;VarType: TVarType;Low, High: Integer): TOrdinalType;
 begin
-  Result := CreateSystemType(List, Name, VarType);
-  Result.Low := Low;
-  Result.High := High;
+  Result := TTypes.CreateOrdinalType(Name, VarType, Low, High);
+  SystemTypes[VarType] := Result;
+end;
+
+function CreateBooleanSystemType(const Name: String;VarType: TVarType): TOrdinalType;
+begin
+  Result := TTypes.CreateBooleanType(Name, VarType);
+  SystemTypes[VarType] := Result;
+end;
+
+function CreateRealSystemType(const Name: String;VarType: TVarType): TRealType;
+begin
+  Result := TTypes.CreateRealType(Name, VarType);
+  SystemTypes[VarType] := Result;
+end;
+
+function CreateTypeDefSystemType(const Name: String): TTypeDef;
+begin
+  Result := TTypes.CreateTypeDef(Name);
+  SystemTypes[vtTypeDef] := Result;
 end;
 
 function GetSystemType(VarType: TVarType;ArrayDef: PArrayDef = nil): TUserType;
@@ -894,6 +1304,12 @@ begin
   Assert(False);
 end;
 
+function GetSystemOrdinalType(VarType: TVarType): TOrdinalType;
+begin
+  if VarType <> vtArrayType then
+    EXIT(SystemTypes[VarType] as TOrdinalType);
+end;
+
 function GetSystemStringType: TUserType;
 begin
   Result := StringType;
@@ -904,133 +1320,30 @@ begin
   Result := StringLiteralType;
 end;
 
-procedure CreateSystemTypes(List: PTypeList);
+procedure CreateSystemTypes(Scope: TScope);
 var VT: TVarType;
   CharType: TUserType;
 begin
   for VT := low(TVarType) to high(TVarType) do
     SystemTypes[VT] := nil;
 
-  CreateEnumSystemType(List, 'Int8', vtInt8, -128, 127);
-  CreateEnumSystemType(List, 'Integer', vtInteger, -32768, 32767);
-  CreateEnumSystemType(List, 'Byte', vtByte, 0, 255);
-  CreateEnumSystemType(List, 'Word', vtWord, 0, 65535);
-  CreateEnumSystemType(List, 'Pointer', vtPointer, 0, 65535);
-  CreateSystemType(List, 'Real', vtReal);
-  CreateSystemType(List, 'Boolean', vtBoolean);
-  CreateSystemType(List, '<Flag>', vtFlag);
-  CharType := CreateEnumSystemType(List, 'Char', vtChar, 0, 255);
-  CreateSystemType(List, '<TypeDef>', vtTypeDef);
-  StringType := CreateSystemType(List, 'String', vtArrayType);
-  StringType.OfType := CharType;
-  StringType.ArrayDef.SetArrayType(atList);
-  StringType.ArrayDef.SetArraySize(asShort);   //TODO - use config
-  StringType.ArrayDef.SetIsUnbounded(True);
-  StringType.ArrayDef.SetElementSize(1);
-  StringLiteralType := CreateSystemType(List, '<StringLiteral>', vtArrayType);
-  StringLiteralType.OfType := CharType;
-  StringLiteralType.VectorLength := -1; //To be determined by the data
-  StringLiteralType.ArrayDef.SetArrayType(atVector); //Can't modify string literals!
-  StringLiteralType.ArrayDef.SetArraySize(asShort);  //TODO - use config
-  StringLiteralType.ArrayDef.SetIsUnbounded(True); //Must be hardened for a specific string/variable
-  StringLiteralType.ArrayDef.SetElementSize(1);
+
+  CreateIntegerSystemType('Int8', vtInt8, -128, 127);
+  CreateIntegerSystemType('Integer', vtInteger, -32768, 32767);
+  CreateIntegerSystemType('Byte', vtByte, 0, 255);
+  CreateIntegerSystemType('Word', vtWord, 0, 65535);
+  CreateIntegerSystemType('Pointer', vtPointer, 0, 65535);
+  CreateRealSystemType('Real', vtReal);
+  CreateBooleanSystemType('Boolean', vtBoolean);
+  CreateBooleanSystemType('<Flag>', vtFlag);
+  CharType := CreateOrdinalSystemType('Char', vtChar, 0, 255);
+  CreateTypeDefSystemType('<TypeDef>');
+  StringType := TTypes.CreateUnboundedArrayType('String', atList,
+    asShort {TODO: Use COnfig}, CharType);
+  StringLiteralType := TTypes.CreateUnboundedArrayType('<StringLiteral>', atVector,
+    asShort {TODO: Use config}, CharType);
 end;
 
-{ TTypeList }
-
-function TTypeList.Add(AVarType: TVarType): TUserType;
-begin
-  Result := TUserType.Create('', GetCurrentScope.ScopeEX);
-  GetCurrentScope.ScopeEX.Add(Result);
-  Items.Add(Result);
-  Result.VarType := AVarType;
-end;
-
-function TTypeList.AddOfType(AVarType: TVarType;
-  AOfType: TUserType): TUserType;
-begin
-  Result := TUserType.Create('', GetCurrentScope.ScopeEX);
-  Items.Add(Result);
-  GetCurrentScope.ScopeEX.Add(Result);
-  Result.VarType := AVarType;
-  Result.OfType := AOfType;
-end;
-
-function TTypeList.AddSynonym(const AName: String;
-  AParentType: TUserType): TUserType;
-begin
-  Result := TUserType.Create('', GetCurrentScope.ScopeEX);
-  GetCurrentScope.ScopeEX.Add(Result);
-  Items.Add(Result);
-  Result.CloneTypeData(AParentType);
-
-  Result.AssignName(AName);
-  Result.VarType := AParentType.VarType;
-  Result.ParentType := AParentType;
-end;
-
-procedure TTypeList.Clear;
-var UT: TUserType;
-begin
-(*  for UT in Items do
-    Dispose(UT);
-*)end;
-
-function TTypeList.FindByNameInScope(const AName: String): TUserType;
-var UT: TUserType;
-begin
-  for UT in Items do
-    if CompareText(UT.Name, AName) = 0 then
-      EXIT(UT);
-
-  Result := nil;
-end;
-
-function TTypeList.FindAnonPointerForType(UserType: TUserType): TUserType;
-var UT: TUserType;
-begin
-  for UT in Items do
-    if (UT.VarType = vtTypedPointer) and (UT.OfType = UserType) and (UT.Name = '') then
-      EXIT(UT);
-
-  Result := nil;
-end;
-
-function TTypeList.FindByEnumNameInScope(const AName: String;out Index: Integer): TUserType;
-var I: Integer;
-begin
-  for I := 0 to Items.Count-1 do
-  begin
-    Result := Items[I];
-    if Result.VarType = vtEnumeration then
-    begin
-      Index := IdentToEnumIndex(Result, AName);
-      if Index <> -1 then
-        EXIT;
-    end;
-  end;
-
-  Result := nil;
-  Index := -1;
-end;
-
-procedure TTypeList.Initialise;
-begin
-  Items := TList<TUserType>.Create;
-end;
-
-function TTypeList.ToString: String;
-var Item: TUserType;
-begin
-  Result := '';
-  for Item in Items do
-    Result := Result + Item.ToString + #13;
-end;
-
-procedure InitialiseTypes;
-begin
-  Types := nil;
-end;
 
 function IdentToType(const Ident: String): TUserType;
 var
@@ -1045,30 +1358,172 @@ begin
   Result := IdentData.AsType;
 end;
 
-procedure TypesToStrings(S: TStrings);
+{ TTypes }
+
+class function TTypes.CreateArrayType(Kind: TArrayKind; Size: TArraySize;
+   BoundsType: TOrdinalType; LengthOrCapacity: Integer; OfType: TUserType): TArrayType;
 begin
-  S.Clear;
-  S.Text := Types.ToString;
+  case Kind of
+    atArray: Result := TPascalArrayType.Create('', GetCurrentScope.ScopeEX, Size, BoundsType, OfType);
+    atVector: Result := TVectorType.Create('', GetCurrentScope.ScopeEX, Size, LengthOrCapacity, OfType);
+    atList: Result := TListType.Create('', GetCurrentScope.ScopeEX, Size, LengthOrCapacity, OfType);
+  else
+    raise EVarType.Create;
+  end;
+  GetCurrentScope.ScopeEX.Add(Result);
 end;
 
-{ TEnumItem }
-
-constructor TEnumItem.Create(const AName: String; AOwner: TScope;
-  AUserType: TUserType; AnIndex: Integer);
+class function TTypes.CreateBooleanType(const AName: String;
+  AVarType: TVarType): TBooleanType;
 begin
-  inherited Create(AName, AOwner);
-  FUserType := AUserType;
-  FIndex := AnIndex;
+  Result := TBooleanType.Create(AName, GetCurrentScope.ScopeEX, AVarType);
+  GetCurrentScope.ScopeEX.Add(Result);
 end;
 
-function TEnumItem.IdentType: TIdentType;
+class function TTypes.CreateEnumeration(EnumItems: TArray<String>): TEnumeration;
 begin
-  Result := itEnumItem;
+  Result := TEnumeration.Create('', GetCurrentScope.ScopeEX, EnumItems);
+  GetCurrentScope.ScopeEX.Add(Result);
 end;
 
-function TEnumItem.ToString: String;
+class function TTypes.CreateFunctionType(AScope: TScopeHandle): TFunctionType;
 begin
-  Result := Name + ' (EnumItem ' + Index.ToString + ' of ' + UserType.Name + ')';
+  Result := TFunctionType.Create('', GetCurrentScope.ScopeEX, AScope);
+  GetCurrentScope.ScopeEX.Add(Result);
+end;
+
+class function TTypes.CreateIntegerType(const AName: String;
+  AVarType: TVarType; ALow, AHigh: Integer): TIntegerType;
+begin
+  Result := TIntegerType.Create(AName, GetCurrentScope.ScopeEX, AVarType, ALow, AHigh);
+  GetCurrentScope.ScopeEX.Add(Result);
+end;
+
+class function TTypes.CreateIntegerType(AVarType: TVarType; ALow,
+  AHigh: Integer): TIntegerType;
+begin
+  Result := CreateIntegerType('', AVarType, ALow, AHigh);
+end;
+
+class function TTypes.CreateOrdinalType(const AName: String;
+  AVarType: TVarType; ALow, AHigh: Integer): TOrdinalType;
+begin
+  Result := TOrdinalType.Create(AName, GetCurrentScope.ScopeEX, AVarType, ALow, AHigh);
+  GetCurrentScope.ScopeEX.Add(Result);
+end;
+
+class function TTypes.CreateRealType(const AName: String;
+  AVarType: TVarType): TRealType;
+begin
+  Result := TRealType.Create(AName, GetCurrentScope.ScopeEX, AVarType);
+  GetCurrentScope.ScopeEX.Add(Result);
+end;
+
+class function TTypes.CreateRecordType(AScope: TScopeHandle): TRecordType;
+begin
+  Result := TRecordType.Create('', GetCurrentScope.ScopeEX, AScope);
+  GetCurrentScope.ScopeEX.Add(Result);
+end;
+
+class function TTypes.CreateSetType(AVarType: TVarType;AOfType: TOrdinalType): TSetMemType;
+begin
+  case AVarType of
+    vtSetMem:  Result := TSetMemType.Create('', GetCurrentScope.ScopeEX, AOfType);
+  else
+    raise EVarType.Create;
+  end;
+  GetCurrentScope.ScopeEX.Add(Result);
+end;
+
+class function TTypes.CreateSubRange(CommonType: TOrdinalType; ALow,
+  AHigh: Integer): TOrdinalType;
+begin
+  if CommonType is TEnumeration then
+    Result := TEnumeration.CreateSubRange('', GetCurrentScope.ScopeEX, CommonType as TEnumeration, ALow, AHigh)
+  else if CommonType is TIntegerType then
+    Result := TIntegerType.CreateSubRange('', GetCurrentScope.ScopeEX, TIntegerType(CommonType){!!!}, ALow, AHigh)
+  else if CommonType is TOrdinalType then
+    Result := TOrdinalType.CreateSubRange('', GetCurrentScope.ScopeEX, TOrdinalType(CommonType){!!!}, ALow, AHigh)
+  else
+    raise Exception.Create('Unable to subrange type ' + CommonType.ClassName);
+  GetCurrentScope.ScopeEX.Add(Result);
+end;
+
+class function TTypes.CreateSynonym(const AName: String;
+  FromType: TUserType): TUserType;
+var  C: TRTTIContext;
+  T: TRTTIType;
+  V: TValue;
+begin
+  C := TRTTIContext.Create;
+  T := C.GetType(FromType.ClassType);
+  V := T.GetMethod('CreateClone').Invoke(T.AsInstance.MetaClassType, [AName, GetCurrentScope.ScopeEX, FromType]);
+  Result := TUserType(V.AsObject);
+  GetCurrentScope.ScopeEX.Add(Result);
+end;
+
+class function TTypes.CreateTypeDef(const AName: String): TTypeDef;
+begin
+  Result := TTypeDef.Create(AName, GetCurrentScope.ScopeEX);
+  GetCurrentScope.ScopeEX.Add(Result);
+end;
+
+class function TTypes.CreateTypedPointer(AOfType: TUserType): TTypedPointer;
+begin
+  Result := TTypedPointer.Create('', GetCurrentScope.ScopeEX, AOfType);
+  GetCurrentScope.ScopeEX.Add(Result);
+end;
+
+class function TTypes.CreateUnboundedArrayType(const AName: String;
+  Kind: TArrayKind; Size: TArraySize; OfType: TUserType): TArrayType;
+begin
+  case Kind of
+    atArray: Result := TPascalArrayType.CreateUnbounded(AName, GetCurrentScope.ScopeEX, Size, OfType);
+    atVector: Result := TVectorType.CreateUnbounded(AName, GetCurrentScope.ScopeEX, Size, OfType);
+    atList: Result := TListType.CreateUnbounded(AName, GetCurrentScope.ScopeEX, Size, OfType);
+  else
+    raise EVarType.Create;
+  end;
+  GetCurrentScope.ScopeEX.Add(Result);
+end;
+
+class function TTypes.CreateUnboundedArrayType(Kind: TArrayKind;
+  Size: TArraySize; OfType: TUserType): TArrayType;
+begin
+  Result := CreateUnboundedArrayType('', Kind, Size, OfType);
+end;
+
+class function TTypes.SearchScopeForAnonTypedPointer(Scope: TScope;
+  UserType: TUserType): TTypedPointer;
+var Item: TScopedItem;
+begin
+  for Item in Scope.Items do
+    if Item is TTypedPointer then
+    begin
+      Result := Item as TTypedPointer;
+      if (Result.OfType = UserType) and (Result.Name = '') then
+        EXIT;
+    end;
+
+  Result := nil;
+  if not Assigned(Result) then
+    Result := CreateTypedPointer(UserType);
+end;
+
+class function TTypes.SearchScopesForAnonTypedPointer(
+  UserType: TUserType): TTypedPointer;
+var Scope: TScope;
+begin
+  Scope := GetCurrentScope.ScopeEX;
+  while Assigned(Scope) do
+  begin
+    Result := SearchScopeForAnonTypedPointer(Scope, UserType);
+    if Assigned(Result) then
+      EXIT;
+    Scope := Scope.Parent;
+  end;
+
+  Result := SearchScopeForAnonTypedPointer(SystemScope.ScopeEX, UserType);
 end;
 
 end.

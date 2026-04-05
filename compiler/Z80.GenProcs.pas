@@ -880,7 +880,7 @@ end;  //HL -> Address of element
 
 //Calculate the addr of an array element where the index is an immediate value
 procedure Proc_AddrOfArrayElemImm(ILItem: PILItem);
-var ArrayType: TUserType;
+var ArrayType: TPascalArrayType;
   ElementSize: Integer;
   Index: Integer; //of the item we want
   FirstIndex: Integer;  //Low of first item in array
@@ -888,11 +888,11 @@ var ArrayType: TUserType;
 begin
   //Param1 - the array
   Assert(ILItem.Param1.Kind in [pkVarRef, pkImmediate]);
-  ArrayType  := ILItem.Param1.GetUserType;
+  ArrayType  := ILItem.Param1.GetUserType as TPascalArrayType;
   Assert(ArrayType.VarType = vtArrayType);
   Assert(Assigned(ArrayType.OfType));
   Assert(Assigned(ArrayType.BoundsType));
-  ElementSize := GetTypeDataSize(ArrayType.OfType);
+  ElementSize := ArrayType.OfType.DataSize;
   FirstIndex := ArrayType.BoundsType.Low;
 
   //Param2 - the index
@@ -913,17 +913,17 @@ end;
 
 //Calculate the addr of an element of a vector where the index is an immediate value
 procedure Proc_AddrOfVectorElemImm(ILItem: PILItem);
-var ArrayType: TUserType;
+var ArrayType: TArrayType;
   Index: Integer; //of the item we want
   ArrayOffset: Integer;
 begin
   Assert(ILItem.Param1.Kind in [pkVarRef, pkImmediate]);
-  ArrayType := ILItem.Param1.GetUserType;
+  ArrayType := ILItem.Param1.GetUserType as TArrayType;
   Assert(ArrayType <> nil);
   Assert(ArrayType.VarType = vtArrayType);
 
   //If Unbounded we need to validate index against vector length-byte
-  Assert(not ArrayType.ArrayDef.IsUnbounded, 'TODO');
+  Assert(not ArrayType.IsUnbounded, 'TODO');
   Assert(Assigned(ArrayType.OfType));
 
   Assert(ILItem.Param2.Kind = pkImmediate);
@@ -933,7 +933,7 @@ begin
   //TODO: Validate array size (if unbounded)
 
   //TODO: Check Reg State: is value already loaded?
-  ArrayOffset := ArrayType.ArrayDef.ElementSize * Index + ArrayType.ArrayDef.MetaSize;
+  ArrayOffset := ArrayType.ElementSize * Index + ArrayType.MetaSize;
   case ILItem.Param1.Kind of
     pkImmediate: DoGenAddrOfStaticOffsetImm(ILItem.Param1.Imm, ArrayOffset);
     pkVarRef: DoGenAddrOfArrayElemImm(ILItem.Param1.Variable, ArrayOffset);
@@ -943,11 +943,11 @@ begin
 end;
 
 procedure DoGenAddrOfListElemImm(V: PVariable; Index, ArrayOffset: Integer);
-var ArrayType: TUserType;
+var ArrayType: TArrayType;
 begin
-  ArrayType := V.UserType;
+  ArrayType := V.UserType as TArrayType;
   //  1. HL -> Base addr (addrof) <- Get this passed in as a parameter
-  case ArrayType.ArrayDef.ArraySize of
+  case ArrayType.ArraySize of
     asShort:
     begin
       //  2. Step over capacity
@@ -994,20 +994,20 @@ end;
 
 //Calculate the addr of an element of a list where the index is an immediate value
 procedure Proc_AddrOfListElemImm(ILItem: PILItem);
-var ArrayType: TUserType;
+var ArrayType: TArrayType;
   Index: Integer; //of the item we want
   ArrayOffset: Integer; //to the item we want
 begin
   //On entry HL -> base address of list
 
   Assert(ILItem.Param1.Kind in [pkVarRef, pkImmediate]);
-  ArrayType := ILItem.Param1.GetUserType;
+  ArrayType := ILItem.Param1.GetUserType as TArrayType;
   Assert(ArrayType <> nil);
   Assert(ArrayType.VarType = vtArrayType);
-  Assert(ArrayType.ArrayDef.ArrayType = atList);
+  Assert(ArrayType.ArrayKind = atList);
 
   //If Unbounded we need to validate index against vector length-byte
-  Assert(not ArrayType.ArrayDef.IsUnbounded, 'TODO');
+  Assert(not ArrayType.IsUnbounded, 'TODO');
 
   Assert(ILItem.Param2.Kind = pkImmediate);
   Assert(IsIntegerType(ILItem.Param2.Imm.UserType));
@@ -1017,7 +1017,7 @@ begin
   //TODO: Validate array size (if unbounded)
 
   //TODO: Check Reg State: is value already loaded?
-  ArrayOffset := ArrayType.ArrayDef.ElementSize * Index + ArrayType.ArrayDef.MetaSize;
+  ArrayOffset := ArrayType.ElementSize * Index + ArrayType.MetaSize;
   case ILItem.Param1.Kind of
     pkImmediate: DoGenAddrOfStaticOffsetImm(ILItem.Param1.Imm, ArrayOffset);
     pkVarRef: DoGenAddrOfListElemImm(ILItem.Param1.Variable, Index, ArrayOffset);
@@ -1029,13 +1029,13 @@ end;
 //Generate code to convert the array index (in (H)L to an offset from the array
 //base, returned in HL
 //Also bounds checks the index value as necessary
-procedure GenIndexToOffset(V: PVariable;IndexParam: PILParam;ArrayType: TUserType;
+procedure GenIndexToOffset(V: PVariable;IndexParam: PILParam;ArrayType: TPascalArrayType;
 ElementSize: Integer;PreserveDE: Boolean);
 var IndexVT: TVarType;    //Index type
 begin
   //TODO: Only for vtArrayType - others use dynamic bounds checking
   if pfRangeCheck in IndexParam.Flags then
-    GenRangeCheck(IndexParam.Reg, IndexParam.GetUserType, ArrayType.BoundsType, nil, []);
+    GenRangeCheck(IndexParam.Reg, IndexParam.GetUserType as TOrdinalType, ArrayType.BoundsType, nil, []);
 
   //Index will be in L (for unsigned 8-bit) or HL (for 16-bit)
   //If 8-bit then extend to 16-bit
@@ -1253,7 +1253,7 @@ begin
   //(We can treat then the same as StatcRef/StackRef variables)
   if DataType.VarType = vtTypedPointer then
   begin
-    DataType := DataType.OfType;
+    DataType := (DataType as TTypedPointer).OfType;
     case AddrMode of
       amStatic: AddrMode := amstaticRef;
       amStack: AddrMode := amStackRef;
@@ -1272,7 +1272,8 @@ end;
 //   - L register (unsigned 8-bit value)
 procedure Proc_AddrOfArrayElemStaticVarSource(ILItem: PILItem);
 var V: PVariable; //The array
-  ArrayType: TUserType; //Array type
+  UT: TUserType;
+  ArrayType: TPascalArrayType; //Array type
   AddrMode: TAddrMode;
   Offset: Integer;  //Due to: stack offset; Low bounds; Meta data (length, capacity)
 begin
@@ -1281,19 +1282,20 @@ begin
   Assert(IsOrdinalType(ILItem.Param2.Variable.UserType));
 
   //Establish the Type and Addressing Mode
-  GetVarRefMetaData(ILItem.Param1, ArrayType, AddrMode, Offset);
+  GetVarRefMetaData(ILItem.Param1, UT, AddrMode, Offset);
+  ArrayType := UT as TPascalArrayType;
   Assert(IsArrayType(ArrayType));
   Assert(Assigned(ArrayType.OfType));
-  Assert(ArrayType.ArrayDef.ArrayType = atArray);
+  Assert(ArrayType.ArrayKind = atArray);
 
   V := ILItem.Param1.Variable;
 
   //Gen code to calculate the array base
   //Convert lower bounds value into a byte offset from array base
-  Offset := Offset + ArrayType.ArrayDef.ElementSize * -ArrayType.BoundsType.Low;
+  Offset := Offset + ArrayType.ElementSize * -ArrayType.BoundsType.Low;
 
   //Gen code to calculate the offset from array base (ElementSize * Index)
-  GenIndexToOffset(V, @ILItem.Param2, ArrayType, ArrayType.ArrayDef.ElementSize, False);
+  GenIndexToOffset(V, @ILItem.Param2, ArrayType, ArrayType.ElementSize, False);
   //HL -> Index * ElementSize (Offset from array base (ignoring low bound))
 
 
@@ -1323,7 +1325,8 @@ procedure Proc_AddrOfArrayElemVarSource(ILItem: PILItem);
     Add offset
 *)
 var V: PVariable; //The array
-  ArrayType: TUserType; //Array type
+  UT: TUserType;
+  ArrayType: TPascalArrayType; //Array type
   AddrMode: TAddrMode;
   Offset: Integer;  //Due to: stack offset; Low bounds; Meta data (length, capacity)
   BaseReg: TCPUReg;
@@ -1333,10 +1336,11 @@ begin
   Assert(IsOrdinalType(ILItem.Param2.Variable.UserType));
 
   //Establish the Type, Addressing Mode, and any stack offset to data
-  GetVarRefMetaData(ILItem.Param1, ArrayType, AddrMode, Offset);
+  GetVarRefMetaData(ILItem.Param1, UT, AddrMode, Offset);
+  ArrayType := UT as TPascalArrayType;
   Assert(IsArrayType(ArrayType));
   Assert(Assigned(ArrayType.OfType));
-  Assert(ArrayType.ArrayDef.ArrayType = atArray);
+  Assert(ArrayType.ArrayKind = atArray);
 
   V := ILItem.Param1.Variable;
 
@@ -1345,7 +1349,7 @@ begin
   GenAddrOfPlusOffset(V, AddrMode, Offset, BaseReg, True);
   //(H)L -> Index. DE -> Base addr of data
 
-  GenIndexToOffset(V, @ILItem.Param2, ArrayType, ArrayType.ArrayDef.ElementSize, True);
+  GenIndexToOffset(V, @ILItem.Param2, ArrayType, ArrayType.ElementSize, True);
   //HL -> Offset from Base. DE -> Base addr of data
 
   //TODO: Add HL and DE

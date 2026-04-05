@@ -116,7 +116,7 @@ begin
         EXIT(Err(qeUnknownType));
       case UserType.VarType of
         vtArrayType:
-          if UserType.ArrayDef.IsUnbounded then
+          if (UserType as TArrayType).IsUnbounded then
             EXIT(ErrSub2(qeInstantiateUnboundedArray, UserType.Name, UserType.Name));
       else
         //No probs

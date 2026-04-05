@@ -109,7 +109,7 @@ begin
         Assert(Arg.IsByRef);  //Ensure we take the correct path in the next IF statement
         Slug.AssignToHiddenVar;
         ILItem := ILAppend(OpMove);
-        ILItem.ResultType := GetPointerToType(Slug.ResultType);
+        ILItem.ResultType := TTypes.SearchScopesForAnonTypedPointer(Slug.ResultType);
         ILItem.Param1.SetVarRef(Slug.Operand.Variable);
       end
       else
@@ -128,12 +128,12 @@ begin
         if ILItem.Param1.Kind = pkVarSource then
           ILItem.Param1.Kind := pkVarRef;
         ILItem.Dest.Kind := pkPush;
-        ILItem.Dest.PushType := GetPointerToType(Slug.ResultType);
+        ILItem.Dest.PushType := TTypes.SearchScopesForAnonTypedPointer(Slug.ResultType);
       end
       else
       begin
         //Slug to ILItem
-        case GetTypeRegSize(Arg.UserType) of
+        case Arg.UserType.RegSize of
           1: ILItem.Dest.Kind := pkPushByte;
           2: ILItem.Dest.Kind := pkPush;
         else
@@ -198,7 +198,7 @@ begin
       OpHi, OpLo, OpSwap:
         //Arg must be > 8 bits wide
         if (Slugs[ArgIndex].ILItem <> nil) or (Slugs[ArgIndex].Operand.Kind <> pkImmediate) then
-          if GetTypeRegSize(Slugs[ArgIndex].ResultType) = 1 then
+          if Slugs[ArgIndex].ResultType.RegSize = 1 then
             EXIT(errFuncCall(qeBytePassedToHiLoSwap, Func));
       OpPoke:
         //Second arg must be a valid byte value (if Range Check is on)
@@ -217,7 +217,7 @@ begin
           if (Slugs[ArgIndex].ILItem <> nil) or
             (Slugs[ArgIndex].Operand.Kind <> pkVarSource) or
             (Slugs[ArgIndex].ResultVarType <> vtArrayType) or
-            (Slugs[ArgIndex].ResultType.ArrayDef.ArrayType <> atList) then
+            ((Slugs[ArgIndex].ResultType as TArrayType).ArrayKind <> atList) then
             EXIT(errFuncCallSub(qeListVariableArgExpected, Func.Params[1].Name, Func));
     end;
 
@@ -404,13 +404,13 @@ procedure MassageUnboundedSizeOf(var Slugs: TSlugArray);
 var ElementSize: Integer;
 begin
   Assert(Slugs[0].ResultVarType = vtArrayType);
-  Assert(Slugs[0].ResultType.ArrayDef.ArrayType in [atVector, atList]);
+  Assert((Slugs[0].ResultType as TArrayType).ArrayKind in [atVector, atList]);
 
-  ElementSize := Slugs[0].ResultType.ArrayDef.ElementSize;
+  ElementSize := (Slugs[0].ResultType as TArrayType).ElementSize;
   if ElementSize <> 1 then
   begin
     Assert(Slugs[1].Operand.Kind = pkNone);
-    Slugs[1].SetImmediate(Slugs[0].ResultType.ArrayDef.MetaType, ElementSize);
+    Slugs[1].SetImmediate((Slugs[0].ResultType as TArrayType).IndexMetaType.VarType, ElementSize);
   end;
 end;
 
@@ -430,8 +430,8 @@ var Slug: PExprSlug;
                         //  - We may need to do runtime processing to establish the result
                         //  - Ie if the variable is a list, or is an unbounded array.
   IsUnbounded: Boolean; //We have an unbounded array
-  ArrayUT: TUserType;
-  ArrayType: TArrayType;
+  ArrayUT: TArrayType;
+  ArrayKind: TArrayKind;
 begin
   //TODO: Should this should raise a TypeMismatch error?
   Assert(Param.VarType = vtTypeDef);
@@ -445,20 +445,20 @@ begin
   if IsTypeDef then
   begin
     Assert(Slug.IsImmediate);
-    ArrayUT := Slug.Operand.Imm.TypeDefValue;
+    ArrayUT := Slug.Operand.Imm.TypeDefValue as TArrayType;
     Assert(ArrayUT.VarType = vtArrayType);
   end
   else
-    ArrayUT := Slug.ResultType;
+    ArrayUT := Slug.ResultType as TArrayType;
 
-  ArrayType := ArrayUT.ArrayDef.ArrayType;
-  IsUnbounded := ArrayUT.ArrayDef.IsUnbounded;
+  ArrayKind := ArrayUT.ArrayKind;
+  IsUnbounded := ArrayUT.IsUnbounded;
 
   case Op of
     opHigh: ;
     opLow:
       //Vectors and list always have a Low of zero
-      if ArrayType in [atVector, atList] then
+      if ArrayKind in [atVector, atList] then
       begin
         SlugToTypeDef(Slugs[SlugIndex]);
         EXIT(qeNone);
@@ -473,7 +473,7 @@ begin
         //Unbounded arrays can be processed at run-time but need an extra argument
         MassageUnboundedSizeOf(Slugs)
       end
-      else if ArrayType = atList then
+      else if ArrayKind = atList then
       begin //We can determine sizeof all bounded lists at compile time so
         //skip error checking and other processing
         if not IsTypeDef then
@@ -481,13 +481,13 @@ begin
         EXIT(qeNone);
       end;
     opCapacity, opSetLength: //We require an atList
-      if (ArrayType <> atList) or IsImmediate then
+      if (ArrayKind <> atList) or IsImmediate then
         EXIT(ErrSub2(qeTypeMismatch, ArrayUT.Description, Param.UserType.Description));
     opLength: ; //No further processing
   else
   end;
 
-  if IsTypeDef and (IsUnbounded or (ArrayType = atList)) then
+  if IsTypeDef and (IsUnbounded or (ArrayKind = atList)) then
     //A TypeDef is a compile time constant. Operations on unbounded arrays and list
     //are runtime only.
     //TODO: Func Param doesn't specify arrays!!
@@ -497,7 +497,7 @@ begin
   if IsImmediate then
     EXIT(qeNone);
 
-  if IsUnbounded or (ArrayType = atList) then
+  if IsUnbounded or (ArrayKind = atList) then
   begin //Operations on unbounded arrays and list require a VarRef at runtime
     Assert(Slugs[0].ILItem = nil);  //TODO: Syntax error if we have an expression??
     Assert(Slugs[0].Operand.Kind = pkVarSource);
@@ -506,7 +506,7 @@ begin
   else
     //If size can be determined at compile time then convert the argument to a
     //TypeDef with value equal to the argument's type
-    if not IsTypeDef and not IsUnbounded and (ArrayType <> atList) then
+    if not IsTypeDef and not IsUnbounded and (ArrayKind <> atList) then
       SlugToTypeDef(Slugs[SlugIndex]);
 
   Result := qeNone;
@@ -700,7 +700,7 @@ var DummySlug: TExprSlug;
   Count: Integer;
   ParamCount: Integer;
 begin
-  if Slug.ResultType.OfType.VarType <> vtChar then
+  if (Slug.ResultType as TArrayType).OfType.VarType <> vtChar then
     EXIT(ErrTODO('Unhandled array parameter type for Write/ln: ' + Slug.ResultType.Description));
 
   Slug2.Initialise;
@@ -711,10 +711,10 @@ begin
     if Slug.Operand.Kind = pkVarSource then
       Slug.Operand.Kind := pkVarRef;
 
-  case Slug.ResultType.ArrayDef.ArrayType of
+  case (Slug.ResultType as TArrayType).ArrayKind of
     atArray:
     begin
-      Count := GetTypeItemCount(Slug.ResultType);
+      Count := Slug.ResultType.GetItemCount;
       if Count < 256 then
         Slug2.SetImmediate(vtByte, Count)
       else
@@ -902,7 +902,7 @@ begin
       ILItem := ILAppend(opMove);
       ILItem.Param1.Kind := pkNone;  //Variable data to be set later
       Slug.ResultByRefParam := @ILItem.Param1;
-      ILItem.ResultType := GetPointerToType(Arg.UserType);
+      ILItem.ResultType := TTypes.SearchScopesForAnonTypedPointer(Arg.UserType);
       ILItem.Dest.Kind := pkPush;
       ILItem.Dest.PushType := ILItem.ResultType;
     end;
@@ -918,7 +918,7 @@ begin
     Arg := Func.FindResult;
     Result.ResultType := Arg.UserType;
 
-    case GetTypeRegSize(Arg.UserType) of
+    case Arg.UserType.RegSize of
       1: Result.Dest.Reg := rA;   //Byte params returned in A
       2: Result.Dest.Reg := rHL;  //2 byte params returned in HL
     else
