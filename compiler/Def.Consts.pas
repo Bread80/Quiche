@@ -8,13 +8,13 @@ unit Def.Consts;
 interface
 uses
   Generics.Collections, Classes,
-  Def.VarTypes, Def.UserTypes;
+  Def.ScopesEX, Def.VarTypes, Def.UserTypes;
 
-type PConstList = ^TConstList;
-  PConst = ^TConst;
-
+type
   //Used to store binary data (for complex types)
   TBlob = TArray<Byte>;
+
+  TConst = class;
 
 //===============TImmValue
 
@@ -41,6 +41,9 @@ type PConstList = ^TConstList;
     constructor CreateReal(AValue: TRealBinary);overload;
     constructor CreateString(AString: String);
     constructor CreateBlob(AType: TUserType;ABlob: TBlob);
+
+    //Only where existing Const is nil(??)
+    procedure SetConst(AConst: TConst);
 
     //Can *only* be user for integer types (both new and current)
     procedure UpdateUserType(NewType: TUserType);
@@ -86,7 +89,7 @@ type PConstList = ^TConstList;
     function ToString: String;
   private
     FUserType: TUserType;
-    FConst: PConst; //For pointered types data is stored in the Const (due to
+    FConst: TConst; //For pointered types data is stored in the Const (due to
                     //Delphi requring such types to be finalized).
                     //NOTE: For null strings and empty arrays FConst will be nil!
 
@@ -103,76 +106,56 @@ type PConstList = ^TConstList;
 
 //==================CONST
 
-  TConst = record
-    ConstList: PConstList;
-    Name: String;
-    UserType: TUserType;
-    InScope: Boolean;
-    Depth: Integer;
+  TConst = class(TTypedIdentifier)
+  private
+    FDepth: Integer;
+    FInScope: Boolean;
+    FValue: TImmValue;
 
-    //Only for registered types
-    Value: TImmValue;
+    FIsString: Boolean;
     //For arraytypes, distinguish between string literals (stored as strings) and
     //other array literals (stored as blobs)
-    IsString: Boolean;
-    StringValue: String;
-    BlobValue: TBlob;
+    FStringValue: String;
+    FBlobValue: TBlob;
+    //Can ONLY be called from a TImmValue (ie our TImmValue!).
+    //Used when the expession parser tweaks integer/numeric types or hardens RangeLists
+    procedure UpdateUserType(NewType: TUserType);
+  public
+    constructor Create(const AName: String; AOwner: TScope; AUserType: TUserType;
+      const AValue: TImmValue;ADepth: Integer);
+    constructor CreateBlob(const AName: String;AOwner: TScope;AUserType: TUserType;
+      const AValue: TImmValue;const ABlobValue: TBlob;ADepth: Integer);
+    constructor CreateString(const AName: String;AOwner: TScope;AUserType: TUserType;
+      const AValue: TImmValue;const AStringValue: String;ADepth: Integer);
+
+    function IdentType: TIdentType;override;
 
     //Where data the stored as a pointer (ie Strings etc), returns a label for the
     //constant data
     function ToLabel: String;
-    function VarType: TVarType;
-  end;
 
-  TConstList = record
-  private
-    //A slight hack to be able to generate labels for string literal data wihout
-    //requiring a Scope pointer (which woud create circular references)
-    ScopeName: String;
+    //TODO: Remove
+    property Depth: Integer read FDepth;
+    property InScope: Boolean read FInScope;
+    property IsString: Boolean read FIsString;
 
-    FItems: TList<PConst>;
-    MarkPosition: Integer;
-//    Strings: TStringList; //String literals defined within this scope
-    Blobs: TList<TBlob>;
-    function GetItems(Index: Integer): PConst;
-    function GetCount: Integer;  //Binary literals defined within this scope
-                          //(for any complex type other than strings)
+    //Only used where the type is a registered types
+    property Value: TImmValue read FValue;
+    property BlobValue: TBlob read FBlobValue;
+    property StringValue: String read FStringValue;
+ end;
+
+  TConsts = class
   public
-    procedure Initialise;
-    procedure Clear;
-    //Scope depth has been DECrememented. Any in scope constants with higher scope depth
-    //need to go out of scope
-    procedure ScopeDepthDecced(NewDepth: Integer);
-
-    function Add(const AName: String;UType: TUserType;const AValue: TImmValue): PConst;
-    function AddString(const AName: String;UType: TUserType;const AValue: TImmValue;
-      const AStringValue: String): PConst;
-    function AddBlob(const AName: String;UType: TUserType;const AValue: TImmValue;
-      const ABlobValue: TBlob): PConst;
-
-    //ONLY for Pointered Types. Finds a pre-existing definition of the same string data.
-    //Searches the current ConstList as well as AValue's Const List.
-    //Returns nil if nothing found.
-    function FindDupValueInScope(const AValue: TImmValue): PConst;
-    function FindByNameInScope(const AName: String): PConst;
-
-    property Items[Index: Integer]: PConst read GetItems;default;
-    property Count: Integer read GetCount;
+    class function Add(const AName: String;UType: TUserType;const AValue: TImmValue): TConst;
+    class function AddBlob(const AName: String; UType: TUserType;const AValue: TImmValue;
+      const ABlobValue: TBlob): TConst;
+    class function AddString(const AName: String;UType: TUserType;const AValue: TImmValue;
+      const AStringValue: String): TConst;
   end;
-
-//Currently scoped list of constants
-var Consts: PConstList;
-
-procedure InitialiseConsts;
-
-//------------Scope related
-
-//These routines are called by the Scopes routines to create, clear and set Scopes
-function CreateConstList(const ScopeName: String): PConstList;
-procedure SetCurrentConstList(List: PConstList);
 
 //Add global/system consts to the /current/ const list (Ie current scope should be global scope)
-procedure CreateSystemConsts(List: PConstList);
+procedure CreateSystemConsts(Scope: TScope);
 
 implementation
 uses
@@ -219,17 +202,13 @@ begin
 end;
 
 constructor TImmValue.CreateBlob(AType: TUserType; ABlob: TBlob);
-var ConstList: PConstList;
 begin
   FVarType := UTToVT(AType);
   FUserType := AType;
-  FConst := nil;
-  ConstList := GetCurrentScope.ConstList;
-  Assert(Assigned(ConstList));
   //We need to set first because the Const will get a copy of us,
   //and us will fall out of scope
   FConst := nil;
-  FConst := ConstList.AddBlob('', AType, Self, ABlob);
+  FConst := TConsts.AddBlob('', AType, Self, ABlob);
 end;
 
 constructor TImmValue.CreateBoolean(AValue: Boolean);
@@ -257,17 +236,14 @@ begin
 end;
 
 constructor TImmValue.CreateReal(AValue: Double);
-var ConstList: PConstList;
 begin
   FVarType := vtReal;
   FUserType := GetSystemType(FVarType);
   FConst := nil;
   FRealValue := AValue;
-  ConstList := GetCurrentScope.ConstList;
-  Assert(Assigned(ConstList));
   //We need to set first because the Const will get a copy of us,
   //and us will fall out of scope
-  FConst := ConstList.AddBlob('', FUserType, Self, DoubleToRealBinary(FRealValue));
+  FConst := TConsts.AddBlob('', FUserType, Self, DoubleToRealBinary(FRealValue));
 end;
 
 constructor TImmValue.CreateReal(AValue: TRealBinary);
@@ -280,16 +256,13 @@ begin
 end;
 
 constructor TImmValue.CreateString(AString: String);
-var ConstList: PConstList;
 begin
   FUserType := GetSystemStringLiteralType;
   FVarType := FUserType.VarType;
-  ConstList := GetCurrentScope.ConstList;
-  Assert(Assigned(ConstList));
   //We need to set first because the Const will get a copy of us,
   //and us will fall out of scope
   FConst := nil;
-  FConst := ConstList.AddString('', GetSystemStringType, Self, AString);
+  FConst := TConsts.AddString('', GetSystemStringType, Self, AString);
 end;
 
 constructor TImmValue.CreateTyped(AType: TVarType; AValue: Integer);
@@ -379,6 +352,12 @@ begin
     Result := FRealValue
   else
     Result := FIntValue;
+end;
+
+procedure TImmValue.SetConst(AConst: TConst);
+begin
+  Assert(FConst = nil);
+  FConst := AConst;
 end;
 
 function TImmValue.StringValue: String;
@@ -608,7 +587,7 @@ begin
   FUserType := NewType;
   if Assigned(FConst) then
   begin
-    FConst.UserType := NewType;
+    FConst.UpdateUserType(NewType);
     FConst.Value.UpdateUserType(NewType);
   end;
 end;
@@ -626,33 +605,41 @@ begin
 *)    Result := FVarType;
 end;
 
-//================SCOPE RELATED
-(*
-var
-  Consts: TConstList;
-  ConstMarkPosition: Integer;
-*)
-procedure InitialiseConsts;
-begin
-  Consts := nil;
-//  ConstMarkPosition := -1;
-end;
-
-function CreateConstList(const ScopeName: String): PConstList;
-begin
-  New(Result);
-  Result.Initialise;
-  Result.ScopeName := ScopeName;
-//  ConstMarkPosition := -1;
-end;
-
-procedure SetCurrentConstList(List: PConstList);
-begin
-  Consts := List;
-end;
-
-
 { TConst }
+
+constructor TConst.Create(const AName: String; AOwner: TScope;
+  AUserType: TUserType;const AValue: TImmValue; ADepth: Integer);
+begin
+  inherited Create(AName, AOwner, AUserType);
+  FValue := AValue;
+  Value.SetConst(Self);
+  FDepth := ADepth;
+  FInScope := True;
+  FIsString := False;
+end;
+
+constructor TConst.CreateBlob(const AName: String; AOwner: TScope;
+  AUserType: TUserType; const AValue: TImmValue; const ABlobValue: TBlob;
+  ADepth: Integer);
+begin
+  Create(AName, AOwner, AUserType, AValue, ADepth);
+  FBlobValue := ABlobValue;
+  FIsString := False;
+end;
+
+constructor TConst.CreateString(const AName: String; AOwner: TScope;
+  AUserType: TUserType; const AValue: TImmValue; const AStringValue: String;
+  ADepth: Integer);
+begin
+  Create(AName, AOwner, AUserType, AValue, ADepth);
+  FStringValue := AStringValue;
+  FIsString := True;
+end;
+
+function TConst.IdentType: TIdentType;
+begin
+  Result := itConst;
+end;
 
 function TConst.ToLabel: String;
 var
@@ -674,36 +661,38 @@ begin
     Assert(False);
   end;
 
-  Result := '__' + Prefix.Chars[0] + 'l_' + ConstList.ScopeName.ToLower + '_';
+  Result := '__' + Prefix.Chars[0] + 'l_' + Owner.Name.ToLower + '_';
   if Name <> '' then
     Result := Result + Name
   else
-    Result := Result + Prefix + Integer(@Self).ToString;
+    Result := Result + Prefix + Integer(Self).ToString;
 end;
 
-function TConst.VarType: TVarType;
+procedure TConst.UpdateUserType(NewType: TUserType);
 begin
-  Result := UTToVT(UserType);
+  inherited UpdateUserType(NewType);
 end;
 
-{ TConstList }
+{ TConsts }
 
-function TConstList.Add(const AName: String; UType: TUserType;const AValue: TImmValue): PConst;
-var CL: PConstList;
+class function TConsts.Add(const AName: String; UType: TUserType;const AValue: TImmValue): TConst;
+var Scope: TScope;
+  Depth: Integer;
 begin
+  Scope := GetCurrentScope.ScopeEX;
+
   //Expression parser will return a TImmValue with an unnamed TConst. Handle the
   //case where that value is being assigned to a CONST
   if AValue.FConst <> nil then
   begin
     if AValue.FConst.Name = '' then
     begin
-      AValue.FConst.Name := AName;
+      AValue.FConst.AssignName(AName);
       AValue.UpdateUserType(UType);
       EXIT(AValue.FConst);
     end;
     if (AName = '') and (UType = AValue.FConst.UserType) then
       EXIT(AValue.FConst);
-
   end;
 
 
@@ -725,134 +714,52 @@ begin
 *)
 
   //If not add it
-  New(Result);
-  FItems.Add(Result);
-  Result.ConstList := @Self;
-  Result.Name := AName;
-  Result.UserType := UType;
-  Result.InScope := True;
-  if GetCurrentScope <> nil then
-    Result.Depth := GetCurrentScope.Depth
+  if Scope <> nil then
+    Depth := Scope.Depth
   else
-    Result.Depth := 0;
-  Result.Value := AValue;
-  Result.Value.FConst := Result;
-  Result.IsString := False;
+    Depth := 0;
+  Result := TConst.Create(AName, Scope, UType, AValue, Depth);
+  Scope.Add(Result);
 end;
 
-function TConstList.AddBlob(const AName: String; UType: TUserType;
-  const AValue: TImmValue; const ABlobValue: TBlob): PConst;
+class function TConsts.AddBlob(const AName: String; UType: TUserType;
+  const AValue: TImmValue; const ABlobValue: TBlob): TConst;
+var Scope: TScope;
+  Depth: Integer;
 begin
-  Result := Add(AName, UType, AValue);
-  Result.IsString := False;
-  Result.BlobValue := ABlobValue;
+  Scope := GetCurrentScope.ScopeEX;
+  if Scope <> nil then
+    Depth := GetCurrentScope.Depth
+  else
+    Depth := 0;
+  Result := TConst.CreateBlob(AName, Scope, UType, AValue, ABlobValue, Depth);
+  Scope.Add(Result);
 end;
 
-function TConstList.AddString(const AName: String; UType: TUserType;
-  const AValue: TImmValue;const AStringValue: String): PConst;
+class function TConsts.AddString(const AName: String; UType: TUserType;
+  const AValue: TImmValue; const AStringValue: String): TConst;
+var Scope: TScope;
+  Depth: Integer;
 begin
-  Result := Add(AName, UType, AValue);
-  Result.IsString := True;
-  Result.StringValue := AStringValue;
+  Scope := GetCurrentScope.ScopeEX;
+  if Scope <> nil then
+    Depth := GetCurrentScope.Depth
+  else
+    Depth := 0;
+  Result := TConst.CreateString(AName, Scope, UType, AValue, AStringValue, Depth);
+  Scope.Add(Result);
 end;
 
-procedure TConstList.Clear;
-var V: PConst;
+procedure CreateSystemConsts(Scope: TScope);
 begin
-  for V in FItems do
-    Dispose(V);
-  FItems.Clear;
-  MarkPosition := -1;
-  Blobs.Clear;
-end;
-
-function TConstList.FindByNameInScope(const AName: String): PConst;
-var I: Integer;
-begin
-  for I := 0 to FItems.Count-1 do
-    if (CompareText(Items[I].Name, AName) = 0) and Items[I].InScope then
-      EXIT(Items[I]);
-
-  Result := nil;
-end;
-
-function TConstList.FindDupValueInScope(const AValue: TImmValue): PConst;
-var I: Integer;
-begin
-  Assert(IsPointeredType(AValue.UserType));
-(*  //TODO: Rewrite
-  for I := 0 to FItems.Count-1 do
-    case AValue.VarType of
-      vtArrayType:
-        if (AValue.FIsString) and (AValue.FConst <> nil) then
-        begin
-          if AValue.FStringIndex = FItems[I].Value.FStringIndex then
-            EXIT(FItems[I]);
-        end
-        else
-        if (AValue.FBlobConstList <> nil) and (AValue.FBlobConstList = FItems[I].Value.FBlobConstList) then
-        begin
-          if AValue.FBlobIndex = FItems[I].Value.FBlobIndex then
-            EXIT(FItems[I]);
-        end;
-    else
-      raise Exception.Create('Unknown type');
-    end;
-*)
-  Result := nil;
-end;
-
-function TConstList.GetCount: Integer;
-begin
-  Result := FItems.Count;
-end;
-
-function TConstList.GetItems(Index: Integer): PConst;
-begin
-  Result := FItems[Index];
-end;
-
-procedure TConstList.Initialise;
-begin
-  FItems := TList<PConst>.Create;
-  MarkPosition := -1;
-  Blobs := TList<TBlob>.Create;
-end;
-
-procedure TConstList.ScopeDepthDecced(NewDepth: Integer);
-var I: Integer;
-begin
-  I := FItems.Count-1;
-  while (I >= 0) and (Items[I].Depth > NewDepth) do
-  begin
-    Items[I].InScope := False;
-    dec(I);
-  end;
-end;
-
-
-
-procedure CreateSystemConsts(List: PConstList);
-var SystemFalse: TImmValue;
-  SystemTrue: TImmValue;
-  SystemMaxint: TImmValue;
-  SystemMinint: TImmValue;
-  SystemNil: TImmValue;
-begin
-  SystemFalse.CreateBoolean(False);
-  SystemTrue.CreateBoolean(True);
-  SystemMaxint.CreateTyped(vtInteger, GetMaxValue(vtInteger));
-  SystemMinint.CreateTyped(vtInteger, GetMinValue(vtInteger));
-  SystemNil.CreateTyped(vtPointer, $0000);
-
-  List.Add('False', GetSystemType(vtBoolean), SystemFalse);
-  List.Add('True', GetSystemType(vtBoolean), SystemTrue);
-  List.Add('Maxint', GetSystemType(vtInteger), SystemMaxint);
-  List.Add('Minint', GetSystemType(vtInteger), SystemMinint);
-  List.Add('nil', GetSystemType(vtPointer), SystemNil);
+  //These are now created as EnumItems by the type system
+(*  TConsts.Add('False', GetSystemType(vtBoolean), TImmValue.CreateBoolean(False));
+  TConsts.Add('True', GetSystemType(vtBoolean), TImmValue.CreateBoolean(True));
+*)  TConsts.Add('Maxint', GetSystemType(vtInteger), TImmValue.CreateTyped(vtInteger, GetMaxValue(vtInteger)));
+  TConsts.Add('Minint', GetSystemType(vtInteger), TImmValue.CreateTyped(vtInteger, GetMinValue(vtInteger)));
+  TConsts.Add('nil', GetSystemType(vtPointer), TImmValue.CreateTyped(vtPointer, $0000));
 end;
 
 initialization
-  Consts := nil;
 end.
 

@@ -5,7 +5,7 @@ unit CodeGen;
 
 interface
 uses Classes,
-  Def.Globals, Def.Scopes, Def.IL;
+  Def.Globals, Def.Scopes, Def.ScopesEX, Def.IL;
 
 //------------- UTILITIES
 
@@ -85,7 +85,7 @@ begin
     Result := Result + '''';
 end;
 
-function GenBlobLiteral(C: PConst): String;
+function GenBlobLiteral(C: TConst): String;
 var Blob: TBlob;
   Line: String;
   I: Integer;
@@ -109,7 +109,7 @@ begin
     Result := Result + Line;
 end;
 
-procedure GenPointeredLiteral(C: PConst);
+procedure GenPointeredLiteral(C: TConst);
 var S: String;
   Code: String;
 begin
@@ -135,15 +135,14 @@ end;
 
 //Generates any constant data for pointered types in current scope
 procedure GenPointeredLiterals;
-var Scope: PScope;
-  List: PConstList;
-  I: Integer;
+var Scope: TScope;
+  Item: TScopedItem;
 begin
-  Scope := GetCurrentScope;
-  List := Scope.ConstList;
-  for I := 0 to List.Count-1 do
-    if IsPointeredType(List.Items[I].UserType) then
-      GenPointeredLiteral(List.Items[I]);
+  Scope := GetCurrentScope.ScopeEX;
+  for Item in Scope.Items do
+    if Item is TConst then
+      if IsPointeredType((Item as TConst).UserType) then
+        GenPointeredLiteral(Item as TConst);
 end;
 
 //For the current scope:

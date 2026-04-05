@@ -296,6 +296,20 @@ type
   end;
 
 
+
+  TTypedIdentifier = class(TIdentifier)
+  private
+    FUserType: TUserType;
+    function GetVarType: TVarType;
+  protected
+    //ONLY to be called by TConst!!
+    procedure UpdateUserType(NewType: TUserType);
+  public
+    constructor Create(const AName: String;AScope: TScope;AUserType: TUserType);
+    property UserType: TUserType read FUserType;
+    property VarType: TVarType read GetVarType;
+  end;
+
 function UTToVT(UserType: TUserType): TVarType;
 
 //A Register type is one where the value of the variable is stored in registers.
@@ -1524,6 +1538,26 @@ begin
   end;
 
   Result := SearchScopeForAnonTypedPointer(SystemScope.ScopeEX, UserType);
+end;
+
+{ TTypedIdentifier }
+
+constructor TTypedIdentifier.Create(const AName: String; AScope: TScope;
+  AUserType: TUserType);
+begin
+  inherited Create(AName, AScope);
+  FUSerType := AUserType;
+end;
+
+function TTypedIdentifier.GetVarType: TVarType;
+begin
+  Result := UserType.VarType;
+end;
+
+procedure TTypedIdentifier.UpdateUserType(NewType: TUserType);
+begin
+  Assert(ClassName = 'TConst');
+  FUserType := NewType;
 end;
 
 end.

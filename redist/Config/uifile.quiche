@@ -1,3 +1,10 @@
-  type TColour = (Red, Green, Blue)
-  type TDay = (Monday, Tuesday, Wednesday, Thursday, Friday)
-  var RE := Red = Monday
+begin
+  type T = Integer
+  const X = 1
+end
+begin
+  type T = Integer
+  const X = 2
+end;
+begin
+end

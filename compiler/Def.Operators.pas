@@ -438,11 +438,11 @@ begin
     if OperandMatch(Mapping.LeftType, Mapping.LeftSuperType, LeftType) and
       OperandMatch(Mapping.RightType, Mapping.RightSuperType, RightType) then
     begin
-      if (LeftType.VarType = vtEnumeration) then
-        if LeftType.VarType = RightType.VarType then
-          if (LeftType as TEnumeration).BaseType <> (RightType as TEnumeration).BaseType then
-            EXIT(False);
-
+(*  //We need to leave to type checker
+      if (LeftType is TEnumeration) and (RightType is TEnumeration) then
+        if (LeftType as TEnumeration).BaseType <> (RightType as TEnumeration).BaseType then
+          EXIT(False);
+*)
       //TODO: For User Declared Types, verify that the parameters match
       ChangeOp := Mapping.Operation;
       ResultType := GetResultType(Mapping, LeftType, RightType);

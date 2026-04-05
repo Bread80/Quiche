@@ -664,8 +664,6 @@ begin
     DoInitDirectives;
 
   InitialiseSkipMode;
-  InitialiseConsts;
-(*  InitialiseTypes;*)
   InitialiseVars;
   InitialiseScopes;
 

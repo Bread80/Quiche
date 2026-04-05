@@ -212,7 +212,7 @@ begin
       if TestForPtrSuffix then
         EXIT(ParsePtrSuffixLoad(Slug, IdentData));
 
-      Slug.SetImmediate(IdentData.C.UserType, IdentData.C.Value);
+      Slug.SetImmediate((IdentData.Value as TConst).UserType, (IdentData.Value as TConst).Value);
       Slug.ParamOrigin := poExplicit;
       EXIT(qeNone);
      end;
@@ -327,7 +327,7 @@ begin //Sub-expressions
 
   //We have a pointered literal - it needs adding to a ConstList...
   if Slug.IsImmediate and IsPointeredType(Slug.ResultType) then
-    Consts.Add('', Slug.ResultType, Slug.Operand.Imm);
+    TConsts.Add('', Slug.ResultType, Slug.Operand.Imm);
 
   Slug.ILItem := ILAppend(OpAddrOf);
   Slug.ILItem.Param1 := Slug.Operand;

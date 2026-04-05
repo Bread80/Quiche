@@ -177,7 +177,7 @@ begin
   if Result <> qeNone then
     EXIT;
 
-  Consts.Add(ConstName, Value.UserType, Value);
+  TConsts.Add(ConstName, Value.UserType, Value);
 end;
 
 type TBlockState = (bsSingle, bsBeginRead);
@@ -188,13 +188,13 @@ type TBlockState = (bsSingle, bsBeginRead);
 function ParseBlock(ParseMode: TParseMode;AddrMode: TAddrMode): TQuicheError;
 begin
   Assert(ParseMode in [pmStatement, pmBlock, pmREPEAT]);
-  ScopeIncDepth;
+  ScopeBeginBlock;
 
   Result := ParseQuiche(ParseMode, AddrMode);
   if Result <> qeNone then
     EXIT;
 
-  ScopeDecDepth;
+  ScopeEndBlock;
 end;
 
 
@@ -236,7 +236,7 @@ var
   ILItem: PILItem; //Used for various Items
   PhiInsertCount: Integer;
 begin
-  ScopeIncDepth;  //If loop counter is declared here, ensure it goes out of scope
+  ScopeBeginBlock;  //If loop counter is declared here, ensure it goes out of scope
                   //after the loop
 
   Result := Parser.SkipWhiteNL;
@@ -408,7 +408,7 @@ begin
   //Insert Phis after loop
   NewBlock := True;
 
-  ScopeDecDepth;  //If loop counter was declared take it out of scope
+  ScopeEndBlock;  //If loop counter was declared take it out of scope
 end; //----------------------------------------------------------- /FOR
 
 
@@ -499,7 +499,7 @@ var
   PhiInsertCount: Integer;  //Number of Phi nodes inserted at start of loop
 begin
   //Start a new scope
-  ScopeIncDepth;
+  ScopeBeginBlock;
 
   NewBlock := True;
   NewBlockComment := 'REPEAT';
@@ -552,7 +552,7 @@ begin
   NewBlockComment := 'REPEAT completed';
 
   //End the scope
-  ScopeDecDepth;
+  ScopeEndBlock;
 end;
 
 //==============================CONDITIONALS

@@ -317,7 +317,7 @@ begin
   //First parameter is the address of the array
   case Deref.IdentType of
     itVariable: ILItem.Param1.SetVarRef(Deref.V);
-    itConst: ILItem.Param1.SetImmediate(Deref.C.Value);
+    itConst: ILItem.Param1.SetImmediate((Deref.Value as TConst).Value);
   else
     raise Exception.Create('Unknown IdentType');
   end;

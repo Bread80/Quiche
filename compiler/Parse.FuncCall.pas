@@ -70,7 +70,7 @@ begin
   //We have a pointered literal - it needs adding to a ConstList...
   if (Slug.ILItem = nil) and (Slug.Operand.Kind = pkImmediate) then
     if IsPointeredType(Slug.ResultType) then
-        Consts.Add('', Slug.ResultType, Slug.Operand.Imm);
+        TConsts.Add('', Slug.ResultType, Slug.Operand.Imm);
 
   //Validate argument:
   case Arg.Access of

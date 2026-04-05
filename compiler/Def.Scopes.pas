@@ -45,14 +45,11 @@ type
       itFunction: (
         F: PFunction;
         );
-      itConst: (
-        C: PConst;
-        );
     end;
 
   PScope= ^TScopeOLD;
   TScopeOLD = record
-    ScopeEX: TScope;  //FOR MIGRATION.
+    ScopeEX: TCodeBlock;  //FOR MIGRATION.
                       //NOTE: WE WILL LEAK THESE UNTIL MIGRATION IS COMPLETE
     Parent: PScope;   //The next higher Scope, or nil in none
     Name: String;     //For the scope. For reference only
@@ -60,7 +57,6 @@ type
                       //which variables are in scope. Ie. within a BEGIN...END block
                       //Depth is increased for every BEGIN and decreased for every END
     Func: PFunction;  //The function which owns this scope. Nil for main/global code
-    ConstList: PConstList;  //Constants declared at this scope level
     VarList: PVarList;      //Ditto for Variables
     FuncList: PFuncList;    //Functions declared in this scope
 
@@ -123,11 +119,16 @@ procedure EndCurrentScope;
 procedure InitialiseScopes;
 
 
+//Scope blocks relate to BEGIN..END[1] structures in the code. Do not confuse with
+//the IL concept of blocks.
+//[1] Which can be implicit for a single statement after, eg, an IF or FOR, or
+//    in a REPEAT..UNTIL or CASE clause.
+//
 //Increase the Depth of the current Scope (called for each BEGIN)
-procedure ScopeIncDepth;
+procedure ScopeBeginBlock;
 
 //ecrease the Depth of the current Scope (called for each END)
-procedure ScopeDecDepth;
+procedure ScopeEndBlock;
 
 //Get the depth of the current Scope
 function ScopeGetDepth: Integer;
@@ -179,8 +180,6 @@ begin
   for Scope in ScopeList do
   begin
     //Free items owned by the scope??
-    Scope.ConstList.Clear;
-    Dispose(Scope.ConstList);
     Scope.VarList.Clear;
     Dispose(Scope.VarList);
     Scope.FuncList.Clear;
@@ -200,7 +199,6 @@ end;
 procedure SetCurrentScope(Scope: PScope);
 begin
   CurrentScope := Scope;
-  SetCurrentConstList(Scope.ConstList);
   SetCurrentVarList(Scope.VarList);
   SetCurrentFuncList(Scope.FuncList);
   //AsmCode - nowt to do
@@ -255,7 +253,7 @@ begin
   Scope := GetCUrrentScope;
   SetCurrentScope(@SystemScope);
   CreateSystemTypes(SystemScope.ScopeEX);
-  CreateSystemConsts(SystemScope.ConstList);
+  CreateSystemConsts(SystemScope.ScopeEX);
   SetCurrentScope(Scope);
 end;
 
@@ -294,19 +292,26 @@ begin
   Result := nil;
 end;
 
-procedure ScopeIncDepth;
+procedure ScopeBeginBlock;
 begin
   CurrentScope.Depth := CurrentScope.Depth + 1;
+  CurrentScope.ScopeEX.Depth := CurrentScope.Depth;
+
+  GetCurrentScope.ScopeEX := GetCurrentScope.ScopeEX.BeginCodeBlock;
 end;
 
 //ecrease the Depth of the current Scope (called for each END)
-procedure ScopeDecDepth;
+procedure ScopeEndBlock;
 begin
   Assert(CurrentScope.Depth > 0);
   CurrentScope.Depth := CurrentScope.Depth - 1;
+  CurrentScope.ScopeEX.Depth := CurrentScope.Depth;
+
   //TODO Tell variables about the new depth
   Vars.ScopeDepthDecced(CurrentScope.Depth);
-  Consts.ScopeDepthDecced(CurrentScope.Depth);
+
+  GetCurrentScope.ScopeEX := GetCurrentScope.ScopeEX.EndCodeBlock;
+  Assert(Assigned(GetCurrentScope.ScopeEX));
 end;
 
 //Get the depth of the current Scope
@@ -363,13 +368,13 @@ procedure TScopeOLD.Initialise(const AName: String;AParent: PScope);
 begin
   Parent := AParent;
   if AParent <> nil then
-    ScopeEX := TSCope.Create(AName, AParent.ScopeEX)
+    ScopeEX := TCodeBlock.Create(AName, AParent.ScopeEX, 0)
   else
-    ScopeEX := TScope.Create(AName, nil);
+    ScopeEX := TCodeBlock.Create(AName, nil, 0);
+
   Name := AName;
   Depth := 0;
   Func := nil;
-  ConstList := CreateConstList(AName);
   VarList := CreateVarList;
   FuncList := CreateFuncList;
   AsmCode := TStringlist.Create;
@@ -386,7 +391,7 @@ begin
     Result.IdentType := Result.Value.IdentType;
     EXIT;
   end;
-
+(*
   //Consts
   if Assigned(ConstList) then
   begin
@@ -397,6 +402,7 @@ begin
       EXIT;
     end;
   end;
+*)
 
   //Variables
   if Assigned(VarList) then
@@ -488,7 +494,7 @@ function TIdentData.GetUserType: TUserType;
 begin
   case IdentType of
     itVariable: Result := V.UserType;
-    itConst: Result := C.UserType;
+    itConst: Result := (Value as TTypedIdentifier).UserType
   else
     raise Exception.Create('Invalid IdentVar.UserType');
   end;

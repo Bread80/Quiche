@@ -16,7 +16,7 @@ type
     FName: String;
     FOwner: TScope;
   //Scoped Items can Use other Scoped Items. This can form the base for only linking
-  //library items ahich are referenced by the final code
+  //library items which are referenced by the final code
 
   //Non-identifier items might be assembly chunks (for re-assembling into output code)
   public
@@ -43,6 +43,7 @@ type
   private
     FParent: TScope;
     FItems: TObjectList<TScopedItem>;
+    FDepth: Integer;
   public
     constructor Create(const AName: String;AParent: TScope);
     destructor Destroy;override;
@@ -62,6 +63,8 @@ type
     function ToString: String;
 
     property Parent: TScope read FParent;
+    //TODO: Remove!
+    property Depth: Integer read FDepth write FDepth;
     property Items: TObjectList<TScopedItem> read FItems;
 (*
 
@@ -69,8 +72,6 @@ type
                       //which variables are in scope. Ie. within a BEGIN...END block
                       //Depth is increased for every BEGIN and decreased for every END
     Func: PFunction;  //The function which owns this scope. Nil for main/global code
-    ConstList: PConstList;  //Constants declared at this scope level
-    TypeList: PTypeList;    //Ditto for Types
     VarList: PVarList;      //Ditto for Variables
     FuncList: PFuncList;    //Functions declared in this scope
 
@@ -83,6 +84,30 @@ type
     //Returns the storage type for local variables
     function GetLocalAddrMode: TAddrMode;
   *)end;
+
+  TCodeBlock = class(TScope)
+  private
+    FUID: Integer;
+    FNextBlockID: Integer;  //Used by GetUniqueBlockID
+    function GetUniqueBlockID: Integer;
+    //Removes a child from Items. The child *must* be the last item on the list.
+    //If not an exception will be raised.
+    procedure RemoveChild(AChild: TCodeBlock);
+  public
+    constructor Create(const AName: String;AParent: TScope;AUID: Integer);
+
+    //Creates and returns a new code block. Used to store declarations local to
+    //a code block. Use for BEGIN..END, and other code structures such as REPEAT..UNTIL,
+    //CASE clauses and even single statement blocks after IF, FOR etc.
+    function BeginCodeBlock: TCodeBlock;
+    //End a code block initiated by BeginCodeBlock. Raises an exception if the number
+    //of calls to each is not balanced. If Self.Items is empty, Self will be removed
+    //from it's parents Items and freed
+    function EndCodeBlock: TCodeBlock;
+
+    //Used to identify this block within the current scope
+    property UID: Integer read FUID;
+  end;
 
 implementation
 uses SysUtils;
@@ -116,6 +141,7 @@ begin
   inherited Create(AName, AParent);
   FParent := AParent;
   FItems := TObjectList<TScopedItem>.Create(True);
+  FDepth := 0;
 end;
 
 destructor TScope.Destroy;
@@ -157,6 +183,59 @@ begin
   Result := 'Scope: ' + Name + #13#13;
   for Item in FItems do
     Result := Result + Item.ToString + #13;
+end;
+
+{ TCodeBlock }
+
+function TCodeBlock.BeginCodeBlock: TCodeBlock;
+var NewID: Integer;
+begin
+  NewID := GetUniqueBlockID;
+  Result := TCodeBlock.Create(Name, Self, NewID);
+  Items.Add(Result);
+end;
+
+constructor TCodeBlock.Create(const AName: String; AParent: TScope;
+  AUID: Integer);
+begin
+  if AUID > 0 then
+    inherited Create(AName + '.' + AUID.ToString, AParent)
+  else
+    inherited Create(AName, AParent);
+  FUID := AUID;
+  FNextBlockID := 1;
+end;
+
+function TCodeBlock.EndCodeBlock: TCodeBlock;
+begin
+  Assert(Parent is TCodeBlock);
+  Result := Parent as TCodeBlock;
+  if Items.Count = 0 then
+  begin
+    (Parent as TCodeBlock).RemoveChild(Self);
+//    Self.Free;
+  end;
+end;
+
+function TCodeBlock.GetUniqueBlockID: Integer;
+begin
+  if UID <> 0 then
+  begin
+    Assert(Parent is TCodeBlock);
+    Result := (Parent as TCodeBlock).GetUniqueBlockID;
+  end
+  else
+  begin
+    Result := FNextBlockID;
+    inc(FNextBlockID);
+  end;
+end;
+
+procedure TCodeBlock.RemoveChild(AChild: TCodeBlock);
+begin
+  Assert(Items.Count > 0);
+  Assert(Items[Items.Count-1] = AChild);
+  Items.Delete(Items.Count-1);
 end;
 
 end.
