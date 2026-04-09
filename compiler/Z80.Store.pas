@@ -94,7 +94,7 @@ end;
 
 //Basic store of an 8 bit register to an 8-bit variable
 //Returns True if we stored the value via the A register (but Reg <> rA)
-function GenVarStore8(Reg: TCPUReg;Variable: PVariable;VarVersion: Integer;
+function GenVarStore8(Reg: TCPUReg;Variable: TVariable;VarVersion: Integer;
   Options: TMoveOptionSet): Boolean;
 begin
   Assert(Reg in CPUReg8Bit);
@@ -140,7 +140,7 @@ end;
 
 //Basic store of a 16 bit register pair to a 16-bit variable
 //Returns True if we stored the value via the A register (but Reg <> rA)
-function GenVarStore16(Reg: TCPUReg;Variable: PVariable;VarVersion: Integer;
+function GenVarStore16(Reg: TCPUReg;Variable: TVariable;VarVersion: Integer;
   Options: TMoveOptionSet): Boolean;
 var Ex: Boolean;
 begin
@@ -190,7 +190,7 @@ end;
 
 //Basic store an 8 bit register to the high byte of a 16-bit variable
 //Returns True if we stored the value via the A register (but Reg <> rA)
-function GenVarStore16High(Reg: TCPUReg;Variable: PVariable;VarVersion: Integer;
+function GenVarStore16High(Reg: TCPUReg;Variable: TVariable;VarVersion: Integer;
   Options: TMoveOptionSet): Boolean;
 begin
   Assert(Reg in CPUReg8Bit);
@@ -219,7 +219,7 @@ end;
 
 //===================================================STORE LITERALS TO VARIABLES
 
-procedure GenStoreLiteralToVariable(Variable: PVariable;const Value: TImmValue;
+procedure GenStoreLiteralToVariable(Variable: TVariable;const Value: TImmValue;
   Options: TMoveOptionSet);
 var Reg: TCPUReg;
 begin
@@ -348,7 +348,7 @@ begin
   end;
 end;
 
-procedure GenStoreLiteralToVariableHigh(Variable: PVariable;const Value: TImmValue;
+procedure GenStoreLiteralToVariableHigh(Variable: TVariable;const Value: TImmValue;
   Options: TMoveOptionSet);
 var Reg: TCPUReg;
 begin
@@ -381,7 +381,7 @@ begin
 end;
 
 //Store a pointer to a literal value in a register
-procedure GenStoreLiteralPointerToVariable(Variable: PVariable;const Value: TImmValue;
+procedure GenStoreLiteralPointerToVariable(Variable: TVariable;const Value: TImmValue;
   Options: TMoveOptionSet);
 var Reg: TCPUReg;
   Lab: String;
@@ -408,7 +408,7 @@ end;
 
 
 procedure GenStoreImm(ILItem: PILItem;Options: TMoveOptionSet);
-var V: PVariable;
+var V: TVariable;
 begin
   Assert(ILItem.Param1.Kind = pkImmediate);
   Assert(ILItem.Dest.Kind = pkVarDest);
@@ -429,7 +429,7 @@ end;
 //Stores an 8-bit value to a 16-bit variable, either sign extending or zero extending
 //as necessary
 procedure GenStoreReg8BitToVar16Bit(Reg: TCPUReg;FromType: TUserType;
-  Variable: PVariable;VarVersion: Integer;RangeChecked: Boolean;Options: TMoveOptionSet);
+  Variable: TVariable;VarVersion: Integer;RangeChecked: Boolean;Options: TMoveOptionSet);
 var ViaA: Boolean;
 begin
   Assert(Reg in CPUReg8Bit);
@@ -463,7 +463,7 @@ end;
 //store routine may be able to simplify the conversion (ie a signed value may be able to
 //be zero extended rather than requiring sign extending
 procedure GenStoreRegVarValue(Reg: TCPUReg;FromType: TUserType;
-  Variable: PVariable;VarVersion: Integer;RangeChecked: Boolean;Options: TMoveOptionSet);
+  Variable: TVariable;VarVersion: Integer;RangeChecked: Boolean;Options: TMoveOptionSet);
 begin
   case Reg of
     rA..rL:

@@ -28,7 +28,7 @@ type
 //Also inspects the optAllowAutoCreation option to determine if a declaration
 //requires an explicit 'var' or can be implied by the first assignment to a variable
 function ParseVarDeclaration(VarStatus: TVarStatus; AssignStatus: TAssignStatus;const Ident: String;
-  out Variable: PVariable;AddrMode: TAddrMode): TQuicheError;
+  out Variable: TVariable;AddrMode: TAddrMode): TQuicheError;
 
 // <variable-declararion> := VAR <identifier>[: <type>] [= <expr>]
 //                           (Either <type> or <expr> (or both) must be given
@@ -44,7 +44,7 @@ uses SysUtils,
 
 
 function ParseVarDeclaration(VarStatus: TVarStatus; AssignStatus: TAssignStatus;const Ident: String;
-  out Variable: PVariable;AddrMode: TAddrMode): TQuicheError;
+  out Variable: TVariable;AddrMode: TAddrMode): TQuicheError;
 var VarName: String;
   UserType: TUserType;  //nil if we're using type inference
   HaveAssign: Boolean;  //True if we're assigning a value
@@ -136,19 +136,19 @@ begin
 
     if VarStatus = vsVarRead then
     begin
-      if GetCurrentScope.Search(VarName).IdentType <> itUnknown then
+      if GetCurrentScope.SearchUpLocal(VarName).IdentType <> itUnknown then
         EXIT(ErrSub(qeIdentifierRedeclared, VarName));
       Variable := nil;
     end
     else
-      Variable := Vars.FindByNameAllScopes(VarName);
+      Variable := TVars.FindByNameAllScopes(VarName);
   end
   else  //We're only doing assignment, no creation allowed
   begin
     HaveAssign := TestAssignment;
     if not HaveAssign then
       EXIT(Err(qeAssignmentExpected));
-    Variable := Vars.FindByNameAllScopes(VarName);
+    Variable := TVars.FindByNameAllScopes(VarName);
     if Variable = nil then
       EXIT(ErrSub(qeVariableNotFound, VarName));
     UserType := Variable.UserType;
@@ -167,14 +167,14 @@ begin
       EXIT;
 
     if Creating and Assigned(UserType) then
-      Variable.SetType(UserType);
+      Variable.AssignType(UserType);
 
     if Creating then
-      Variable.SetName(VarName);
+      Variable.AssignName(VarName);
   end
   else
   begin //Otherwise just create it. Meh. Boring
-    Variable := Vars.Add(VarName, UserType);
+    Variable := TVars.Add(VarName, UserType);
     if Variable = nil then
       EXIT(ErrSub(qeIdentifierRedeclared, VarName));
     Result := qeNone;
@@ -182,7 +182,7 @@ begin
 end;
 
 function DoVAR(const Ident: String;AddrMode: TAddrMode): TQuicheError;
-var Variable: PVariable;
+var Variable: TVariable;
 begin
   Result := ParseVarDeclaration(vsVarRead, asAssignAllowed, Ident, Variable, AddrMode);
 end;

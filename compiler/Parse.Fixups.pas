@@ -77,7 +77,7 @@ uses SysUtils,
 function BranchFixupLeft(Index, StopIndex: Integer): Integer;
 
   procedure Fixup(var Param: TILParam);
-  var Variable: PVariable;
+  var Variable: TVariable;
   begin
     if Param.Kind = pkVarDest then
       begin
@@ -112,7 +112,7 @@ end;
 procedure BranchFixupRight(Index, StopIndex: Integer);
 
   procedure Fixup(var Param, PhiDest: TILParam);
-  var Variable: PVariable;
+  var Variable: TVariable;
   begin
     case Param.Kind of
       pkVarSource:
@@ -153,7 +153,7 @@ end;
 
 procedure BranchFixup(LeftIndex, LeftStopIndex, RightIndex, RightStopIndex: Integer);
 begin
-  Vars.ClearAdjust;
+  TVars.ClearAdjust;
 
   //Short circuit if no assignments in the other path.
   if BranchFixupLeft(LeftIndex, LeftStopIndex) > 0 then
@@ -167,7 +167,7 @@ end;
 //VarIndex the Index of the variable to find
 //Index is the IL item to begin walking from
 //StopIndex is the IL item to finish walking at (last item of prior block)
-function PhiFindVar(AVariable: PVariable;Index, StopIndex: Integer): Integer;
+function PhiFindVar(AVariable: TVariable;Index, StopIndex: Integer): Integer;
 var ILItem: PILItem;
 begin
   //Search up block
@@ -191,7 +191,7 @@ function PhiWalkInt(Path1Index, StopIndex, Path2Index, OriginIndex: Integer;
   Path1BlockID, Path2BlockID: Integer;Swap: Boolean;InsertIndex: Integer): Integer;
 
   procedure Process(const Param: TILParam;var Index: Integer);
-  var Variable: PVariable;
+  var Variable: TVariable;
     Path2Version: Integer;
     ILPhi: PILItem;
   begin
@@ -287,7 +287,7 @@ end;
 
 procedure PhiWalk(Path1Index, Path2Index, OriginIndex: Integer;Path1BlockID, Path2BlockID: Integer);
 begin
-  Vars.ClearTouches;
+  TVars.ClearTouches;
 
   //Walk Path 1 and find related assignments in Path2 and Origin
   PhiWalkInt(Path1Index, OriginIndex, Path2Index, OriginIndex, Path1BlockID, Path2BlockID, False, -1);

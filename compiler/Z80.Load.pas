@@ -122,7 +122,7 @@ end;
 
 //Basic load of an 8 bit variable into an 8-bit register
 //Returns True if we loaded the value via the A register (but Reg <> rA)
-function GenVarLoad8(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
+function GenVarLoad8(Variable: TVariable;VarVersion: Integer;ToReg: TCPUReg;
   Kind: TRegStateKind;Options: TMoveOptionSet): Boolean;
 begin
   Assert(ToReg in CPUReg8Bit);
@@ -164,7 +164,7 @@ end;
 
 //Basic load of an 16 bit variable into an 16-bit register
 //Returns True if we loaded the value via the A register (but Reg <> rA)
-function GenVarLoad16(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
+function GenVarLoad16(Variable: TVariable;VarVersion: Integer;ToReg: TCPUReg;
   Kind: TRegStateKind;Options: TMoveOptionSet): Boolean;
 begin
   Assert(ToReg in CPURegPairs);
@@ -216,7 +216,7 @@ end;
 //Basic load of the high byte (and the next byte) of a 16 bit variable into an 16-bit register
 //Used for loading RPHigh for static vars
 //Returns True if we loaded the value via the A register (but Reg <> rA)
-function GenVarLoadHighTo16(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
+function GenVarLoadHighTo16(Variable: TVariable;VarVersion: Integer;ToReg: TCPUReg;
   Kind: TRegStateKind;Options: TMoveOptionSet): Boolean;
 begin
   Assert(ToReg in CPURegPairs);
@@ -235,7 +235,7 @@ end;
 
 //Basic load of the high half of a 16 bit variable into an 8-bit register
 //Returns True if we loaded the value via the A register (but Reg <> rA)
-function GenVarLoad16High(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
+function GenVarLoad16High(Variable: TVariable;VarVersion: Integer;ToReg: TCPUReg;
   Kind: TRegStateKind;Options: TMoveOptionSet): Boolean;
 begin
   Assert(ToReg in CPUReg8Bit);
@@ -277,7 +277,7 @@ end;
 
 //Basic load of the low half of a 16 bit variable into an 8-bit register
 //Returns True if we loaded the value via the A register (but Reg <> rA)
-function GenVarLoad16Low(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
+function GenVarLoad16Low(Variable: TVariable;VarVersion: Integer;ToReg: TCPUReg;
   Kind: TRegStateKind;Options: TMoveOptionSet): Boolean;
 begin
   Assert(ToReg in CPUReg8Bit);
@@ -318,7 +318,7 @@ end;
 
 //===============================
 
-procedure GenLoadVar8BitToReg8Bit(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
+procedure GenLoadVar8BitToReg8Bit(Variable: TVariable;VarVersion: Integer;ToReg: TCPUReg;
   LoadType: TLoadParamType;ToType: TRegisteredType;RangeCheck: Boolean;Options: TMoveOptionSet);
 var ChangeSigned: Boolean;
   Kind: TRegStateKind;
@@ -369,7 +369,7 @@ begin
   end;
 end;
 
-procedure GenLoadVar8BitToReg16Bit(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
+procedure GenLoadVar8BitToReg16Bit(Variable: TVariable;VarVersion: Integer;ToReg: TCPUReg;
   LoadType: TLoadParamType;ToType: TRegisteredType;RangeCheck: Boolean;Options: TMoveOptionSet);
 var SignedLoss: Boolean;
   Kind: TRegStateKind;
@@ -477,7 +477,7 @@ begin
 end;
 
 //Sub to GetLoadVar16BitToReg8Bit
-procedure GenLoadVar16BitToReg8BitVarValue(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
+procedure GenLoadVar16BitToReg8BitVarValue(Variable: TVariable;VarVersion: Integer;ToReg: TCPUReg;
   ToType: TOrdinalType;RangeCheck: Boolean;Options: TMoveOptionSet);
 var ChangeSigned: Boolean;
   Kind: TRegStateKind;
@@ -585,7 +585,7 @@ end;
 
 
 //Load a 16-bit variable into an 8-bit register
-procedure GenLoadVar16BitToReg8Bit(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
+procedure GenLoadVar16BitToReg8Bit(Variable: TVariable;VarVersion: Integer;ToReg: TCPUReg;
   LoadType: TLoadParamType;ToType: TRegisteredType;RangeCheck: Boolean;Options: TMoveOptionSet);
 var  Kind: TRegStateKind;
   Scavenge: TCPUReg;
@@ -626,7 +626,7 @@ begin
   end;
 end;
 
-procedure GenLoadVar16BitToReg16Bit(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
+procedure GenLoadVar16BitToReg16Bit(Variable: TVariable;VarVersion: Integer;ToReg: TCPUReg;
   LoadType: TLoadParamType;ToType: TRegisteredType;RangeCheck: Boolean;Options: TMoveOptionSet);
 var ChangeSigned: Boolean;
   Kind: TRegStateKind;
@@ -723,7 +723,7 @@ begin
 end;
 
 //Load a 16 bit value to an index register
-procedure GenLoadVar16BitToXY(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
+procedure GenLoadVar16BitToXY(Variable: TVariable;VarVersion: Integer;ToReg: TCPUReg;
   LoadType: TLoadParamType;ToType: TRegisteredType;RangeCheck: Boolean;Options: TMoveOptionSet);
 begin
   Assert(ToReg in [rIX, rIY]);
@@ -741,7 +741,7 @@ begin
 end;
 
 //Load and convert a boolean variable into a CPU flag (ready for a conditional branch)
-procedure GenLoadBoolVarToFlag(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
+procedure GenLoadBoolVarToFlag(Variable: TVariable;VarVersion: Integer;ToReg: TCPUReg;
   Options: TMoveOptionSet);
 begin
   Assert(ToReg in [rNZF]);
@@ -769,7 +769,7 @@ begin
 end;
 
 //Load the value of a variable into the given register
-procedure GenLoadRegVarValue(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
+procedure GenLoadRegVarValue(Variable: TVariable;VarVersion: Integer;ToReg: TCPUReg;
   LoadType: TLoadParamType;ToType: TRegisteredType;RangeCheck: Boolean;Options: TMoveOptionSet);
 begin
   //Value already in register?
@@ -801,7 +801,7 @@ begin
 end;
 
 //Load the address of Variable into ToReg
-procedure GenLoadRegAddrOf(Variable: PVariable;ToReg: TCPUReg;ToType: TVarType;
+procedure GenLoadRegAddrOf(Variable: TVariable;ToReg: TCPUReg;ToType: TVarType;
   Options: TMoveOptionSet);
 var Reg: TCPUReg;
   Optimise: Boolean;
@@ -884,7 +884,7 @@ end;
 
 //Loads the address of the data for a Pointered Type
 //The value will depend on the addressing mode of the variable
-procedure GenLoadRegVarRef(Variable: PVariable;VarVersion: Integer;ToReg: TCPUReg;
+procedure GenLoadRegVarRef(Variable: TVariable;VarVersion: Integer;ToReg: TCPUReg;
   Options: TMoveOptionSet);
 begin
   case Variable.AddrMode of

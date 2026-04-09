@@ -114,31 +114,6 @@ var AttrPreserves: TCPURegSet;
 //Specifies that the following code does not corrupt any registers
 function ParseAttribute: TQuicheError;
 
-
-//=====
-//Skip mode enables IL generation to easily be skipped or rolled back by
-//stopping certain internal actions. Skip mode is used to avoid generating code
-//which will never be exectuted
-
-//Resets skip mode to initial state (off)
-procedure InitialiseSkipMode;
-
-//Get current skip mode state
-function SkipMode: Boolean;
-
-//Enable parameter enables code to conditionally enter skip mode without
-//caring whether the skip mode is actually needed
-//Enables Skip mode if Enable is true.
-//Does nothing if Enable is False
-//Either way, returns previous skip mode. This value MUST be passed to SkipModeEnd
-function SkipModeStart(Enable: Boolean): Boolean;
-
-//To be called at the end of Skip mode. PrevSkipMode MUST be the value returned by the
-//previous call to SkipModeStart
-procedure SkipModeEnd(PrevSkipMode: Boolean);
-(*
-function ParseLiteralToValue: TImmValue;
-*)
 implementation
 uses SysUtils,
   {$ifndef fpc}IOUtils,{$endif}
@@ -335,7 +310,7 @@ begin
   if IdentToKeyword(Ident) <> keyUNKNOWN then
     EXIT(ErrSub(qeReservedWord, Ident));
 
-  if GetCurrentScope.Search(Ident).IdentType <> itUnknown then
+  if GetCurrentScope.SearchUpLocal(Ident).IdentType <> itUnknown then
     EXIT(ErrSub(qeIdentifierRedeclared, Ident));
 
   Result := qeNone;
@@ -534,7 +509,6 @@ begin
   end;
 end;
 
-
 function ParseAttribute: TQuicheError;
 var Ident: String;
 begin
@@ -559,54 +533,8 @@ begin
     EXIT(ErrSub(qeInvalidAttrName, Ident));
 end;
 
-var CurrSkipMode: Boolean;
-
-procedure InitialiseSkipMode;
-begin
-  CurrSkipMode := False;
-end;
-
-//Get current skip mode state
-function SkipMode: Boolean;
-begin
-  Result := CurrSkipMode;
-end;
-
-//Enables Skip mode if Enable is true.
-//Does nothing if Enable is False
-//Either way, returns previous skip mode
-function SkipModeStart(Enable: Boolean): Boolean;
-begin
-  //Only when turning on skip mode!
-  if Enable and not CurrSkipMode then
-  begin //Mark current positions
-    ILMark;
-    Vars.Mark;
-  end;
-  Result := CurrSkipMode;
-  if Enable then
-    CurrSkipMode := True;
-end;
-
-procedure SkipModeEnd(PrevSkipMode: Boolean);
-begin
-  //Only when disabling SkipMode
-  if CurrSkipMode and not PrevSkipMode then
-  begin
-    ILRollback;
-    Vars.Rollback;
-  end;
-  CurrSkipMode := PrevSkipMode;
-end;
-
-(*function ParseLiteralToValue: TImmValue;
-begin
-  Assert(False);
-end;
-*)
 initialization
   Parser := TQuicheSourceReader.Create;
-  InitialiseSkipMode;
 finalization
   Parser.Free;
 end.

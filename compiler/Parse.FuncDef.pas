@@ -29,7 +29,7 @@ function AreAnyForwardsUnsatisfied: TQuicheError;
 implementation
 uses SysUtils,
   Def.Globals, Def.IL, Def.Operators, Def.VarTypes, Def.Scopes, Def.Variables,
-  Def.UserTypes, Def.Consts,
+  Def.UserTypes, Def.Consts, Def.ScopesEX,
   Parse, Parse.Expr, Parse.Literals, Parse.Source, Parse.TypeDefs,
   Z80.Hardware;
 
@@ -586,8 +586,8 @@ procedure DoCopyDataInParams(Func: PFunction);
 var I: Integer;
   Param: PParameter;
   VarName: String;
-  Variable: PVariable;
-  ArgVariable: PVariable;
+  DestVariable: TVariable;
+  AddrVariable: TParamVariable;
   ILItem: PILItem;
 begin
   for I := Func.ParamCount + Func.ResultCount - 1 downto 0 do
@@ -606,34 +606,41 @@ begin
       else
         raise ECallingConvention.Create;
       end;
-      Variable := Vars.Add(VarName, Param.UserType);
+      //**local** variable to store the actual data
+(*      Variable := TVars.Add(VarName, Param.UserType);
       Variable.IncVersion;
       Variable.IsConst := Param.Access = paConst;
       Variable.FuncParamIndex := I;
+*)
+      DestVariable := TVars.Add(VarName, Param.UserType);
 
-      //Find the variable for the argument
-      ArgVariable := GetCurrentScope.VarList.FindVarForArg(I);
-      Assert(Variable <> nil);
+(*      Func.Params[I].Variable := ArgVariable;*)
+
+      //Find the variable for the argument - which contains to copy from address
+      AddrVariable := Param.Variable;
+(*      ArgVariable := GetCurrentScope.VarList.FindVarForArg(I);*)
+      Assert(AddrVariable <> nil);
       //Add a CopyBlock op to copy data into local storage (from the address passed as argument)
       case Func.CallingConvention of
         ccStack:
         begin
           ILItem := ILAppend(opParamCopyToStack);
-          ILItem.Param1.SetVarRef(ArgVariable); //Argument
+          ILItem.Param1.SetVarRef(AddrVariable); //Argument
         end;
         ccRegister, ccCall, ccRst, ccExtern:
         begin
           ILItem := ILAppend(opBlockCopy);
-          ILItem.Param1.SetVarRef(ArgVariable); //Argument
+          ILItem.Param1.SetVarRef(AddrVariable); //Argument
         end;
       else
         raise ECallingConvention.Create;
       end;
 
       ILItem.Param2.Kind := pkImmediate;  //Data size
-      ILItem.Param2.Imm := TImmValue.CreateInteger(Variable.UserType.DataSize);
-      ILItem.Dest.SetVarRef(Variable); //Local variable
-      ILItem.ResultType := Variable.UserType;
+      ILItem.Param2.Imm := TImmValue.CreateInteger(DestVariable.UserType.DataSize);
+      ILItem.Dest.SetVarRef(DestVariable); //Local variable
+      ILItem.ResultType := DestVariable.UserType;
+      DestVariable.IncVersion;
     end;
 end;
 
@@ -648,8 +655,6 @@ var I: Integer;
   ParamName: String;
   ILItem: PILItem;
   Param: PILParam;
-  Variable: PVariable;
-
   AddrMode: TAddrMode;
 begin
   //Setup scope for function
@@ -679,13 +684,7 @@ begin
 
     AddrMode := GetParamAddrMode(Func.CallingConvention, Func.Params[I]);
 
-    Variable := Vars.AddParameter(ParamName, Func.Params[I].UserType, AddrMode,
-      Func.Params[I].Access = paResult, Func.Params[I].PassDataIn);
-    //Inc the variables write count to indicate it's be assigned a value by the caller
-    if not (Func.Params[I].Access in [paOut, paResult]) then
-      Variable.IncVersion;
-    Variable.IsConst := Func.Params[I].Access = paConst;
-    Variable.FuncParamIndex := I;
+    Func.Params[I].Variable := TFuncs.AddParamVariable(ParamName, @Func.Params[I], AddrMode);
   end;
 
   //Any parameters which require data to be copied in (Ie. pass-by-value of
@@ -708,12 +707,9 @@ begin
       begin
         ILItem := nil;
         Param := ILAppendRegLoad(ILItem);
-        Param.Kind := pkVarSource;
-        Variable := Vars.FindResult;
-        Assert(Variable <> nil);
-        Param.Variable := Variable;
-        Param.VarVersion := Variable.Version;
-        case Variable.UserType.RegSize of
+        Param.SetVarSource(TFuncs.FindResult);
+        Assert(Param.Variable <> nil);
+        case Param.Variable.UserType.RegSize of
           1: Param.Reg := rA;
           2: Param.Reg := rDE;
         else
@@ -730,7 +726,6 @@ begin
     if not OnScopeDone then
       EXIT(ErrSub(qeAssemblyError, Func.Name));
 
-  Assert(ScopeGetDepth = 0);
   //Return to previous scope
   EndCurrentScope;
   Result := qeNone;

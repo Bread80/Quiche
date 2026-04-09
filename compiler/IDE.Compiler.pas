@@ -527,7 +527,7 @@ begin
     IDE.Emulator.RunToHalt;
     IDE.Emulator.TryReadByte('LAST_ERROR_CODE', RunTimeError);
     IDE.Emulator.TryReadWord('LAST_ERROR_ADDR', RunTimeErrorAddress);
-    IDE.Emulator.GetVarData(Vars.GetParamsByteSize + StackFrameSize);
+    IDE.Emulator.GetVarData(GetCurrentScope.BlockScope, TFuncs.GetStackParamsByteSize + StackFrameSize);
     ConsoleLog := IDE.Emulator.ConsoleLog;
     {$ifdef fpc}
     writeln;
@@ -575,7 +575,7 @@ end;
 
 procedure GetVarsText(S: TStrings;TypeSummary: Boolean);
 begin
-  Vars.ToStrings(S, TypeSummary);
+  S.Text := GetCurrentScope.FunctionScope.ToString;
   if RunTimeError = 0 then
     S.Insert(0, 'Runtime error 0')
   else
@@ -587,12 +587,12 @@ end;
 
 procedure GetFunctionsText(S: TStrings);
 begin
-  S.Add(Funcs.ToString);
+  S.Text := GetCurrentScope.FunctionScope.ToString;
 end;
 
 procedure GetTypesText(S: TStrings);
 begin
-  S.Add(GetCurrentScope.ScopeEX.ToString);
+  S.Add(GetCurrentScope.FunctionScope.ToString);
 end;
 
 //====Initialisation
@@ -663,7 +663,6 @@ begin
   if InitDirectives then
     DoInitDirectives;
 
-  InitialiseSkipMode;
   InitialiseVars;
   InitialiseScopes;
 

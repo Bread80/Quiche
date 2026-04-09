@@ -30,8 +30,6 @@ uses Classes, SysUtils,
 procedure GenFunctionPreamble(Scope: PScope;BlockType: TBlockType);
 var InitLocalVarsLabel: String;
   LocalVarsToInit: Boolean;
-  I: Integer;
-  V: PVariable;
   TypeCode: Integer;
 
 const
@@ -87,58 +85,58 @@ begin
     //Types which have meta data need to initialised.
     //Currently that means vectors and lists.
     LocalVarsToInit := False;
-    for I := 0 to Scope.VarList.GetCount-1 do
-    begin
-      V := Scope.VarList.IndexToData(I);
-      Assert(V <> nil);
-      if (V.VarType = vtArrayType) and ((V.UserType as TArrayType).ArrayKind in [atVector, atList]) then
-        if not V.IsParam then
-        begin //Variable needs initialising
-          //TODO: NOT if it's a CopyDataIn variable - but how to know?
-          if not LocalVarsToInit then
-          begin
-            AsmLine('call ' + InitLocalVarsLabel);
-            LocalVarsToInit := True;
-          end;
-          case (V.UserType as TArrayType).ArrayKind of
-            atVector:
-              case (V.UserType as TArrayType).ArraySize of
-                asShort: TypeCode := tcShortVector;
-                asLong: TypeCode := tcLongVector;
-              else
-                raise EVarType.Create;
-              end;
-            atList:
-              case (V.UserType as TArrayType).ArraySize of
-                asShort: TypeCode := tcShortList;
-                asLong: TypeCode := tcLongList;
-              else
-                raise EVarType.Create;
-              end;
-          else
-            raise EVarType.Create;
-          end;
-          //TypeCode
-          AsmLine('db ' + ByteToStr(TypeCode));
+    Scope.BlockScope.EachAllLevel<TVariable>(
+      procedure(V: TVariable)
+      begin
+        if (V.VarType = vtArrayType) and ((V.UserType as TArrayType).ArrayKind in [atVector, atList]) then
+          if not (V is TParamVariable) or not (V as TParamVariable).IsParam then
+          begin //Variable needs initialising
+            //TODO: NOT if it's a CopyDataIn variable - but how to know?
+            if not LocalVarsToInit then
+            begin
+              AsmLine('call ' + InitLocalVarsLabel);
+              LocalVarsToInit := True;
+            end;
+            case (V.UserType as TArrayType).ArrayKind of
+              atVector:
+                case (V.UserType as TArrayType).ArraySize of
+                  asShort: TypeCode := tcShortVector;
+                  asLong: TypeCode := tcLongVector;
+                else
+                  raise EVarType.Create;
+                end;
+              atList:
+                case (V.UserType as TArrayType).ArraySize of
+                  asShort: TypeCode := tcShortList;
+                  asLong: TypeCode := tcLongList;
+                else
+                  raise EVarType.Create;
+                end;
+            else
+              raise EVarType.Create;
+            end;
+            //TypeCode
+            AsmLine('db ' + ByteToStr(TypeCode));
 
-          //Address or Offset
-          case V.AddrMode of
-            amStack: AsmLine('dw ' + (*V.GetAsmOffset*) WordToStr(V.Offset));
-            amStatic: AsmLine('dw ' + V.GetAsmName);
-          else
-            raise EAddrMode.Create;
+            //Address or Offset
+            case V.AddrMode of
+              amStack: AsmLine('dw ' + (*V.GetAsmOffset*) WordToStr(V.Offset));
+              amStatic: AsmLine('dw ' + V.GetAsmName);
+            else
+              raise EAddrMode.Create;
+            end;
+            //Vector length or List Capacity
+            case TypeCode of
+              tcShortVector: AsmLine('db ' + ByteToStr((V.UserType as TVectorType).Length));
+              tcLongVector: AsmLine('dw ' + ByteToStr((V.UserType as TVectorType).Length));
+              tcShortList: AsmLine('db ' + ByteToStr((V.UserType as TListType).Capacity));
+              tcLongList: AsmLine('dw ' + WordToStr((V.UserType as TListType).Capacity));
+            else
+              raise EVarType.Create;
+            end;
           end;
-          //Vector length or List Capacity
-          case TypeCode of
-            tcShortVector: AsmLine('db ' + ByteToStr((V.UserType as TVectorType).Length));
-            tcLongVector: AsmLine('dw ' + ByteToStr((V.UserType as TVectorType).Length));
-            tcShortList: AsmLine('db ' + ByteToStr((V.UserType as TListType).Capacity));
-            tcLongList: AsmLine('dw ' + WordToStr((V.UserType as TListType).Capacity));
-          else
-            raise EVarType.Create;
-          end;
-        end;
-    end;
+      end);
+
     if LocalVarsToInit then
       AsmLine('db ' + ByteToStr(tcEndOfData));
   end;

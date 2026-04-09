@@ -1,10 +1,5 @@
-begin
-  type T = Integer
-  const X = 1
-end
-begin
-  type T = Integer
-  const X = 2
-end;
-begin
-end
+var x:=1
+if false
+  x := 2
+else
+  x := 3

@@ -226,17 +226,17 @@ type
     procedure SetImmediate(const Value: TImmValue);overload;
     procedure SetImmediate(VarType: TVarType;Value: Integer);overload;
     procedure SetPhiVarSource(ABlockID: Integer; AVarVersion: Integer);
-    procedure SetPhiVarDest(AVar: PVariable;AVersion: Integer);
-    procedure SetVarSourceAndVersion(AVariable: PVariable; AVersion: Integer);
+    procedure SetPhiVarDest(AVar: TVariable;AVersion: Integer);
+    procedure SetVarSourceAndVersion(AVariable: TVariable; AVersion: Integer);
     //Obtains Version from AVariable
-    procedure SetVarSource(AVariable: PVariable);
-    procedure SetVarAddr(AVariable: PVariable);
-    procedure SetVarPtr(AVariable: PVariable);
-    procedure SetVarRef(AVAriable: PVariable);
-    procedure SetVarDestAndVersion(AVariable: PVariable; AVersion: Integer);
+    procedure SetVarSource(AVariable: TVariable);
+    procedure SetVarAddr(AVariable: TVariable);
+    procedure SetVarPtr(AVariable: TVariable);
+    procedure SetVarRef(AVAriable: TVariable);
+    procedure SetVarDestAndVersion(AVariable: TVariable; AVersion: Integer);
     procedure SetCondBranch;
 
-    function ToVariable: PVariable;
+    function ToVariable: TVariable;
 
     function GetVarType: TVarType;
     function GetUserType: TUserType;
@@ -259,10 +259,10 @@ type
         PhiBlockID: Integer;    //If we come from this block...
         PhiSourceVersion: Integer; ); //...use this version of the variable
       pkPhiVarDest: (
-        PhiVar: PVariable;
+        PhiVar: TVariable;
         PhiDestVersion: Integer; );
       pkVarSource, pkVarDest, pkVarAddr, pkVarPtr, pkVarRef: (
-        Variable: PVariable;    //The variable
+        Variable: TVariable;    //The variable
         VarVersion: Integer; ); //Current version of the variable
       pkPop: ();                //Currently invalid for input params
       pkPopByte: ();            //Currently invalid for input params
@@ -328,7 +328,8 @@ type
 
     //Creates a hidden variable of the given type, sets it as the Dest,
     //and sets DestType to dtData using SetDestType
-    function AssignToHiddenVar(UserType: TUserType): PVariable;
+    function AssignToHiddenVar(UserType: TUserType): TVariable;overload;
+    function AssignToHiddenVar(UserType: TUserType;AddrMode: TAddrMode): TVariable;overload;
 
     procedure SwapParams;   //For Operations. Swap order of Param1 and Param2
     function ToString: String;  //For debugging
@@ -352,7 +353,8 @@ procedure SetCurrentILList(List: TILList);
 //Sets a marker at the current IL position
 procedure ILMark;
 //Removes any IL code after the marker set by ILMark
-procedure ILRollback;
+procedure ILRollback;overload;
+procedure ILRollback(Index: Integer);overload;
 
 //If set True the next ILItem to be created will be a new block
 var NewBlock: Boolean;
@@ -470,6 +472,17 @@ begin
     ILList.Delete(ILList.Count-1);
   end;
   ILMarkPosition := -1;
+end;
+
+procedure ILRollback(Index: Integer);overload;
+begin
+  Assert(Index > 0);
+  Assert(Index <= ILList.Count);
+  while ILList.Count > Index do
+  begin
+    Dispose(ILList[ILList.Count-1]);
+    ILList.Delete(ILList.Count-1);
+  end;
 end;
 
 function CreateILList: TILList;
@@ -702,7 +715,7 @@ begin
   Imm.CreateTyped(VarType, Value);
 end;
 
-procedure TILParam.SetPhiVarDest(AVar: PVariable; AVersion: Integer);
+procedure TILParam.SetPhiVarDest(AVar: TVariable; AVersion: Integer);
 begin
   Assert(Kind = pkNone);
   Kind := pkPhiVarDest;
@@ -718,14 +731,14 @@ begin
   PhiSourceVersion := AVarVersion;
 end;
 
-procedure TILParam.SetVarAddr(AVariable: PVariable);
+procedure TILParam.SetVarAddr(AVariable: TVariable);
 begin
   Kind := pkVarAddr;
   Variable := AVariable;
   VarVersion := AVariable.Version;
 end;
 
-procedure TILParam.SetVarDestAndVersion(AVariable: PVariable;
+procedure TILParam.SetVarDestAndVersion(AVariable: TVariable;
   AVersion: Integer);
 begin
   Assert(Kind in [pkNone, pkVarDest]);
@@ -734,26 +747,26 @@ begin
   VarVersion := AVersion;
 end;
 
-procedure TILParam.SetVarPtr(AVariable: PVariable);
+procedure TILParam.SetVarPtr(AVariable: TVariable);
 begin
   Kind := pkVarPtr;
   Variable := AVariable;
   VarVersion := AVariable.Version;
 end;
 
-procedure TILParam.SetVarRef(AVAriable: PVariable);
+procedure TILParam.SetVarRef(AVAriable: TVariable);
 begin
   Kind := pkVarRef;
   Variable := AVariable;
   VarVersion := AVariable.Version;
 end;
 
-procedure TILParam.SetVarSource(AVariable: PVariable);
+procedure TILParam.SetVarSource(AVariable: TVariable);
 begin
    SetVarSourceAndVersion(AVariable, AVariable.Version);
 end;
 
-procedure TILParam.SetVarSourceAndVersion(AVariable: PVariable;AVersion: Integer);
+procedure TILParam.SetVarSourceAndVersion(AVariable: TVariable;AVersion: Integer);
 begin
 //  Assert(Kind = pkNone);
   Kind := pkVarSource;
@@ -933,7 +946,7 @@ begin
     Result := Result + '['+GenOrder.ToString+']';
 end;
 
-function TILParam.ToVariable: PVariable;
+function TILParam.ToVariable: TVariable;
 begin
   case Kind of
     pkVarSource, pkVarDest, pkVarAddr, pkVarPtr, pkVarRef:
@@ -946,9 +959,17 @@ end;
 
 { TILItem }
 
-function TILItem.AssignToHiddenVar(UserType: TUserType): PVariable;
+function TILItem.AssignToHiddenVar(UserType: TUserType): TVariable;
 begin
-  Result := Vars.AddHidden(UserType);
+  Result := TVars.AddHidden(UserType);
+  Result.IncVersion;
+  Dest.SetVarDestAndVersion(Result, Result.Version);
+end;
+
+function TILItem.AssignToHiddenVar(UserType: TUserType;
+  AddrMode: TAddrMode): TVariable;
+begin
+  Result := TVars.AddHiddenWithAddrMode(UserType, AddrMode);
   Result.IncVersion;
   Dest.SetVarDestAndVersion(Result, Result.Version);
 end;

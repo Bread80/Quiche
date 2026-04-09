@@ -29,7 +29,7 @@ uses Classes,
 type
 //========== SEARCH FOR IDENTIFIERS
   TIdentData = record
-    Value: TIdentifier;
+    Value: TDeclaredItem;
 
     function AsEnumItem: TEnumItem;
     function AsType: TUserType;
@@ -39,9 +39,6 @@ type
 
     case IdentType: TIdentType of
       itUnknown: ();
-      itVariable: (
-        V: PVariable;
-        );
       itFunction: (
         F: PFunction;
         );
@@ -49,15 +46,12 @@ type
 
   PScope= ^TScopeOLD;
   TScopeOLD = record
-    ScopeEX: TCodeBlock;  //FOR MIGRATION.
+    FunctionScope: TCodeBlock;  //The current function (or program, unit scope)
+    BlockScope: TCodeBlock; //The current code block. Initially the same as FunctionScope
                       //NOTE: WE WILL LEAK THESE UNTIL MIGRATION IS COMPLETE
     Parent: PScope;   //The next higher Scope, or nil in none
     Name: String;     //For the scope. For reference only
-    Depth: Integer;   //The block depth within the current scope. Used to determine
-                      //which variables are in scope. Ie. within a BEGIN...END block
-                      //Depth is increased for every BEGIN and decreased for every END
     Func: PFunction;  //The function which owns this scope. Nil for main/global code
-    VarList: PVarList;      //Ditto for Variables
     FuncList: PFuncList;    //Functions declared in this scope
 
     AsmCode: TStringList;   //Assembly code for Code segment for this scope (from CodeGen)
@@ -76,11 +70,11 @@ type
     //Return values:
     //IdentType identifies if the found item is a variable, function, const or type etc.
     //IgnoreFuncs is temporarily required so that searches for Type names return the type instead
-    function Search(const Ident: String; IgnoreFuncs: Boolean = False): TIdentData;
+    function SearchUpLocal(const Ident: String; IgnoreFuncs: Boolean = False): TIdentData;
 
     //Searches all scopes which are in scope (ie. it recursed up parent scopes and
     //also searches any library scopes
-    function SearchAllInScope(const Ident: String;IgnoreFuncs: Boolean = False): TIdentData;
+    function SearchUpAll(const Ident: String;IgnoreFuncs: Boolean = False): TIdentData;
   end;
 
 //Only to be used with caution!!
@@ -124,19 +118,18 @@ procedure InitialiseScopes;
 //[1] Which can be implicit for a single statement after, eg, an IF or FOR, or
 //    in a REPEAT..UNTIL or CASE clause.
 //
-//Increase the Depth of the current Scope (called for each BEGIN)
-procedure ScopeBeginBlock;
+//Starts a new nested code block and returns it.
+//The result must be passed to ScopeEndBlock to properly close the block
+function ScopeBeginBlock: TCodeBlock;
+//Ends a code block. CodeBlock is the block to close. An error will be raised if
+//if is not the current code block
+function ScopeEndBlock(CodeBlock: TCodeBlock): TCodeBlock;
+//Deletes the block and any data created within it.
+//Used to remove null code, such as IF False, WHILE False etc
+//TODO: REPLACE WITH A ROUTINE TO SKIP A CODEBLOCK
+procedure ScopeRollbackBlock(CodeBlock: TCodeBlock);
 
-//ecrease the Depth of the current Scope (called for each END)
-procedure ScopeEndBlock;
 
-//Get the depth of the current Scope
-function ScopeGetDepth: Integer;
-
-
-
-//Searched /all/ scopes for the given variable
-function FindScopeForVar(AVar: PVariable;out Index: Integer): PScope;
 
 //Searched /all/ scopes for the given function
 function FindScopeForFunc(AFunc: PFunction): PScope;
@@ -180,8 +173,6 @@ begin
   for Scope in ScopeList do
   begin
     //Free items owned by the scope??
-    Scope.VarList.Clear;
-    Dispose(Scope.VarList);
     Scope.FuncList.Clear;
     Dispose(Scope.FuncList);
     Scope.AsmCode.Free;
@@ -199,7 +190,6 @@ end;
 procedure SetCurrentScope(Scope: PScope);
 begin
   CurrentScope := Scope;
-  SetCurrentVarList(Scope.VarList);
   SetCurrentFuncList(Scope.FuncList);
   //AsmCode - nowt to do
   SetCurrentILList(Scope.ILList);
@@ -225,6 +215,7 @@ function CreateCurrentScope(Func: PFunction;const Name: String): PScope;
 var LName: String;
 begin
   Assert((Func <> nil) or (Name <> ''), 'Scope requires a Func or a Name (or both)');
+
   New(Result);
   ScopeList.Add(Result);
   if Name <> '' then
@@ -238,6 +229,8 @@ begin
   if MainScope = nil then
     MainScope := Result;
   SetCurrentScope(Result);
+
+
 end;
 
 function CreateRecordScope(const Name: String): PScope;
@@ -252,8 +245,8 @@ begin
   SystemScope.Initialise('System', nil);
   Scope := GetCUrrentScope;
   SetCurrentScope(@SystemScope);
-  CreateSystemTypes(SystemScope.ScopeEX);
-  CreateSystemConsts(SystemScope.ScopeEX);
+  CreateSystemTypes(SystemScope.FunctionScope);
+  CreateSystemConsts(SystemScope.FunctionScope);
   SetCurrentScope(Scope);
 end;
 
@@ -268,8 +261,8 @@ begin
   CreateCurrentScope(nil, '_Global');
   InitSystemScope;
 end;
-
-function FindScopeForVar(AVar: PVariable;out Index: Integer): PScope;
+(*
+function FindScopeForVar(AVar: TVariable;out Index: Integer): PScope;
 begin
   for Result in ScopeList do
   begin
@@ -281,7 +274,7 @@ begin
   Index := -1;
   Result := nil;
 end;
-
+*)
 function FindScopeForFunc(AFunc: PFunction): PScope;
 var Scope: PScope;
 begin
@@ -292,35 +285,50 @@ begin
   Result := nil;
 end;
 
-procedure ScopeBeginBlock;
+//TODO:
+//1. Store ILIndex with TCodeBlock - will allow us to undo it DONE
+//2. Add IsEnded flag to TCodeBlock - will allow us to verify block is ended before we delete it DOEN
+//3. ScopeBeginBlock returns the newly created TCodeBlock. DONE
+//4. After the call to ScopeEndBlock (Also returns block(?))...
+//    we can rollback the IL code, and delete the CodeBlock (delete via the parents Items list).
+//    a. Verify IsEnded.
+//    b. Verify is same block we created(?)
+//    c. Verify is last item on parents Items list
+function ScopeBeginBlock: TCodeBlock;
+var ILIndex: Integer; //Current IL Position (ie first item in new scope)
 begin
-  CurrentScope.Depth := CurrentScope.Depth + 1;
-  CurrentScope.ScopeEX.Depth := CurrentScope.Depth;
-
-  GetCurrentScope.ScopeEX := GetCurrentScope.ScopeEX.BeginCodeBlock;
+  ILIndex := GetCurrentScope.ILList.Count;
+  Result := GetCurrentScope.BlockScope.BeginCodeBlock(ILIndex);
+  GetCurrentScope.BlockScope := Result;
 end;
 
 //ecrease the Depth of the current Scope (called for each END)
-procedure ScopeEndBlock;
+function ScopeEndBlock(CodeBlock: TCodeBlock): TCodeBlock;
+var ILIndex: Integer; //Current IL Position (ie first item in new scope)
 begin
-  Assert(CurrentScope.Depth > 0);
-  CurrentScope.Depth := CurrentScope.Depth - 1;
-  CurrentScope.ScopeEX.Depth := CurrentScope.Depth;
+  Assert(CodeBlock = GetCurrentScope.BlockScope);
+  Assert(not CodeBlock.IsEnded);
+  ILIndex := GetCurrentScope.ILList.Count-1;
+  if CodeBlock.Parent is TCodeBlock then
+    GetCurrentScope.BlockScope := TCodeBlock(CodeBlock.Parent)
+  else
+    GetCurrentScope.BlockScope := GetCurrentScope.FunctionScope;
+  Result := CodeBlock.EndCodeBlock(ILIndex);
+(*  GetCurrentScope.BlockScope := GetCurrentScope.BlockScope.EndCodeBlock(ILIndex);
+  Assert(Assigned(GetCurrentScope.BlockScope));
+*)end;
 
-  //TODO Tell variables about the new depth
-  Vars.ScopeDepthDecced(CurrentScope.Depth);
-
-  GetCurrentScope.ScopeEX := GetCurrentScope.ScopeEX.EndCodeBlock;
-  Assert(Assigned(GetCurrentScope.ScopeEX));
-end;
-
-//Get the depth of the current Scope
-function ScopeGetDepth: Integer;
+procedure ScopeRollbackBlock(CodeBlock: TCodeBlock);
+var ILIndex: Integer; //Current IL Position (ie first item in new scope)
 begin
-  Result := CurrentScope.Depth;
+  Assert(CodeBlock = GetCurrentScope.BlockScope);
+  Assert(CodeBlock.IsEnded);
+  ILRollback(CodeBlock.ILIndexBegin);
+  Assert(Assigned(CodeBlock.Parent));
+(*  CodeBlock.Parent.DeleteChild(CodeBlock);*)
+
+  Assert(False, 'TODO');
 end;
-
-
 
 //---------------GUI
 procedure ScopesToStrings(S: TStrings);
@@ -367,52 +375,29 @@ end;
 procedure TScopeOLD.Initialise(const AName: String;AParent: PScope);
 begin
   Parent := AParent;
-  if AParent <> nil then
-    ScopeEX := TCodeBlock.Create(AName, AParent.ScopeEX, 0)
-  else
-    ScopeEX := TCodeBlock.Create(AName, nil, 0);
-
   Name := AName;
-  Depth := 0;
   Func := nil;
-  VarList := CreateVarList;
   FuncList := CreateFuncList;
   AsmCode := TStringlist.Create;
   AsmData := TStringList.Create;
   ILList:= CreateILList;
   CleverPuppy := nil;
+
+  if AParent <> nil then
+    BlockScope := TCodeBlock.Create(Name, AParent.BlockScope, 0, 0)
+  else
+    BlockScope := TCodeBlock.Create(Name, nil, 0, 0);
+  FunctionScope := BlockScope;
+
 end;
 
-function TScopeOLD.Search(const Ident: String; IgnoreFuncs: Boolean): TIdentData;
+function TScopeOLD.SearchUpLocal(const Ident: String; IgnoreFuncs: Boolean): TIdentData;
 begin
-  Result.Value := ScopeEX.SearchLocal(Ident, IgnoreFuncs);
+  Result.Value := BlockScope.FindIdentifierUpLocal(Ident, IgnoreFuncs);
   if Result.Value <> nil then
   begin
     Result.IdentType := Result.Value.IdentType;
     EXIT;
-  end;
-(*
-  //Consts
-  if Assigned(ConstList) then
-  begin
-    Result.C := ConstList.FindByNameInScope(Ident);
-    if Result.C <> nil then
-    begin
-      Result.IdentType := itConst;
-      EXIT;
-    end;
-  end;
-*)
-
-  //Variables
-  if Assigned(VarList) then
-  begin
-    Result.V := VarList.FindByNameInScope(Ident);
-    if Result.V <> nil then
-    begin
-      Result.IdentType := itVariable;
-      EXIT;
-    end;
   end;
 
   if not IgnoreFuncs then //TEMP
@@ -429,11 +414,11 @@ begin
   Result.IdentType := itUnknown;;
 end;
 
-function TScopeOLD.SearchAllInScope(const Ident: String; IgnoreFuncs: Boolean): TIdentData;
+function TScopeOLD.SearchUpAll(const Ident: String; IgnoreFuncs: Boolean): TIdentData;
 var Scope: PScope;
 begin
   //Search current scope
-  Result.Value := ScopeEX.SearchUpScopes(Ident, IgnoreFuncs);
+  Result.Value := BlockScope.FindIdentifierUpAll(Ident, IgnoreFuncs);
   if Result.Value <> nil then
   begin
     Result.IdentType := Result.Value.IdentType;
@@ -441,7 +426,7 @@ begin
   end;
 
   //Search SystemScope
-  Result.Value := SystemScope.ScopeEX.SearchUpScopes(Ident, IgnoreFuncs);
+  Result.Value := SystemScope.BlockScope.FindIdentifierUpAll(Ident, IgnoreFuncs);
   if Result.Value <> nil then
   begin
     Result.IdentType := Result.Value.IdentType;
@@ -453,7 +438,7 @@ begin
 
   repeat
     //Search scope
-    Result := Scope.Search(Ident, IgnoreFuncs);
+    Result := Scope.SearchUpLocal(Ident, IgnoreFuncs);
     if Result.IdentType <> itUnknown then
       EXIT;
     Scope := Scope.Parent;
@@ -461,7 +446,7 @@ begin
 
   //Search libraries (more TODO)
   Scope := @SystemScope;
-  Result := Scope.Search(Ident, IgnoreFuncs);
+  Result := Scope.SearchUpLocal(Ident, IgnoreFuncs);
 end;
 
 { TIdentData }
@@ -483,7 +468,7 @@ end;
 function TIdentData.GetAddrMode: TAddrMode;
 begin
   case IdentType of
-    itVariable: Result := V.AddrMode;
+    itVariable: Result := (Value as TVariable).AddrMode;
     itConst: Result := amStatic;
   else
     raise Exception.Create('Invalid IdentVar.UserType');
@@ -493,8 +478,8 @@ end;
 function TIdentData.GetUserType: TUserType;
 begin
   case IdentType of
-    itVariable: Result := V.UserType;
-    itConst: Result := (Value as TTypedIdentifier).UserType
+    itVariable, itConst:
+      Result := (Value as TTypedIdentifier).UserType
   else
     raise Exception.Create('Invalid IdentVar.UserType');
   end;

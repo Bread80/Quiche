@@ -34,17 +34,17 @@ begin
   ExecOutput.Add(IntToStr(CurrIL) + '- ' + Msg);
 end;
 
-var TempVars: TList<PVariable>;
+var TempVars: TList<TVariable>;
 
 procedure ClearTempVars;
-var V: PVariable;
+var V: TVariable;
 begin
-  for V in TempVars do
+(*  for V in TempVars do
     Dispose(V);
   TempVars.Clear;
-end;
+*)end;
 
-function TempVarIndexToData(Index: Integer): PVariable;
+function TempVarIndexToData(Index: Integer): TVariable;
 begin
   if (Index >= TempVars.Count) or (TempVars[Index].VarType = vtUnknown) then
   begin
@@ -77,7 +77,7 @@ end;
 *)
 
 function GetValue(ILItem: PILItem;Param: PILParam;var ValueType: TVarType;out SubMismatch: Boolean): Integer;
-var Variable: PVariable;
+var Variable: TVariable;
 begin
   Result := -1;
   case Param.Kind of
@@ -317,7 +317,7 @@ begin
 //  Trace := True;
 
   ExecOutput.Clear;
-  Vars.ExecClear;
+//  Vars.ExecClear;
   ClearTempVars;
 
   CurrIL := 0;
@@ -338,6 +338,6 @@ end;
 
 initialization
   ExecOutput := TStringList.Create;
-  TempVars := TList<PVariable>.Create;
+  TempVars := TList<TVariable>.Create;
   Trace := False;
 end.

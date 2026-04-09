@@ -64,7 +64,7 @@ unit Def.Functions;
 
 interface
 uses Classes, Generics.Collections, SysUtils,
-  Def.Operators, Def.VarTypes, Def.Consts, Def.Variables, Def.UserTypes,
+  Def.Operators, Def.VarTypes, Def.Consts, Def.Variables, Def.UserTypes, Def.ScopesEX,
   Z80.Hardware;
 
 //Maximum number of parameters which can be specified for a routine, including results
@@ -121,6 +121,8 @@ type
     );
   TIntrinsicFlagSet = set of TIntrinsicFlag;
 
+  TParamVariable = class;
+
   PParameter = ^TParameter;
   TParameter = record
     Access: TParamAccess; //Ignored for Intrinsics
@@ -128,6 +130,7 @@ type
                           //will depend on the Access type, the Calling Convention
                           //and the type of the parameter (ie whether it is a Pointered Type)
     Name: String;
+    Variable: TParamVariable; //The variable created for this parameter
 
     Reg: TCPUReg;         //If the parameter is passed via a register, otherwise rNone
                           //Ignored for Intrinsics
@@ -160,6 +163,35 @@ type
     //Result params don't return any data when being passed by reference.
     function ReturnsData: Boolean;
     function ToString: String;
+  end;
+
+  //For variables which represent the parameters of a function
+  TParamVariable = class(TVariable)
+  private
+    FParam: PParameter;
+    FIsConst: Boolean;
+    FIsParam: Boolean;
+    FIsResult: Boolean;
+  protected
+    function GetIsConst: Boolean;override;
+    function IncVersion: Integer;override;
+  public
+    //Parameters which have a value passed in will have VarVersion incremented
+    constructor Create(const AName: String;AParam: PParameter; AOwner: TScope; AAddrMode: TAddrMode);
+
+    //Returns the number of bytes to be allocated on the stack for storing this
+    //variable as a parameter. Returns 0 if the variable's data is not passed via the
+    //stack
+    function GetStackBytesAsParam: Integer;
+    function GetStackBytesAsLocal: Integer;override;
+
+    function ToString: String;override;
+
+    property Param: PParameter read FParam;
+    //True if the variable is a function parameter (and NOT Result)
+    property IsParam: Boolean read FIsParam;
+    //True is the variable is the Result of a function
+    property IsResult: Boolean read FIsResult;
   end;
 
   TParamArray = array[0..MaxFunctionParams] of TParameter;
@@ -266,9 +298,49 @@ function FunctionHandleToFunction(Handle: TFunctionHandle): PFunction;
 //Current function list
 var Funcs: PFuncList;
 
+type TFuncs = class
+  public
+    //Adds a variable for a function parameter. To be called at the beginning of a function
+    //declaration.
+    //If Access is vsResult: Results are parsed as local variable to the function. The
+    //Offset property for them will be initiated to -1, unless PassDataIn is True in
+    //which case the address of tha data will be passed in the parameters and no data
+    //will be returned in registers
+    class function AddParamVariable(const AName: String;AParam: PParameter;
+      AAddrMode: TAddrMode): TParamVariable;
+
+    //--------------Finding/accessing
+
+    //Finds the Result variable in the current Scope.
+    //If there is no result variable, returns nil
+    class function FindResult: TParamVariable;
+
+    //-------------Code generation
+
+    //Set the stack Offset values for local, stack based, variables.
+    class procedure SetVariableOffsets;
+    //Returns the number of bytes required on the stack for local variables in the
+    //current scope.
+    //NOTE: Result is considered a local variable, not a parameter.
+    class function GetStackLocalsByteSize: Integer;
+    //Returns number of bytes required for stack parameters by this scope.
+    //Result is not a parameter.
+    class function GetStackParamsByteSize: Integer;
+  end;
 
 implementation
-uses Def.Scopes, Def.ScopesEX;
+uses Def.Scopes;
+
+const
+  //Offset from IX to the first parameter
+  //IX+4... is parameters
+  //IX+2 is return address
+  //IX+0 is previous IX
+  //< IX is local variables
+  iStackOffsetForFirstParam = +4;
+
+const ParamAccessStrings: array[low(TParamAccess)..high(TParamAccess)] of String =
+  ('<None>', 'val','var','const','out','<result>');
 
 { ECallingConvention }
 
@@ -292,7 +364,7 @@ end;
 function FuncFindAllScopes(Name: String): PFunction;
 var IdentData: TIdentData;
 begin
-  IdentData := GetCurrentScope.SearchAllInScope(Name);
+  IdentData := GetCurrentScope.SearchUpAll(Name);
   if IdentData.IdentType = itFunction then
     EXIT(IdentData.F);
 
@@ -595,6 +667,7 @@ begin
   for I := 0 to MaxFunctionParams do
   begin
     Result.Params[I].Name := '';
+    Result.Params[I].Variable := nil;
     Result.Params[I].Reg := rNone;
     Result.Params[I].UserType := nil;
 //    Result.Params[I].VarTypes := [];
@@ -626,6 +699,233 @@ begin
   Result := '';
   for Func in Items do
     Result := Result + Func.ToString + #13#10;
+end;
+
+{ TFuncs }
+
+class function TFuncs.AddParamVariable(const AName: String;AParam: PParameter;
+  AAddrMode: TAddrMode): TParamVariable;
+var Scope: TScope;
+begin
+  Scope := GetCurrentScope.BlockScope;
+  Assert(GetCurrentScope.SearchUpLocal(AParam.Name).IdentType = itUnknown);
+
+  Result := TParamVariable.Create(AName, AParam, Scope, AAddrMode);
+  Scope.Add(Result);
+end;
+
+class function TFuncs.FindResult: TParamVariable;
+begin
+  Result := GetCurrentScope.FunctionScope.SearchUpLocal<TParamVariable>(
+    function(Item: TParamVariable): TParamVariable
+    begin
+      if Item.IsResult then
+        Result := Item
+      else
+        Result := nil;
+    end);
+end;
+
+class function TFuncs.GetStackLocalsByteSize: Integer;
+var Size: Integer;
+begin
+  Size := 0;
+  GetCurrentScope.FunctionScope.EachDown<TVariable>(
+    procedure(V: TVariable)
+    begin
+      Size := Size + V.GetStackBytesAsLocal;
+    end);
+
+  Result := Size;
+(*
+    procedure(V: TVariable)
+    begin
+      if (V.Access in [vaLocal]) or (V is TParamVariable) and TParamVariable(V).IsResult then
+        if V.RequiresStorage then
+          case V.AddrMode of
+            amStatic, amStaticRef: ;  //Ignore
+            amStack: Size := Size + V.UserType.DataSize;
+            amStackRef: Size := Size + GetVarTypeSize(vtPointer);
+          else
+            raise EAddrMode.Create;
+          end;
+    end);
+*)
+end;
+
+class function TFuncs.GetStackParamsByteSize: Integer;
+var Size: Integer;
+begin
+  Size := 0;
+  GetCurrentScope.FunctionScope.EachDown<TParamVariable>(
+    procedure(V: TParamVariable)
+    begin
+      Size := Size + V.GetStackBytesAsParam;
+    end);
+
+  Result := Size;
+(*
+var V: TVariable;
+begin
+  Result := 0;
+  for V in Items do
+    if V.IsParam then
+      if V.RequiresStorage then
+        case V.AddrMode of
+          amStatic, amStaticRef: ;  //Ignore
+          amStack: Result := Result + V.UserType.RegSize;
+          amStackRef: Result := Result + GetVarTypeSize(vtPointer);
+        else
+          raise EAddrMode.Create;
+        end;
+*)
+end;
+
+
+class procedure TFuncs.SetVariableOffsets;
+
+  procedure DoSetParamOffsets;
+  var Offset: Integer;
+  begin
+    Offset := iStackOffsetForFirstParam;
+
+    GetCurrentScope.FunctionScope.EachDown<TParamVariable>(
+      procedure(V: TParamVariable)
+      var Size: Integer;
+      begin
+        Assert(V.Offset = -1);
+
+        //TODO: Ignore if optimised away
+        case V.AddrMode of
+          amStatic, amStaticRef: ;  //Ignore
+          amStack, amStackRef:
+          begin
+            //Will retrun zero of no bytes to pass as parameter
+            Size := V.GetStackBytesAsParam;
+            if Size <> 0 then
+            begin
+              V.Offset := Offset;
+              Offset := Offset + Size;
+            end;
+          end;
+        else
+          raise EAddrMode.Create;
+        end;
+      end);
+  end;
+
+  function DoSetLocalOffsets(Initial: Integer;PointeredTypes: Boolean): Integer;
+  var Offset: Integer;
+  begin
+    Offset := Initial;
+
+    GetCurrentScope.FunctionScope.EachDown<TVariable>(
+      procedure(V: TVariable)
+      var Size: Integer;
+        Apply: Boolean;
+      begin
+        Apply := False;
+
+        case V.AddrMode of
+          amStatic, amStaticRef: ;  //Ignore
+          amStack:
+            Apply := IsPointeredVarType(V.VarType) = PointeredTypes;
+          amStackRef:
+            //If StackRef we need storage for a pointer
+            Apply := not PointeredTypes;
+        else
+          raise EAddrMode.Create;
+        end;
+
+        if Apply then
+        begin
+          //Will return zero if no bytes to store as local data
+          Size := V.GetStackBytesAsLocal;
+          if Size <> 0 then
+          begin
+            Assert(V.Offset = -1);
+            Offset := Offset - Size;
+            V.Offset := Offset;
+          end;
+        end;
+      end);
+
+    Result := Offset;
+  end;
+
+var Offset: Integer;
+begin
+  DoSetParamOffsets;
+
+  //Offsets for Register types and StackRef addr mode
+  Offset := DoSetLocalOffsets(0, False);
+  //Generate offsets for Pointered Types
+  //They need to be stored beyond other variables due to limits in index register
+  //offset ranges. (They will be accessed using explicit additions to/from stack base)
+  DoSetLocalOffsets(Offset, True);
+end;
+
+{ TParamVariable }
+
+constructor TParamVariable.Create(const AName: String; AParam: PParameter; AOwner: TScope;
+  AAddrMode: TAddrMode);
+begin
+  inherited Create(AName, AOwner, AParam.UserType, AAddrMode);
+  FParam := AParam;
+  FIsResult := Param.Access = paResult;
+  FIsParam := Param.PassDataIn or not IsResult;
+  FIsConst := Param.Access = paConst;
+  //Inc the variables write count to indicate it's been assigned a value by the caller
+  if not (Param.Access in [paOut, paResult]) then
+    inherited IncVersion;
+
+  Offset := -1;
+end;
+
+function TParamVariable.GetIsConst: Boolean;
+begin
+  Result := FIsConst;
+end;
+
+function TParamVariable.GetStackBytesAsLocal: Integer;
+begin
+  //Result variable requires storage as if it was a local variable...
+  //...unless it's amStackRef, in which case a data address is passed in.
+  if IsResult and (AddrMode <> amStackRef) then
+    Result := inherited
+  else
+    Result := 0;
+end;
+
+function TParamVariable.GetStackBytesAsParam: Integer;
+begin
+  if IsResult and not Param.PassDataIn then
+    //We use a varref passed into the function
+    Result := 0
+  else
+  if IsParam then //Redundant to the above??
+    case AddrMode of
+      amStatic, amStaticRef: Result := 0;  //Not passed on stack
+      amStack:  //Passed as data
+        Result := UserType.DataSize;
+      amStackRef: //Passed as pointer
+        Result := GetVarTypeSize(vtPointer);
+    else
+      raise EAddrMode.Create;
+    end
+  else
+    Result := 0;
+end;
+
+function TParamVariable.IncVersion: Integer;
+begin
+  Assert(not IsConst);
+  Result := inherited;
+end;
+
+function TParamVariable.ToString: String;
+begin
+  Result := '(Param) <' +ParamAccessStrings[Param.Access] + '> ' + Name + ': ' + Description;
 end;
 
 initialization

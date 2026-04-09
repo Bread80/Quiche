@@ -138,7 +138,7 @@ procedure GenPointeredLiterals;
 var Scope: TScope;
   Item: TScopedItem;
 begin
-  Scope := GetCurrentScope.ScopeEX;
+  Scope := GetCurrentScope.BlockScope;
   for Item in Scope.Items do
     if Item is TConst then
       if IsPointeredType((Item as TConst).UserType) then
@@ -148,80 +148,78 @@ end;
 //For the current scope:
 //Allocates global memory for static vars.
 //Generates constants for offsets for stack vars
-procedure DataGen;
-var I: Integer;
-  V: PVariable;
-  S: String;
-  Bytes: Integer;
-  C: Integer;
+procedure DataGen(Scope: TCodeBlock);
 begin
-  for I := 0 to Vars.GetCount-1 do
-  begin
-    V := Vars.IndexToData(I);
-    if V.RequiresStorage then
+  Scope.EachAllLevel<TVariable>(
+    procedure(V: TVariable)
+    var S: String;
+      Bytes: Integer;
+      C: Integer;
     begin
-      case V.AddrMode of
-        amStatic:
+      if V.RequiresStorage then
         begin
-          S := V.GetAsmName + ': db ';
-          Bytes := V.UserType.DataSize;
-
-          case V.VarType of
-            vtArrayType:
+          case V.AddrMode of
+            amStatic:
             begin
-              case (V.UserType as TArrayType).ArrayKind of
-                atArray: ; //Nothing
-                atVector:
-                  case (V.UserType as TArrayType).ArraySize of
-                    asShort:  //Length byte
-                      S := S + ByteToStr((V.UserType as TVectorType).Length) + ',';
-                    asLong: //Length word
-                      S := S + ByteToStr((V.UserType as TVectorType).Length and $ff) + ',' +
-                        ByteToStr((V.UserType as TVectorType).Length shr 8 and $ff) + ',';
+              S := V.GetAsmName + ': db ';
+              Bytes := V.UserType.DataSize;
+
+              case V.VarType of
+                vtArrayType:
+                begin
+                  case (V.UserType as TArrayType).ArrayKind of
+                    atArray: ; //Nothing
+                    atVector:
+                      case (V.UserType as TArrayType).ArraySize of
+                        asShort:  //Length byte
+                          S := S + ByteToStr((V.UserType as TVectorType).Length) + ',';
+                        asLong: //Length word
+                          S := S + ByteToStr((V.UserType as TVectorType).Length and $ff) + ',' +
+                            ByteToStr((V.UserType as TVectorType).Length shr 8 and $ff) + ',';
+                      else
+                        raise EVarType.Create;
+                      end;
+                    atList:
+                      case (V.UserType as TArrayType).ArraySize of
+                        asShort:  //Capacity byte, length byte
+                          S := S + ByteToStr((V.UserType as TListType).Capacity) + ',0,';
+                        asLong: //Capacity word, length word
+                          S := S + ByteToStr((V.UserType as TListType).Capacity and $ff) + ',' +
+                            ByteToStr((V.UserType as TListType).Capacity shr 8 and $ff) + ',0,0,';
+                      else
+                        raise EVarType.Create;
+                      end;
                   else
                     raise EVarType.Create;
                   end;
-                atList:
-                  case (V.UserType as TArrayType).ArraySize of
-                    asShort:  //Capacity byte, length byte
-                      S := S + ByteToStr((V.UserType as TListType).Capacity) + ',0,';
-                    asLong: //Capacity word, length word
-                      S := S + ByteToStr((V.UserType as TListType).Capacity and $ff) + ',' +
-                        ByteToStr((V.UserType as TListType).Capacity shr 8 and $ff) + ',0,0,';
-                  else
-                    raise EVarType.Create;
-                  end;
-              else
-                raise EVarType.Create;
+
+                  Bytes := Bytes - (V.UserType as TArrayType).MetaSize;
+                end;
               end;
 
-              Bytes := Bytes - (V.UserType as TArrayType).MetaSize;
+              for C := 1 to Bytes do
+              begin
+                if C <> 1 then
+                  S := S + ',';
+                S := S + '0';
+              end;
             end;
+            amStaticRef:
+            begin
+              Assert(GetVarTypeSize(vtPointer) = 2);
+              S := V.GetAsmName + ': dw 0';
+            end;
+            amStack, amStackRef:
+            begin
+              S := V.GetAsmName + ' equ ' + abs(V.Offset).ToString;
+            end;
+          else
+            Assert(False);
           end;
 
-          for C := 1 to Bytes do
-          begin
-            if C <> 1 then
-              S := S + ',';
-            S := S + '0';
-          end;
+          AsmDataLine(S);
         end;
-        amStaticRef:
-        begin
-          Assert(GetVarTypeSize(vtPointer) = 2);
-          S := V.GetAsmName + ': dw 0';
-        end;
-        amStack, amStackRef:
-        begin
-          S := V.GetAsmName + ' equ ' + abs(V.Offset).ToString;
-        end;
-      else
-        Assert(False);
-      end;
-
-      AsmDataLine(S);
-    end;
-  end;
+    end);
 end;
 
 //================================== LIBRARY CODE
@@ -431,13 +429,13 @@ begin
     CreateVarMap;
 
     //Calc variables size/offsets
-    Vars.SetOffsets;
+    TFuncs.SetVariableOffsets;
 
     GenPointeredLiterals;
 //    LiteralsGen;
 
     //Generate any global data
-    DataGen;
+    DataGen(Scope.FunctionScope as TCodeBlock);
 
     AsmLine(';=========='+Scope.Name);
     if Assigned(Scope.Func) then

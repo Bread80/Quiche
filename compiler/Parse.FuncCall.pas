@@ -63,7 +63,7 @@ function ProcessArgument(Func: PFunction;CallingConvention: TCallingConvention;
   ArgIndex: Integer;var Slug: TExprSlug): TQuicheError;
 var Arg: PParameter;
   ILItem: PILItem;
-  V: PVariable;
+  V: TVariable;
 begin
   Arg := @Func.Params[ArgIndex];
 
@@ -283,7 +283,7 @@ end;
 //    be set /before/ the call to this function
 procedure IntrinsicGenerateIL(Func: PFunction;OpOverride: TOperation;ParamCount: Integer;
   const Left, Right: TExprSlug;var Slug: TExprSlug);
-var V: PVariable;
+var V: TVariable;
 begin
   //Can we convert an existing ILItem to the intrinsic operation? (and save an IL step)
   if (ParamCount = 1) and (Left.ILItem <> nil) and (Left.ILItem.Op = opUnknown) then

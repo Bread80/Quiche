@@ -402,6 +402,7 @@ begin
     IDE.Compiler.GetObjectCode(mmAssembly.Lines);
 
     IDE.Compiler.GetVarsText(mmVariables.Lines, not EmulateGood);
+    IDE.Compiler.GetFunctionsText(mmFunctions.Lines);
   end;
 end;
 

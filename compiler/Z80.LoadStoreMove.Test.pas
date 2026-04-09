@@ -529,7 +529,7 @@ procedure TTestZ80LoadVariable.DoTestLoadVariable(Reg: TCPUReg;
   InState: String;RangeCheck: Boolean;ToType: TVarType;
   OutCode, OutState: String);
 var Param: TILParam;
-  V: PVariable;
+  V: TVariable;
   Code: String;
   State: String;
   Compare: String;
@@ -538,14 +538,14 @@ begin
   InitialiseScopes;
   RegStateInitialise;
 
-  V := Vars.Add('Test1', GetSystemType(VarType));
-  V.AddrMode := VarAddrMode;
+  V := TVars.AddWithAddrMode('Test1', GetSystemType(VarType), VarAddrMode);
   V.Offset := 0;  //Needed??
-  V.Version := 10; //VarVersion Needed??
+(*  V.Version := 10; //VarVersion Needed??*)
   Param.Reg := Reg;
   Param.Kind := pkVarSource;
   Param.Variable := V;
-  Param.VarVersion := 10;
+  Param.VarVersion := 0;
+(*  Param.VarVersion := 10;*)
   Param.Flags := [];
   Param.LoadType := LoadType;
   if RangeCheck then
@@ -1259,7 +1259,7 @@ procedure TTestZ80StoreVariable.DoTestStoreVariable(Reg: TCPUReg;
   Options: TMoveOptionSet; RangeCheck: Boolean; FromType, VarType: TVarType;
   VarAddrMode: TAddrMode; InState, OutCode, OutState: String);
 var Param: TILParam;
-  V: PVariable;
+  V: TVariable;
   Code: String;
   State: String;
   Compare: String;
@@ -1268,14 +1268,13 @@ begin
   InitialiseScopes;
   RegStateInitialise;
 
-  V := Vars.Add('Test1', GetSystemType(VarType));
-  V.AddrMode := VarAddrMode;
+  V := TVars.AddWithAddrMode('Test1', GetSystemType(VarType), VarAddrMode);
   V.Offset := 0;  //Needed??
-  V.Version := 10; //VarVersion Needed??
+(*  V.Version := 10; //VarVersion Needed??*)
   Param.Reg := Reg;
   Param.Kind := pkVarDest;
   Param.Variable := V;
-  Param.VarVersion := 10;
+  Param.VarVersion := 0;
   Param.Flags := [];
   if RangeCheck then
     Param.Flags := Param.Flags + [pfRangeCheck];

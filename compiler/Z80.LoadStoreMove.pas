@@ -162,7 +162,7 @@ end;
 //Assesses the Param and returns a suitable TMoveType
 function AssessMoveType(Param: PILParam): TMoveType;
 var R: TCPUReg;
-  V: PVariable;
+  V: TVariable;
 begin
   Result := mtUnused;
   R := Param.Reg;
@@ -280,7 +280,7 @@ end;
 //Assesses the Param and returns a suitable TProcessType
 function AssessProcessType(Param: PILParam): TProcessType;
 var R: TCPUReg;
-  V: PVariable;
+  V: TVariable;
   UserType: TUserType;
 begin
   R := Param.Reg;
@@ -484,7 +484,7 @@ end;
 //NOTE: ILParams allocated here must be disposed (See DisposeMoveStateParams)
 procedure SetFuncMoveState(Func: PFunction;Entry: Boolean);
 
-  procedure SetParam(Index: Integer;FuncParam: PParameter;Entry: Boolean);
+  procedure SetParam(FuncParam: PParameter;Entry: Boolean);
   var ILParam: PILParam;
   begin
     New(MoveState[FuncParam.Reg].Param);
@@ -495,8 +495,8 @@ procedure SetFuncMoveState(Func: PFunction;Entry: Boolean);
       ILParam.Kind := pkVarSource
     else
       ILParam.Kind := pkVarDest;
-    ILParam.Variable := Vars.FindByFuncParamIndex(Index); //Func param to variable???
-    Assert(Assigned(ILParam.Variable), 'Unable to find variable for function parameter');
+    ILParam.Variable := FuncParam.Variable; //Func param to variable???
+    Assert(Assigned(ILParam.Variable), 'No variable assigned for function parameter');
     ILParam.VarVersion := 0;
 
     MoveState[FuncParam.Reg].Done := False;
@@ -516,7 +516,7 @@ begin
   for I := Low(Func.Params) to High(Func.Params) do
     if (Entry and Func.Params[I].PassDataIn) or
       (not Entry and Func.Params[I].ReturnsData) then
-        SetParam(I, @Func.Params[I], Entry);
+        SetParam(@Func.Params[I], Entry);
 end;
 
 //To be called if the Params records within the MoveState have been allocated

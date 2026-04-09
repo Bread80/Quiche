@@ -108,8 +108,6 @@ type
 
   TConst = class(TTypedIdentifier)
   private
-    FDepth: Integer;
-    FInScope: Boolean;
     FValue: TImmValue;
 
     FIsString: Boolean;
@@ -122,11 +120,11 @@ type
     procedure UpdateUserType(NewType: TUserType);
   public
     constructor Create(const AName: String; AOwner: TScope; AUserType: TUserType;
-      const AValue: TImmValue;ADepth: Integer);
+      const AValue: TImmValue);
     constructor CreateBlob(const AName: String;AOwner: TScope;AUserType: TUserType;
-      const AValue: TImmValue;const ABlobValue: TBlob;ADepth: Integer);
+      const AValue: TImmValue;const ABlobValue: TBlob);
     constructor CreateString(const AName: String;AOwner: TScope;AUserType: TUserType;
-      const AValue: TImmValue;const AStringValue: String;ADepth: Integer);
+      const AValue: TImmValue;const AStringValue: String);
 
     function IdentType: TIdentType;override;
 
@@ -134,14 +132,13 @@ type
     //constant data
     function ToLabel: String;
 
-    //TODO: Remove
-    property Depth: Integer read FDepth;
-    property InScope: Boolean read FInScope;
-    property IsString: Boolean read FIsString;
+    function Description: String;
+    function ToString: String;override;  //Returns the declaration
 
     //Only used where the type is a registered types
     property Value: TImmValue read FValue;
     property BlobValue: TBlob read FBlobValue;
+    property IsString: Boolean read FIsString;
     property StringValue: String read FStringValue;
  end;
 
@@ -608,32 +605,33 @@ end;
 { TConst }
 
 constructor TConst.Create(const AName: String; AOwner: TScope;
-  AUserType: TUserType;const AValue: TImmValue; ADepth: Integer);
+  AUserType: TUserType;const AValue: TImmValue);
 begin
   inherited Create(AName, AOwner, AUserType);
   FValue := AValue;
   Value.SetConst(Self);
-  FDepth := ADepth;
-  FInScope := True;
   FIsString := False;
 end;
 
 constructor TConst.CreateBlob(const AName: String; AOwner: TScope;
-  AUserType: TUserType; const AValue: TImmValue; const ABlobValue: TBlob;
-  ADepth: Integer);
+  AUserType: TUserType; const AValue: TImmValue; const ABlobValue: TBlob);
 begin
-  Create(AName, AOwner, AUserType, AValue, ADepth);
+  Create(AName, AOwner, AUserType, AValue);
   FBlobValue := ABlobValue;
   FIsString := False;
 end;
 
 constructor TConst.CreateString(const AName: String; AOwner: TScope;
-  AUserType: TUserType; const AValue: TImmValue; const AStringValue: String;
-  ADepth: Integer);
+  AUserType: TUserType; const AValue: TImmValue; const AStringValue: String);
 begin
-  Create(AName, AOwner, AUserType, AValue, ADepth);
+  Create(AName, AOwner, AUserType, AValue);
   FStringValue := AStringValue;
   FIsString := True;
+end;
+
+function TConst.Description: String;
+begin
+  Result := UserType.Description + ' = ' + Value.ToString;
 end;
 
 function TConst.IdentType: TIdentType;
@@ -668,6 +666,16 @@ begin
     Result := Result + Prefix + Integer(Self).ToString;
 end;
 
+function TConst.ToString: String;
+begin
+  Result := 'const ';
+  if Name <> '' then
+    Result := Result + Name
+   else
+    Result := Result + '<anon>';
+   Result := Result + ': ' + Description;
+end;
+
 procedure TConst.UpdateUserType(NewType: TUserType);
 begin
   inherited UpdateUserType(NewType);
@@ -677,9 +685,8 @@ end;
 
 class function TConsts.Add(const AName: String; UType: TUserType;const AValue: TImmValue): TConst;
 var Scope: TScope;
-  Depth: Integer;
 begin
-  Scope := GetCurrentScope.ScopeEX;
+  Scope := GetCurrentScope.BlockScope;
 
   //Expression parser will return a TImmValue with an unnamed TConst. Handle the
   //case where that value is being assigned to a CONST
@@ -713,40 +720,25 @@ begin
   end;
 *)
 
-  //If not add it
-  if Scope <> nil then
-    Depth := Scope.Depth
-  else
-    Depth := 0;
-  Result := TConst.Create(AName, Scope, UType, AValue, Depth);
+  Result := TConst.Create(AName, Scope, UType, AValue);
   Scope.Add(Result);
 end;
 
 class function TConsts.AddBlob(const AName: String; UType: TUserType;
   const AValue: TImmValue; const ABlobValue: TBlob): TConst;
 var Scope: TScope;
-  Depth: Integer;
 begin
-  Scope := GetCurrentScope.ScopeEX;
-  if Scope <> nil then
-    Depth := GetCurrentScope.Depth
-  else
-    Depth := 0;
-  Result := TConst.CreateBlob(AName, Scope, UType, AValue, ABlobValue, Depth);
+  Scope := GetCurrentScope.BlockScope;
+  Result := TConst.CreateBlob(AName, Scope, UType, AValue, ABlobValue);
   Scope.Add(Result);
 end;
 
 class function TConsts.AddString(const AName: String; UType: TUserType;
   const AValue: TImmValue; const AStringValue: String): TConst;
 var Scope: TScope;
-  Depth: Integer;
 begin
-  Scope := GetCurrentScope.ScopeEX;
-  if Scope <> nil then
-    Depth := GetCurrentScope.Depth
-  else
-    Depth := 0;
-  Result := TConst.CreateString(AName, Scope, UType, AValue, AStringValue, Depth);
+  Scope := GetCurrentScope.BlockScope;
+  Result := TConst.CreateString(AName, Scope, UType, AValue, AStringValue);
   Scope.Add(Result);
 end;
 

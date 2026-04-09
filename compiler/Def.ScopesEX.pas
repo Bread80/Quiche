@@ -2,7 +2,7 @@
 unit Def.ScopesEX;
 
 interface
-uses Generics.Collections;
+uses Generics.Collections, SysUtils;
 
 type
   //Using IdentType in addition to class hierarchy allows us to use case statements
@@ -30,7 +30,7 @@ type
     property Owner: TScope read FOwner;
   end;
 
-  TIdentifier = class(TScopedItem)
+  TDeclaredItem = class(TScopedItem)
   end;
 
   //Variables, Consts, Types, EnumItems, Functions, Record Fields, Units etc all
@@ -39,11 +39,11 @@ type
 
   //List of TScopedItem (or TIdentifier??)
   //Allows us to search for identifiers which are currently in scope
-  TScope = class(TIdentifier)
+  TScope = class(TScopedItem)
   private
     FParent: TScope;
     FItems: TObjectList<TScopedItem>;
-    FDepth: Integer;
+    FIsEnded: Boolean;
   public
     constructor Create(const AName: String;AParent: TScope);
     destructor Destroy;override;
@@ -51,30 +51,33 @@ type
 
     procedure Add(AItem: TScopedItem);
 
+    //Search all items at local scope the current level, then recurses upwards through
+    //the block scopes. Ie searches items declared in the current scope
+    function SearchUpLocal<T: Class>(Func: TFunc<T, T>): T;
+    //Searches upwards to the top or all scopes, functions, declarations etc.
+    function SearchUpAll<T: Class>(Func: TFunc<T, T>): T;
+
+
     //Search the current scope for an item with the given identifier (name)
+    //Primarily used too determine whether it is okay to declare a new identifier
+    //with the given name.
+    //Includes special handling for the Result pseudo function
     //Returns a the item if an item was found, otherwise returns nil.
     //The return value can be cast to the appropriate type: TVariable, TFunction, etc.
-    //IgnoreFuncs is temporarily required so that searches for Type names return the type instead
-    function SearchLocal(const Ident: String; IgnoreFuncs: Boolean = False): TIdentifier;
+    //IgnoreFuncs is temporarily required so that searches for Type names return the type instead(??)
+    function FindIdentifierUpLocal(const Ident: String; IgnoreFuncs: Boolean = False): TDeclaredItem;
+    function FindIdentifierUpAll(const Ident: String; IgnoreFuncs: Boolean = False): TDeclaredItem;
 
     //Recurse up scopes, and into libraries, until a match is found
-    function SearchUpScopes(const Ident: String; IgnoreFuncs: Boolean = False): TIdentifier;
+//    function FindIdentUp(const Ident: String; IgnoreFuncs: Boolean = False): TDeclaredItem;
 
-    function ToString: String;
+    function ToString: String;override;
 
     property Parent: TScope read FParent;
-    //TODO: Remove!
-    property Depth: Integer read FDepth write FDepth;
     property Items: TObjectList<TScopedItem> read FItems;
+
+    property IsEnded: Boolean read FIsEnded;
 (*
-
-    Depth: Integer;   //The block depth within the current scope. Used to determine
-                      //which variables are in scope. Ie. within a BEGIN...END block
-                      //Depth is increased for every BEGIN and decreased for every END
-    Func: PFunction;  //The function which owns this scope. Nil for main/global code
-    VarList: PVarList;      //Ditto for Variables
-    FuncList: PFuncList;    //Functions declared in this scope
-
     AsmCode: TStringList;   //Assembly code for Code segment for this scope (from CodeGen)
     AsmData: TStringList;   //Assembly code for Data segment (from CodeGen)
     ILList: TILList;
@@ -85,32 +88,58 @@ type
     function GetLocalAddrMode: TAddrMode;
   *)end;
 
+
   TCodeBlock = class(TScope)
   private
     FUID: Integer;
-    FNextBlockID: Integer;  //Used by GetUniqueBlockID
+    FNextBlockID: Integer;
+    FILIndexEnd: Integer;
+    FILIndexBegin: Integer;  //Used by GetUniqueBlockID
     function GetUniqueBlockID: Integer;
     //Removes a child from Items. The child *must* be the last item on the list.
     //If not an exception will be raised.
     procedure RemoveChild(AChild: TCodeBlock);
   public
-    constructor Create(const AName: String;AParent: TScope;AUID: Integer);
+    //AILIndexBegin is the index of the first ILItem within this block
+    constructor Create(const AName: String;AParent: TScope;AUID, AILIndexBegin: Integer);
 
     //Creates and returns a new code block. Used to store declarations local to
     //a code block. Use for BEGIN..END, and other code structures such as REPEAT..UNTIL,
     //CASE clauses and even single statement blocks after IF, FOR etc.
-    function BeginCodeBlock: TCodeBlock;
+    //AILIndex is the index of the first ILItem in the block
+    function BeginCodeBlock(AILIndex: Integer): TCodeBlock;
     //End a code block initiated by BeginCodeBlock. Raises an exception if the number
     //of calls to each is not balanced. If Self.Items is empty, Self will be removed
     //from it's parents Items and freed
-    function EndCodeBlock: TCodeBlock;
+    function EndCodeBlock(AILIndex: Integer): TCodeBlock;
 
+    function IsRootBlock: Boolean;
     //Used to identify this block within the current scope
-    property UID: Integer read FUID;
+//    property UID: Integer read FUID;
+
+    //Enumerates all child items, all their child items etc.
+    procedure EachDown<T: Class>(Proc: TProc<T>);
+    //Searches local scope for any items of the given class, then calls Proc for
+    //each of them. Local scope includes all identifiers declared within the current
+    //scope (Ie starting at the IsRootBlock above us).
+    procedure EachAllLevel<T: Class>(Proc: TProc<T>);
+
+    //Enumerates all child items, all their child items etc.
+    function SearchDown<T: Class>(Func: TFunc<T, T>): T;
+    //Searches local scope for any items of the given class, then calls Proc for
+    //each of them. Local scope includes all identifiers declared within the current
+    //scope (Ie starting at the IsRootBlock above us).
+    function SearchAllLevel<T: Class>(Func: TFunc<T, T>): T;
+
+    function ToString: String;override;
+    //Index of the first ILItem in the block
+    property ILIndexBegin: Integer read FILIndexBegin;
+    //Index of the last ILItem in the block
+    property ILIndexEnd: Integer read FILIndexEnd;
   end;
 
 implementation
-uses SysUtils;
+uses Def.Functions, Def.Variables;
 
 { TScopedItem }
 
@@ -132,7 +161,7 @@ end;
 procedure TScope.Add(AItem: TScopedItem);
 begin
   if AItem.Name <> '' then
-    Assert(SearchLocal(AItem.Name) = nil);
+    Assert(FindIdentifierUpLocal(AItem.Name) = nil);
   FItems.Add(AItem);
 end;
 
@@ -141,7 +170,7 @@ begin
   inherited Create(AName, AParent);
   FParent := AParent;
   FItems := TObjectList<TScopedItem>.Create(True);
-  FDepth := 0;
+  FIsEnded := False;
 end;
 
 destructor TScope.Destroy;
@@ -150,85 +179,180 @@ begin
   inherited;
 end;
 
+function TScope.FindIdentifierUpAll(const Ident: String;
+  IgnoreFuncs: Boolean): TDeclaredItem;
+begin
+  if CompareText(Ident, 'Result') = 0 then
+  begin
+    Result := TFuncs.FindResult;
+    if Assigned(Result) then
+      EXIT;
+  end;
+
+  Result := SearchUpAll<TDeclaredItem>(
+    function(Item: TDeclaredItem): TDeclaredItem
+    begin
+      if CompareText(Item.Name, Ident) = 0 then
+        Result := Item
+      else
+        Result := nil;
+    end);
+end;
+
+function TScope.FindIdentifierUpLocal(const Ident: String;
+  IgnoreFuncs: Boolean): TDeclaredItem;
+begin
+  if CompareText(Ident, 'Result') = 0 then
+  begin
+    Result := TFuncs.FindResult;
+    if Assigned(Result) then
+      EXIT;
+  end;
+
+  Result := SearchUpLocal<TDeclaredItem>(
+    function(Item: TDeclaredItem): TDeclaredItem
+    begin
+      if CompareText(Item.Name, Ident) = 0 then
+        Result := Item
+      else
+        Result := nil;
+    end);
+end;
 
 function TScope.IdentType: TIdentType;
 begin
   Result := itScope;
 end;
 
-function TScope.SearchLocal(const Ident: String; IgnoreFuncs: Boolean): TIdentifier;
+function TScope.SearchUpAll<T>(Func: TFunc<T, T>): T;
 var Item: TScopedItem;
 begin
-  for Item in FItems do
-    if Item is TIdentifier then
-      if CompareText(Item.Name, Ident) = 0 then
-        if (Item.IdentType <> itFunction) or not IgnoreFuncs then
-          EXIT(Item as TIdentifier);
-
   Result := nil;
+  for Item in Items do
+  begin
+    if Item is T then
+      Result := Func(T(Item));
+
+    if Assigned(Result) then
+      EXIT;
+  end;
+
+  if Assigned(Parent) then
+    Result := Parent.SearchUpAll<T>(Func);
 end;
 
-function TScope.SearchUpScopes(const Ident: String;
-  IgnoreFuncs: Boolean): TIdentifier;
+function TScope.SearchUpLocal<T>(Func: TFunc<T, T>): T;
+var Item: TScopedItem;
 begin
-  Result := SearchLocal(Ident, IgnoreFuncs);
+  Result := nil;
+  for Item in Items do
+  begin
+    if Item is T then
+      Result := Func(T(Item));
 
-  if (Result = nil) and (Parent <> nil) then
-    Result := Parent.SearchUpScopes(Ident, IgnoreFuncs);
+    if Assigned(Result) then
+      EXIT;
+  end;
+
+  if Assigned(Parent) and (Parent is TCodeBlock) then
+    if not (Self as TCodeBlock).IsRootBlock then
+      Result := Parent.SearchUpLocal<T>(Func);
 end;
 
 function TScope.ToString: String;
 var Item: TScopedItem;
+  S: String;
 begin
-  Result := 'Scope: ' + Name + #13#13;
-  for Item in FItems do
-    Result := Result + Item.ToString + #13;
+  if Items.Count > 0 then
+  begin
+    Result := #13'Scope: ' + Name + #13;
+    for Item in FItems do
+    begin
+      S := Item.ToString;
+      if S <> '' then
+        Result := Result + S + #13;
+    end;
+  end;
 end;
 
 { TCodeBlock }
 
-function TCodeBlock.BeginCodeBlock: TCodeBlock;
+function TCodeBlock.BeginCodeBlock(AILIndex: Integer): TCodeBlock;
 var NewID: Integer;
 begin
   NewID := GetUniqueBlockID;
-  Result := TCodeBlock.Create(Name, Self, NewID);
+  Result := TCodeBlock.Create(Name, Self, NewID, AILIndex);
   Items.Add(Result);
 end;
 
 constructor TCodeBlock.Create(const AName: String; AParent: TScope;
-  AUID: Integer);
+  AUID, AILIndexBegin: Integer);
 begin
   if AUID > 0 then
     inherited Create(AName + '.' + AUID.ToString, AParent)
   else
     inherited Create(AName, AParent);
   FUID := AUID;
+  FILIndexBegin := AILIndexBegin;
+  FILIndexEnd := -1;
   FNextBlockID := 1;
 end;
 
-function TCodeBlock.EndCodeBlock: TCodeBlock;
+procedure TCodeBlock.EachDown<T>(Proc: TProc<T>);
+var Item: TScopedItem;
+begin
+  for Item in Items do
+    if Item is T then
+      Proc(T(Item))
+    else if Item is TCodeBlock then
+      TCodeBlock(Item).EachDown<T>(Proc);
+end;
+
+procedure TCodeBlock.EachAllLevel<T>(Proc: TProc<T>);
+begin
+  if not IsRootBlock then
+  begin
+    Assert(Assigned(Parent));
+    (Parent as TCodeBlock).EachAllLevel<T>(Proc);
+  end
+  else
+    EachDown<T>(Proc);
+end;
+
+function TCodeBlock.EndCodeBlock(AILIndex: Integer): TCodeBlock;
 begin
   Assert(Parent is TCodeBlock);
-  Result := Parent as TCodeBlock;
   if Items.Count = 0 then
   begin
-    (Parent as TCodeBlock).RemoveChild(Self);
-//    Self.Free;
+    Result := nil;
+    TCodeBlock(Parent).RemoveChild(Self);
+//    Self.Free;  //Free by RemoveChild call
+  end
+  else
+  begin
+  Result := TCodeBlock(Parent);
+    FILIndexEnd := AILIndex;
+    FIsEnded := True;
   end;
 end;
 
 function TCodeBlock.GetUniqueBlockID: Integer;
 begin
-  if UID <> 0 then
-  begin
-    Assert(Parent is TCodeBlock);
-    Result := (Parent as TCodeBlock).GetUniqueBlockID;
-  end
-  else
+  if IsRootBlock then
   begin
     Result := FNextBlockID;
     inc(FNextBlockID);
-  end;
+  end
+  else
+  begin
+    Assert(Parent is TCodeBlock);
+    Result := TCodeBlock(Parent).GetUniqueBlockID;
+  end
+end;
+
+function TCodeBlock.IsRootBlock: Boolean;
+begin
+  Result := FUID = 0;
 end;
 
 procedure TCodeBlock.RemoveChild(AChild: TCodeBlock);
@@ -236,6 +360,39 @@ begin
   Assert(Items.Count > 0);
   Assert(Items[Items.Count-1] = AChild);
   Items.Delete(Items.Count-1);
+end;
+
+function TCodeBlock.SearchDown<T>(Func: TFunc<T, T>): T;
+var Item: TScopedItem;
+begin
+  Result := nil;
+  for Item in Items do
+  begin
+    if Item is T then
+      Result := Func(T(Item))
+    else if Item is TCodeBlock then
+      Result := (TCodeBlock(Item).SearchDown<T>(Func));
+
+    if Assigned(Result) then
+      EXIT;
+  end;
+end;
+
+function TCodeBlock.ToString: String;
+begin
+  Result := inherited + ' IL: ' + ILIndexBegin.ToString + '..' + ILIndexEnd.ToString;
+end;
+
+function TCodeBlock.SearchAllLevel<T>(Func: TFunc<T, T>): T;
+begin
+  Result := nil;
+  if not IsRootBlock then
+  begin
+    Assert(Assigned(Parent));
+    Result := (Parent as TCodeBlock).SearchAllLevel<T>(Func);
+  end
+  else
+    Result := SearchDown<T>(Func);
 end;
 
 end.

@@ -33,7 +33,7 @@ type
       rskVarValue, rskVarValueInverted,
         rskVarValueHigh, rskVarValueLow,
         rskVarAddr: (
-        Variable: PVariable;
+        Variable: TVariable;
         Version: Integer;
         );
       rskLabel: ();  //Data stored in StrData
@@ -75,7 +75,7 @@ procedure RegStateSetLiteral(Reg: TCPUReg;AValue: Integer);
 //Does NOT affect the other half of a register pair
 //AKind must be VarValue or VarAddr
 //Can also be called with AKind of rskUnknown, which makes some routines easier to code.
-procedure RegStateSetVariable(Reg: TCPUReg;AVariable: PVariable;AVersion: Integer;AKind: TRegStateKind);
+procedure RegStateSetVariable(Reg: TCPUReg;AVariable: TVariable;AVersion: Integer;AKind: TRegStateKind);
 
 //Reg must be 16-bit. Separate registers (if appropriate) will be set to unknown
 procedure RegStateSetLabel(Reg: TCPUReg;const ALabel: String);
@@ -88,16 +88,16 @@ procedure RegStateEXHLDE;
 
 //If the variable (value) is currently stored in a register return the register
 //AKind must be VarValue or VarAddr
-function RegStateFindVariable(AVariable: PVariable;AVersion: Integer;AKind: TRegStateKind): TCPUReg;
-function RegStateFindVariable16(AVariable: PVariable;AVersion: Integer;AKind: TRegStateKind): TCPUReg;
-function RegStateFindVariable8(AVariable: PVariable;AVersion: Integer;AKind: TRegStateKind): TCPUReg;
+function RegStateFindVariable(AVariable: TVariable;AVersion: Integer;AKind: TRegStateKind): TCPUReg;
+function RegStateFindVariable16(AVariable: TVariable;AVersion: Integer;AKind: TRegStateKind): TCPUReg;
+function RegStateFindVariable8(AVariable: TVariable;AVersion: Integer;AKind: TRegStateKind): TCPUReg;
 
 //Returns True if the given variable already contains the given variable version
-function RegStateEqualsVariable(Reg: TCPUReg;AVariable: PVariable;AVersion: Integer;AKind: TRegStateKind): Boolean;
+function RegStateEqualsVariable(Reg: TCPUReg;AVariable: TVariable;AVersion: Integer;AKind: TRegStateKind): Boolean;
 
 //If the address (@ operator) of a variable is already loaded in registers returns
 //the register, otherwise returns rNone
-function RegStateFindAddrOf(AVariable: PVariable): TCPUReg;
+function RegStateFindAddrOf(AVariable: TVariable): TCPUReg;
 
 //If any 8-bit register contains the required value, returns the name of that register,
 //otherwise returns rNone
@@ -306,7 +306,7 @@ begin
   end;
 end;
 
-procedure RegStateSetVariable(Reg: TCPUReg;AVariable: PVariable;AVersion: Integer;AKind: TRegStateKind);
+procedure RegStateSetVariable(Reg: TCPUReg;AVariable: TVariable;AVersion: Integer;AKind: TRegStateKind);
 var R: TCPUReg;
   Flag: TCPUReg;
 begin
@@ -510,7 +510,7 @@ begin
   Result := rNone;
 end;
 
-function RegStateFindVariable(AVariable: PVariable;AVersion: Integer;AKind: TRegStateKind): TCPUReg;
+function RegStateFindVariable(AVariable: TVariable;AVersion: Integer;AKind: TRegStateKind): TCPUReg;
 var R: TCPUReg;
   State: TRegState;
 begin
@@ -526,7 +526,7 @@ begin
   Result := rNone;
 end;
 
-function RegStateFindVariable16(AVariable: PVariable;AVersion: Integer;AKind: TRegStateKind): TCPUReg;
+function RegStateFindVariable16(AVariable: TVariable;AVersion: Integer;AKind: TRegStateKind): TCPUReg;
 var R: TCPUReg;
   State: TRegState;
 begin
@@ -542,7 +542,7 @@ begin
   Result := rNone;
 end;
 
-function RegStateFindVariable8(AVariable: PVariable;AVersion: Integer;AKind: TRegStateKind): TCPUReg;
+function RegStateFindVariable8(AVariable: TVariable;AVersion: Integer;AKind: TRegStateKind): TCPUReg;
 var R: TCPUReg;
   State: TRegState;
 begin
@@ -558,7 +558,7 @@ begin
   Result := rNone;
 end;
 
-function RegStateEqualsVariable(Reg: TCPUReg;AVariable: PVariable;AVersion: Integer;
+function RegStateEqualsVariable(Reg: TCPUReg;AVariable: TVariable;AVersion: Integer;
   AKind: TRegStateKind): Boolean;
 begin
   if Reg in [rNZF, rNCF] then
@@ -582,7 +582,7 @@ begin
     (CPUState[Reg].Version = AVersion);
 end;
 
-function RegStateFindAddrOf(AVariable: PVariable): TCPUReg;
+function RegStateFindAddrOf(AVariable: TVariable): TCPUReg;
 var R: TCPUReg;
   State: TRegState;
 begin
@@ -738,11 +738,11 @@ procedure TRegState.FromString(Reg: TCPUReg;State: String);
   procedure FromVariable(AKind: TRegStateKind;State: String);
   var VarData: TArray<String>;
     LVersion: Integer;
-    V: PVariable;
+    V: TVariable;
   begin
     VarData := State.Substring(1).Split(['#']);
     Assert(Length(VarData) = 2, 'VarData state format: <qualified-varname>#<version>');
-    V := Vars.FindByNameAllScopes(VarData[0]);
+    V := TVars.FindByNameAllScopes(VarData[0]);
     Assert(V <> nil);
     Assert(TryStrToInt(VarData[1], LVersion), 'VarData state format: <qualified-varname>#<version>');
     RegStateSetVariable(Reg, V, LVersion, AKind);

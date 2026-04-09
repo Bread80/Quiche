@@ -148,7 +148,7 @@ end;
 
 //Does the result/dest of the ILItem match that of the Primitive?
 function DestMatch(Prim: PPrimitive;ILItem: PILItem): Boolean;
-var V: PVariable;
+var V: TVariable;
 begin
   Result := False;
   case ILItem.Dest.Kind of
@@ -696,7 +696,7 @@ end;
 
 //Set parameter search data for codegen time search
 procedure CodeGenSetParam(ILParam: PILParam;Search: PSearchRecParam);
-var V: PVariable;
+var V: TVariable;
 begin
   //Deduce the initial types to search for
   Search.UserType := ILParam.GetUserType;
@@ -720,7 +720,7 @@ end;
 function PrimFindCodeGen(const ILItem: TILItem;out SwapParams: Boolean): PPrimitive;
 var
   SearchRec: TPrimSearchRec;
-  V: PVariable;
+  V: TVariable;
 begin
   //This routine is not valid for these operators
   Assert(ILItem.Op >= Def.Operators.opAdd, 'Cannot use this function with this operator');

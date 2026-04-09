@@ -12,16 +12,16 @@ uses
 //Generates (IX+<full-varname>)
 //otherwise,
 //Generates (IX+<full-varname>+<ByteOffset>)
-function OffsetToStr(Reg: TCPUReg;Variable: PVariable;ByteIndex: Integer = 0): String;
-function OffsetHiToStr(Reg: TCPUReg;Variable: PVariable): String;
+function OffsetToStr(Reg: TCPUReg;Variable: TVariable;ByteIndex: Integer = 0): String;
+function OffsetHiToStr(Reg: TCPUReg;Variable: TVariable): String;
 
 //---Loads from memory
 procedure OpLOAD(Dest: TCPUReg;Source: String);overload;
-procedure OpLOAD(Dest: TCPUReg;SourceV: PVariable);overload;
+procedure OpLOAD(Dest: TCPUReg;SourceV: TVariable);overload;
 //ByteIndex allows to specify high or low byte. Reg must be 8-bit
-procedure OpLOAD(Dest: TCPUReg;SourceV: PVariable;ByteIndex: Integer);overload;
+procedure OpLOAD(Dest: TCPUReg;SourceV: TVariable;ByteIndex: Integer);overload;
 //From index register - can move both 8 and 16 bit values
-procedure OpLOAD(Dest, SourceXY: TCPUReg;SourceV: PVariable;ByteIndex: Integer = 0);overload;
+procedure OpLOAD(Dest, SourceXY: TCPUReg;SourceV: TVariable;ByteIndex: Integer = 0);overload;
 
 //Where Dest is 8-bit and Source is 16-bit (pointer)
 //LD <Dest>,(<Source>)
@@ -38,13 +38,13 @@ procedure OpMOV(Dest: TCPUReg;Value: Integer);overload;
 
 //---Stores to memory
 //To/from variable
-procedure OpSTO(DestV: PVariable;Source: TCPUReg);overload;
+procedure OpSTO(DestV: TVariable;Source: TCPUReg);overload;
 //ByteIndex allows to specify high or low byte. Reg must be 8-bit
-procedure OpSTO(DestV: PVariable;ByteIndex: Integer;Source: TCPUReg);overload;
+procedure OpSTO(DestV: TVariable;ByteIndex: Integer;Source: TCPUReg);overload;
 //To index register - can move both 8 and 16 bit values
-procedure OpSTO(DestXY: TCPUReg;DestV: PVariable;Source: TCPUReg;ByteIndex: Integer = 0);overload;
+procedure OpSTO(DestXY: TCPUReg;DestV: TVariable;Source: TCPUReg;ByteIndex: Integer = 0);overload;
 //8-bit store ONLY
-procedure OpSTO(DestXY: TCPUReg;DestV: PVariable;Value: Integer;ByteIndex: Integer = 0);overload;
+procedure OpSTO(DestXY: TCPUReg;DestV: TVariable;Value: Integer;ByteIndex: Integer = 0);overload;
 
 //Where Dest is 16-bit (pointer) and Source is 8-bit
 //LD (<Dest>),<Source>
@@ -77,7 +77,7 @@ uses SysUtils,
   CG.Data;
 
 
-function OffsetToStr(Reg: TCPUReg;Variable: PVariable;ByteIndex: Integer = 0): String;
+function OffsetToStr(Reg: TCPUReg;Variable: TVariable;ByteIndex: Integer = 0): String;
 begin
   Assert(Variable.AddrMode in [amStack, amStackRef]);
 
@@ -93,7 +93,7 @@ begin
   Result := Result + ')';
 end;
 
-function OffsetHiToStr(Reg: TCPUReg;Variable: PVariable): String;
+function OffsetHiToStr(Reg: TCPUReg;Variable: TVariable): String;
 begin
   Result := OffsetToStr(Reg, Variable, 1);
 end;
@@ -104,13 +104,13 @@ begin
   AsmOpcode('ld', CPURegStrings[Dest], '('+Source+')');
 end;
 
-procedure OpLOAD(Dest: TCPUReg;SourceV: PVariable);overload;
+procedure OpLOAD(Dest: TCPUReg;SourceV: TVariable);overload;
 begin
   Assert(SourceV.AddrMode in [amStatic, amStaticRef]);
   AsmOpcode('ld', CPURegStrings[Dest], '('+SourceV.GetAsmName+')');
 end;
 
-procedure OpLOAD(Dest, SourceXY: TCPUReg;SourceV: PVariable;ByteIndex: Integer = 0);overload;
+procedure OpLOAD(Dest, SourceXY: TCPUReg;SourceV: TVariable;ByteIndex: Integer = 0);overload;
 begin
   Assert(SourceXY in [rIX, rIY]);
   Assert(SourceV.AddrMode in [amStack, amStackRef]);
@@ -124,7 +124,7 @@ begin
     AsmOpcode('ld', CPURegStrings[Dest], OffsetToStr(SourceXY, SourceV, ByteIndex));
 end;
 
-procedure OpLOAD(Dest: TCPUReg;SourceV: PVariable;ByteIndex: Integer);overload;
+procedure OpLOAD(Dest: TCPUReg;SourceV: TVariable;ByteIndex: Integer);overload;
 var S: String;
 begin
   Assert(SourceV.AddrMode = amStatic);
@@ -182,7 +182,7 @@ begin
     AsmOpcode('ld',CPURegStrings[Dest],WordToStr(Value));
 end;
 
-procedure OpSTO(DestXY: TCPUReg;DestV: PVariable;Source: TCPUReg;ByteIndex: Integer = 0);overload;
+procedure OpSTO(DestXY: TCPUReg;DestV: TVariable;Source: TCPUReg;ByteIndex: Integer = 0);overload;
 begin
   Assert(DestXY in [rIX, rIY]);
   Assert(DestV.AddrMode in [amStack, amStackRef]);
@@ -196,7 +196,7 @@ begin
     AsmOpcode('ld',OffsetToStr(DestXY, DestV, ByteIndex), CPURegStrings[Source]);
 end;
 
-procedure OpSTO(DestXY: TCPUReg;DestV: PVariable;Value: Integer;ByteIndex: Integer = 0);overload;
+procedure OpSTO(DestXY: TCPUReg;DestV: TVariable;Value: Integer;ByteIndex: Integer = 0);overload;
 begin
   Assert(DestXY in [rIX, rIY]);
   Assert(DestV.AddrMode = amStack);
@@ -205,13 +205,13 @@ begin
   AsmOpcode('ld',OffsetToStr(DestXY, DestV, ByteIndex), ByteToStr(Value));
 end;
 
-procedure OpSTO(DestV: PVariable;Source: TCPUReg);overload;
+procedure OpSTO(DestV: TVariable;Source: TCPUReg);overload;
 begin
   Assert(DestV.AddrMode in [amStatic, amStaticRef]);
   AsmOpcode('ld', '('+DestV.GetAsmName+')', CPURegStrings[Source]);
 end;
 
-procedure OpSTO(DestV: PVariable;ByteIndex: Integer;Source: TCPUReg);overload;
+procedure OpSTO(DestV: TVariable;ByteIndex: Integer;Source: TCPUReg);overload;
 var S: String;
 begin
   Assert(DestV.AddrMode = amStatic);

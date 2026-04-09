@@ -1,6 +1,7 @@
 unit IDE.Emulator;
 
 interface
+uses Def.ScopesEX;
 
 procedure Initialise(const ConfigFile: String;AInteractive: Boolean;
   const AConsoleInput: String);
@@ -12,7 +13,7 @@ function TryReadWord(const Symbol: String;out Data: Word): Boolean;
 
 //IXOffsetHack: Bytes to subtract from IX to get the stack pointer address.
 //Required when running with a stack frame at root level.
-procedure GetVarData(IXOffsetHack: Integer);
+procedure GetVarData(Scope: TCodeBlock;IXOffsetHack: Integer);
 
 //Text (etc) written to the console during the last emulation
 var ConsoleLog: String;
@@ -370,18 +371,16 @@ begin
   end;
 end;
 
-procedure GetVarData(IXOffsetHack: Integer);
-var I: Integer;
-  V: PVariable;
-  IX: Word;
+procedure GetVarData(Scope: TCodeBlock;IXOffsetHack: Integer);
+//  IX: Word;
 begin
-  IX := (Hardware.Z80.Z80.IX - IXOffsetHack) and $ffff;
+//  IX := (Hardware.Z80.Z80.IX - IXOffsetHack) and $ffff;
 
-  for I := 0 to Vars.GetCount-1 do
-  begin
-    V := Vars.IndexToData(I);
-    V.Value := ValueToString(V.GetAsmName, V.AddrMode, V.UserType);
-  end;
+  Scope.EachAllLevel<TVariable>(
+    procedure(V: TVariable)
+    begin
+      V.Value := ValueToString(V.GetAsmName, V.AddrMode, V.UserType);
+    end);
 end;
 
 end.

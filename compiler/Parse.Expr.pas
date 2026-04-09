@@ -9,7 +9,7 @@ uses Def.IL, Def.Operators, Def.VarTypes, Def.UserTypes, Def.Consts, Def.Variabl
 //  If AsType is nil:
 //    If the variable is being created it will be assigned the implicit type of the expression
 //    Otherwise the variable will be checked for compatibility with the expression's result type
-procedure AssignSlugToDest(const Slug: TExprSlug;var Variable: PVariable;
+procedure AssignSlugToDest(const Slug: TExprSlug;var Variable: TVariable;
   AsType: TUserType);
 
 //Parses an expression and returns it's data in an ExprSlug.
@@ -39,14 +39,14 @@ function ParseConstantExprAsType(out Value: TImmValue;AsType: TUserType): TQuich
 //*after* the expression has been evaluated. If the variable is created before
 //then it will be possible to reference the variable within the expression which
 //would, of course, be an bug.
-function ParseAssignmentExpr(var Variable: PVariable;AsType: TUserType): TQuicheError;
+function ParseAssignmentExpr(var Variable: TVariable;AsType: TUserType): TQuicheError;
 
 //Parse an assignment statement
 // <varname> := <assignment-expression>
 //Variable is the variable being assigned to.
 //If Parser is at a suffix - ^ or [ will parse appropriately and store at the
 //dereference address
-function ParseAssignment(Variable: PVariable): TQuicheError;
+function ParseAssignment(Variable: TVariable): TQuicheError;
 
 //Converts the Expr (or immediate value) contained within Slug and returns it's
 //TypeDef. The TypeDef will be an Immediate value and, therefore, any IL generated
@@ -61,7 +61,7 @@ uses SysUtils,
   Parse.RangeLists, Parse.TypeChecker;
 
 
-procedure AssignSlugToDest(const Slug: TExprSlug;var Variable: PVariable;
+procedure AssignSlugToDest(const Slug: TExprSlug;var Variable: TVariable;
   AsType: TUserType);
 var VarVersion: Integer;
   ILItem: PILItem;
@@ -136,9 +136,9 @@ begin
   begin
     //TODO: IF we have an array type, harden if required
     if Assigned(AsType) then
-      Variable := Vars.AddUnnamed(AsType)
+      Variable := TVars.AddUnnamed(AsType)
     else
-      Variable := Vars.AddUnnamed(Slug.ImplicitType);
+      Variable := TVars.AddUnnamed(Slug.ImplicitType);
   end;
 
   VarVersion := Variable.IncVersion;
@@ -203,7 +203,7 @@ function ParseOperandIdentifier(var Slug: TExprSlug;Ident: String): TQuicheError
 var IdentData: TIdentData;
 begin
   //Search everything we can see
-  IdentData := GetCurrentScope.SearchAllInScope(Ident);
+  IdentData := GetCurrentScope.SearchUpAll(Ident);
   case IdentData.IdentType of
     itUnknown:
       EXIT(ErrSub(qeUndefinedIdentifier, Ident));
@@ -221,10 +221,10 @@ begin
       if TestForPtrSuffix then
         EXIT(ParsePtrSuffixLoad(Slug, IdentData));
 
-      Slug.Operand.SetVarSource(IdentData.V);
+      Slug.Operand.SetVarSource(IdentData.Value as TVariable);
       Slug.ParamOrigin := poExplicit;
-      Slug.ResultType := IdentData.V.UserType;
-      Slug.ImplicitType := IdentData.V.UserType;
+      Slug.ResultType := IdentData.GetUserType;
+      Slug.ImplicitType := IdentData.GetUserType;
       EXIT(qeNone);
     end;
     itType:
@@ -902,7 +902,7 @@ begin
     Result := qeNone;
 end;
 
-function ParseAssignmentExpr(var Variable: PVariable;AsType: TUserType): TQuicheError;
+function ParseAssignmentExpr(var Variable: TVariable;AsType: TUserType): TQuicheError;
 var Slug: TExprSlug;
 begin
   Result := ParseExprToSlugWithTypeCheck(Slug, AsType);
@@ -940,7 +940,7 @@ end;
 
 //Parse an assignment statement
 // <varname> := <assignment-expression>
-function ParseAssignment(Variable: PVariable): TQuicheError;
+function ParseAssignment(Variable: TVariable): TQuicheError;
 var UserType: TUserType;
 begin
   Assert(Assigned(Variable));

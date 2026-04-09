@@ -25,7 +25,7 @@ procedure GenLibraryProc(const ProcName: String;ILItem: PILItem);
 implementation
 uses Classes, Generics.Collections, SysUtils,
   IDE.Compiler, //For meta commentary
-  Def.VarTypes, Def.Consts, Def.Variables, Def.UserTypes,
+  Def.VarTypes, Def.Consts, Def.Functions, Def.Variables, Def.UserTypes,
   Lib.CPUState,
   Parse.Source,
   CG.Data,
@@ -50,7 +50,7 @@ begin
 end;
 
 function CodeOffset(const Param: TILParam;out Comment: String): String;
-var Variable: PVariable;
+var Variable: TVariable;
 begin
   Variable := Param.ToVariable;
   Assert(Variable.AddrMode = amStack);
@@ -59,7 +59,7 @@ begin
 end;
 
 function CodeOffsetHigh(const Param: TILParam;out Comment: String): String;
-var Variable: PVariable;
+var Variable: TVariable;
 begin
   Variable := Param.ToVariable;
   Assert(Variable.AddrMode = amStack);
@@ -68,7 +68,7 @@ begin
 end;
 
 function CodeRawOffset(const Param: TILParam;out Comment: String): String;
-var Variable: PVariable;
+var Variable: TVariable;
 begin
   Variable := Param.ToVariable;
   Assert(Variable.AddrMode = amStack);
@@ -91,7 +91,7 @@ begin
 end;
 
 function CodeVarName(const Param: TILParam;out Comment: String): String;
-var Variable: PVariable;
+var Variable: TVariable;
 begin
   if Param.Kind = pkImmediate then
   begin
@@ -218,9 +218,9 @@ begin
       PName := Result.Substring(St+1,En-St-1);
 
       if CompareText(PName, 'vars.localsbytesize') = 0 then
-        Sub := WordLoToStr(Vars.GetLocalsByteSize)
+        Sub := WordLoToStr(TFuncs.GetStackLocalsByteSize)
       else if CompareText(PName, 'vars.paramsbytesize') = 0 then
-        Sub := WordLoToStr(Vars.GetParamsByteSize)
+        Sub := WordLoToStr(TFuncs.GetStackParamsByteSize)
         ;
 
 

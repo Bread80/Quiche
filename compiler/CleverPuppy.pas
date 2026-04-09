@@ -963,7 +963,7 @@ end;
 
 procedure TChunkILSet.ComboParamVarDest(Base: TChunkIL;Index: Integer);
 var Param: PILParam;
-  V: PVariable;
+  V: TVariable;
   Reg: TCPUReg;
 begin
   Param := Base.GetParam(Index);
@@ -1019,7 +1019,7 @@ end;
 
 procedure TChunkILSet.ComboParamVarSource(Base: TChunkIL;Index: Integer);
 var Param: PILParam;
-  V: PVariable;
+  V: TVariable;
   Reg: TCPUReg;
 begin
   Param := Base.GetParam(Index);

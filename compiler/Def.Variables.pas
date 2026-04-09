@@ -2,7 +2,7 @@ unit Def.Variables;
 
 interface
 uses Classes, Generics.Collections, SysUtils,
-  Def.VarTypes, Def.UserTypes, Def.Consts;
+  Def.VarTypes, Def.UserTypes, Def.Consts, Def.ScopesEX;
 
 type
   TAddrMode = ( //Addressing mode for variable storage
@@ -21,81 +21,57 @@ type
                 //VarAddr := (IX+<offset>)
                 //VarValue := <addr> := (IX+<offset>). <value> := (<addr>)
     );
-    EAddrMode = class(Exception)
+
+  EAddrMode = class(Exception)
     constructor Create;reintroduce;
   end;
 
-type  //Controls accessibility of variables and function parameters
+  //Controls accessibility of variables and function parameters
   TVarAccess = (
     vaNone,   //Parameter not assigned or other error
     vaLocal);  //Local variable
 //    vaGlobal, //Globally stored variable (but only accessible within Scope)
 
-type
-  PVariable = ^TVariable;
-  TVariable = record
-    Name: String;
-    Disambiguate: Integer;  //Normally -1. Will be >= 0 if we have multiple variables
-                      //In the same scope, but used in different blocks
-    UserType: TUserType;  //Replaces VarType
-    InScope: Boolean; //If False the variable has gone out of scope and should be ignored
-    Depth: Integer;   //The block depth within the current scope.
-                      //Every time we encounted a BEGIN the scopes depth is increased.
-                      //Every time a variable is declared the scope depth is recorded here.
-                      //Every time we encounter an END the scope's depth is decreased...
-                      //...and any variable which are too deep are marked as out of scope.
-    AddrMode: TAddrMode; //Addressing mode - where is the data stored and how to access it
-    Access: TVarAccess; //Access type for parameters (paValue for locals)
-    IsParam: Boolean;   //True if the variable is a function parameter (and NOT Result)
-    IsResult: Boolean;  //True is the variable is the Result of a function
-    IsConst: Boolean;   //True if the variable is a CONST argument. If so it must not
-                        //be written to and must not be passed as an argument to any
-                        //function which may modify it's value (ie. VAR or OUT access)
-    Offset: Integer;  //If the Storage is:
-                      //vsOffset, this is the offset from the stack base address
-                      //vsFixed: the offset from the start of the Data segment
-    FuncParamIndex: Integer;  //>= 0 if this is a function parameter, otherwise -1
-    //Parse and execution time data
-    Version: Integer; //Version is incremented every time the variable is written to
-                      //This (along with phi vars) enable the optimiser and code generator
-                      //to track what is stored in the variable at any point and
-                      //optimise appropriately
+  TVariable = class(TTypedIdentifier)
+  private
+    FAddrMode: TAddrMode;
+    FVersion: Integer;
+    FTouched: Boolean;
+    FAdjustVersionTo: Integer;
+    FValue: TImmValue;
+    FAdjustVersionFrom: Integer;
+    FAccess: TVarAccess;
+    FOffset: Integer;
 
-    //Compile time only data
-    Touched: Boolean; //Temporary data used when generating phi functions
-    AdjustVersionFrom: Integer;  //Temp data used while doing branch fixups.
-                            //If a variable read has the given version index...
-    AdjustVersionTo: Integer;   //...we need to change that read to reference this version.
+    procedure Initialise(AAddrMode: TAddrMode);
+  protected
+    function GetIsConst: Boolean;virtual;
+  public
+    constructor Create(const AName: String; AOwner: TScope;AUserType: TUserType;AAddrMode: TAddrMode);
+    constructor CreateUnnamed(AOwner: TScope; AUserType: TUserType; AAddrMode: TAddrMode);
+    constructor CreateHidden(AOwner: TScope; AUserType: TUserType;AAddrMode: TAddrMode);
 
-    //Execution time only data
-    Value: TImmValue; //Value (read from emulator)
+    function IdentType: TIdentType;override;
 
-    //The Name can *only* be set if it is blank. *Only* to be used where the
-    //variable has to be created where the name is unknown, and the name is
-    //assigned immediately after.
-    procedure SetName(AName: String);
+    //There are times when a variable must be created before the type is determined.
+    //In such cases use this function will assign a type.
+    //The method is to be used only with extreme caution.
+    //This function will fail if UserType is already assigned
+    procedure AssignType(AUserType: TUserType);
 
-    //You probably want to read UserType instead
-    function VarType: TVarType;
-
-    //Set the variables type. Only allowed in the variale is the last on the list.
-    //*Only* to be used where the variable needs to be created where the eventual type
-    //is unknown, and the type is assigned immediately after.
-    procedure SetType(AUserType: TUserType);
-
-    //Incremenents the Version of a variable and returns the new value
+    //Increments the Version of a variable and returns the new value
     //Does not increment if SkipMode is enabled
-    function IncVersion: Integer;
+    function IncVersion: Integer;virtual;
 
-
+    //----Phi function processing
 
     //Mark a variable as 'touched'
     procedure Touch;
 
-    //Returns the number of bytes to be allocated on the stack for storing this
-    //variable as a parameter. Returns 0 if the variable's data is not passed via the
-    //stack
-    function GetSizeAsParam: Integer;
+    //----Code generation
+
+    //Returns the name of the variable used in Assemby code
+    function GetAsmName: String;
 
     //Returns true if the variable requires storage, false if not.
     //Varaibles don't require storage include:
@@ -103,138 +79,103 @@ type
     // - ShadowOf variables
     function RequiresStorage: Boolean;
 
-    //Returns the name of the variable used in Assemby code
-    function GetAsmName: String;
+    //Returns the number of bytes to be allocated on the stack for storing this
+    //variable as a local variable. Returns 0 if the variable's data is not passed via the
+    //stack
+    function GetStackBytesAsLocal: Integer;virtual;
 
-    //If TypeSummary is true, only lists name and type,
-    //otherwise also lists location/offset and value
-    function ToString(TypeSummary: Boolean): String;
+    //---UI
+    function Description: String;
+    function ToString: String;override;
+
+    //---Properties
+
+    //Addressing mode - where is the data stored and how to access it
+    property AddrMode: TAddrMode read FAddrMode;
+    //Access type for parameters (paValue for locals)
+    property Access: TVarAccess read FAccess;
+    //True if the variable is a CONST argument. If so it must not be written to
+    //and must not be passed as an argument to any function which may modify it's
+    //value (ie. VAR or OUT access)
+    property IsConst: Boolean read GetIsConst;
+    //If the Storage is:
+    //vsOffset, this is the offset from the stack base address
+    //vsFixed: the offset from the start of the Data segment
+    property Offset: Integer read FOffset write FOffset;
+
+    //===Parse and execution time data
+
+    //Version is incremented every time the variable is written to. This (along
+    //with phi vars) enable the optimiser and code generator to track what is
+    //stored in the variable at any point and optimise appropriately
+    property Version: Integer read FVersion;
+
+    //===Data used only for SSA/Phi variable generation
+
+    //Temporary data used when generating phi functions
+    property Touched: Boolean read FTouched write FTouched;
+    //Temp data used while doing branch fixups.
+    //If a variable read has the given version index...
+    property AdjustVersionFrom: Integer read FAdjustVersionFrom write FAdjustVersionFrom;
+    //...we need to change that read to reference this version.
+    property AdjustVersionTo: Integer read FAdjustVersionTo write FAdjustVersionTo;
+
+    //===Execution time only data
+
+    //Value (read from emulator)
+    property Value: TImmValue read FValue write FValue;
   end;
 
-type
-  PVarList = ^TVarList;
-  TVarList = record
-    Items: TList<PVariable>;
-    ParamOffset: Integer; //Current highest parameter offset (from stack base)
-                          //Used when assigning parameter offsets
-
-    //---------------SkipMode
-    //These two functions are used by SkipMode to enable
-    //unwanted code to be removed
-    //TODO: SkipMode is to be replace by a parser which can skip code. (This will be
-    //required for conditional compilation ($idef etc)
-    MarkPosition: Integer;  //For clunky undos of code (to be replaced TODO)
-
-    //Sets a marker at the current var list position
-    procedure Mark;
-    //Removes any vars generated after the marker set by VarMark
-    procedure Rollback;
-
-    procedure Initialise;
-    //Disposes of an owned data.
-    procedure Clear;
-    //Returns the number of variables in the current list/scope
-    function GetCount: Integer;
-
-    //-----------Creating
-    //Used when adding a variable. If the name has already been used (ie when the
-    //same name is used within multiple blocks) returns a unique value which can
-    //be used to disambiguate the given variable
-    function Disambiguate(const AName: String): Integer;
-    //PRIVATE!!
-    function AddInt(const AName: String;UserType: TUserType;AddrMode: TAddrMode): PVariable;
-
+  TVars = class
+  private
+    FSkipMode: Boolean;
+  public
     //Creates a new, uniquely named variable. If a variable with that name already exists
     //returns nil. Uses storage type for current Scope (and/or Func)
-    function Add(const AName: String;UserType: TUserType): PVariable;
+    class function Add(const AName: String;AUserType: TUserType): TVariable;
+    class function AddWithAddrMode(const AName: String;AUserType: TUserType;AAddrMode: TAddrMode): TVariable;
     //Creates a variable with no name. The name *must* be assigned as soon as they
     //are known.
-    function AddUnnamed(UserType: TUserType): PVariable;
-    function AddHidden(UserType: TUserType): PVariable;
-    //Adds a variable for a function parameter. To be called at the beginning of a function
-    //declaration.
-    //If Access is vsResult: Results are parsed as local variable to the function. The
-    //Offset property for them will be initiated to -1, unless PassDataIn is True in
-    //which case the address of tha data will be passed in the parameters and no data
-    //will be returned in registers
-    function AddParameter(const AName: String;UserType: TUserType;AddrMode: TAddrMode;
-      AIsResult, PassDataIn: Boolean): PVariable;
+    class function AddUnnamed(AUserType: TUserType): TVariable;
+    //Adds a hidden variable - one which the user is unaware of. Used within expressions etc.
+    class function AddHidden(AUserType: TUserType): TVariable;
+    class function AddHiddenWithAddrMode(AUserType: TUserType;AAddrMode: TAddrMode): TVariable;
 
-    //Returns the number of bytes required for local variables in the current scope
-    //NOTE: Result is considered a local variable, not a parameter
-    function GetLocalsByteSize: Integer;
-    //Returns number of bytes required for stack parameters by this scope.
-    //Result is not a parameter.
-    function GetParamsByteSize: Integer;
-
-    //--------------Finding/accessing
+    //--------------Finding/Accessing
     //Find a variable by name across all current scopes.
-    function FindByNameAllScopes(const AName: String): PVariable;
-
-    //Find in current scope only
-    function FindByFuncParamIndex(Index: Integer): PVariable;
-
-    //Finds the Result variable in the current Scope.
-    //If there is no result variable, returns nil
-    function FindResult: PVariable;
-
-    //Find the variable for the function argument with the given index.
-    //Returns nil if not found
-    function FindVarForArg(Index: Integer): PVariable;
-
-    //If we own V, returns it's index, otherwise returns -1
-    function IndexOf(V: PVariable): Integer;
-
-    function IndexToData(Index: Integer): PVariable;
-
-    //------------CodeGen
-
-    //Set the Offset values for local, relative, variables.
-    procedure SetOffsets;
-
-    //Find a variable by name only searching the current Scope (ie list).
-    function FindByNameInScope(const AName: String): PVariable;
-
-    //---Scopes
-
-    //Scope depth has been DECrememented. Any in scope variable with higher scope depth
-    //need to go out of scope
-    procedure ScopeDepthDecced(NewDepth: Integer);
-
-    //-----------UI related
-
-    //Prepare all variables for execution
-    procedure ExecClear;
-
-    procedure ToStrings(S: TStrings;TypeSummary: Boolean);
-
+    class function FindByNameAllScopes(const AName: String): TVariable;
 
     //-----------------------------Phis and fixups
-    //Clear the Touched flag for every variable
-    procedure ClearTouches;
-    procedure ClearAdjust;
+
+    //Clear the Touched flag for all variables in local scope
+    class procedure ClearTouches;
+    class procedure ClearAdjust;
+
+    //=====
+    //Skip mode enables IL generation to easily be skipped or rolled back by
+    //stopping certain internal actions. Skip mode is used to avoid generating code
+    //which will never be exectuted
+
+    //Enable parameter enables code to conditionally enter skip mode without
+    //caring whether the skip mode is actually needed
+    //Enables Skip mode if Enable is true.
+    //Does nothing if Enable is False
+    //Either way, returns previous skip mode. This value MUST be passed to SkipModeEnd
+    function SkipModeStart(Enable: Boolean): Boolean;
+    //To be called at the end of Skip mode. PrevSkipMode MUST be the value returned by the
+    //previous call to SkipModeStart
+    procedure SkipModeEnd(PrevSkipMode: Boolean);
+
+    property SkipMode: Boolean read FSkipMode;
   end;
 
 procedure InitialiseVars;
 
-//ONLY used by Def.Functions.
-//Returns the variables asm name (ie label) given the names of the scope and
-//variable.
-//If VarName is empty then index will be appended (used for temp/hidden vars)
-//function VarGetAsmName(const ScopeName, VarName: String;Index: Integer): String;
-
-//------------Scope related
-
-//These routines are called by the Scopes routines to create, clear and set Scopes
-function CreateVarList: PVarList;
-procedure SetCurrentVarList(List: PVarList);
-
-//The currently active variable list
-var Vars: PVarList;
+var Vars: TVars;
 
 implementation
 uses {IOUtils,}
-  Def.Globals, Def.Scopes, Def.ScopesEX,
+  Def.Globals, Def.Scopes, Def.IL,
   Parse.Base;
 
 { EAddrMode }
@@ -244,124 +185,103 @@ begin
   inherited Create('Invalid addressing mode');
 end;
 
-const
-  //Offset from IX to the first parameter
-  //IX+4... is parameters
-  //IX+2 is return address
-  //IX+0 is previous IX
-  //< IX is local variables
-  iStackOffsetForFirstParam = +4;
-
-procedure InitialiseVars;
-begin
-  Vars := nil;
-end;
-
-function CreateVarList: PVarList;
-begin
-  New(Result);
-  Result.Initialise;
-  Result.MarkPosition := -1;
-end;
-
-procedure SetCurrentVarList(List: PVarList);
-begin
-  Vars := List;
-end;
-
 { TVariable }
 
-procedure TVariable.SetName(AName: String);
+procedure TVariable.AssignType(AUserType: TUserType);
 begin
-  Assert(Name = '', 'Variable.SetName must only be called when Name is blank');
-  //TODO: This function should get removed when the VAR declaration code gets rewritten
-  //to pre-declare all variables before any expression is parsed. Until then we
-  //must test we're still in the correct Var list
-  Assert(Vars.IndexOf(@Self) >= 0, 'Variable.SetName called from wrong scop');
-  Disambiguate := Vars.Disambiguate(AName);
-
-  Name := AName;
+  Assert(AUserType = UserType, 'Already done!!');
+//  Assert(UserType = nil);
+//  UpdateUserType(AUserType);
 end;
 
-procedure TVariable.SetType(AUserType: TUserType);
+constructor TVariable.Create(const AName: String; AOwner: TScope;AUserType: TUserType;
+  AAddrMode: TAddrMode);
 begin
-  //Last item in current list??
-  Assert(@Self = Vars.Items[Vars.Items.Count-1], 'VarSetType must only be called when it is the last in the VarList');
-  UserType := AUserType;
+  inherited Create(AName, AOwner, AUserType);
+  Initialise(AAddrMode);
 end;
 
-function VarInList(AVar: PVariable): Boolean;
-var V: PVariable;
+constructor TVariable.CreateHidden(AOwner: TScope; AUserType: TUserType;
+  AAddrMode: TAddrMode);
+var LName: String;
 begin
-  for V in Vars.Items do
-    if V = AVar then
-      EXIT(True);
-  Result := False;
+  LName := '_temp' + Integer(Self).ToString;
+  Create(LName, AOwner, AUserType, AAddrMode);
 end;
 
-function VarToScope(V: PVariable): PScope;
-var OldScope: PScope;
-  Done: Boolean;
+constructor TVariable.CreateUnnamed(AOwner: TScope; AUserType: TUserType;
+  AAddrMode: TAddrMode);
 begin
-  OldScope := GetCurrentScope;
+  Create('', AOwner, AUserType, AAddrMode);
+end;
 
-  Result := nil;
-  repeat
-    if VarInList(V) then
-    begin
-      Result := GetCurrentScope;
-      Done := True;
-    end
-    else
-      Done := not SetParentScope;
-  until Done;
+function TVariable.Description: String;
+begin
+  Result := UserType.Description + ' //' + GetAsmName + ': ';
 
-  SetCurrentScope(OldScope);
+//  Result := Result + AddrModeToString + ' ';
+  case AddrMode of
+    amStatic, amStaticRef:
+      if Offset <> -1 then
+      begin
+        Result := Result + '@'+IntToHex(Offset, 4).Tolower;
+        if Value.UserType <> nil then
+          Result := Result + ' = ' + Value.ToString;
+      end;
+    amStack, amStackRef:
+      //vsOffset
+      if Offset < 0 then
+        Result := Result + IntToStr(Offset)
+      else
+        Result := Result + '+' + IntToStr(Offset);
+  else
+    Assert(False);
+  end;
 end;
 
 function TVariable.GetAsmName: String;
-var Scope: PScope;
-  Index: Integer;
-  LName: String;
 begin
-  //Find the Scope which 'owns' the variable (we need to scope name)
-  Scope := FindScopeForVar(@Self, Index);
-  Assert(Scope <> nil, 'Scope not found (for variable)');
-
-  if Name = '' then
-    LName := '_temp'
-  else
-    LName := Name;
-  Result := '_v_' + Scope.Name + '_' + LName;
-
-  //Disambiguate allows us to uniquify the label name within the scope - important due
-  //to the ability to declare variables inline, which means we might end up with
-  //multiple variables with the same name.
-  //We mustn't do this for function argument variables because they are (very occasionally)
-  //used from outside out scope (ie by BlockCopy operations for Pointered types)
-  if Disambiguate <> -1 then
-    Result := Result + '.' + Disambiguate.ToString;
+  Result := '_v_' + Owner.Name + '.' + Name;
 end;
 
-function TVariable.GetSizeAsParam: Integer;
+function TVariable.GetIsConst: Boolean;
 begin
-  case AddrMode of
-    amStatic, amStaticRef: Result := 0;  //Not passed on stack
-    amStack:  //Passed as data
-      Result := UserType.DataSize;
-    amStackRef: //Passed as pointer
-      Result := GetVarTypeSize(vtPointer);
-  else
-    raise EAddrMode.Create;
-  end;
+  Result := False;
+end;
+
+function TVariable.GetStackBytesAsLocal: Integer;
+begin
+  if RequiresStorage then
+    if Access in [vaLocal]then
+      case AddrMode of
+        amStatic, amStaticRef: Result := 0;
+        amStack: Result :=  UserType.DataSize;
+        amStackRef: Result := GetVarTypeSize(vtPointer);
+      else
+        raise EAddrMode.Create;
+      end;
+end;
+
+function TVariable.IdentType: TIdentType;
+begin
+  Result := itVariable;
 end;
 
 function TVariable.IncVersion: Integer;
 begin
-  Assert(not IsConst);
   Result := Version + 1;
-  if not SkipMode then
-    Version := Result;
+  if not Vars.SkipMode then
+    FVersion := Result;
+end;
+
+procedure TVariable.Initialise(AAddrMode: TAddrMode);
+begin
+  FAddrMode := AAddrMode;
+  FVersion := 0;
+  FTouched := False;
+  FOffset := -1;
+  FAccess := vaLocal;
+  Value.CreateTyped(UserType, 0);
 end;
 
 function TVariable.RequiresStorage: Boolean;
@@ -369,354 +289,126 @@ begin
   Result := True;
 end;
 
-function TVariable.ToString(TypeSummary: Boolean): String;
+function TVariable.ToString: String;
 begin
-  if AddrMode = amStatic then
-  begin
-    if TypeSummary then
-      Result := ''
-    else
-      Result := '@'+IntToHex(Offset, 4).Tolower
-  end
-  //vsOffset
-  else if Offset < 0 then
-    Result := {'-' +} IntToStr(Offset){IntToHex(0-Offset, 2)} + ' '
-  else
-    Result := '+' + IntToStr(Offset){IntToHex(Offset, 2)} + ' ';
-  Result := Result + GetAsmName + ': ' + UserType.Description;
-  if not TypeSummary then
-    Result := Result + ' = ' + Value.ToString;
+  Result := 'var ' + Name + ': ' + Description;
 end;
 
 procedure TVariable.Touch;
 begin
-  Touched := True;
+  FTouched := True;
 end;
 
-function TVariable.VarType: TVarType;
+{ TVars }
+
+class function TVars.Add(const AName: String; AUserType: TUserType): TVariable;
 begin
-  Assert(Assigned(UserType));
-  Result := UserType.VarType;
+  Result := AddWithAddrMode(AName, AUserType, GetCurrentScope.GetLocalAddrMode);
 end;
 
-
-
-{ TVarList }
-
-//Doesn't check whether a variable with that name already exists!
-function TVarList.AddInt(const AName: String;UserType: TUserType;AddrMode: TAddrMode): PVariable;
+class function TVars.AddHidden(AUserType: TUserType): TVariable;
 begin
-  New(Result);
-  Result.Disambiguate := -1;
-  if AName <> '' then
-    Result.Disambiguate := Vars.Disambiguate(AName);
-
-  Result.Name := AName;
-  Result.UserType := UserType;
-  Result.Depth := GetCurrentScope.Depth;
-  Result.InScope := True;
-  Result.AddrMode := AddrMode;
-  Result.FuncParamIndex := -1;
-  Result.Version := 0;
-  Result.Touched := False;
-  Result.Offset := -1;
-  Result.Access := vaLocal;
-  Result.IsConst := False;
-  Result.IsParam := False;
-  Result.IsResult := False;
-  Vars.Items.Add(Result);
-
-  Result.Value.CreateTyped(UserType, 0);
+  Result := AddHiddenWithAddrMode(AUserType, GetCurrentScope.GetLocalAddrMode);
 end;
 
+class function TVars.AddHiddenWithAddrMode(AUserType: TUserType;
+  AAddrMode: TAddrMode): TVariable;
+var Scope: TScope;
+begin
+  Scope := GetCurrentScope.BlockScope;
+  Result := TVariable.CreateHidden(Scope, AUserType, AAddrMode);
+  Scope.Add(Result);
+end;
 
-function TVarList.Add(const AName: String; UserType: TUserType): PVariable;
+class function TVars.AddUnnamed(AUserType: TUserType): TVariable;
+var Scope: TScope;
+begin
+  Scope := GetCurrentScope.BlockScope;
+  Result := TVariable.CreateUnnamed(Scope, AUserType, GetCurrentScope.GetLocalAddrMode);
+  Scope.Add(Result);
+end;
+
+class function TVars.AddWithAddrMode(const AName: String; AUserType: TUserType;
+  AAddrMode: TAddrMode): TVariable;
+var Scope: TScope;
 begin
   Assert(AName <> '');
-  if GetCurrentScope.Search(AName).IdentType <> itUnknown then
+  if GetCurrentScope.SearchUpLocal(AName).IdentType <> itUnknown then
     Result := nil
   else
-    Result := AddInt(AName, UserType, GetCurrentScope.GetLocalAddrMode);
-end;
-
-function TVarList.AddHidden(UserType: TUserType): PVariable;
-begin
-  Result := AddInt('',UserType, GetCurrentScope.GetLocalAddrMode);
-  Result.Name := '_temp' + Items.IndexOf(Result).ToString;
-//  Result.SetName('%'+IntToStr(Index));
-end;
-
-function TVarList.AddParameter(const AName: String; UserType: TUserType;
-  AddrMode: TAddrMode; AIsResult, PassDataIn: Boolean): PVariable;
-begin
-  Result := AddInt(AName, UserType, AddrMode);
-  Result.IsResult := AIsResult;
-  Result.IsParam := PassDataIn or not AIsResult;
-
-  //If variable is being stored on the stack we need to ascertain the offset of
-  //the variable from SP. Otherwise we set offset to -1 to signify no offset has
-  //yet been calculated.
-  if (AddrMode = amStatic) or (AIsResult and not PassDataIn) then
-    Result.Offset := -1
-  else
   begin
-    Result.Offset := ParamOffset;
-    //TODO: Depends of AddrMode and ?? (eg Pass by value of pointered types)
-    ParamOffset := ParamOffset + Result.GetSizeAsParam;
+    Scope := GetCurrentScope.BlockScope;
+    Result := TVariable.Create(AName, Scope, AUserType, AAddrMode);
+    Scope.Add(Result);
   end;
 end;
 
-function TVarList.AddUnnamed(UserType: TUserType): PVariable;
+class procedure TVars.ClearAdjust;
+var Scope: TScope;
 begin
-  Result := AddInt('', UserType, GetCurrentScope.GetLocalAddrMode);
-end;
-
-procedure TVarList.Clear;
-var V: PVariable;
-begin
-  for V in Items do
-    Dispose(V);
-  MarkPosition := -1;
-  Items.Free;
-  Items := nil;
-end;
-
-procedure TVarList.ClearAdjust;
-var V: PVariable;
-begin
-  for V in Items do
-  begin
+  Scope := GetCurrentScope.BlockScope;
+  Assert(Scope is TCodeBlock);
+  (Scope as TCodeBlock).EachAllLevel<TVariable>(
+    procedure(V: TVariable)
+    begin
     V.AdjustVersionFrom := -1;
     V.AdjustVersionTo := -1;
-  end;
+    end);
 end;
 
-procedure TVarList.ClearTouches;
-var V: PVariable;
+class procedure TVars.ClearTouches;
+var Scope: TScope;
 begin
-  for V in Items do
-    V.Touched := False;
+  Scope := GetCurrentScope.BlockScope;
+  Assert(Scope is TCodeBlock);
+  (Scope as TCodeBlock).EachAllLevel<TVariable>(
+    procedure(V: TVariable)
+    begin
+      V.Touched := False;
+    end);
 end;
 
-function TVarList.Disambiguate(const AName: String): Integer;
-var I: Integer;
-begin
-  Result := -1;
-  for I := 0 to Items.Count-1 do
-    if CompareText(Items[I].Name, AName) = 0 then
-      Result := Items[I].Disambiguate + 1;
-end;
-
-procedure TVarList.ExecClear;
-var V: PVariable;
-begin
-  for V in Items do
-  begin
-    V.Value := TImmValue.CreateInteger(0);
-    V.UserType := nil;
-    V.Version := 0;
-  end;
-end;
-
-function TVarList.FindByFuncParamIndex(Index: Integer): PVariable;
-var I: Integer;
-begin
-  for I := 0 to Items.Count-1 do
-    if Items[I].FuncParamIndex = Index then
-      EXIT(Items[I]);
-
-  Result := nil;
-end;
-
-function TVarList.FindByNameAllScopes(const AName: String): PVariable;
+class function TVars.FindByNameAllScopes(const AName: String): TVariable;
 var IdentData: TIdentData;
 begin
-  IdentData := GetCurrentScope.SearchAllInScope(AName);
+  IdentData := GetCurrentScope.SearchUpAll(AName);
   if IdentData.IdentType = itVariable then
-    EXIT(IdentData.V);
+    EXIT(IdentData.Value as TVariable);
 
   Result := nil;
 end;
 
-function TVarList.FindByNameInScope(const AName: String): PVariable;
-var I: Integer;
+procedure TVars.SkipModeEnd(PrevSkipMode: Boolean);
 begin
-  //Result pseudo variable
-  if CompareText(AName, 'Result') = 0 then
+  //Only when disabling SkipMode
+  if FSkipMode and not PrevSkipMode then
   begin
-    for I := 0 to Items.Count-1 do
-      if Items[I].IsResult then
-        EXIT(Items[I]);
-    EXIT(nil);
+    ILRollback;
+//    Vars.Rollback;
   end;
-
-  for I := 0 to Items.Count-1 do
-    if (CompareText(Items[I].Name, AName) = 0) and Items[I].InScope then
-      EXIT(Items[I]);
-
-  Result := nil;
+  FSkipMode := PrevSkipMode;
 end;
 
-function TVarList.FindResult: PVariable;
+function TVars.SkipModeStart(Enable: Boolean): Boolean;
 begin
-  for Result in Items do
-    if Result.IsResult then
-      EXIT;
-
-  Result := nil;
-end;
-
-function TVarList.FindVarForArg(Index: Integer): PVariable;
-begin
-  for Result in Items do
-    if Result.FuncParamIndex = Index then
-      EXIT;
-
-  Result := nil;
-end;
-
-function TVarList.GetCount: Integer;
-begin
-  Result := Items.Count;
-end;
-
-function TVarList.GetLocalsByteSize: Integer;
-var V: PVariable;
-begin
-  Result := 0;
-  for V in Items do
-    if (V.Access in [vaLocal]) or V.IsResult then
-      if V.RequiresStorage then
-        case V.AddrMode of
-          amStatic, amStaticRef: ;  //Ignore
-          amStack: Result := Result + V.UserType.DataSize;
-          amStackRef: Result := Result + GetVarTypeSize(vtPointer);
-        else
-          raise EAddrMode.Create;
-        end;
-end;
-
-function TVarList.GetParamsByteSize: Integer;
-var V: PVariable;
-begin
-  Result := 0;
-  for V in Items do
-    if V.IsParam then
-      if V.RequiresStorage then
-        case V.AddrMode of
-          amStatic, amStaticRef: ;  //Ignore
-          amStack: Result := Result + V.UserType.RegSize;
-          amStackRef: Result := Result + GetVarTypeSize(vtPointer);
-        else
-          raise EAddrMode.Create;
-        end;
-end;
-
-function TVarList.IndexOf(V: PVariable): Integer;
-begin
-  Result := Items.IndexOf(V);
-end;
-
-function TVarList.IndexToData(Index: Integer): PVariable;
-begin
-  Result := Items[Index];
-end;
-
-procedure TVarList.Initialise;
-begin
-  Items := TList<PVariable>.Create;
-  MarkPosition := -1;
-  ParamOffset := iStackOffsetForFirstParam;
-end;
-
-procedure TVarList.Mark;
-begin
-  Assert(MarkPosition = -1);
-  MarkPosition := Items.Count;
-end;
-
-procedure TVarList.Rollback;
-begin
-  Assert(MarkPosition <> -1);
-  while Items.Count > MarkPosition do
-  begin
-    Dispose(Items[Items.Count-1]);
-    Items.Delete(Items.Count-1);
+  //Only when turning on skip mode!
+  if Enable and not SkipMode then
+  begin //Mark current positions
+    ILMark;
+(*    Vars.Mark;*)
   end;
-
-  MarkPosition := -1;
+  Result := SkipMode;
+  if Enable then
+    FSkipMode := True;
 end;
 
-procedure TVarList.ScopeDepthDecced(NewDepth: Integer);
-var I: Integer;
+procedure InitialiseVars;
 begin
-  I := Items.Count-1;
-  while (I >= 0) and (Items[I].Depth > NewDepth) do
-  begin
-    Items[I].InScope := False;
-    dec(I);
-  end;
+  if Vars <> nil then
+    Vars.Free;
+  Vars := TVars.Create;
 end;
 
-
-procedure TVarList.SetOffsets;
-
-  procedure DoSetOffsets(var Offset: Integer;PointeredTypes: Boolean);
-  var V: PVariable;
-    Size: Integer;
-  begin
-    for V in Items do
-    begin
-      //Ignore parameters (which already have offsets assigned)
-      //Ignore variable with global/absolute storage addresses
-      if (V.Offset = -1) then
-      begin
-        Size := V.GetSizeAsParam;
-
-        if Size <> 0 then
-          //TODO: Ignore if optimised away
-          case V.AddrMode of
-            amStatic, amStaticRef: ;  //Ignore
-            amStack:
-              if IsPointeredVarType(V.VarType) = PointeredTypes then
-              begin
-                Offset := Offset - Size;
-                V.Offset := Offset;
-              end;
-            amStackRef:
-            begin
-              //If StackPtr we need storage for a pointer
-              Offset := Offset - Size;
-              V.Offset := Offset;
-            end;
-          else
-            raise EAddrMode.Create;
-          end;
-      end;
-    end;
-  end;
-
-var Offset: Integer;
-begin
-  Offset := 0;
-  //Offsets for Register types and StackRef addr mode
-  DoSetOffsets(Offset, False);
-  //Generate offsets for Pointered Types
-  //They need to be stored beyond other variables due to limits in index register
-  //offset ranges. (They will be accessed using explicit additions to/from stack base)
-  DoSetOffsets(Offset, True);
-end;
-
-procedure TVarList.ToStrings(S: TStrings; TypeSummary: Boolean);
-var I: Integer;
-begin
-  S.Clear;
-  if TypeSummary then
-    S.Add('Variables summary:')
-  else
-    S.Add('Variables dump:');
-  for I := 0 to Items.Count-1 do
-    S.Add(IntToStr(I) + ': ' + Items[I].ToString(TypeSummary));
-end;
-
+initialization
+  Vars := nil
 end.

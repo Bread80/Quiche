@@ -8,7 +8,7 @@ type
   TScopeHandle = Pointer;
   TFunctionHandle = Pointer;
 
-  TUserType = class(TIdentifier)
+  TUserType = class(TDeclaredItem)
   private
     FSynonymOf: TUserType;
     FVarType: TVarType;
@@ -88,7 +88,7 @@ type
       ALow, AHigh: Integer);
   end;
 
-  TEnumItem = class(TIdentifier)
+  TEnumItem = class(TDeclaredItem)
   private
     FIndex: Integer;
     FUserType: TUserType;
@@ -297,7 +297,7 @@ type
 
 
 
-  TTypedIdentifier = class(TIdentifier)
+  TTypedIdentifier = class(TDeclaredItem)
   private
     FUserType: TUserType;
     function GetVarType: TVarType;
@@ -456,10 +456,11 @@ end;
 
 function TUserType.ToString: String;
 begin
+  Result := 'type ';
   if Name <> '' then
-    Result := Name
+    Result := Result + Name
   else
-    Result := '<anon>';
+    Result := Result + '<anon>';
   Result := Result + ' = ' + DefinitionString;
 end;
 
@@ -622,8 +623,8 @@ begin
   Scope := GetCurrentScope;
   for I := 0 to Length(Items)-1 do
   begin
-    EnumItems[I] := TEnumItem.Create(Items[I], Scope.ScopeEX, Self, I);
-    Scope.ScopeEX.Add(EnumItems[I]);
+    EnumItems[I] := TEnumItem.Create(Items[I], Scope.BlockScope, Self, I);
+    Scope.BlockScope.Add(EnumItems[I]);
   end;
 end;
 
@@ -738,28 +739,27 @@ end;
 
 function TRecordType.DataSize: Integer;
 var LScope: PScope;
-  I: Integer;
-  V: PVariable;
+  Return: Integer;
   NewSize: Integer;
 begin
-  Result := 0;
+  Return := 0;
   LScope := ScopeHandleToScope(Scope);
-  for I := 0 to LScope.VarList.GetCount-1 do
-  begin
-    V := LScope.VarList.IndexToData(I);
-    //V.Offset is set when we parse the VarDef. When we add variant records some
-    //fields will overlap (ie each offset will not be contiguous)
-    NewSize := V.Offset + V.UserType.DataSize;
-    if NewSize > Result then
-      Result := NewSize;
-  end;
+  LScope.BlockScope.EachDown<TVariable>(
+    procedure(V: TVariable)
+    begin
+      //V.Offset is set when we parse the VarDef. When we add variant records some
+      //fields will overlap (ie each offset will not be contiguous)
+      NewSize := V.Offset + V.UserType.DataSize;
+      if NewSize > Return then
+        Return := NewSize;
+    end);
+
+  Result := Return;
 end;
 
 function TRecordType.DefinitionString: String;
-var
+var S: String;
   PrevScope: PScope;
-  I: Integer;
-  V: PVariable;
 begin
   Assert(VarType = vtRecord);
   Result := 'record'#13;
@@ -767,17 +767,18 @@ begin
   PrevScope := GetCurrentScope;
   SetCurrentScope(ScopeHandleToScope(Scope));
 
-  for I := 0 to Vars.GetCount-1 do
-  begin
-    V := Vars.IndexToData(I);
-    Assert(Assigned(V.UserType));
-    Result := Result + '  +' + V.Offset.ToString + ' ' +
-      V.Name + ': ' + V.UserType.DefinitionString + #13;
-  end;
+  S := '';
+  GetCurrentScope.BlockScope.EachAllLevel<TVariable>(
+    procedure(V: TVariable)
+    begin
+      Assert(Assigned(V.UserType));
+      S := S + '  +' + V.Offset.ToString + ' ' +
+        V.Name + ': ' + V.UserType.DefinitionString + #13;
+    end);
 
   SetCurrentScope(PrevScope);
 
-  Result := Result + 'end';
+  Result := S + 'end';
 end;
 
 { TFunctionType }
@@ -1363,7 +1364,7 @@ function IdentToType(const Ident: String): TUserType;
 var
   IdentData: TIdentData;
 begin
-  IdentData := GetCurrentScope.SearchAllInScope(Ident, False);
+  IdentData := GetCurrentScope.SearchUpAll(Ident, False);
   if IdentData.IdentType = itUnknown then
     EXIT(nil);
   if IdentData.IdentType <> itType then
@@ -1378,39 +1379,39 @@ class function TTypes.CreateArrayType(Kind: TArrayKind; Size: TArraySize;
    BoundsType: TOrdinalType; LengthOrCapacity: Integer; OfType: TUserType): TArrayType;
 begin
   case Kind of
-    atArray: Result := TPascalArrayType.Create('', GetCurrentScope.ScopeEX, Size, BoundsType, OfType);
-    atVector: Result := TVectorType.Create('', GetCurrentScope.ScopeEX, Size, LengthOrCapacity, OfType);
-    atList: Result := TListType.Create('', GetCurrentScope.ScopeEX, Size, LengthOrCapacity, OfType);
+    atArray: Result := TPascalArrayType.Create('', GetCurrentScope.BlockScope, Size, BoundsType, OfType);
+    atVector: Result := TVectorType.Create('', GetCurrentScope.BlockScope, Size, LengthOrCapacity, OfType);
+    atList: Result := TListType.Create('', GetCurrentScope.BlockScope, Size, LengthOrCapacity, OfType);
   else
     raise EVarType.Create;
   end;
-  GetCurrentScope.ScopeEX.Add(Result);
+  GetCurrentScope.BlockScope.Add(Result);
 end;
 
 class function TTypes.CreateBooleanType(const AName: String;
   AVarType: TVarType): TBooleanType;
 begin
-  Result := TBooleanType.Create(AName, GetCurrentScope.ScopeEX, AVarType);
-  GetCurrentScope.ScopeEX.Add(Result);
+  Result := TBooleanType.Create(AName, GetCurrentScope.BlockScope, AVarType);
+  GetCurrentScope.BlockScope.Add(Result);
 end;
 
 class function TTypes.CreateEnumeration(EnumItems: TArray<String>): TEnumeration;
 begin
-  Result := TEnumeration.Create('', GetCurrentScope.ScopeEX, EnumItems);
-  GetCurrentScope.ScopeEX.Add(Result);
+  Result := TEnumeration.Create('', GetCurrentScope.BlockScope, EnumItems);
+  GetCurrentScope.BlockScope.Add(Result);
 end;
 
 class function TTypes.CreateFunctionType(AScope: TScopeHandle): TFunctionType;
 begin
-  Result := TFunctionType.Create('', GetCurrentScope.ScopeEX, AScope);
-  GetCurrentScope.ScopeEX.Add(Result);
+  Result := TFunctionType.Create('', GetCurrentScope.BlockScope, AScope);
+  GetCurrentScope.BlockScope.Add(Result);
 end;
 
 class function TTypes.CreateIntegerType(const AName: String;
   AVarType: TVarType; ALow, AHigh: Integer): TIntegerType;
 begin
-  Result := TIntegerType.Create(AName, GetCurrentScope.ScopeEX, AVarType, ALow, AHigh);
-  GetCurrentScope.ScopeEX.Add(Result);
+  Result := TIntegerType.Create(AName, GetCurrentScope.BlockScope, AVarType, ALow, AHigh);
+  GetCurrentScope.BlockScope.Add(Result);
 end;
 
 class function TTypes.CreateIntegerType(AVarType: TVarType; ALow,
@@ -1422,45 +1423,45 @@ end;
 class function TTypes.CreateOrdinalType(const AName: String;
   AVarType: TVarType; ALow, AHigh: Integer): TOrdinalType;
 begin
-  Result := TOrdinalType.Create(AName, GetCurrentScope.ScopeEX, AVarType, ALow, AHigh);
-  GetCurrentScope.ScopeEX.Add(Result);
+  Result := TOrdinalType.Create(AName, GetCurrentScope.BlockScope, AVarType, ALow, AHigh);
+  GetCurrentScope.BlockScope.Add(Result);
 end;
 
 class function TTypes.CreateRealType(const AName: String;
   AVarType: TVarType): TRealType;
 begin
-  Result := TRealType.Create(AName, GetCurrentScope.ScopeEX, AVarType);
-  GetCurrentScope.ScopeEX.Add(Result);
+  Result := TRealType.Create(AName, GetCurrentScope.BlockScope, AVarType);
+  GetCurrentScope.BlockScope.Add(Result);
 end;
 
 class function TTypes.CreateRecordType(AScope: TScopeHandle): TRecordType;
 begin
-  Result := TRecordType.Create('', GetCurrentScope.ScopeEX, AScope);
-  GetCurrentScope.ScopeEX.Add(Result);
+  Result := TRecordType.Create('', GetCurrentScope.BlockScope, AScope);
+  GetCurrentScope.BlockScope.Add(Result);
 end;
 
 class function TTypes.CreateSetType(AVarType: TVarType;AOfType: TOrdinalType): TSetMemType;
 begin
   case AVarType of
-    vtSetMem:  Result := TSetMemType.Create('', GetCurrentScope.ScopeEX, AOfType);
+    vtSetMem:  Result := TSetMemType.Create('', GetCurrentScope.BlockScope, AOfType);
   else
     raise EVarType.Create;
   end;
-  GetCurrentScope.ScopeEX.Add(Result);
+  GetCurrentScope.BlockScope.Add(Result);
 end;
 
 class function TTypes.CreateSubRange(CommonType: TOrdinalType; ALow,
   AHigh: Integer): TOrdinalType;
 begin
   if CommonType is TEnumeration then
-    Result := TEnumeration.CreateSubRange('', GetCurrentScope.ScopeEX, CommonType as TEnumeration, ALow, AHigh)
+    Result := TEnumeration.CreateSubRange('', GetCurrentScope.BlockScope, CommonType as TEnumeration, ALow, AHigh)
   else if CommonType is TIntegerType then
-    Result := TIntegerType.CreateSubRange('', GetCurrentScope.ScopeEX, TIntegerType(CommonType){!!!}, ALow, AHigh)
+    Result := TIntegerType.CreateSubRange('', GetCurrentScope.BlockScope, TIntegerType(CommonType){!!!}, ALow, AHigh)
   else if CommonType is TOrdinalType then
-    Result := TOrdinalType.CreateSubRange('', GetCurrentScope.ScopeEX, TOrdinalType(CommonType){!!!}, ALow, AHigh)
+    Result := TOrdinalType.CreateSubRange('', GetCurrentScope.BlockScope, TOrdinalType(CommonType){!!!}, ALow, AHigh)
   else
     raise Exception.Create('Unable to subrange type ' + CommonType.ClassName);
-  GetCurrentScope.ScopeEX.Add(Result);
+  GetCurrentScope.BlockScope.Add(Result);
 end;
 
 class function TTypes.CreateSynonym(const AName: String;
@@ -1471,34 +1472,34 @@ var  C: TRTTIContext;
 begin
   C := TRTTIContext.Create;
   T := C.GetType(FromType.ClassType);
-  V := T.GetMethod('CreateClone').Invoke(T.AsInstance.MetaClassType, [AName, GetCurrentScope.ScopeEX, FromType]);
+  V := T.GetMethod('CreateClone').Invoke(T.AsInstance.MetaClassType, [AName, GetCurrentScope.BlockScope, FromType]);
   Result := TUserType(V.AsObject);
-  GetCurrentScope.ScopeEX.Add(Result);
+  GetCurrentScope.BlockScope.Add(Result);
 end;
 
 class function TTypes.CreateTypeDef(const AName: String): TTypeDef;
 begin
-  Result := TTypeDef.Create(AName, GetCurrentScope.ScopeEX);
-  GetCurrentScope.ScopeEX.Add(Result);
+  Result := TTypeDef.Create(AName, GetCurrentScope.BlockScope);
+  GetCurrentScope.BlockScope.Add(Result);
 end;
 
 class function TTypes.CreateTypedPointer(AOfType: TUserType): TTypedPointer;
 begin
-  Result := TTypedPointer.Create('', GetCurrentScope.ScopeEX, AOfType);
-  GetCurrentScope.ScopeEX.Add(Result);
+  Result := TTypedPointer.Create('', GetCurrentScope.BlockScope, AOfType);
+  GetCurrentScope.BlockScope.Add(Result);
 end;
 
 class function TTypes.CreateUnboundedArrayType(const AName: String;
   Kind: TArrayKind; Size: TArraySize; OfType: TUserType): TArrayType;
 begin
   case Kind of
-    atArray: Result := TPascalArrayType.CreateUnbounded(AName, GetCurrentScope.ScopeEX, Size, OfType);
-    atVector: Result := TVectorType.CreateUnbounded(AName, GetCurrentScope.ScopeEX, Size, OfType);
-    atList: Result := TListType.CreateUnbounded(AName, GetCurrentScope.ScopeEX, Size, OfType);
+    atArray: Result := TPascalArrayType.CreateUnbounded(AName, GetCurrentScope.BlockScope, Size, OfType);
+    atVector: Result := TVectorType.CreateUnbounded(AName, GetCurrentScope.BlockScope, Size, OfType);
+    atList: Result := TListType.CreateUnbounded(AName, GetCurrentScope.BlockScope, Size, OfType);
   else
     raise EVarType.Create;
   end;
-  GetCurrentScope.ScopeEX.Add(Result);
+  GetCurrentScope.BlockScope.Add(Result);
 end;
 
 class function TTypes.CreateUnboundedArrayType(Kind: TArrayKind;
@@ -1528,7 +1529,7 @@ class function TTypes.SearchScopesForAnonTypedPointer(
   UserType: TUserType): TTypedPointer;
 var Scope: TScope;
 begin
-  Scope := GetCurrentScope.ScopeEX;
+  Scope := GetCurrentScope.BlockScope;
   while Assigned(Scope) do
   begin
     Result := SearchScopeForAnonTypedPointer(Scope, UserType);
@@ -1537,7 +1538,7 @@ begin
     Scope := Scope.Parent;
   end;
 
-  Result := SearchScopeForAnonTypedPointer(SystemScope.ScopeEX, UserType);
+  Result := SearchScopeForAnonTypedPointer(SystemScope.BlockScope, UserType);
 end;
 
 { TTypedIdentifier }

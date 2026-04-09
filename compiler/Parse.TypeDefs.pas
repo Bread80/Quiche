@@ -110,7 +110,7 @@ begin
   Result := FindCommonOrdinalType(ValueLow, ValueHigh, CommonType);
 
   Assert(CommonType is TOrdinalType, 'Oops');
-  TheType := TTypes.CreateSubRange(CommonType as TOrdinalType, ValueLow.ToInteger, ValueHigh.ToInteger);
+  TheType := TTypes.CreateSubRange(TOrdinalType(CommonType), ValueLow.ToInteger, ValueHigh.ToInteger);
 end;
 
 //If the first identifier is unknown, processes as an enumeration,
@@ -369,7 +369,7 @@ end;
 function ParseRecordFields(Scope: PScope): TQuicheError;
 var Ident: String;
   Keyword: TKeyword;
-  V: PVariable;
+  V: TVariable;
   Size: Integer;
   Offset: Integer;  //From start of record
 begin
@@ -526,7 +526,7 @@ begin
         keySET: Result := ParseSetDefinition(TheType);
         keyUNKNOWN:
         begin //Not a keyword
-          IdentData := GetCurrentScope.SearchAllInScope(Ident, True);
+          IdentData := GetCurrentScope.SearchUpAll(Ident, True);
           case IdentData.IdentType of
             itType:
             begin
@@ -633,7 +633,7 @@ begin
 
   //Check they haven't declared a member with the name of the type
   if TheType.VarType = vtEnumeration then
-    if (TheType as TEnumeration).StringToEnumIndex(TypeName) <> -1 then
+    if TEnumeration(TheType).StringToEnumIndex(TypeName) <> -1 then
       EXIT(ErrSub(qeIdentifierRedeclared, TypeName));
 
   if TheType.Name = '' then

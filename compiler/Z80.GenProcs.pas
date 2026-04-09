@@ -847,7 +847,7 @@ end;
 //Offset is the calculated offset from the base of the array. This should include
 //any bounds offset, meta data bytesize, and inlcude any calculation of the element
 //size
-procedure DoGenAddrOfArrayElemImm(V: PVariable;ArrayOffset: Integer);
+procedure DoGenAddrOfArrayElemImm(V: TVariable;ArrayOffset: Integer);
 begin
   case V.AddrMode of
     amStatic: //Direct load of calculated address into register
@@ -942,7 +942,7 @@ begin
   end;
 end;
 
-procedure DoGenAddrOfListElemImm(V: PVariable; Index, ArrayOffset: Integer);
+procedure DoGenAddrOfListElemImm(V: TVariable; Index, ArrayOffset: Integer);
 var ArrayType: TArrayType;
 begin
   ArrayType := V.UserType as TArrayType;
@@ -1029,7 +1029,7 @@ end;
 //Generate code to convert the array index (in (H)L to an offset from the array
 //base, returned in HL
 //Also bounds checks the index value as necessary
-procedure GenIndexToOffset(V: PVariable;IndexParam: PILParam;ArrayType: TPascalArrayType;
+procedure GenIndexToOffset(V: TVariable;IndexParam: PILParam;ArrayType: TPascalArrayType;
 ElementSize: Integer;PreserveDE: Boolean);
 var IndexVT: TVarType;    //Index type
 begin
@@ -1080,7 +1080,7 @@ end;
 //whichever is the most convenient for the code.
 //On exit Reg returns the register which contains the value (ie it will be unchanged
 //if a value is passed in).
-procedure GenAddrOfPlusOffset(V: PVariable;AddrMode: TAddrMode;Offset: Integer;
+procedure GenAddrOfPlusOffset(V: TVariable;AddrMode: TAddrMode;Offset: Integer;
   var Reg: TCPUReg;PreserveHL: Boolean);
 var BaseReg: TCPUReg;
   OffsetReg: TCPUReg; //Only used if we're adding/subtracting the offset
@@ -1172,7 +1172,7 @@ end;
 //Uses the addressing mode supplied in AddrMode NOT that of V. This allows dererencing
 //of pointer variables and parameters
 //The value is returned in the DE register.
-procedure DoGenAddrOfPlusOffset(V: PVariable;AddrMode: TAddrMode;Offset: Integer);
+procedure DoGenAddrOfPlusOffset(V: TVariable;AddrMode: TAddrMode;Offset: Integer);
 begin
   //At this point: HL->Indexed offset into the array
   case AddrMode of
@@ -1271,7 +1271,7 @@ end;
 //   - HL register (16-bit value),
 //   - L register (unsigned 8-bit value)
 procedure Proc_AddrOfArrayElemStaticVarSource(ILItem: PILItem);
-var V: PVariable; //The array
+var V: TVariable; //The array
   UT: TUserType;
   ArrayType: TPascalArrayType; //Array type
   AddrMode: TAddrMode;
@@ -1324,7 +1324,7 @@ procedure Proc_AddrOfArrayElemVarSource(ILItem: PILItem);
     Calculate offset to element (Index * ElementSize)
     Add offset
 *)
-var V: PVariable; //The array
+var V: TVariable; //The array
   UT: TUserType;
   ArrayType: TPascalArrayType; //Array type
   AddrMode: TAddrMode;

@@ -123,14 +123,14 @@ uses SysUtils,
 //===================================== Slugs
 
 procedure TExprSlug.AssignToHiddenVar;
-var V: PVariable;
+var V: TVariable;
 begin
   Assert(ILItem <> nil);
   if ResultByRefParam <> nil then
   begin //If we have a function whose return value is pass-by-reference
     Assert(ResultByRefParam.Kind = pkNone);
     //Create a temp variable
-    V := Vars.AddHidden(ResultType);
+    V := TVars.AddHidden(ResultType);
     V.IncVersion;
     //Patch it into the argument /load/ IL for the function call
     ResultByRefParam.SetVarRef(V);

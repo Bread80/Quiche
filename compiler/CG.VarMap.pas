@@ -7,7 +7,7 @@ uses Def.IL, Def.Variables;
 type
   PVarData = ^TVarData;
   TVarData = record
-    Variable: PVariable;
+    Variable: TVariable;
     Version: Integer; //Write version
     WriteILStep: Integer; //The IL step at which the value is assigned
     ReadCount: Integer; //The number of times this vaue is read
@@ -40,7 +40,7 @@ begin
 end;
 
 //Creates, initialises and adds to the map
-function CreateVarData(Variable: PVariable;Version: Integer): PVarData;
+function CreateVarData(Variable: TVariable;Version: Integer): PVarData;
 begin
   New(Result);
   VarMap.Add(Result);
@@ -54,7 +54,7 @@ begin
   Result.AddrOf := False;
 end;
 
-function VarMapFind(Variable: PVariable;Version: Integer): PVarData;
+function VarMapFind(Variable: TVariable;Version: Integer): PVarData;
 var I: Integer;
 begin
   for I := 0 to VarMap.Count-1 do
@@ -65,7 +65,7 @@ begin
 end;
 
 //Add a variable to the VarMap and set the data for it's initial write
-function AddVarMapWrite(Variable: PVariable;Version: Integer;Step: Integer): PVarData;
+function AddVarMapWrite(Variable: TVariable;Version: Integer;Step: Integer): PVarData;
 begin
   Result := VarMapFind(Variable, Version);
   //In loops the first write may happen /after/ the first read. We need to handle
@@ -91,7 +91,7 @@ begin
   end;
 *)end;
 
-function AddVarMapRead(Variable: PVariable;Version: Integer;Step: Integer): PVarData;
+function AddVarMapRead(Variable: TVariable;Version: Integer;Step: Integer): PVarData;
 begin
   Result := VarMapFind(Variable, Version);
   if not Assigned(Result) then
@@ -114,7 +114,7 @@ begin
     Result.FirstReadILStep := Step;
 end;
 
-function AddVarMapAddrOf(Variable: PVariable): PVarData;
+function AddVarMapAddrOf(Variable: TVariable): PVarData;
 begin
   Result := VarMapFind(Variable, 0);
   if not Assigned(Result) then

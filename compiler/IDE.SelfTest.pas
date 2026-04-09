@@ -760,9 +760,9 @@ begin
 end;
 
 procedure TTest.TestVarType(Step: PTestStep);
-var V: PVariable;
+var V: TVariable;
 begin
-  V := Vars.FindByNameAllScopes(Step.Name);
+  V := TVars.FindByNameAllScopes(Step.Name);
   if not Assigned(V) then
     Error(Step, 'ERROR: No such variable: ''' + Step.Name + ''''#13)
   else if V.UserType = nil then
@@ -783,10 +783,10 @@ procedure TTest.TestVarValue(Step: PTestStep);
     Result := Result + '(#' + I.ToString + ')';
   end;
 
-var V: PVariable;
+var V: TVariable;
   Value: TImmValue;
 begin
-  V := Vars.FindByNameAllScopes(Step.Name);
+  V := TVars.FindByNameAllScopes(Step.Name);
   if not Assigned(V) then
     Error(Step, 'ERROR: No such variable: ''' + Step.Name + ''''#13)
   else
@@ -806,10 +806,10 @@ begin
 end;
 
 procedure TTest.TestVarValueString(Step: PTestStep);
-var V: PVariable;
+var V: TVariable;
   Value: String;
 begin
-  V := Vars.FindByNameAllScopes(Step.Name);
+  V := TVars.FindByNameAllScopes(Step.Name);
   if not Assigned(V) then
     Error(Step, 'ERROR: No such variable: ''' + Step.Name + ''''#13)
   else

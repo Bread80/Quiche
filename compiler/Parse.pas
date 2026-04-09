@@ -185,18 +185,24 @@ type TBlockState = (bsSingle, bsBeginRead);
 //=================================== LOOPS
 
 //Parse a code block.
-function ParseBlock(ParseMode: TParseMode;AddrMode: TAddrMode): TQuicheError;
+//Returns the data for the block
+function ParseBlock(ParseMode: TParseMode;AddrMode: TAddrMode;out CodeBlock: TCodeBlock): TQuicheError;overload;
 begin
   Assert(ParseMode in [pmStatement, pmBlock, pmREPEAT]);
-  ScopeBeginBlock;
+  CodeBlock := ScopeBeginBlock;
 
   Result := ParseQuiche(ParseMode, AddrMode);
   if Result <> qeNone then
     EXIT;
 
-  ScopeEndBlock;
+  CodeBlock := ScopeEndBlock(CodeBlock);
 end;
 
+function ParseBlock(ParseMode: TParseMode;AddrMode: TAddrMode): TQuicheError;overload;
+var Dummy: TCodeBlock;
+begin
+  Result := ParseBlock(ParseMode, AddrMode, Dummy);
+end;
 
 // <for-statement> := FOR <identifier> := <expr> TO <expr> [DO]
 //                      <block>
@@ -218,14 +224,14 @@ end;
 //Block 5- Exit Section (code after the loop)
 //  Generate fixups (ie. extra phi functions for block 2)
 function DoFOR(AddrMode: TAddrMode): TQuicheError;
-var
+var CodeBlock: TCodeBlock;
   VarStatus: TVarStatus;
   LoopVarName: String;
-  LoopVar: PVariable;
+  LoopVar: TVariable;
   Step: Integer;       //TO or DOWNTO?
 //  ExprType: PUserType;
   Slug: TExprSlug;
-  ToVar: PVariable;  //Hidden variable to contain end value for the loop. Nil if value is constant
+  ToVar: TVariable;  //Hidden variable to contain end value for the loop. Nil if value is constant
   ToValue: TImmValue;  //If EndVar is nil, contains constant endvalue
   EntryBlockID: Integer;
   EntryLastItemIndex: Integer;
@@ -236,7 +242,7 @@ var
   ILItem: PILItem; //Used for various Items
   PhiInsertCount: Integer;
 begin
-  ScopeBeginBlock;  //If loop counter is declared here, ensure it goes out of scope
+  CodeBlock := ScopeBeginBlock;  //If loop counter is declared here, ensure it goes out of scope
                   //after the loop
 
   Result := Parser.SkipWhiteNL;
@@ -392,9 +398,9 @@ begin
   LoopVarPhi.Param2.SetPhiVarSource(GetCurrBlockID, LoopVar.Version);
 
   //Insert Phis at start of Header (for any variables updated during loop)
-  Vars.ClearAdjust; //Prep for branch adjust
-  Vars.ClearTouches;
-  LoopVar.Touched := True;
+  TVars.ClearAdjust; //Prep for branch adjust
+  TVars.ClearTouches;
+  LoopVar.Touch;
   PhiInsertCount := PhiWalkInt(ILGetCount-1, EntryLastItemIndex, -1, EntryLastItemIndex,
     GetCurrBlockID, EntryBlockID, False, PhiItemIndex + 1);
   //We also need to fixup references within the loop to any variables we have phi'd
@@ -408,7 +414,7 @@ begin
   //Insert Phis after loop
   NewBlock := True;
 
-  ScopeEndBlock;  //If loop counter was declared take it out of scope
+  CodeBlock := ScopeEndBlock(CodeBlock);  //If loop counter was declared take it out of scope
 end; //----------------------------------------------------------- /FOR
 
 
@@ -422,6 +428,7 @@ var
   ConstExprValue: Boolean;  //If branch condition is a constant
   PrevSkipMode: Boolean;  //If we're skipping the loop code (WHILE FALSE DO)
   PhiInsertCount: Integer;  //Number of Phis inserted at start of loop
+  CodeBlock: TCodeBlock;
 begin
   NewBlock := True;
   NewBlockComment := 'While header';
@@ -456,12 +463,12 @@ begin
   end;
 
   //Generate code within the loop (not required if conditional is a literal FALSE
-  PrevSkipMode := SkipModeStart((Conditional = nil) and not ConstExprValue);
+  PrevSkipMode := Vars.SkipModeStart((Conditional = nil) and not ConstExprValue);
 
   NewBlock := True;
   NewBlockComment := 'WHILE body';
 
-  Result := ParseBlock(pmStatement, AddrMode);
+  Result := ParseBlock(pmStatement, AddrMode, CodeBlock);
   if Result <> qeNone then
     EXIT;
 
@@ -474,8 +481,8 @@ begin
 
   //PHI variables
   //Insert Phis at start of the loop (for any variables updated during loop)
-  Vars.ClearAdjust; //Prep for branch adjust
-  Vars.ClearTouches;
+  TVars.ClearAdjust; //Prep for branch adjust
+  TVars.ClearTouches;
   PhiInsertCount := PhiWalkInt(ILGetCount-1, WHILEIndex-1, -1, WHILEIndex-1,
     GetCurrBlockID, WHILEID-1, False, WHILEIndex);
   //We also need to fixup references within the loop to any variables we have phi'd
@@ -484,14 +491,19 @@ begin
   NewBlock := True;
   NewBlockComment := 'WHILE ended';
 
-  SkipModeEnd(PrevSkipMode);
+  //Remove null code which will never be executed.
+  //(If CodeBlock is nil then the block was empty (ie no definitions) and has
+  //already been trimmed by ParseBlock
+  if Assigned(CodeBlock) and (Conditional = nil) and not ConstExprValue then
+    ScopeRollbackBlock(CodeBlock);
+  Vars.SkipModeEnd(PrevSkipMode);
 end;
 
 // <repeat-statement> :=  REPEAT
 //                          <statements>
 //                        UNTIL <boolean-expression>
 function DoREPEAT(AddrMode: TAddrMode): TQuicheError;
-var
+var CodeBlock: TCodeBlock;
   REPEATID: Integer;    //Block ID of the REPEAT - so we can generate the loop code
   REPEATIndex: Integer; //Index of the first ILItem (the REPEAT)
   Conditional: PILItem; //Loop conditional. Nil if expression is a constant
@@ -499,7 +511,7 @@ var
   PhiInsertCount: Integer;  //Number of Phi nodes inserted at start of loop
 begin
   //Start a new scope
-  ScopeBeginBlock;
+  CodeBlock := ScopeBeginBlock;
 
   NewBlock := True;
   NewBlockComment := 'REPEAT';
@@ -541,8 +553,8 @@ begin
 
   //PHI variables
   //Insert Phis at start of the loop (for any variables updated during loop)
-  Vars.ClearAdjust; //Prep for branch adjust
-  Vars.ClearTouches;
+  TVars.ClearAdjust; //Prep for branch adjust
+  TVars.ClearTouches;
   PhiInsertCount := PhiWalkInt(ILGetCount-1, REPEATIndex-1, -1, REPEATIndex-1,
     GetCurrBlockID, REPEATID-1, False, REPEATIndex);
   //We also need to fixup references within the loop to any variables we have phi'd
@@ -552,7 +564,7 @@ begin
   NewBlockComment := 'REPEAT completed';
 
   //End the scope
-  ScopeEndBlock;
+  CodeBlock := ScopeEndBlock(CodeBlock);
 end;
 
 //==============================CONDITIONALS
@@ -576,6 +588,7 @@ var
   ThenLastIndex: Integer; //Last item in the THEN path
   ElseLastIndex: Integer; //Last item in the ELSE path. -1 if no ELSE path
   Cursor: TParseCursor; //Parsing save point
+  CodeBlock: TCodeBlock;
 begin
   ElseLastIndex := -1;
   ThenLastIndex := -1;
@@ -614,7 +627,7 @@ begin
   end;
 
   //Parse block
-  PrevSkipMode := SkipModeStart((Branch = nil) and not ConstExprValue);
+  PrevSkipMode := Vars.SkipModeStart((Branch = nil) and not ConstExprValue);
 
   Result := Parser.SkipWhiteNL;
   if Result <> qeNone then
@@ -622,11 +635,17 @@ begin
   //Test for empty THEN block. If so skip parsing it.
   if not TestForIdent('else') then
   begin
-    Result := ParseBlock(pmStatement, AddrMode);
+    Result := ParseBlock(pmStatement, AddrMode, CodeBlock);
     if Result <> qeNone then
       EXIT;
   end;
-  SkipModeEnd(PrevSkipMode);
+  //Roll back any code which will never be executed (IF False)
+  //(If CodeBlock is nil then the block was empty (ie no definitions) and has
+  //already been trimmed by ParseBlock
+  if Assigned(CodeBlock) and (Branch = nil) and not ConstExprValue then
+    ScopeRollbackBlock(CodeBlock);
+  CodeBlock := nil;
+  Vars.SkipModeEnd(PrevSkipMode);
 
   if Branch <> nil then
   begin
@@ -651,11 +670,17 @@ begin
     end;
 
     //Parse block
-    PrevSkipMode := SkipModeStart((Branch = nil) and ConstExprValue);
-    Result := ParseBlock(pmStatement, AddrMode);
+    PrevSkipMode := Vars.SkipModeStart((Branch = nil) and ConstExprValue);
+    Result := ParseBlock(pmStatement, AddrMode, CodeBlock);
     if Result <> qeNone then
       EXIT;
-    SkipModeEnd(PrevSkipMode);
+    //Remove any code which will never be executed
+    //(If CodeBlock is nil then the block was empty (ie no definitions) and has
+    //already been trimmed by ParseBlock
+    if Assigned(CodeBlock) and (Branch = nil) and ConstExprValue then
+      ScopeRollbackBlock(CodeBlock);
+    CodeBlock := nil;
+    Vars.SkipModeEnd(PrevSkipMode);
 
     if Branch <> nil then
     begin
@@ -751,9 +776,9 @@ begin
       Result := ParseBlock(pmBlock, AddrMode);
       if Result <> qeNone then
         EXIT;
-      if ParseMode in [pmRootUnknown, pmProgram, pmScript] then
+(*      if ParseMode in [pmRootUnknown, pmProgram, pmScript] then
         Assert(ScopeGetDepth = 0);
-      EXIT(qeNone);
+*)      EXIT(qeNone);
     end;
   else  //Unknown keyword
     //Uncomment to all declaration level code, but needs parsing and checking
@@ -770,7 +795,7 @@ end;
 function DoNonKeyword(const Ident: String;AddrMode: TAddrMode): TQuicheError;
 var IdentData: TIdentData;
 begin
-  IdentData := GetCurrentScope.SearchAllInScope(Ident);
+  IdentData := GetCurrentScope.SearchUpAll(Ident);
   case IdentData.IdentType of
     itUnknown:
     begin //Identifier not found
@@ -794,7 +819,7 @@ begin
     end;
     itVariable:
     begin
-      Result := ParseAssignment(IdentData.V);
+      Result := ParseAssignment(IdentData.Value as TVariable);
       if Result <> qeNone then
         EXIT;
     end;
