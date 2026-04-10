@@ -443,7 +443,7 @@ end;
 //If IsProc True we're parsing a PROCEDURE, otherwise we're parsing a FUNCTION
 function ParseFuncDefinition(IsProc: Boolean;out TheType: TUserType): TQuicheError;
 var
-  Func: PFunction;
+  Func: TFunction;
 begin
   Result := DoFUNCTION(IsProc, fptTypeDef, Func);
   if Result <> qeNone then

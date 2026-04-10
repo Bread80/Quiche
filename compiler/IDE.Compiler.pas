@@ -136,6 +136,8 @@ uses SysUtils, {$ifdef fpc}FileUtil,{$else}IOUtils,{$endif}
   {$IFDEF EMULATOR}IDE.Emulator, {$endif}
   IDE.ILExec, IDE.Shell;
 
+var TheProgram: TProgram;
+
 //====Errors and return values
 
 function ParseErrorString: String;
@@ -657,6 +659,15 @@ end;
 
 procedure Initialise(InitDirectives, WarmInit: Boolean);
 begin
+  if WarmInit then
+    //Clear out TheProgram code but not units
+  else
+  begin
+    if Assigned(TheProgram) then
+      TheProgram.Free;
+    TheProgram := TProgram.Create;
+  end;
+
   ParseErrorNo := 0;
   LastError := qeNone;
   Parse.OnScopeDone := CodeGenCallback;
@@ -698,9 +709,9 @@ begin
   //reload for every run
   InitialiseIntrinsics;
 {$ifdef fpc}
-  LoadIntrinsicsFile(ConcatPaths([BinFolder, IntrinsicsFilename]), SystemScope.FuncList);
+  LoadIntrinsicsFile(ConcatPaths([BinFolder, IntrinsicsFilename]), SystemScope.FunctionScope);
 {$else}
-  LoadIntrinsicsFile(TPath.Combine(BinFolder, IntrinsicsFilename), SystemScope.FuncList);
+  LoadIntrinsicsFile(TPath.Combine(BinFolder, IntrinsicsFilename), SystemScope.FunctionScope);
 {$endif}
 
 {$ifdef fpc}
@@ -724,6 +735,8 @@ begin
 end;
 
 initialization
+  TheProgram := nil;
+
   //Default values for compiler options
   Config.AllowAutoCreation := False;
   Config.OverflowChecks := True;

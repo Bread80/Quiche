@@ -294,7 +294,7 @@ type
     ResultType: TUserType;  //CURRENT: The type which will be output by the Operation
                             //OLD: If overflow checking is on, specifies the output type
                             //May also be used by typecasts to change/reduce value size
-    Func: PFunction;        //If OpIndex is OpFuncCall this contains details of the function
+    Func: TFunction;        //If OpIndex is OpFuncCall this contains details of the function
                             //to call
     Flags: TILDataFlagSet;
     Prim: PPrimitive;       //Assigned by Clever Puppy, otherwise nil
@@ -393,7 +393,7 @@ function ILAppendFuncData(var ILItem: PILItem): PILParam;
 //understand the internal rules for such calls.
 //As above, ILItem can be set to nil of a previously returned value. The return
 //value may or may not be the same as that passed in
-procedure ILAppendFuncCall(var ILItem: PILItem;Func: PFunction);
+procedure ILAppendFuncCall(var ILItem: PILItem;Func: TFunction);
 //As ILAppendDataMove, but for function result. Function result is assigned by the
 //expression parser /after/ the ILCode for the function call itself has been generated.
 //For that reason the Result parameter must be in Dest (Param3).
@@ -625,7 +625,7 @@ begin
   Result := ILAppendExtendable(ILItem, opFuncCall, opFuncCallExtended);
 end;
 
-procedure ILAppendFuncCall(var ILItem: PILItem;Func: PFunction);
+procedure ILAppendFuncCall(var ILItem: PILItem;Func: TFunction);
 begin
   if ILItem = nil then
     ILItem := ILAppend(opFuncCall)
@@ -1043,7 +1043,7 @@ begin
 end;
 
 function TILItem.ToString: String;
-var FuncToDo: PFunction;
+var FuncToDo: TFunction;
 begin
   Result := '';
 

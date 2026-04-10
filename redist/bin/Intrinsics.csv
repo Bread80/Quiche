@@ -40,7 +40,7 @@
 ,pred,val,Value,Ordinal,,val,Count,Integer,1,,Param1,Returns the Count'th previous value to the parameter. If used with Count=1 and Overflow checks off generates DEC opcodes.,
 ;,ptr,val,Value,Numeric,,,,,,,Pointer,Converts the value to a pointer,
 ,sizeof,const,Type,TypeDef,,,,,,,Word,Returns the (memory) byte size of Type,
-,sizeof,const,Variable,Any,,,,,,,Word,"Returns the (memory) byte size of the Variable. A constant expression can also be passed, but may be ambiguous for numeric types",
+;,sizeof,const,Variable,Any,,,,,,,Word,"Returns the (memory) byte size of the Variable. A constant expression can also be passed, but may be ambiguous for numeric types",
 ,succ,const,Value,Ordinal,,val,Count,Integer,1,,Param1,Returns the Count'th successive value to the parameter. If used with Count=1 and Overflow checks off generates DEC opcodes.,
 ,swap,const,Value,AnyInteger,,,,,,,Param1,"Swaps the high and low bytes of the parameter. Must be a 16-bit integer type (Word, Pointer or Integer)",
 ,,,,,,,,,,,,,

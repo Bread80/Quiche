@@ -1,5 +1,12 @@
-var x:=1
-if false
-  x := 2
-else
-  x := 3
+program
+  var x:Word = 0;
+
+  procedure f(a: Word);stack;
+  begin
+    x := a;
+  end;
+
+  begin
+    var i:Word = 2000;
+    f(i);
+  end.

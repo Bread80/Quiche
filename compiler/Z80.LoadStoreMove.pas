@@ -40,12 +40,12 @@ procedure GenFuncCall(ILIndex: Integer);
 //For each parameter which has been passed in a register (Func.Reg <> rNone),
 //and for which the Variable storage has not been optimised away,
 //generates code to store the registers value into memory storage.
-procedure GenFuncArgStore(Func: PFunction);
+procedure GenFuncArgStore(Func: TFunction);
 
 //As above but for use at the end of a function which uses the Register calling
 //convention.
 //Any values which are to be returned in registers are loaded into them
-procedure GenFuncReturnLoad(Func: PFunction);
+procedure GenFuncReturnLoad(Func: TFunction);
 
 
 implementation
@@ -357,15 +357,15 @@ end;
 //Sets the CheckType field in MoveState from the Function parameter
 //For each parameter in Func, copies that Parameter to the relevant record in
 //MoveState (ie the state for the register to be loaded or stored)
-procedure SetFuncDataInMoveState(Func: PFunction;Loading: Boolean);
-var Param: PParameter;
+procedure SetFuncDataInMoveState(Func: TFunction;Loading: Boolean);
+var Param: TParameter;
   I: Integer;
 begin
   for I := 0 to MaxFunctionParams-1 do
     //Parameter is passed or returned in a register
     if Func.Params[I].Reg <> rNone then
     begin
-      Param := @Func.Params[I];
+      Param := Func.Params[I];
       if (Loading and Param.PassDataIn) or
         (not Loading and Param.ReturnsData) then
          MoveState[Param.Reg].CheckType := Param.UserType;
@@ -382,7 +382,7 @@ var
   Param: PILParam;
   CheckType: TUserType;
   ILItem: PILItem;
-  Func: PFunction;  //If this is a function call. Otherwise nil
+  Func: TFunction;  //If this is a function call. Otherwise nil
 begin
   InitMoveState;
 
@@ -482,9 +482,9 @@ end;
 //  to the function.
 //If Entry is False we will process the loading of values into registers on exit
 //NOTE: ILParams allocated here must be disposed (See DisposeMoveStateParams)
-procedure SetFuncMoveState(Func: PFunction;Entry: Boolean);
+procedure SetFuncMoveState(Func: TFunction;Entry: Boolean);
 
-  procedure SetParam(FuncParam: PParameter;Entry: Boolean);
+  procedure SetParam(FuncParam: TParameter;Entry: Boolean);
   var ILParam: PILParam;
   begin
     New(MoveState[FuncParam.Reg].Param);
@@ -509,14 +509,14 @@ procedure SetFuncMoveState(Func: PFunction;Entry: Boolean);
       MoveState[FuncParam.Reg].ProcessType := AssessProcessType(ILParam);
   end;
 
-var I: Integer;
+var Param: TParameter;
 begin
   InitMoveState;
 
-  for I := Low(Func.Params) to High(Func.Params) do
-    if (Entry and Func.Params[I].PassDataIn) or
-      (not Entry and Func.Params[I].ReturnsData) then
-        SetParam(@Func.Params[I], Entry);
+  for Param in Func.Params do
+    if (Entry and Param.PassDataIn) or
+      (not Entry and Param.ReturnsData) then
+        SetParam(Param, Entry);
 end;
 
 //To be called if the Params records within the MoveState have been allocated
@@ -899,7 +899,7 @@ begin
   end;
 end;
 
-procedure GenFuncArgStore(Func: PFunction);
+procedure GenFuncArgStore(Func: TFunction);
 begin
   InitMoveAnalysis;
 
@@ -934,7 +934,7 @@ begin
   DisposeMoveStateParams;
 end;
 
-procedure GenFuncReturnLoad(Func: PFunction);
+procedure GenFuncReturnLoad(Func: TFunction);
 begin
   InitMoveAnalysis;
 

@@ -20,7 +20,7 @@ type TFuncParseType = (
 //Assumes that the 'function' or 'procedure' keyword has already been consumed
 //Inputs:
 //  Proc is True if we're parsing a Procedure definition, false for a Function
-function DoFUNCTION(Proc: Boolean;ParseType: TFuncParseType;out Func: PFunction): TQuicheError;
+function DoFUNCTION(Proc: Boolean;ParseType: TFuncParseType;out Func: TFunction): TQuicheError;
 
 //Verifies all forward decalarations within the current scope are satisfied.
 //(ie. which have no implementation)
@@ -47,7 +47,7 @@ uses SysUtils,
 //        Ident was not a parameter specifier and passed it on to us as a name
 //  Func: The function definition being read
 //  ParamIndex: The index of the parameter currently being parsed.
-function ParseParamName(Ident: String;Func: PFunction;ParamIndex: Integer): TQuicheError;
+function ParseParamName(Ident: String;Func: TFunction;ParamIndex: Integer): TQuicheError;
 var Keyword: TKeyword;
 begin
   //No name passed in, so read one
@@ -83,7 +83,7 @@ end;
 //  Reg params must be Value, Out or Result
 //  Registers must be unique within a declaration, unless one usage is an input
 //  (value) parameter, and the other is an output (out, result) parameter.
-function ValidateRegParam(Func: PFunction;ParamIndex: Integer;Reg: TCPUReg): TQuicheError;
+function ValidateRegParam(Func: TFunction;ParamIndex: Integer;Reg: TCPUReg): TQuicheError;
 var Access: TParamAccess;
   IsOutput: Boolean;
   P: Integer;
@@ -128,7 +128,7 @@ end;
 //If any parameter is a register type definition then all must be, including the result.
 //Register type definitions may only use the following parameter specifiers:
 //value (default), out, and result
-function ParseParamType(Func: PFunction;FirstParam, ParamIndex: Integer): TQuicheError;
+function ParseParamType(Func: TFunction;FirstParam, ParamIndex: Integer): TQuicheError;
 var
   Cursor: TParseCursor;
   Ident: String;
@@ -204,7 +204,7 @@ begin
   Result := qeNone;
 end;
 
-function ReadDefaultValue(var Param: TParameter): TQuicheError;
+function ReadDefaultValue(Param: TParameter): TQuicheError;
 var Value: TImmValue;
 begin
   Result := ParseConstantExprAsType(Value, Param.UserType);
@@ -221,7 +221,7 @@ end;
 //Returns having consumed the trailing ')' after the parameter list
 // <param-def-list> := ( <Param-def> [ ; <Param-def> ] )
 // <Param-def> := <Param-name> [ , <Param-name>] <Param-type>
-function ParseParamDefs(Func: PFunction): TQuicheError;
+function ParseParamDefs(Func: TFunction): TQuicheError;
 var
   ParamIndex: Integer;
   ListStart: Integer; //If we have a comma separated list of parameters, this
@@ -340,7 +340,7 @@ end;
 //Parses and validates the constant expression.
 //Note: The function's calling convention value is set (and validated) by the caller
 //We only parse, validate, and set the address and other data
-function ParseExternDef(Func: PFunction): TQuicheError;
+function ParseExternDef(Func: TFunction): TQuicheError;
 var IsReg: Boolean;
   P: Integer;
   Slug: TExprSlug;
@@ -400,7 +400,7 @@ end;
 //the first keyword which is not a directive.
 //Returns NoCode True for directives such as CALL, RST and FORWARD where the body is
 //declared elsewhere
-function ParseDirectives(Func: PFunction;ParseType: TFuncParseType;out NoCode: Boolean): TQuicheError;
+function ParseDirectives(Func: TFunction;ParseType: TFuncParseType;out NoCode: Boolean): TQuicheError;
 var IsForward: Boolean; //This declaration is a Forward
   NextDirective: TFuncDirective;
   Ident: String;
@@ -517,10 +517,10 @@ begin
   end;
 end;
 
-procedure SetIsByRef(Func: PFunction);
+procedure SetIsByRef(Func: TFunction);
 var I: Integer;
 begin
-  for I := 0 to Length(Func.Params)-1 do
+  for I := 0 to Func.Params.Count-1 do
     if Func.Params[I].Access <> paNone then
       Func.Params[I].IsByRef := IsPassByRef(Func.CallingConvention, Func.Params[I].Access,
         Func.Params[I].UserType);
@@ -529,7 +529,7 @@ end;
 //If we're parsing a Type definition, validate that the function definition is
 //suitable. Eg. For any register based calling convention every parameter must
 //have a concrete register allocation.
-function ValidateParamsForTypeDef(Func: PFunction;const Cursor: TParseCursor): TQuicheError;
+function ValidateParamsForTypeDef(Func: TFunction;const Cursor: TParseCursor): TQuicheError;
 var Param: TParameter;
 begin
   Result := qeNone;
@@ -582,9 +582,9 @@ end;
 //to the stack relative address. The 'hidden' variable defines the storage data.
 //In Register mode the argument is only used for the block copy and, therefore, is
 //the hidden variable. The variable defining the storage is used by the code.
-procedure DoCopyDataInParams(Func: PFunction);
+procedure DoCopyDataInParams(Func: TFunction);
 var I: Integer;
-  Param: PParameter;
+  Param: TParameter;
   VarName: String;
   DestVariable: TVariable;
   AddrVariable: TParamVariable;
@@ -593,7 +593,7 @@ begin
   for I := Func.ParamCount + Func.ResultCount - 1 downto 0 do
     if Func.Params[I].CopyDataIn then
     begin //CopyDataIn
-      Param := @Func.Params[I];
+      Param := Func.Params[I];
 
       //Create a variable to define the storage space for the data
       Assert(Param.Access <> paResult);
@@ -650,7 +650,7 @@ end;
 //                <block>
 //Parse the declarations and body of a function declaration
 //Inputs: Func is the function being declared
-function ParseFunctionBody(Func: PFunction): TQuicheError;
+function ParseFunctionBody(Func: TFunction): TQuicheError;
 var I: Integer;
   ParamName: String;
   ILItem: PILItem;
@@ -684,7 +684,7 @@ begin
 
     AddrMode := GetParamAddrMode(Func.CallingConvention, Func.Params[I]);
 
-    Func.Params[I].Variable := TFuncs.AddParamVariable(ParamName, @Func.Params[I], AddrMode);
+    Func.Params[I].Variable := TFuncs.AddParamVariable(ParamName, Func.Params[I], AddrMode);
   end;
 
   //Any parameters which require data to be copied in (Ie. pass-by-value of
@@ -740,7 +740,7 @@ end;
 //Assumes that the 'function' or 'procedure' keyword has already been consumed
 //Inputs:
 //  Proc is True if we're parsing a Procedure definition, false for a Function
-function DoFUNCTION(Proc: Boolean;ParseType: TFuncParseType;out Func: PFunction): TQuicheError;
+function DoFUNCTION(Proc: Boolean;ParseType: TFuncParseType;out Func: TFunction): TQuicheError;
 var Ident: String;
   NoCode: Boolean;  //Returned by ParseDirectives. If True the declaration has no body
                     //(forward, extern etc).
@@ -762,11 +762,11 @@ begin
     //...error if it's a keyword or already defined (unless a forward)
     if IdentToKeyword(Ident) <> keyUnknown then
       EXIT(ErrSub(qeReservedWord, Ident));
-    Func := Funcs.FindByNameInScope(Ident);
+    Func := TFuncs.FindByNameInScope(Ident);
   end;
 
   if Func = nil then
-    Func := Funcs.Add(Ident)
+    Func := TFuncs.Add(Ident)
   else
   begin
     if not (ffForward in Func.Flags) then
@@ -841,12 +841,20 @@ end;
 
 function AreAnyForwardsUnsatisfied: TQuicheError;
 var Scope: PScope;
-  I: Integer;
+  Fail: TFunction;
 begin
   Scope := GetCurrentScope;
-  for I := 0 to Scope.FuncList.Count-1 do
-    if ffForward in Scope.FuncList.Items[I].Flags then
-      EXIT(ErrSub(qeUnsatisfiedForward, Scope.FuncList.Items[I].Name));
+  Fail := Scope.FunctionScope.SearchItems<TFunction>(
+    function(Func: TFunction): TFunction
+    begin
+      if ffForward in Func.Flags then
+        Result := Func
+      else
+        Result := nil;
+    end);
+
+  if Assigned(Fail) then
+    EXIT(ErrSub(qeUnsatisfiedForward, Fail.Name));
 
   Result := qeNone;
 end;

@@ -123,8 +123,8 @@ type
 
   TParamVariable = class;
 
-  PParameter = ^TParameter;
-  TParameter = record
+//  PParameter = ^TParameter;
+  TParameter = class
     Access: TParamAccess; //Ignored for Intrinsics
     IsByRef: Boolean;     //True if the parameter is passed by reference. The value
                           //will depend on the Access type, the Calling Convention
@@ -168,7 +168,7 @@ type
   //For variables which represent the parameters of a function
   TParamVariable = class(TVariable)
   private
-    FParam: PParameter;
+    FParam: TParameter;
     FIsConst: Boolean;
     FIsParam: Boolean;
     FIsResult: Boolean;
@@ -177,7 +177,7 @@ type
     function IncVersion: Integer;override;
   public
     //Parameters which have a value passed in will have VarVersion incremented
-    constructor Create(const AName: String;AParam: PParameter; AOwner: TScope; AAddrMode: TAddrMode);
+    constructor Create(const AName: String;AParam: TParameter; AOwner: TScope; AAddrMode: TAddrMode);
 
     //Returns the number of bytes to be allocated on the stack for storing this
     //variable as a parameter. Returns 0 if the variable's data is not passed via the
@@ -187,7 +187,7 @@ type
 
     function ToString: String;override;
 
-    property Param: PParameter read FParam;
+    property Param: TParameter read FParam;
     //True if the variable is a function parameter (and NOT Result)
     property IsParam: Boolean read FIsParam;
     //True is the variable is the Result of a function
@@ -197,36 +197,33 @@ type
   TParamArray = array[0..MaxFunctionParams] of TParameter;
 
   //For functions or procedures
-  PFunction = ^TFunction;
-  TFunction = record
-    Name: String;
-    Flags: TFuncFlagSet;    //Meta data about the function
+  type TFunction = class(TScope)
+  private
+    FParams: TObjectList<TParameter>;
+    FCodeAddress: Word;
+    FResultCount: Integer;
+    FCallingConvention: TCallingConvention;
+    FCodeLabel: String;
+    FParamCount: Integer;
+    FPreserves: TCPURegSet;
+    FOp: TOperation;
+    FComments: String;
+    FIsExtern: Boolean;
+    FFlags: TFuncFlagSet;
+    FOverloaded: Boolean;
+    function GetParams(Index: Integer): TParameter;
+  public
+    constructor Create(const AName: String;AOwner: TScope);
+    destructor Destroy;override;
+    function IdentType: TIdentType;override;
 
-    Preserves: TCPURegSet;  //Registers which are prserved
-//    InRegs: TUsedRegSet;    //Registers used for inputs (parameters)
-//    OutRegs: TUsedRegSet;   //Registers used for outputs (parameters and return values)
-
-    Overloaded: Boolean;    //Overloaded if multiple functions with the same name, but different parameters
-    IsExtern: Boolean;      //True if this is an Extern definition (i.e to external code - O/S etc)
-    CallingConvention: TCallingConvention;
-    ParamCount: Integer;
-    ResultCount: Integer;   //Result count of zero = Procedure
-
-    Op: TOperation;          //If this is an intrinsic (otherwise OpUnknown)
-    CodeAddress: Word;      //If implemented in machine code at fixed address
-    CodeLabel: String;      //For EXTERN directive - specifies the label of the assembly
-                            //routine to call
-
-    Params: TParamArray;    //Parameter data
-
-    Comments: String;       //Freeform help etc text
-
+    //OLD
     //Search the parameters of Func, from parameter 0 to Parameter LastIndex for
     //one matching the given ParamName
-    function FindParam(ParamName: String; LastIndex: Integer): PParameter;
+    function FindParam(ParamName: String; LastIndex: Integer): TParameter;
     //Finds the (first) Result parameter.
     //If none is found raises an exception
-    function FindResult: PParameter;
+    function FindResult: TParameter;
 
     //Returns variable storage (specified by the calling convention)
     function GetParamAddrMode: TAddrMode;
@@ -243,32 +240,47 @@ type
     function GetCallInstruction: String;
 
     function ToString: String;
-  end;
 
+    //OLD
+    property Flags: TFuncFlagSet read FFlags write FFlags;    //Meta data about the function
+
+    property Preserves: TCPURegSet read FPreserves write FPreserves;  //Registers which are prserved
+//    InRegs: TUsedRegSet;    //Registers used for inputs (parameters)
+//    OutRegs: TUsedRegSet;   //Registers used for outputs (parameters and return values)
+
+    property Overloaded: Boolean read FOverloaded write FOverloaded;    //Overloaded if multiple functions with the same name, but different parameters
+    property IsExtern: Boolean read FIsExtern write FIsExtern;      //True if this is an Extern definition (i.e to external code - O/S etc)
+    property CallingConvention: TCallingConvention read FCallingConvention write FCallingConvention;
+    property ParamCount: Integer read FParamCount write FParamCount;
+    property ResultCount: Integer read FResultCount write FResultCount;   //Result count of zero = Procedure
+
+    property Op: TOperation read FOp write FOp;          //If this is an intrinsic (otherwise OpUnknown)
+    property CodeAddress: Word read FCodeAddress write FCodeAddress;      //If implemented in machine code at fixed address
+    property CodeLabel: String read FCodeLabel write FCodeLabel;      //For EXTERN directive - specifies the label of the assembly
+                            //routine to call
+
+    property Params: TObjectList<TParameter> read FParams;    //Parameter data
+
+    property Comments: String read FComments write FComments;       //Freeform help etc text
+
+  end;
+(*
 type
-  PFuncList = ^TFuncList;
-  TFuncList = record
-    Items: TList<PFunction>;
+  TFuncs = class
+    Items: TList<TFunction>;
 
     procedure Initialise;
     procedure Clear;
 
     function Count: Integer;
+*)
 
-    //Create a new function and return it
-    function Add(const Name: String): PFunction;
-
-    function FindByNameInScope(Name: String): PFunction;
-
+(*
     function ToString: String;
   end;
-
-function CreateFuncList: PFuncList;
-
-procedure SetCurrentFuncList(AFuncList: PFuncList);
-
+*)
 //Find the given function
-function FuncFindAllScopes(Name: String): PFunction;
+function FuncFindAllScopes(Name: String): TFunction;
 
 
 type TFuncDirective = (
@@ -292,11 +304,8 @@ function IdentToAccessSpecifierEX(const Ident: String;out Access: TParamAccess;
 function IsPassByRef(CallingConvention: TCallingConvention; Access: TParamAccess;
   UserType: TUserType): Boolean;
 
-function FunctionToFunctionHandle(Func: PFunction): TFunctionHandle;
-function FunctionHandleToFunction(Handle: TFunctionHandle): PFunction;
-
-//Current function list
-var Funcs: PFuncList;
+function FunctionToFunctionHandle(Func: TFunction): TFunctionHandle;
+function FunctionHandleToFunction(Handle: TFunctionHandle): TFunction;
 
 type TFuncs = class
   public
@@ -306,7 +315,7 @@ type TFuncs = class
     //Offset property for them will be initiated to -1, unless PassDataIn is True in
     //which case the address of tha data will be passed in the parameters and no data
     //will be returned in registers
-    class function AddParamVariable(const AName: String;AParam: PParameter;
+    class function AddParamVariable(const AName: String;AParam: TParameter;
       AAddrMode: TAddrMode): TParamVariable;
 
     //--------------Finding/accessing
@@ -314,6 +323,12 @@ type TFuncs = class
     //Finds the Result variable in the current Scope.
     //If there is no result variable, returns nil
     class function FindResult: TParamVariable;
+    //Create a new function and return it
+
+    //Add function
+    class function Add(const Name: String): TFunction;
+
+    class function FindByNameInScope(Name: String): TFunction;
 
     //-------------Code generation
 
@@ -349,24 +364,13 @@ begin
   inherited Create('Unknown calling convention');
 end;
 
-function CreateFuncList: PFuncList;
-begin
-  New(Result);
-  Result.Initialise;
-end;
 
-
-procedure SetCurrentFuncList(AFuncList: PFuncList);
-begin
-  Funcs := AFuncList;
-end;
-
-function FuncFindAllScopes(Name: String): PFunction;
+function FuncFindAllScopes(Name: String): TFunction;
 var IdentData: TIdentData;
 begin
   IdentData := GetCurrentScope.SearchUpAll(Name);
   if IdentData.IdentType = itFunction then
-    EXIT(IdentData.F);
+    EXIT(IdentData.Value as TFunction);
 
   Result := nil;
 end;
@@ -496,24 +500,63 @@ end;
 
 { TFunction }
 
-function TFunction.FindParam(ParamName: String; LastIndex: Integer): PParameter;
+constructor TFunction.Create(const AName: String; AOwner: TScope);
+var I: Integer;
+begin
+  inherited Create(AName, AOwner);
+
+  FFlags := [];
+  FPreserves := [];
+//  Result.InRegs := [];
+//  Result.OutRegs := [];
+  FIsExtern := False;
+  FCallingConvention := ccUnknown;
+  FParamCount := 0;
+  FResultCount := 0;
+  FOp := OpUnknown;
+  FCodeAddress := 0;
+
+  FParams := TObjectlist<TParameter>.Create;
+  for I := 0 to MaxFunctionParams do
+  begin
+    FParams.Add(TParameter.Create);
+
+    FParams[I].Name := '';
+    FParams[I].Variable := nil;
+    FParams[I].Reg := rNone;
+    FParams[I].UserType := nil;
+//    Result.Params[I].VarTypes := [];
+    FParams[I].Access := paNone;
+    FParams[I].HasDefaultValue := False;
+    FParams[I].IsByRef := False;
+//    Result.Params[I].DefaultValue := 0;
+  end;
+end;
+
+destructor TFunction.Destroy;
+begin
+  FParams.Free;
+  inherited;
+end;
+
+function TFunction.FindParam(ParamName: String; LastIndex: Integer): TParameter;
 var I: Integer;
 begin
   for I := 0 to LastIndex do
     if I > MaxFunctionParams then
       EXIT(nil)
     else if CompareText(Params[I].Name, ParamName) = 0 then
-      EXIT(@Params[I]);
+      EXIT(Params[I]);
 
   Result := nil;
 end;
 
-function TFunction.FindResult: PParameter;
+function TFunction.FindResult: TParameter;
 var I: Integer;
 begin
-  for I := 0 to Length(Params)-1 do
+  for I := 0 to Params.Count-1 do
     if Params[I].Access = paResult then
-      EXIT(@Params[I]);
+      EXIT(Params[I]);
 
   Result := nil;
   Assert(False, 'Function result not found');
@@ -571,6 +614,16 @@ begin
   end;
 end;
 
+function TFunction.GetParams(Index: Integer): TParameter;
+begin
+  Result := FParams[Index];
+end;
+
+function TFunction.IdentType: TIdentType;
+begin
+  Result := itFunction;
+end;
+
 function TFunction.ToString: String;
 var Param: Integer;
   Flag: TFuncFlag;
@@ -621,89 +674,26 @@ begin
   end;
 end;
 
-function FunctionToFunctionHandle(Func: PFunction): TFunctionHandle;
+function FunctionToFunctionHandle(Func: TFunction): TFunctionHandle;
 begin
   Result := TFunctionHandle(Func);
 end;
 
-function FunctionHandleToFunction(Handle: TFunctionHandle): PFunction;
+function FunctionHandleToFunction(Handle: TFunctionHandle): TFunction;
 begin
-  Result := PFunction(Handle);
-end;
-
-{ TFuncList }
-
-function TFuncList.Count: Integer;
-begin
-  Result := Items.Count;
-end;
-
-function TFuncList.FindByNameInScope(Name: String): PFunction;
-begin
-  for Result in Items do
-    if CompareText(Result.Name, Name) = 0 then
-      EXIT;
-
-  Result := nil;
-end;
-
-function TFuncList.Add(const Name: String): PFunction;
-var I: Integer;
-begin
-  New(Result);
-  Items.Add(Result);
-  Result.Name := Name;
-  Result.Flags := [];
-  Result.Preserves := [];
-//  Result.InRegs := [];
-//  Result.OutRegs := [];
-  Result.IsExtern := False;
-  Result.CallingConvention := ccUnknown;
-  Result.ParamCount := 0;
-  Result.ResultCount := 0;
-  Result.Op := OpUnknown;
-  Result.CodeAddress := 0;
-
-  for I := 0 to MaxFunctionParams do
-  begin
-    Result.Params[I].Name := '';
-    Result.Params[I].Variable := nil;
-    Result.Params[I].Reg := rNone;
-    Result.Params[I].UserType := nil;
-//    Result.Params[I].VarTypes := [];
-    Result.Params[I].Access := paNone;
-    Result.Params[I].HasDefaultValue := False;
-    Result.Params[I].IsByRef := False;
-//    Result.Params[I].DefaultValue := 0;
-  end;
-end;
-
-procedure TFuncList.Clear;
-var F: PFunction;
-begin
-  for F in Items do
-    Dispose(F);
-
-  Items.Free;
-  Items := nil;
-end;
-
-procedure TFuncList.Initialise;
-begin
-  Items := TList<PFunction>.Create;
-end;
-
-function TFuncList.ToString: String;
-var Func: PFunction;
-begin
-  Result := '';
-  for Func in Items do
-    Result := Result + Func.ToString + #13#10;
+  Result := TFunction(Handle);
 end;
 
 { TFuncs }
 
-class function TFuncs.AddParamVariable(const AName: String;AParam: PParameter;
+class function TFuncs.Add(const Name: String): TFunction;
+var I: Integer;
+begin
+  Result := TFunction.Create(Name, GetCurrentScope.FunctionScope);
+  GetCurrentScope.FunctionScope.Add(Result);
+end;
+
+class function TFuncs.AddParamVariable(const AName: String;AParam: TParameter;
   AAddrMode: TAddrMode): TParamVariable;
 var Scope: TScope;
 begin
@@ -712,6 +702,16 @@ begin
 
   Result := TParamVariable.Create(AName, AParam, Scope, AAddrMode);
   Scope.Add(Result);
+end;
+
+class function TFuncs.FindByNameInScope(Name: String): TFunction;
+var Ident: TIdentData;
+begin
+  Ident := GetCurrentScope.SearchUpLocal(Name);
+  if Ident.IdentType = itFunction then
+    Result := Ident.Value as TFunction
+  else
+    Result := nil;
 end;
 
 class function TFuncs.FindResult: TParamVariable;
@@ -867,7 +867,7 @@ end;
 
 { TParamVariable }
 
-constructor TParamVariable.Create(const AName: String; AParam: PParameter; AOwner: TScope;
+constructor TParamVariable.Create(const AName: String; AParam: TParameter; AOwner: TScope;
   AAddrMode: TAddrMode);
 begin
   inherited Create(AName, AOwner, AParam.UserType, AAddrMode);
@@ -928,7 +928,4 @@ begin
   Result := '(Param) <' +ParamAccessStrings[Param.Access] + '> ' + Name + ': ' + Description;
 end;
 
-initialization
-  Funcs := nil;
-finalization
 end.

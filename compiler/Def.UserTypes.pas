@@ -8,7 +8,7 @@ type
   TScopeHandle = Pointer;
   TFunctionHandle = Pointer;
 
-  TUserType = class(TDeclaredItem)
+  TUserType = class(TQuicheItem)
   private
     FSynonymOf: TUserType;
     FVarType: TVarType;
@@ -88,7 +88,7 @@ type
       ALow, AHigh: Integer);
   end;
 
-  TEnumItem = class(TDeclaredItem)
+  TEnumItem = class(TQuicheItem)
   private
     FIndex: Integer;
     FUserType: TUserType;
@@ -297,7 +297,7 @@ type
 
 
 
-  TTypedIdentifier = class(TDeclaredItem)
+  TTypedIdentifier = class(TQuicheItem)
   private
     FUserType: TUserType;
     function GetVarType: TVarType;
@@ -1535,7 +1535,7 @@ begin
     Result := SearchScopeForAnonTypedPointer(Scope, UserType);
     if Assigned(Result) then
       EXIT;
-    Scope := Scope.Parent;
+    Scope := Scope.Owner;
   end;
 
   Result := SearchScopeForAnonTypedPointer(SystemScope.BlockScope, UserType);

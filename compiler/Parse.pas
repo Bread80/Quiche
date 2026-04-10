@@ -742,7 +742,7 @@ end;
 //Assumes the keyword has already been validated for use in the current source
 //code context.
 function DoKeyword(Keyword: TKeyword;ParseMode: TParseMode;AddrMode: TAddrMode): TQuicheError;
-var Func: PFunction; //Dummy
+var Func: TFunction; //Dummy
 begin
   case Keyword of
     keyUNKNOWN: Result := Err(qeBUG);
@@ -825,7 +825,7 @@ begin
     end;
     itFunction:
     begin
-      Result := DoParseProcedureCall(IdentData.F);
+      Result := DoParseProcedureCall(IdentData.Value as TFunction);
       if Result <> qeNone then
         EXIT;
     end;

@@ -55,7 +55,7 @@ procedure SlugToTypeDef(var Slug: TExprSlug);
 
 implementation
 uses SysUtils,
-  Def.Globals, Def.Scopes, Def.ScopesEX,
+  Def.Functions, Def.Globals, Def.Scopes, Def.ScopesEX,
   Lib.Primitives,
   Parse.Base, Parse.Eval, Parse.FuncCall, Parse.Source, Parse.Pointers,
   Parse.RangeLists, Parse.TypeChecker;
@@ -255,7 +255,7 @@ begin
     end;
     itFunction:
     begin
-      Result := DoParseFunctionCall(IdentData.F, Slug);
+      Result := DoParseFunctionCall(IdentData.Value as TFunction, Slug);
       if Result <> qeNone then
         EXIT;
     end;

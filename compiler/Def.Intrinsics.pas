@@ -5,11 +5,12 @@ code.
 *)
 
 interface
-uses Def.Functions;
+uses Def.Functions, Def.ScopesEX;
 
 procedure InitialiseIntrinsics;
 
-procedure LoadIntrinsicsFile(const Filename: String;FuncList: PFuncList);
+//!!Currently adds to GetCurrentScope!!
+procedure LoadIntrinsicsFile(const Filename: String;Scope: TScope);
 
 
 implementation
@@ -44,9 +45,9 @@ const //Column indexes
   fResultType     = 11;
   fComments       = 12;
 
-procedure LoadIntrinsicsFile(const Filename: String;FuncList: PFuncList);
+procedure LoadIntrinsicsFile(const Filename: String;Scope: TScope);
 
-  procedure ProcessParam(Param: PParameter;const Access, Name, VarType,
+  procedure ProcessParam(Param: TParameter;const Access, Name, VarType,
     DefaultValue, Flags: String);
   var ArrayDef: TArrayDef;
     UserType: TUserType;
@@ -96,7 +97,7 @@ var Data: TStringList;
   Line: String;
   Fields: TArray<String>;
   I: Integer;
-  Intrinsic: PFunction;
+  Intrinsic: TFunction;
   ArrayDef: TArrayDef;
 begin
   Data := TStringlist.Create;
@@ -117,7 +118,8 @@ begin
           for I:=0 to Length(Fields)-1 do
             Fields[I] := Fields[I].Trim;
 
-          Intrinsic := FuncList.Add(Fields[fName]);
+          Intrinsic := TFunction.Create(Fields[fName], Scope);
+          Scope.Add(Intrinsic);
           Intrinsic.CallingConvention := ccIntrinsic;
 
           Intrinsic.Op := IdentToIntrinsicOperator(Fields[fName]);
@@ -130,7 +132,7 @@ begin
             Intrinsic.ParamCount := 0
           else
           begin
-            ProcessParam(@Intrinsic.Params[0], Fields[fP1Access], Fields[fP1Name],
+            ProcessParam(Intrinsic.Params[0], Fields[fP1Access], Fields[fP1Name],
               Fields[fP1VarType], '', Fields[fP1Flags]);
 
             //=================SECOND PARAMETER
@@ -140,7 +142,7 @@ begin
             else
             begin
               Intrinsic.ParamCount := 2;
-              ProcessParam(@Intrinsic.Params[1], Fields[fP2Access], Fields[fP2Name],
+              ProcessParam(Intrinsic.Params[1], Fields[fP2Access], Fields[fP2Name],
                 Fields[fP2VarType], Fields[fP2DefaultValue], Fields[fP2Flags]);
             end;
           end;

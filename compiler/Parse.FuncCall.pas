@@ -5,10 +5,10 @@ uses Def.Functions, Def.VarTypes,
   Parse.Errors, Parse.Literals, Parse.Expr;
 
 //Parse a procedure call, or a function call with the result being ignored.
-function DoParseProcedureCall(Func: PFunction): TQuicheError;
+function DoParseProcedureCall(Func: TFunction): TQuicheError;
 
 //Parse a function call (which returns a value)
-function DoParseFunctionCall(Func: PFunction;var Slug: TExprSlug): TQuicheError;
+function DoParseFunctionCall(Func: TFunction;var Slug: TExprSlug): TQuicheError;
 
 
 implementation
@@ -27,7 +27,7 @@ type TSlugArray= array[0..MaxFunctionParams] of TExprSlug;
 //===================================== ARGUMENTS
 
 //Read an argument from the source code, and return it in a Slug
-function ParseArgument(Func: PFunction;Arg: TParameter;out Slug: TExprSlug): TQuicheError;
+function ParseArgument(Func: TFunction;Arg: TParameter;out Slug: TExprSlug): TQuicheError;
 begin
   Slug.Initialise;
 
@@ -59,13 +59,13 @@ end;
 
 //Validate an argument and process as necessary, depending on the calling
 //convention (e.g. writing it to a hidden variable or pushing it onto the stack.
-function ProcessArgument(Func: PFunction;CallingConvention: TCallingConvention;
+function ProcessArgument(Func: TFunction;CallingConvention: TCallingConvention;
   ArgIndex: Integer;var Slug: TExprSlug): TQuicheError;
-var Arg: PParameter;
+var Arg: TParameter;
   ILItem: PILItem;
   V: TVariable;
 begin
-  Arg := @Func.Params[ArgIndex];
+  Arg := Func.Params[ArgIndex];
 
   //We have a pointered literal - it needs adding to a ConstList...
   if (Slug.ILItem = nil) and (Slug.Operand.Kind = pkImmediate) then
@@ -148,7 +148,7 @@ begin
   Result := qeNone;
 end;
 
-function ParseArgList(Func: PFunction;out Slugs: TSlugArray): TQuicheError;
+function ParseArgList(Func: TFunction;out Slugs: TSlugArray): TQuicheError;
 var
   I: Integer;
   Brace: Boolean; //True if arg list uses brackets
@@ -281,7 +281,7 @@ end;
 //Slug is the slug to be returned.
 //  NOTE: Slug MUST have been initialised. Slug ResultType and ImplicitType should
 //    be set /before/ the call to this function
-procedure IntrinsicGenerateIL(Func: PFunction;OpOverride: TOperation;ParamCount: Integer;
+procedure IntrinsicGenerateIL(Func: TFunction;OpOverride: TOperation;ParamCount: Integer;
   const Left, Right: TExprSlug;var Slug: TExprSlug);
 var V: TVariable;
 begin
@@ -345,7 +345,7 @@ end;
 
 //Slug must have been Initialised and a preliminary result type set.
 //No other data should have been set
-function TryEvalIntrinsic(Func: PFunction;const Arg0, Arg1: TExprSlug;
+function TryEvalIntrinsic(Func: TFunction;const Arg0, Arg1: TExprSlug;
   var Slug: TExprSlug;out Evalled: Boolean): TQuicheError;
 begin
   Evalled := False;
@@ -418,7 +418,7 @@ end;
 //as an argument.
 //Param is the relevant parameter
 //SlugIndex is the index of the parameter which is being passed an array
-function MassageArrayArgument(Op: TOperation;Param: PParameter;var Slugs: TSlugArray;
+function MassageArrayArgument(Op: TOperation;Param: TParameter;var Slugs: TSlugArray;
   SlugIndex: Integer): TQuicheError;
 var Slug: PExprSlug;
   IsTypeDef: Boolean; //We have a TypeDef - Ie the argument was a type (immediate) not a variable
@@ -513,14 +513,14 @@ begin
 end;
 
 //Apply MassageArrayArgument to any parameter which is having an array passed to it
-function MassageArrayArguments(Func: PFunction;var Slugs: TSlugArray): TQuicheError;
+function MassageArrayArguments(Func: TFunction;var Slugs: TSlugArray): TQuicheError;
 var I: Integer;
 begin
   for I := 0 to Func.ParamCount-1 do
     if (Slugs[I].ResultVarType = vtArrayType) or
       (Slugs[I].ResultVarType = vtTypeDef) and (Slugs[I].Operand.Imm.TypeDefValue.VarType = vtArrayType) then
     begin
-        Result := MassageArrayArgument(Func.Op, @Func.Params[I], Slugs, I);
+        Result := MassageArrayArgument(Func.Op, Func.Params[I], Slugs, I);
         if Result <> qeNone then
           EXIT;
     end;
@@ -531,7 +531,7 @@ end;
 //For any parameters which require a vtTypeDef, ensures the argument is a vtTypeDef
 //**Unless** the parameter is a vtArrayType
 //(ie if it is not then convert it to one);
-procedure SolidifyTypeDefs(Func: PFunction;var Slugs: TSlugArray);
+procedure SolidifyTypeDefs(Func: TFunction;var Slugs: TSlugArray);
 var I: Integer;
 begin
   for I := 0 to Func.ParamCount-1 do
@@ -547,8 +547,8 @@ end;
 //that parameter and the result to the compile time value of that TypeDef parameter.
 //Also handles parameters tagged with ifToType. These need to be converted to a
 //Immediate of type vtVarType which is the same as the parameterised result.
-function SolidifyParameterisedResultType(Func: PFunction;var Slugs: TSlugArray;var ResultType: TUserType): TQuicheError;
-var Param: PParameter;
+function SolidifyParameterisedResultType(Func: TFunction;var Slugs: TSlugArray;var ResultType: TUserType): TQuicheError;
+var Param: TParameter;
   Slug: PExprSlug;
   I: Integer;
 begin
@@ -568,7 +568,7 @@ begin
     if Func.Params[I].VarType = vtTypeDef then
     begin
       Assert(Param = nil);  //Multiple parameterised params is an error
-      Param := @Func.Params[I];
+      Param := Func.Params[I];
       Slug := @Slugs[I];
     end;
   if Param = nil then
@@ -593,7 +593,7 @@ begin
     Result := qeNone;
 end;
 
-function DispatchIntrinsic(Func: PFunction;var Slugs: TSlugArray;out Slug: TExprSlug): TQuicheError;
+function DispatchIntrinsic(Func: TFunction;var Slugs: TSlugArray;out Slug: TExprSlug): TQuicheError;
 var
   ResultType: TUserType;
   ResultTypeDebug: TUserType; //Only used for error messaging
@@ -680,7 +680,7 @@ end;
 
 //===================================== WRITE(LN)
 
-function WriteBasicGenIL(Func: PFunction;const Slug: TExprSlug): TQuicheError;
+function WriteBasicGenIL(Func: TFunction;const Slug: TExprSlug): TQuicheError;
 var DummySlug: TExprSlug;
 begin
   //Generate the code.
@@ -693,7 +693,7 @@ begin
   Result := qeNone;
 end;
 
-function WriteArrayGenIL(Func: PFunction;var Slug: TExprSlug): TQuicheError;
+function WriteArrayGenIL(Func: TFunction;var Slug: TExprSlug): TQuicheError;
 var DummySlug: TExprSlug;
   Slug2: TExprSlug;
   Value: TImmValue;
@@ -736,7 +736,7 @@ begin
 end;
 
 //Write and Writeln are special cases!
-function DispatchWrite(Func: PFunction;NewLine: Boolean): TQuicheError;
+function DispatchWrite(Func: TFunction;NewLine: Boolean): TQuicheError;
 var Ch: Char;
   Brace: Boolean; //Is parameter list wrapped in braces?
   Slug: TExprSlug;
@@ -798,10 +798,10 @@ end;
 //===================================== DISPATCH (EXCEPT INSTRINSICS)
 
 //IL code for Register calling convention
-function DispatchRegister(Func: PFunction;var Slugs: TSlugArray;var Slug: TExprSlug): PILItem;
+function DispatchRegister(Func: TFunction;var Slugs: TSlugArray;var Slug: TExprSlug): PILItem;
 var
   ArgIndex: Integer;
-  Arg: PParameter;
+  Arg: TParameter;
   ILItem: PILItem;
   Param: PILParam;
 begin
@@ -888,8 +888,8 @@ begin
   Result := ILItem;
 end;
 
-function DispatchStack(Func: PFunction;var Slug: TExprSlug): PILItem;
-var Arg: PParameter;
+function DispatchStack(Func: TFunction;var Slug: TExprSlug): PILItem;
+var Arg: TParameter;
   ILItem: PILItem;
 begin
   //If we have a Result and it's Pass-By-Ref (i.e. a Pointered Type) then we need to
@@ -937,7 +937,7 @@ end;
 //     into vars/temp vars (temp var only for result)
 //5. Generate code to cleanup the stack if needed.
 
-function DoParseProcedureCall(Func: PFunction): TQuicheError;
+function DoParseProcedureCall(Func: TFunction): TQuicheError;
 var Slugs: TSlugArray;  //Data and IL code for each argument
   DummySlug: TExprSlug;  //Dummy
 begin
@@ -968,9 +968,9 @@ begin
   //Generate IL code for after call/stack cleanup etc.
 end;
 
-function DoParseFunctionCall(Func: PFunction;var Slug: TExprSlug): TQuicheError;
+function DoParseFunctionCall(Func: TFunction;var Slug: TExprSlug): TQuicheError;
 var Slugs: TSlugArray;
-  Param: PParameter;
+  Param: TParameter;
 begin
   if Func.ResultCount = 0 then
     EXIT(ErrFuncCall(qeCantAssignProcedure, Func));

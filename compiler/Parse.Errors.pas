@@ -193,12 +193,12 @@ function ErrOpUsage(ErrClass: TQuicheError;Op: TOperation): TQuicheError;
 function ErrOpUsageSub(ErrClass: TQuicheError;const Sub: String;Op: TOperation): TQuicheError;
 function ErrOpUsageSub2(ErrClass: TQuicheError;const Sub1, Sub2: String;Op: TOperation): TQuicheError;
 
-function ErrFuncCall(ErrClass: TQuicheError;Func: PFunction): TQuicheError;
-function ErrFuncCallSub(ErrClass: TQuicheError;const Sub: String; Func: PFunction): TQuicheError;
+function ErrFuncCall(ErrClass: TQuicheError;Func: TFunction): TQuicheError;
+function ErrFuncCallSub(ErrClass: TQuicheError;const Sub: String; Func: TFunction): TQuicheError;
 function ErrFuncCallSub2(ErrClass: TQuicheError;const Sub1, Sub2: String;
-  Func: PFunction): TQuicheError;
+  Func: TFunction): TQuicheError;
 function ErrFuncCallSub3(ErrClass: TQuicheError;const Sub1, Sub2, Sub3: String;
-  Func: PFunction): TQuicheError;
+  Func: TFunction): TQuicheError;
 
 //Raise a qeTODO or qeBUG error.
 //qeTODO is for stubs waiting to be built out
@@ -338,31 +338,31 @@ begin
   Result := DoErrSub2(ErrClass, OpToUsage(Op), Sub1, Sub2);
 end;
 
-function FuncToHelpEx(Func: PFunction): String;
+function FuncToHelpEx(Func: TFunction): String;
 begin
   Result := Func.ToString;
   if Func.Comments <> '' then
     Result := Result + #13 + Func.Comments;
 end;
 
-function ErrFuncCall(ErrClass: TQuicheError;Func: PFunction): TQuicheError;
+function ErrFuncCall(ErrClass: TQuicheError;Func: TFunction): TQuicheError;
 begin
   Result := DoErr(ErrClass, FuncToHelpEx(Func));
 end;
 
-function ErrFuncCallSub(ErrClass: TQuicheError;const Sub: String; Func: PFunction): TQuicheError;
+function ErrFuncCallSub(ErrClass: TQuicheError;const Sub: String; Func: TFunction): TQuicheError;
 begin
   Result := DoErrSub(ErrClass, FuncToHelpEx(Func), Sub);
 end;
 
 function ErrFuncCallSub2(ErrClass: TQuicheError;const Sub1, Sub2: String;
-  Func: PFunction): TQuicheError;
+  Func: TFunction): TQuicheError;
 begin
   Result := DoErrSub2(ErrClass, FuncToHelpEx(Func), Sub1, Sub2);
 end;
 
 function ErrFuncCallSub3(ErrClass: TQuicheError;const Sub1, Sub2, Sub3: String;
-  Func: PFunction): TQuicheError;
+  Func: TFunction): TQuicheError;
 begin
   Result := DoErrSub3(ErrClass, FuncToHelpEx(Func), Sub1, Sub2, Sub3);
 end;

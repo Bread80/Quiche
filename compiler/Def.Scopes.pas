@@ -29,7 +29,7 @@ uses Classes,
 type
 //========== SEARCH FOR IDENTIFIERS
   TIdentData = record
-    Value: TDeclaredItem;
+    Value: TQuicheItem;
 
     function AsEnumItem: TEnumItem;
     function AsType: TUserType;
@@ -39,9 +39,6 @@ type
 
     case IdentType: TIdentType of
       itUnknown: ();
-      itFunction: (
-        F: PFunction;
-        );
     end;
 
   PScope= ^TScopeOLD;
@@ -51,8 +48,7 @@ type
                       //NOTE: WE WILL LEAK THESE UNTIL MIGRATION IS COMPLETE
     Parent: PScope;   //The next higher Scope, or nil in none
     Name: String;     //For the scope. For reference only
-    Func: PFunction;  //The function which owns this scope. Nil for main/global code
-    FuncList: PFuncList;    //Functions declared in this scope
+    Func: TFunction;  //The function which owns this scope. Nil for main/global code
 
     AsmCode: TStringList;   //Assembly code for Code segment for this scope (from CodeGen)
     AsmData: TStringList;   //Assembly code for Data segment (from CodeGen)
@@ -94,7 +90,7 @@ function GetCurrentScope: PScope;
 //If no main scope is assigned, also sets this as the main scope
 //If the Scope is for a function, Func is that function, otherwise Func should be nil.
 //Name is the name of the scope. If Name is '' the name will be retrieved from Func.
-function CreateCurrentScope(Func: PFunction;const Name: String): PScope;
+function CreateCurrentScope(Func: TFunction;const Name: String): PScope;
 
 //Creates a new scope to be used in a record definition.
 //Scope will be created a selected as the current scope such that variable and
@@ -132,7 +128,7 @@ procedure ScopeRollbackBlock(CodeBlock: TCodeBlock);
 
 
 //Searched /all/ scopes for the given function
-function FindScopeForFunc(AFunc: PFunction): PScope;
+function FindScopeForFunc(AFunc: TFunction): PScope;
 
 //-----GUI utlilities
 procedure ScopesToStrings(S: TStrings);
@@ -173,8 +169,6 @@ begin
   for Scope in ScopeList do
   begin
     //Free items owned by the scope??
-    Scope.FuncList.Clear;
-    Dispose(Scope.FuncList);
     Scope.AsmCode.Free;
     Scope.AsmData.Free;
     ClearILList(Scope.ILList);
@@ -190,7 +184,6 @@ end;
 procedure SetCurrentScope(Scope: PScope);
 begin
   CurrentScope := Scope;
-  SetCurrentFuncList(Scope.FuncList);
   //AsmCode - nowt to do
   SetCurrentILList(Scope.ILList);
 end;
@@ -211,7 +204,7 @@ begin
   NewBlock := True;
 end;
 
-function CreateCurrentScope(Func: PFunction;const Name: String): PScope;
+function CreateCurrentScope(Func: TFunction;const Name: String): PScope;
 var LName: String;
 begin
   Assert((Func <> nil) or (Name <> ''), 'Scope requires a Func or a Name (or both)');
@@ -229,8 +222,6 @@ begin
   if MainScope = nil then
     MainScope := Result;
   SetCurrentScope(Result);
-
-
 end;
 
 function CreateRecordScope(const Name: String): PScope;
@@ -261,21 +252,8 @@ begin
   CreateCurrentScope(nil, '_Global');
   InitSystemScope;
 end;
-(*
-function FindScopeForVar(AVar: TVariable;out Index: Integer): PScope;
-begin
-  for Result in ScopeList do
-  begin
-    Index := Result.VarList.IndexOf(AVar);
-    if Index >= 0 then
-      EXIT;
-  end;
 
-  Index := -1;
-  Result := nil;
-end;
-*)
-function FindScopeForFunc(AFunc: PFunction): PScope;
+function FindScopeForFunc(AFunc: TFunction): PScope;
 var Scope: PScope;
 begin
   for Scope in ScopeList do
@@ -309,8 +287,8 @@ begin
   Assert(CodeBlock = GetCurrentScope.BlockScope);
   Assert(not CodeBlock.IsEnded);
   ILIndex := GetCurrentScope.ILList.Count-1;
-  if CodeBlock.Parent is TCodeBlock then
-    GetCurrentScope.BlockScope := TCodeBlock(CodeBlock.Parent)
+  if CodeBlock.Owner is TCodeBlock then
+    GetCurrentScope.BlockScope := TCodeBlock(CodeBlock.Owner)
   else
     GetCurrentScope.BlockScope := GetCurrentScope.FunctionScope;
   Result := CodeBlock.EndCodeBlock(ILIndex);
@@ -324,7 +302,7 @@ begin
   Assert(CodeBlock = GetCurrentScope.BlockScope);
   Assert(CodeBlock.IsEnded);
   ILRollback(CodeBlock.ILIndexBegin);
-  Assert(Assigned(CodeBlock.Parent));
+  Assert(Assigned(CodeBlock.Owner));
 (*  CodeBlock.Parent.DeleteChild(CodeBlock);*)
 
   Assert(False, 'TODO');
@@ -377,7 +355,6 @@ begin
   Parent := AParent;
   Name := AName;
   Func := nil;
-  FuncList := CreateFuncList;
   AsmCode := TStringlist.Create;
   AsmData := TStringList.Create;
   ILList:= CreateILList;
@@ -399,7 +376,7 @@ begin
     Result.IdentType := Result.Value.IdentType;
     EXIT;
   end;
-
+(*
   if not IgnoreFuncs then //TEMP
     if Assigned(FuncList) then
     begin
@@ -410,7 +387,7 @@ begin
         EXIT;
       end;
     end;
-
+*)
   Result.IdentType := itUnknown;;
 end;
 

@@ -27,10 +27,10 @@ procedure TEMPRegAllocPtrStore(var ILItem: PILItem);
 procedure TEMPRegAllocBoolVarBranch(var ILItem: PILItem);
 
 //Allocate registers for functions using Register calling convention
-procedure TEMPRegAllocRegisterFunc(Func: PFunction);
+procedure TEMPRegAllocRegisterFunc(Func: TFunction);
 
 //Allocate registers for functions using Stack calling convention
-procedure TEMPRegAllocStackFunc(Func: PFunction);
+procedure TEMPRegAllocStackFunc(Func: TFunction);
 
 
 implementation
@@ -289,7 +289,7 @@ begin
     ILItem.Dest.Reg := ILItem.Param1.Reg;
 end;
 
-procedure TEMPRegAllocRegisterFunc(Func: PFunction);
+procedure TEMPRegAllocRegisterFunc(Func: TFunction);
 
   procedure AddUsedReg(var Used: TCPURegSet;Reg: TCPUReg);
   begin
@@ -364,8 +364,8 @@ begin
   ProcessParams(False);
 end;
 
-procedure TEMPRegAllocStackFunc(Func: PFunction);
-var Param: PParameter;
+procedure TEMPRegAllocStackFunc(Func: TFunction);
+var Param: TParameter;
 begin
   Assert(Func.CallingConvention = ccStack);
 
@@ -374,7 +374,7 @@ begin
 
   Assert(Func.ResultCount = 1);
 
-  Param := @Func.Params[Func.ParamCount];
+  Param := Func.Params[Func.ParamCount];
   if Param.ReturnsData then
   begin
     Assert(Param.Reg = rNone, 'Already allocated!');
