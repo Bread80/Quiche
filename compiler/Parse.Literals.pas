@@ -267,7 +267,7 @@ begin
         State := inExponent;
         S := S + 'e';
         Parser.SkipChar;
-        if Parser.TestChar in ['+','-'] then
+        if CharInSet(Parser.TestChar, ['+','-']) then
         begin
           S := Parser.TestChar;
           Parser.SkipChar;

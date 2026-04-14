@@ -289,7 +289,7 @@ begin
   if EmulateGood then
   begin
     mmIL.Lines.Add('');
-    IDE.Compiler.GetVarsText(mmEmulate.Lines, False);
+    IDE.Compiler.GetVarsText('', mmEmulate.Lines, False);
     mmEmulate.Lines.Add(#13'Console log:');
     mmEmulate.Lines.Add(IDE.Compiler.ConsoleLog);
   end
@@ -305,19 +305,20 @@ begin
 
   IDE.Compiler.GetInterpreterOutput(mmAssembly.Lines);
 
-  IDE.Compiler.GetVarsText(mmVariables.Lines, False);
+  IDE.Compiler.GetVarsText('', mmVariables.Lines, False);
   TabControl1.ActiveTab := tbVariables;
 end;
 
 function TForm1.Build: Boolean;
 begin
   if not SaveProject then
-    EXIT;
+    EXIT(False);
   EmulateGood := False;
 
   Result := IDE.Compiler.CompileString(tdSource.Text.AsString, GetBlockType,
     pmRootUnknown, True, False);
 
+  cbScope.Items.Clear;
   IDE.Compiler.GetScopeList(cbScope.Items);
   if cbScope.Items.Count > 0 then
     cbScope.ItemIndex := 0;
@@ -325,8 +326,8 @@ begin
   IDE.Compiler.GetILText(mmIL.Lines);
   IDE.Compiler.GetVarsText(mmVariables.Lines, True);
   IDE.Compiler.GetFunctionsText(mmFunctions.Lines);
-*)  IDE.Compiler.GetTypesText(mmFunctions.Lines);
-
+  IDE.Compiler.GetTypesText('', mmFunctions.Lines);
+*)
   if not Result then
   begin
     if IDE.Compiler.ParseErrorNo <> 0 then
@@ -391,19 +392,17 @@ begin
 end;
 
 procedure TForm1.cbScopeChange(Sender: TObject);
+var ScopeName: String;
 begin
   if cbScope.ItemIndex >= 0 then
-  begin
-    if not IDE.Compiler.SelectScope(cbScope.Items[cbScope.ItemIndex]) then
-      raise Exception.Create('Scope not found :(');
+    ScopeName := cbScope.Items[cbScope.ItemIndex]
+  else
+    ScopeName := '';
 
-    IDE.Compiler.GetILText(mmIL.Lines);
-
-    IDE.Compiler.GetObjectCode(mmAssembly.Lines);
-
-    IDE.Compiler.GetVarsText(mmVariables.Lines, not EmulateGood);
-    IDE.Compiler.GetFunctionsText(mmFunctions.Lines);
-  end;
+  IDE.Compiler.GetILText(ScopeName, mmIL.Lines);
+  IDE.Compiler.GetObjectCode(ScopeName, mmAssembly.Lines);
+  IDE.Compiler.GetVarsText(ScopeName, mmVariables.Lines, not EmulateGood);
+  IDE.Compiler.GetFunctionsText(ScopeName, mmFunctions.Lines);
 end;
 
 procedure TForm1.DelayedSetFocus(Control: TControl);

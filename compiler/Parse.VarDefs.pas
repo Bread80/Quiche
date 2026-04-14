@@ -39,7 +39,7 @@ function DoVAR(const Ident: String;AddrMode: TAddrMode): TQuicheError;
 
 implementation
 uses SysUtils,
-  Def.Globals, Def.VarTypes, Def.Scopes, Def.ScopesEX,
+  Def.Globals, Def.VarTypes, Def.Scopes,
   Parse.TypeDefs, Parse.Expr;
 
 
@@ -136,8 +136,9 @@ begin
 
     if VarStatus = vsVarRead then
     begin
-      if GetCurrentScope.SearchUpLocal(VarName).IdentType <> itUnknown then
-        EXIT(ErrSub(qeIdentifierRedeclared, VarName));
+      Result := TestUniqueIdentifier(VarName);
+      if Result <> qeNone then
+        EXIT;
       Variable := nil;
     end
     else

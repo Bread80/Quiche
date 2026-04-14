@@ -340,7 +340,6 @@ var Data: TBlob;  //Array of Byte
   I: Integer;
   Item: TRangeListItem;
   ItemSize: Integer;
-  Count: Integer;
 begin
   SetLength(Data, ArrayType.DataSize);
 
@@ -452,8 +451,7 @@ begin
 end;
 
 function HardenRangeListToType(var Slug: TExprSlug;var AsType: TUserType): TQuicheError;
-var Value: TImmValue;
-  ResultType: TUserType;
+var ResultType: TUserType;
 begin
   Assert(AsType <> nil);
   Assert(Slug.ILItem = nil);
@@ -464,8 +462,6 @@ begin
     vtArrayType:  //TODO??? - this happens in expr evaluator??
     begin
       Result := HardenRangeListToArrayType(Slug, AsType as TArrayType, ResultType);
-      if Result <> qeNone then
-        EXIT;
       AsType := ResultType;
     end;
   else

@@ -5,17 +5,18 @@ code.
 *)
 
 interface
-uses Def.Functions, Def.ScopesEX;
+uses Def.Compiler, Def.Functions, Def.Scopes;
 
 procedure InitialiseIntrinsics;
 
 //!!Currently adds to GetCurrentScope!!
-procedure LoadIntrinsicsFile(const Filename: String;Scope: TScope);
+procedure LoadIntrinsicsFile(const Filename: String;SysUnit: TUnit);
 
 
 implementation
 uses SysUtils, Classes,
-  Def.Operators, Def.VarTypes, Def.Variables, Def.UserTypes, Def.Scopes;
+  Parse.Base,
+  Def.Operators, Def.VarTypes, Def.Variables, Def.UserTypes;
 
 procedure InitialiseIntrinsics;
 begin
@@ -45,7 +46,7 @@ const //Column indexes
   fResultType     = 11;
   fComments       = 12;
 
-procedure LoadIntrinsicsFile(const Filename: String;Scope: TScope);
+procedure LoadIntrinsicsFile(const Filename: String;SysUnit: TUnit);
 
   procedure ProcessParam(Param: TParameter;const Access, Name, VarType,
     DefaultValue, Flags: String);
@@ -97,9 +98,12 @@ var Data: TStringList;
   Line: String;
   Fields: TArray<String>;
   I: Integer;
-  Intrinsic: TFunction;
+  Intrinsic: TIntrinsic;
   ArrayDef: TArrayDef;
+  Arg1, Arg2, Res: TParameter;
 begin
+  ParseData.OpenILScope(SysUnit);
+
   Data := TStringlist.Create;
   try
     Data.LoadFromFile(Filename);
@@ -118,9 +122,9 @@ begin
           for I:=0 to Length(Fields)-1 do
             Fields[I] := Fields[I].Trim;
 
-          Intrinsic := TFunction.Create(Fields[fName], Scope);
-          Scope.Add(Intrinsic);
-          Intrinsic.CallingConvention := ccIntrinsic;
+          Intrinsic := TIntrinsic.Create(Fields[fName], SysUnit);
+          SysUnit.Add(Intrinsic);
+//          Intrinsic.CallingConvention := ccIntrinsic;
 
           Intrinsic.Op := IdentToIntrinsicOperator(Fields[fName]);
           if Intrinsic.Op = opUnknown then
@@ -128,21 +132,20 @@ begin
 
           //================FIRST PARAMETER
 
-          if Fields[fP1Access] = '' then
-            Intrinsic.ParamCount := 0
-          else
+          if Fields[fP1Access] <> '' then
           begin
-            ProcessParam(Intrinsic.Params[0], Fields[fP1Access], Fields[fP1Name],
+            Arg1 := Intrinsic.AddArg;
+
+            ProcessParam(Arg1, Fields[fP1Access], Fields[fP1Name],
               Fields[fP1VarType], '', Fields[fP1Flags]);
 
             //=================SECOND PARAMETER
 
-            if Fields[fP2Access] = '' then
-              Intrinsic.ParamCount := 1
-            else
+            if Fields[fP2Access] <> '' then
             begin
-              Intrinsic.ParamCount := 2;
-              ProcessParam(Intrinsic.Params[1], Fields[fP2Access], Fields[fP2Name],
+              Arg2 := Intrinsic.AddArg;
+
+              ProcessParam(Arg2, Fields[fP2Access], Fields[fP2Name],
                 Fields[fP2VarType], Fields[fP2DefaultValue], Fields[fP2Flags]);
             end;
           end;
@@ -151,21 +154,22 @@ begin
 
           if CompareText(Fields[fResultType], 'None') <> 0 then
           begin
-            Intrinsic.Params[Intrinsic.ParamCount].Access := paResult;
+            Res := Intrinsic.AddResult;
+
+            Res.Access := paResult;
             if CompareText(Fields[fResultType], 'Param1') = 0 then
             begin
-              Intrinsic.Params[Intrinsic.ParamCount].UserType := Intrinsic.Params[0].UserType;
-              Intrinsic.Params[Intrinsic.ParamCount].SuperType := Intrinsic.Params[0].SuperType;
+              Res.UserType := Arg1.UserType;
+              Res.SuperType := Arg1.SuperType;
             end
             else
             begin
-              Intrinsic.Params[Intrinsic.ParamCount].UserType :=
+              Res.UserType :=
                 GetSystemType(StringToType(Fields[fResultType], ArrayDef), @ArrayDef);
-              if Intrinsic.Params[Intrinsic.ParamCount].UserType = nil then
-                if not StringToSuperType(Fields[fResultType], Intrinsic.Params[Intrinsic.ParamCount].SuperType) then
+              if Res.UserType = nil then
+                if not StringToSuperType(Fields[fResultType], Res.SuperType) then
                   raise Exception.Create('Invalid ResultType for Intrinsic: ' + Fields[fResultType]);
             end;
-            Intrinsic.ResultCount := 1;
           end;
 
           for I := fComments to Length(Fields)-1 do
@@ -179,6 +183,7 @@ begin
       end;
 
   finally
+    ParseData.CloseILScope(SysUnit);
     Data.Free;
   end;
 end;

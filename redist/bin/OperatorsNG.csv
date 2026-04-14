@@ -90,10 +90,8 @@
 ;,,,Unary operators,,,,,,,
 ,negate,0,n,,-,negate,Numeric,,Numeric,
 ,complement,0,n,,not,complement,Numeric,,Numeric,
-,addrof,0,n,,,,Any,,Pointer,
 ,addrelement,0,n,,,,<Array>,Word,Pointer,Addr of Index'th array elemnt
 ,addroffset,0,n,,,,PointeredType,Word,Pointer,Addr of offset from base of data
-;,deref,0,n,,,,,,,
 ,,,,,,,,,,
 ,,,Intrinsics - Maths,,,,,,,
 ,abs,0,n,,,,,,,

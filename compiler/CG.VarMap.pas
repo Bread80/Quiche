@@ -132,8 +132,6 @@ begin
       AddVarMapRead(Param.Variable, Param.VarVersion, Step);
     pkVarDest:
       AddVarMapWrite(Param.Variable, Param.VarVersion, Step);
-    pkVarAddr:
-      AddVarMapAddrOf(Param.Variable);
     pkVarPtr:
       AddVarMapRead(Param.Variable, Param.VarVersion, Step);
       //TODO: Also read (or write) memory(?)

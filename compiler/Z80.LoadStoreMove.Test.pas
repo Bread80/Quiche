@@ -4,7 +4,8 @@ interface
 
 implementation
 uses TestFrameWork,
-  Def.IL, Def.VarTypes, Def.Consts, Def.Scopes, Def.Variables, Def.UserTypes,
+  Parse.Base,
+  Def.Compiler, Def.IL, Def.VarTypes, Def.Consts, Def.Scopes, Def.Variables, Def.UserTypes,
   Lib.Data,
   CodeGen, CG.Data,
   Z80.LoadStoreMove, Z80.Load, Z80.Store,
@@ -535,7 +536,8 @@ var Param: TILParam;
   Compare: String;
 begin
   Setup;
-  InitialiseScopes;
+  InitParseData;
+//  InitialiseScopes(TheProgram);
   RegStateInitialise;
 
   V := TVars.AddWithAddrMode('Test1', GetSystemType(VarType), VarAddrMode);
@@ -1265,7 +1267,8 @@ var Param: TILParam;
   Compare: String;
 begin
   Setup;
-  InitialiseScopes;
+  InitParseData;
+//  InitialiseScopes(TheProgram);
   RegStateInitialise;
 
   V := TVars.AddWithAddrMode('Test1', GetSystemType(VarType), VarAddrMode);

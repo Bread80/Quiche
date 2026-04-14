@@ -52,12 +52,12 @@ begin
     vtWord, vtPointer: Result := Value and $ffff;
     vtInt8:
       if Value >= $80 then
-        Result := Value or (-1 xor $ff)
+        Result := Value or (-1 xor Integer($ff))
       else
         Result := Value;
     vtInteger:
       if Value >= iIntegerMin then
-        Result := Value or (-1 xor iCPUWordMask)
+        Result := Value or (-1 xor Integer(iCPUWordMask))
       else
         Result := Value;
   else
@@ -819,14 +819,14 @@ begin
         NewValue := Value.ToInteger and $ff;
         if IsSignedType(ToType) then
           if NewValue >= $80 then
-            NewValue := NewValue or (-1 xor $ff);
+            NewValue := NewValue or (-1 xor Integer($ff));
       end;
       2:
       begin
-        NewValue := Value.ToInteger and $ffff;
+        NewValue := Value.ToInteger and iCPUWordMask;
         if IsSignedType(ToType) then
           if NewValue >= $8000 then
-            NewValue := NewValue or (-1 xor $ffff);
+            NewValue := NewValue or (-1 xor Integer(iCPUWordMask));
       end;
     else
       raise Exception.Create('Unknown type data size in EvalTypecast');

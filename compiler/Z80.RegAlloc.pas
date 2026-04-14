@@ -315,26 +315,26 @@ procedure TEMPRegAllocRegisterFunc(Func: TFunction);
 
     //Find any registers already allocated and mark as 'used'
     UsedRegs := [];
-    for I := 0 to Func.ParamCount + Func.ResultCount - 1 do
-      if Func.Params[I].Reg <> rNone then
-        if (Entry and Func.Params[I].PassDataIn) or
-          (not Entry and not Func.Params[I].ReturnsData) then
-          AddUsedReg(UsedRegs, Func.Params[I].Reg);
+    for I := 0 to Func.ParamsCount - 1 do
+      if Func.Paramss[I].Reg <> rNone then
+        if (Entry and Func.Paramss[I].PassDataIn) or
+          (not Entry and not Func.Paramss[I].ReturnsData) then
+          AddUsedReg(UsedRegs, Func.Paramss[I].Reg);
 
     //For each Parameter
     Reg8 := rA;
     Reg16 := rHL;
 
-    for I := 0 to Func.ParamCount + Func.ResultCount -1 do
-      if Func.Params[I].UserType <> nil then
-        if Func.Params[I].Reg = rNone then
-          if (Entry and Func.Params[I].PassDataIn) or
-            (not Entry and Func.Params[I].ReturnsData) then
+    for I := 0 to Func.ParamsCount -1 do
+      if Func.Paramss[I].UserType <> nil then
+        if Func.Paramss[I].Reg = rNone then
+          if (Entry and Func.Paramss[I].PassDataIn) or
+            (not Entry and Func.Paramss[I].ReturnsData) then
           begin
-            if Func.Params[I].IsByRef then
+            if Func.Paramss[I].IsByRef then
               ByteSize := 2
             else
-              ByteSize := Func.Params[I].UserType.RegSize;
+              ByteSize := Func.Paramss[I].UserType.RegSize;
 
             case ByteSize of
               1:
@@ -342,7 +342,7 @@ procedure TEMPRegAllocRegisterFunc(Func: TFunction);
                 while (Reg8 in UsedRegs) and (Reg8 in CPUReg8Bit) do
                   inc(Reg8);
                 Assert(Reg8 in CPUReg8Bit, 'Unable to allocate a register :(');
-                Func.Params[I].Reg := Reg8;
+                Func.Paramss[I].Reg := Reg8;
                 AddUsedReg(UsedRegs, Reg8);
               end;
               2:
@@ -350,7 +350,7 @@ procedure TEMPRegAllocRegisterFunc(Func: TFunction);
                 while (Reg16 in UsedRegs) and (Reg16 in CPUReg16Bit) do
                   inc(Reg16);
               Assert(Reg16 in CPUReg16Bit, 'Unable to allocate a register :(');
-              Func.Params[I].Reg := Reg16;
+              Func.Paramss[I].Reg := Reg16;
               AddUsedReg(UsedRegs, Reg16);
             end;
           else
@@ -365,7 +365,7 @@ begin
 end;
 
 procedure TEMPRegAllocStackFunc(Func: TFunction);
-var Param: TParameter;
+var Res: TParameter;
 begin
   Assert(Func.CallingConvention = ccStack);
 
@@ -374,13 +374,13 @@ begin
 
   Assert(Func.ResultCount = 1);
 
-  Param := Func.Params[Func.ParamCount];
-  if Param.ReturnsData then
+  Res := Func.Results[0];
+  if Res.ReturnsData then
   begin
-    Assert(Param.Reg = rNone, 'Already allocated!');
-    case Param.UserType.RegSize of
-      1: Param.Reg := rA;
-      2: Param.Reg := rHL;
+    Assert(Res.Reg = rNone, 'Already allocated!');
+    case Res.UserType.RegSize of
+      1: Res.Reg := rA;
+      2: Res.Reg := rHL;
     else
       Assert(False);
     end;

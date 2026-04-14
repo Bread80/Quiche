@@ -2,7 +2,7 @@ unit CleverPuppy;
 
 interface
 uses Classes, Generics.Collections,
-  Def.IL, Def.Functions,
+  Def.IL, {Def.Functions,}
   Lib.Data,
   Z80.CPUState, Z80.AlgoData,
   Z80.Hardware, Z80.Algos;
@@ -263,6 +263,7 @@ type
 
 implementation
 uses SysUtils,
+  {Refactor out}Parse.Base,
   Def.Operators, Def.Variables, Def.VarTypes, Def.Scopes, Def.UserTypes,
   Lib.CPUState, Lib.Primitives,
   Z80.GenProcs,
@@ -1487,7 +1488,7 @@ procedure TCleverPuppy.ExportSection;
 
 begin
   //Clear current list
-  ClearILList(GetCurrentScope.ILList);
+  ClearILList(ParseData.ILScope.ILList);
   ExportChunk(FBlocks)
 end;
 
@@ -1535,15 +1536,15 @@ begin
 end;
 
 procedure TCleverPuppy.ProcessSection;
-var Scope: PScope;
+var// Scope: TScope;
   I: Integer;
 begin
-  Scope := GetCurrentScope;
+(*  Scope := GetCurrentScope;
   if Assigned(Scope.Func) then
     AddLog(nil, 'CleverPuppy processing: ' + Scope.Func.Name)
   else
     AddLog(nil, 'CleverPuppy processing: main');
-
+*)
   //Import all Steps, split into blocks
   ImportSection;
 

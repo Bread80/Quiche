@@ -1,8 +1,8 @@
 unit Parse.Base;
 
 interface
-uses Classes,
-  Def.IL, Def.VarTypes, Def.Variables, Def.UserTypes, Def.Consts,
+uses Classes, Generics.Collections, SysUtils,
+  Def.Compiler, Def.IL, Def.VarTypes, Def.Variables, Def.UserTypes, Def.Consts, Def.Scopes,
   Parse.Errors, Parse.Source,
   Z80.Hardware;
 
@@ -114,10 +114,51 @@ var AttrPreserves: TCPURegSet;
 //Specifies that the following code does not corrupt any registers
 function ParseAttribute: TQuicheError;
 
+//IL will be converted to assembler by calling OnScopeDone. This is called at the
+//end of a function declaration, or  the end of the program for root level code.
+type TAssembleCallback = TFunc<TILScope, Boolean>;
+
+type TParseData = class
+  private
+    FILScopes: TStack<TILScope>;
+    FParseScopes: TStack<TScope>;
+    FOnScopeDone: TAssembleCallback;
+    //Do any processing which is required when changing scopes (Uses stack TOSes)
+    procedure SetCurrentScopes;
+    function GetILScope: TILScope;
+    function GetParseScope: TScope;
+  public
+    constructor Create;
+    destructor Destroy;override;
+
+    //Make Scope the currenr scope
+    procedure OpenILScope(Scope: TILScope);
+    function CloseILScope(Scope: TILScope): TILScope;
+
+    function OpenParseScope: TScope;
+    //Closes the currently open parse scope. If the scope contains no declarations
+    //it will be trimmed (ie deleted).
+    //If the scope was trimmed returns nil, otherwise returns Scope
+    function CloseParseScope(Scope: TScope): TScope;
+    procedure RollBackParseScope(Scope: TScope);
+
+    //Current Program, Unit or Function (whilst parsing)
+    property ILScope: TILScope read GetILScope;
+    //The current code block (whilst parsing). Initially the same as ILScope
+    property ParseScope: TScope read GetParseScope;
+
+    property OnScopeDone: TAssembleCallback read FOnScopeDone write FOnScopeDone;
+
+  end;
+
+function ParseData: TParseData;
+
+procedure InitParseData;
+
 implementation
-uses SysUtils,
+uses
   {$ifndef fpc}IOUtils,{$endif}
-  Def.Scopes, Def.ScopesEX;
+  Parse;
 
 procedure LoadFromString(Source: String);
 begin
@@ -214,8 +255,7 @@ begin
 end;
 
 function TestRangeOperator: Boolean;
-var S: String;
-  Cursor: TParseCursor;
+var Cursor: TParseCursor;
 begin
   Cursor := Parser.GetCursor;
   if Parser.TestChar = '.' then
@@ -310,7 +350,7 @@ begin
   if IdentToKeyword(Ident) <> keyUNKNOWN then
     EXIT(ErrSub(qeReservedWord, Ident));
 
-  if GetCurrentScope.SearchUpLocal(Ident).IdentType <> itUnknown then
+  if ParseData.ParseScope.FindIdentifierUpLocal(Ident) <> nil then
     EXIT(ErrSub(qeIdentifierRedeclared, Ident));
 
   Result := qeNone;
@@ -533,8 +573,108 @@ begin
     EXIT(ErrSub(qeInvalidAttrName, Ident));
 end;
 
+
+var ParseDataVar: TParseData;
+
+function ParseData: TParseData;
+begin
+  Assert(Assigned(ParseDataVar));
+  Result := ParseDataVar;
+end;
+
+procedure InitParseData;
+begin
+  if Assigned(ParseDataVar) then
+    ParseDataVar.Free;
+  ParseDataVar := TParseData.Create;
+end;
+
+{ TParseData }
+
+function TParseData.CloseILScope(Scope: TILScope): TILScope;
+begin
+  Assert(FILScopes.Peek = Scope);
+  CloseParseScope(Scope);
+  FILScopes.Pop;
+  Result := ILScope;
+  SetCurrentScopes;
+end;
+
+function TParseData.CloseParseScope(Scope: TScope): TScope;
+var ILIndex: Integer;
+begin
+  Assert(FParseScopes.Peek = Scope);
+//  Assert(not Scope.IsEnded);
+  ILIndex := ILScope.ILList.Count;
+  Result := Scope.EndCodeBlock(ILIndex);
+  FParseScopes.Pop;
+  SetCurrentScopes;
+end;
+
+constructor TParseData.Create;
+begin
+  inherited;
+  FILScopes := TStack<TILScope>.Create;
+  FParseScopes := TStack<TScope>.Create;
+end;
+
+destructor TParseData.Destroy;
+begin
+  FILScopes.Free;
+  FParseScopes.Free;
+  inherited;
+end;
+
+function TParseData.GetILScope: TILScope;
+begin
+  if FILScopes.Count = 0 then
+    Result := nil
+  else
+    Result := FILScopes.Peek;
+end;
+
+function TParseData.GetParseScope: TScope;
+begin
+  if FParseScopes.Count = 0 then
+    Result := nil
+  else
+    Result := FParseScopes.Peek;
+end;
+
+procedure TParseData.OpenILScope(Scope: TILScope);
+begin
+  FILScopes.Push(Scope);
+  FParseScopes.Push(Scope);
+  SetCurrentScopes;
+end;
+
+function TParseData.OpenParseScope: TScope;
+var ILIndex: Integer; //Current IL Position (ie first item in new scope)
+begin
+  ILIndex := ILScope.ILList.Count;
+  Result := ParseScope.BeginCodeBlock(ILIndex);
+  FParseScopes.Push(Result);
+  SetCurrentScopes;
+end;
+
+procedure TParseData.RollBackParseScope(Scope: TScope);
+begin
+//  Assert(Scope.IsEnded);
+  ILRollback(Scope.ILIndexBegin);
+  Assert(Assigned(Scope.Owner));
+  Scope.Owner.RemoveChild(Scope);
+end;
+
+procedure TParseData.SetCurrentScopes;
+begin
+  if FILScopes.Count > 0 then
+    SetCurrentILList(ILScope.ILList);
+end;
+
 initialization
   Parser := TQuicheSourceReader.Create;
+  ParseDataVar := nil;
 finalization
+  FreeAndNil(ParseDataVar);
   Parser.Free;
 end.

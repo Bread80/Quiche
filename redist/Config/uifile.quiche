@@ -1,12 +1,11 @@
 program
-  var x:Word = 0;
-
-  procedure f(a: Word);stack;
+  function Get(a: Pointer): Integer;register;
   begin
-    x := a;
-  end;
+    Result := peek(a, Integer)
+  end
 
+  var x:Integer= 2000
+  var i:Integer=0;
   begin
-    var i:Word = 2000;
-    f(i);
+    i := Get(@x);
   end.

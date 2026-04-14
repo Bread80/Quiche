@@ -1,15 +1,19 @@
 unit Z80.CG;
 
 interface
-uses Def.Functions, Def.Globals, Def.IL, Def.Scopes, Def.Variables,
+uses Def.Compiler, Def.Functions, Def.Globals, Def.IL, Def.Scopes, Def.Variables,
   Lib.Primitives,
   Z80.Load;
 
+procedure GenProgramPreamble(BlockType: TBlockType);
+
 //Generate the code form the start of a function (ie. generate a stack frame, if needed)
-procedure GenFunctionPreamble(Scope: PScope;BlockType: TBlockType);
+procedure GenFunctionPreamble(Func: TFunction);
+
+procedure GenProgramPostAmble(BlockType: TBlockType);
 
 //Generate code at function end (ie. stack teardown, if needed)
-procedure GenFunctionPostAmble(Scope: PScope;BlockType: TBlockType);
+procedure GenFunctionPostAmble(Func: TFunction);
 
 //------------------
 
@@ -26,148 +30,141 @@ uses Classes, SysUtils,
 
 //======================= PROGRAMMATIC CODE GENERATION
 
+procedure GenProgramPreamble(BlockType: TBlockType);
+begin //We're at global scope
+  if BlockType = btStack then
+    GenFragmentName('stacklocal_enter')
+end;
+
 //Generate the code form the start of a function (ie. generate a stack frame, if needed)
-procedure GenFunctionPreamble(Scope: PScope;BlockType: TBlockType);
+procedure GenFunctionPreamble(Func: TFunction);
 var InitLocalVarsLabel: String;
   LocalVarsToInit: Boolean;
   TypeCode: Integer;
-
 const
   tcEndOfData = 1;
   tcShortVector = 2;
   tcShortList = 3;
   tcLongVector = 4;
   tcLongList = 5;
-
 begin
-  if Scope.Func = nil then
-  begin //We're at global scope
-    if BlockType = btStack then
-      GenFragmentName('stacklocal_enter')
-  end
-  else //Scope.Func <> nil - we're generating function code
-  begin
-    Assert(BlockType = btDefault, 'Can''t override block type for functions');
-    InitLocalVarsLabel := '';
-    case Scope.Func.CallingConvention of
-      ccRegister:
-      begin
-        //Allocate registers to parameters (unless they've already been allocated,
-        //either in the declaration or by the register allocator)
-        TEMPRegAllocRegisterFunc(Scope.Func);
+  InitLocalVarsLabel := '';
+  case Func.CallingConvention of
+    ccRegister:
+    begin
+      //Allocate registers to parameters (unless they've already been allocated,
+      //either in the declaration or by the register allocator)
+      TEMPRegAllocRegisterFunc(Func);
 
-        //Copy registers to global storage (unless the global storage has been
-        //optimised away)
-        GenFuncArgStore(Scope.Func);
+      //Copy registers to global storage (unless the global storage has been
+      //optimised away)
+      GenFuncArgStore(Func);
 
-        InitLocalVarsLabel := '_q_initlocalvars_static';
-      end;
-      ccStack:
-      begin
-        TEMPRegAllocStackFunc(Scope.Func);
-          //TODO: Add register allocation for Result
-//        TODO: if VarGetLocalByteSize > 0 then
-        GenLibraryProc('stacklocal_enter', nil);
-
-        InitLocalVarsLabel := '_q_initlocalvars_stack';
-
-        //TODO: Initialise Vectors and Lists
-        //CALL _q_initlocalvars_stack
-        //List of data - VarType and Offset
-        //Vector: Address, Length
-        //List: Address, Capacity (Length initialised to zero)
-
-      end;
-    else
-      raise ECallingConvention.Create;
+      InitLocalVarsLabel := '_q_initlocalvars_static';
     end;
+    ccStack:
+    begin
+      TEMPRegAllocStackFunc(Func);
+        //TODO: Add register allocation for Result
+//        TODO: if VarGetLocalByteSize > 0 then
+      GenLibraryProc('stacklocal_enter', nil);
 
-    //Types which have meta data need to initialised.
-    //Currently that means vectors and lists.
-    LocalVarsToInit := False;
-    Scope.BlockScope.EachAllLevel<TVariable>(
-      procedure(V: TVariable)
-      begin
-        if (V.VarType = vtArrayType) and ((V.UserType as TArrayType).ArrayKind in [atVector, atList]) then
-          if not (V is TParamVariable) or not (V as TParamVariable).IsParam then
-          begin //Variable needs initialising
-            //TODO: NOT if it's a CopyDataIn variable - but how to know?
-            if not LocalVarsToInit then
-            begin
-              AsmLine('call ' + InitLocalVarsLabel);
-              LocalVarsToInit := True;
-            end;
-            case (V.UserType as TArrayType).ArrayKind of
-              atVector:
-                case (V.UserType as TArrayType).ArraySize of
-                  asShort: TypeCode := tcShortVector;
-                  asLong: TypeCode := tcLongVector;
-                else
-                  raise EVarType.Create;
-                end;
-              atList:
-                case (V.UserType as TArrayType).ArraySize of
-                  asShort: TypeCode := tcShortList;
-                  asLong: TypeCode := tcLongList;
-                else
-                  raise EVarType.Create;
-                end;
-            else
-              raise EVarType.Create;
-            end;
-            //TypeCode
-            AsmLine('db ' + ByteToStr(TypeCode));
+      InitLocalVarsLabel := '_q_initlocalvars_stack';
 
-            //Address or Offset
-            case V.AddrMode of
-              amStack: AsmLine('dw ' + (*V.GetAsmOffset*) WordToStr(V.Offset));
-              amStatic: AsmLine('dw ' + V.GetAsmName);
-            else
-              raise EAddrMode.Create;
-            end;
-            //Vector length or List Capacity
-            case TypeCode of
-              tcShortVector: AsmLine('db ' + ByteToStr((V.UserType as TVectorType).Length));
-              tcLongVector: AsmLine('dw ' + ByteToStr((V.UserType as TVectorType).Length));
-              tcShortList: AsmLine('db ' + ByteToStr((V.UserType as TListType).Capacity));
-              tcLongList: AsmLine('dw ' + WordToStr((V.UserType as TListType).Capacity));
-            else
-              raise EVarType.Create;
-            end;
-          end;
-      end);
+      //TODO: Initialise Vectors and Lists
+      //CALL _q_initlocalvars_stack
+      //List of data - VarType and Offset
+      //Vector: Address, Length
+      //List: Address, Capacity (Length initialised to zero)
 
-    if LocalVarsToInit then
-      AsmLine('db ' + ByteToStr(tcEndOfData));
+    end;
+  else
+    raise ECallingConvention.Create;
   end;
+
+  //Types which have meta data need to initialised.
+  //Currently that means vectors and lists.
+  LocalVarsToInit := False;
+  Func.EachDown<TVariable>(
+    procedure(V: TVariable)
+    begin
+      if (V.VarType = vtArrayType) and ((V.UserType as TArrayType).ArrayKind in [atVector, atList]) then
+        if not (V is TParamVariable) or not (V as TParamVariable).IsParam then
+        begin //Variable needs initialising
+          //TODO: NOT if it's a CopyDataIn variable - but how to know?
+          if not LocalVarsToInit then
+          begin
+            AsmLine('call ' + InitLocalVarsLabel);
+            LocalVarsToInit := True;
+          end;
+          case (V.UserType as TArrayType).ArrayKind of
+            atVector:
+              case (V.UserType as TArrayType).ArraySize of
+                asShort: TypeCode := tcShortVector;
+                asLong: TypeCode := tcLongVector;
+              else
+                raise EVarType.Create;
+              end;
+            atList:
+              case (V.UserType as TArrayType).ArraySize of
+                asShort: TypeCode := tcShortList;
+                asLong: TypeCode := tcLongList;
+              else
+                raise EVarType.Create;
+              end;
+          else
+            raise EVarType.Create;
+          end;
+          //TypeCode
+          AsmLine('db ' + ByteToStr(TypeCode));
+
+          //Address or Offset
+          case V.AddrMode of
+            amStack: AsmLine('dw ' + (*V.GetAsmOffset*) WordToStr(V.Offset));
+            amStatic: AsmLine('dw ' + V.GetAsmName);
+          else
+            raise EAddrMode.Create;
+          end;
+          //Vector length or List Capacity
+          case TypeCode of
+            tcShortVector: AsmLine('db ' + ByteToStr((V.UserType as TVectorType).Length));
+            tcLongVector: AsmLine('dw ' + ByteToStr((V.UserType as TVectorType).Length));
+            tcShortList: AsmLine('db ' + ByteToStr((V.UserType as TListType).Capacity));
+            tcLongList: AsmLine('dw ' + WordToStr((V.UserType as TListType).Capacity));
+          else
+            raise EVarType.Create;
+          end;
+        end;
+    end);
+
+  if LocalVarsToInit then
+    AsmLine('db ' + ByteToStr(tcEndOfData));
+end;
+
+procedure GenProgramPostAmble(BlockType: TBlockType);
+begin
+  if BlockType = btStack then
+    GenLibraryProc('stacklocal_exit', nil)
+  else
+    AsmInstr('ret')
 end;
 
 //Generate code at function end (ie. stack teardown, if needed)
-procedure GenFunctionPostAmble(Scope: PScope;BlockType: TBlockType);
+procedure GenFunctionPostAmble(Func: TFunction);
 begin
   AsmLine(';Postamble');
-  if Scope.Func = nil then
-  begin
-    if BlockType = btStack then
-      GenLibraryProc('stacklocal_exit', nil)
-    else
+  case Func.CallingConvention of
+    ccRegister: //Load any return parameters into registers
+    begin
+      GenFuncReturnLoad(Func);
       AsmInstr('ret')
-  end
-  else //Scope.Func <> nil
-  begin
-    case Scope.Func.CallingConvention of
-      ccRegister: //Load any return parameters into registers
-      begin
-        GenFuncReturnLoad(Scope.Func);
-        AsmInstr('ret')
-      end;
-      ccStack:
-        //TODO: Use GenFuncParamLoad as for Register. We'll need to add the register
-        //allocation to the preamble code
-         GenLibraryProc('stacklocal_exit', nil);
-    else
-      Assert(False, 'Unknown Calling Convention');
     end;
+    ccStack:
+      //TODO: Use GenFuncParamLoad as for Register. We'll need to add the register
+      //allocation to the preamble code
+       GenLibraryProc('stacklocal_exit', nil);
+  else
+    Assert(False, 'Unknown Calling Convention');
   end;
 end;
 

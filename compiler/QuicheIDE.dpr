@@ -68,7 +68,7 @@ uses
   IDE.CommandLine in 'IDE.CommandLine.pas',
   Parse.TypeChecker in 'Parse.TypeChecker.pas',
   Parse.RangeLists in 'Parse.RangeLists.pas',
-  Def.ScopesEX in 'Def.ScopesEX.pas';
+  Def.Compiler in 'Def.Compiler.pas';
 
 {$R *.res}
 

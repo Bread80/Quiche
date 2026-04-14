@@ -1009,7 +1009,7 @@ begin
         pfRangeCheck in Param.Flags, Options);
     pkVarRef:
       GenLoadRegVarRef(Param.Variable, Param.VarVersion, Param.Reg, Options);
-    pkVarAddr, pkVarPtr: ;  //Handled by the primitive
+    pkVarPtr: ;  //Handled by the primitive
   else
     System.Assert(False, 'Invalid param kind for param load');
   end;

@@ -1,468 +1,408 @@
-(*
-A scope holds data about variables, types, constants, functions etc that have been
-created by the current code 'segment'. Segment here usually refers to a single function
-or the global scope.
-
-A scope also has a pointer to the 'parent' scope. The parent scope is the next higher
-level function or, ultimately, the global scope.
-
-The parser will create a new scope at the start of every new function. The parser
-will end that scope once it reaches the end of the function.
-
-Scopes are mostly transparent to the rest of the compiler. Other than the above use
-case at the start and end of parsing a function, scopes are also use by Variables,
-Function, Types and Consts when searching and, occasionally, when adding, items.
-In such uses the CurrentScope must be obtained and restored after setting and searching
-parent scopes.
-
-The parser also stores ILData and Assembly output for each scope for debugging etc
-purposes.
-*)
-
+//Update to the compiler to be object based
 unit Def.Scopes;
 
 interface
-uses Classes,
-  Def.Functions, Def.IL, Def.Variables, Def.Consts, Def.UserTypes, Def.ScopesEX,
-  CleverPuppy;
+uses Generics.Collections, SysUtils;
 
 type
-//========== SEARCH FOR IDENTIFIERS
-  TIdentData = record
-    Value: TQuicheItem;
+  //Using IdentType in addition to class hierarchy allows us to use case statements
+  //to distinguish between search results
+  TIdentType = (itUnknown, itScope, itVariable, itFunction, itIntrinsic, itConst, itType, itEnumItem);
 
-    function AsEnumItem: TEnumItem;
-    function AsType: TUserType;
+  TScope = class;
 
-    function GetUserType: TUserType;
-    function GetAddrMode: TAddrMode;
+  TScopedItem = class
+  private
+    FName: String;
+    FOwner: TScope;
+  //Scoped Items can Use other Scoped Items. This can form the base for only linking
+  //library items which are referenced by the final code
 
-    case IdentType: TIdentType of
-      itUnknown: ();
-    end;
+  //Non-identifier items might be assembly chunks (for re-assembling into output code)
+  public
+    constructor Create(const AName: String;AOwner: TScope);
+    //Will raise an error if the item already has a name.
+    //During definitions if can be useful to declare items unnamed can help to stop them being found in searches
+    procedure AssignName(const AName: String);
+    function IdentType: TIdentType;virtual;abstract;
 
-  PScope= ^TScopeOLD;
-  TScopeOLD = record
-    FunctionScope: TCodeBlock;  //The current function (or program, unit scope)
-    BlockScope: TCodeBlock; //The current code block. Initially the same as FunctionScope
-                      //NOTE: WE WILL LEAK THESE UNTIL MIGRATION IS COMPLETE
-    Parent: PScope;   //The next higher Scope, or nil in none
-    Name: String;     //For the scope. For reference only
-    Func: TFunction;  //The function which owns this scope. Nil for main/global code
-
-    AsmCode: TStringList;   //Assembly code for Code segment for this scope (from CodeGen)
-    AsmData: TStringList;   //Assembly code for Data segment (from CodeGen)
-    ILList: TILList;
-    CleverPuppy: TCleverPuppy;  //Clever puppy codegen data (if any)
-
-    procedure Initialise(const AName: String;AParent: PScope);
-
-    //Returns the storage type for local variables
-    function GetLocalAddrMode: TAddrMode;
-
-    //Search the current scope for an item with the given identifier (name)
-    //Returns a pointer to the item if an item was found, otherwise returns nil.
-    //The return value can be cast to the appropriate type: PVariable, PFunction, etc.
-    //Return values:
-    //IdentType identifies if the found item is a variable, function, const or type etc.
-    //IgnoreFuncs is temporarily required so that searches for Type names return the type instead
-    function SearchUpLocal(const Ident: String; IgnoreFuncs: Boolean = False): TIdentData;
-
-    //Searches all scopes which are in scope (ie. it recursed up parent scopes and
-    //also searches any library scopes
-    function SearchUpAll(const Ident: String;IgnoreFuncs: Boolean = False): TIdentData;
+    property Name: String read FName;
+    property Owner: TScope read FOwner;
   end;
 
-//Only to be used with caution!!
-//(Used by vars, consts, types to search through parent scopes)
-procedure SetCurrentScope(Scope: PScope);
+  //An item which is specific to the Quiche language, as opposed to generic libraries etc.
+  //(Primarily for future use)
+  TQuicheItem = class(TScopedItem)
+  end;
 
-//Sets the CurrentScope to the parent of the Current Scope
-//(Used by vars, consts, types to search through parent scopes)
-//Returns True if there was a parent scope, False if not
-function SetParentScope: Boolean;
+  //Variables, Consts, Types, EnumItems, Functions, Record Fields, Units etc all
+  //derive from here.
+  //Also TCompiler is a scope containing libraries, units, program, etc
 
-//Get the current scope. Used by vars, consts, types, functions to cache the current
-//value before searching parent scopes
-function GetCurrentScope: PScope;
+  //List of TScopedItem (or TIdentifier??)
+  //Allows us to search for identifiers which are currently in scope
+  TScope = class(TQuicheItem)
+  private
+    FIsRootBlock: Boolean;
+    FUID: Integer;
+    FNextBlockID: Integer;
+    FILIndexEnd: Integer;
+    FILIndexBegin: Integer;  //Used by GetUniqueBlockID
 
-//Creates a new scope and sets it as the current scope
-//If no main scope is assigned, also sets this as the main scope
-//If the Scope is for a function, Func is that function, otherwise Func should be nil.
-//Name is the name of the scope. If Name is '' the name will be retrieved from Func.
-function CreateCurrentScope(Func: TFunction;const Name: String): PScope;
+    FItems: TObjectList<TScopedItem>;
+    FIsEnded: Boolean;
+  protected
+    //AILIndexBegin is the index of the first ILItem within this block
+    constructor CreateCodeBlock(const AName: String;AOwner: TScope;AUID, AILIndexBegin: Integer);
 
-//Creates a new scope to be used in a record definition.
-//Scope will be created a selected as the current scope such that variable and
-//function definitions will be created in the appropriate lists.
-//NOTE:
-//Current scope *must* be preserved before calling this (GetCurrentScope)...
-//...and reselected afterwards (SetCurrentScope)
-//TODO: Parent reference may need to be removed(??)
-function CreateRecordScope(const Name: String): PScope;
+    function GetUniqueBlockID: Integer;
+  public
+    constructor Create(const AName: String;AOwner: TScope);
+    destructor Destroy;override;
+    function IdentType: TIdentType;override;
 
-//Set the current scope to the parent of the curent scope
-procedure EndCurrentScope;
+    procedure Add(AItem: TScopedItem);
+    //Removes a child from Items. The child *must* be the last item on the list.
+    //If not an exception will be raised.
+    procedure RemoveChild(AChild: TScope);
 
-//Initialise parser data. Specifically, creates the MainScope and sets it as the
-//current scope
-procedure InitialiseScopes;
+    function IsRootBlock: Boolean;
 
+    //Creates and returns a new code block. Used to store declarations local to
+    //a code block. Use for BEGIN..END, and other code structures such as REPEAT..UNTIL,
+    //CASE clauses and even single statement blocks after IF, FOR etc.
+    //AILIndex is the index of the first ILItem in the block
+    function BeginCodeBlock(AILIndex: Integer): TScope;
+    //End a code block initiated by BeginCodeBlock. Raises an exception if the number
+    //of calls to each is not balanced. If Self.Items is empty, Self will be removed
+    //from it's parents Items and freed
+    function EndCodeBlock(AILIndex: Integer): TScope;
 
-//Scope blocks relate to BEGIN..END[1] structures in the code. Do not confuse with
-//the IL concept of blocks.
-//[1] Which can be implicit for a single statement after, eg, an IF or FOR, or
-//    in a REPEAT..UNTIL or CASE clause.
-//
-//Starts a new nested code block and returns it.
-//The result must be passed to ScopeEndBlock to properly close the block
-function ScopeBeginBlock: TCodeBlock;
-//Ends a code block. CodeBlock is the block to close. An error will be raised if
-//if is not the current code block
-function ScopeEndBlock(CodeBlock: TCodeBlock): TCodeBlock;
-//Deletes the block and any data created within it.
-//Used to remove null code, such as IF False, WHILE False etc
-//TODO: REPLACE WITH A ROUTINE TO SKIP A CODEBLOCK
-procedure ScopeRollbackBlock(CodeBlock: TCodeBlock);
+    //Enumerates all child items, all their child items etc.
+    procedure EachDown<T: Class>(Proc: TProc<T>);
+    //As above but only recurses into code block. Ie not into declaration blocks
+    procedure EachDownCode<T: Class>(Proc: TProc<T>);
+    //Searches local scope for any items of the given class, then calls Proc for
+    //each of them. Local scope includes all identifiers declared within the current
+    //scope (Ie starting at the IsRootBlock above us).
+    procedure EachAllLevel<T: Class>(Proc: TProc<T>);
 
+    //Enumerates all child items, all their child items etc.
+    function SearchDown<T: Class>(Func: TFunc<T, Boolean>): T;
+    //Searches local scope for any items of the given class, then calls Proc for
+    //each of them. Local scope includes all identifiers declared within the current
+    //scope (Ie starting at the IsRootBlock above us).
+    function SearchAllLevel<T: Class>(Func: TFunc<T, Boolean>): T;
 
+    //Searches child items at current scope. Does not recurse up or down the scope.
+    function SearchItems<T: Class>(Func: TFunc<T, Boolean>): T;
+    //Search all items at local scope the current level, then recurses upwards through
+    //the block scopes. Ie searches items declared in the current scope
+    function SearchUpLocal<T: Class>(Func: TFunc<T, Boolean>): T;
+    //Searches upwards to the top or all scopes, functions, declarations etc.
+    function SearchUpAll<T: Class>(Func: TFunc<T, Boolean>): T;
 
-//Searched /all/ scopes for the given function
-function FindScopeForFunc(AFunc: TFunction): PScope;
+    //Search the current scope for an item with the given identifier (name)
+    //Primarily used too determine whether it is okay to declare a new identifier
+    //with the given name.
+    //Includes special handling for the Result pseudo function
+    //Returns a the item if an item was found, otherwise returns nil.
+    //The return value can be cast to the appropriate type: TVariable, TFunction, etc.
+    //IgnoreFuncs is temporarily required so that searches for Type names return the type instead(??)
+    function FindIdentifierUpLocal(const Ident: String; IgnoreFuncs: Boolean = False): TQuicheItem;
+    function FindIdentifierUpAll(const Ident: String; IgnoreFuncs: Boolean = False): TQuicheItem;
 
-//-----GUI utlilities
-procedure ScopesToStrings(S: TStrings);
+    function ToString: String;override;
 
-//Find a scope and set it as the CurrentScope.
-//NOT to be used whilst compiling!
-function ScopeSelectByName(Name: String): Boolean;
+    property Items: TObjectList<TScopedItem> read FItems;
+    property IsEnded: Boolean read FIsEnded;
 
-//For 'built-in' types, consts and functions (intrinsics)
-var SystemScope: TScopeOLD;
+     //Index of the first ILItem in the block
+    property ILIndexBegin: Integer read FILIndexBegin;
+    //Index of the last ILItem in the block
+    property ILIndexEnd: Integer read FILIndexEnd;
+end;
+
+type TScopeHandle = Pointer;
 
 //A couple of functions to hack our way around circular unit references.
 //(NEVER directly typecast one to the other, just in case this changes)
-function ScopeToScopeHandle(Scope: PScope): TScopeHandle;
-function ScopeHandleToScope(Handle: TScopeHandle): PScope;
+function ScopeToScopeHandle(Scope: TScope): TScopeHandle;
+function ScopeHandleToScope(Handle: TScopeHandle): TScope;
 
 implementation
-uses Generics.Collections, SysUtils,
-  Def.Globals;
+uses Def.Compiler, Def.Functions, Def.Variables;
 
-var
-  MainScope: PScope;    //Scope for the program itself/highest level
-  CurrentScope: PScope; //Currently active scope
+{ TScopedItem }
 
-var ScopeList: TList<PScope>;
-
-function GetCurrentScope: PScope;
+procedure TScopedItem.AssignName(const AName: String);
 begin
-  Result := CurrentScope;
+  Assert(FName = '');
+  FName := AName;
 end;
 
-//Free any objects owned by a scope and clear it's list
-procedure ClearScopeList;
-var Scope: PScope;
+constructor TScopedItem.Create(const AName: String; AOwner: TScope);
 begin
-  if ScopeList = nil then
-    EXIT;
-  for Scope in ScopeList do
-  begin
-    //Free items owned by the scope??
-    Scope.AsmCode.Free;
-    Scope.AsmData.Free;
-    ClearILList(Scope.ILList);
-    Scope.ILList.Free;
-    Scope.CleverPuppy.Free;
-    Dispose(Scope);
-  end;
-
-  ScopeList.Clear;
-  NewBlock := True;
-end;
-
-procedure SetCurrentScope(Scope: PScope);
-begin
-  CurrentScope := Scope;
-  //AsmCode - nowt to do
-  SetCurrentILList(Scope.ILList);
-end;
-
-function SetParentScope: Boolean;
-begin
-  Result := Assigned(CurrentScope.Parent);
-  if Result then
-    SetCurrentScope(CurrentScope.Parent);
-end;
-
-procedure EndCurrentScope;
-begin
-  if not Assigned(CurrentScope.Parent) then
-    raise Exception.Create('Ending scope but parent is not assigned');
-  SetCurrentScope(CurrentScope.Parent);
-
-  NewBlock := True;
-end;
-
-function CreateCurrentScope(Func: TFunction;const Name: String): PScope;
-var LName: String;
-begin
-  Assert((Func <> nil) or (Name <> ''), 'Scope requires a Func or a Name (or both)');
-
-  New(Result);
-  ScopeList.Add(Result);
-  if Name <> '' then
-    LName := Name
-  else
-    LName := Func.Name;
-
-  Result.Initialise(LName, GetCurrentScope);
-  Result.Func := Func;
-
-  if MainScope = nil then
-    MainScope := Result;
-  SetCurrentScope(Result);
-end;
-
-function CreateRecordScope(const Name: String): PScope;
-begin
-  Result := CreateCurrentScope(nil, Name);
-  Result.Parent := nil;
-end;
-
-procedure InitSystemScope;
-var SCope: PScope;
-begin
-  SystemScope.Initialise('System', nil);
-  Scope := GetCUrrentScope;
-  SetCurrentScope(@SystemScope);
-  CreateSystemTypes(SystemScope.FunctionScope);
-  CreateSystemConsts(SystemScope.FunctionScope);
-  SetCurrentScope(Scope);
-end;
-
-procedure InitialiseScopes;
-begin
-  ClearScopeList;
-  InitialiseILData;
-  if ScopeList = nil then
-    ScopeList := TList<PScope>.Create;
-  CurrentScope := nil;
-  MainScope := nil;
-  CreateCurrentScope(nil, '_Global');
-  InitSystemScope;
-end;
-
-function FindScopeForFunc(AFunc: TFunction): PScope;
-var Scope: PScope;
-begin
-  for Scope in ScopeList do
-    if AFunc = Scope.Func then
-      EXIT(Scope);
-
-  Result := nil;
-end;
-
-//TODO:
-//1. Store ILIndex with TCodeBlock - will allow us to undo it DONE
-//2. Add IsEnded flag to TCodeBlock - will allow us to verify block is ended before we delete it DOEN
-//3. ScopeBeginBlock returns the newly created TCodeBlock. DONE
-//4. After the call to ScopeEndBlock (Also returns block(?))...
-//    we can rollback the IL code, and delete the CodeBlock (delete via the parents Items list).
-//    a. Verify IsEnded.
-//    b. Verify is same block we created(?)
-//    c. Verify is last item on parents Items list
-function ScopeBeginBlock: TCodeBlock;
-var ILIndex: Integer; //Current IL Position (ie first item in new scope)
-begin
-  ILIndex := GetCurrentScope.ILList.Count;
-  Result := GetCurrentScope.BlockScope.BeginCodeBlock(ILIndex);
-  GetCurrentScope.BlockScope := Result;
-end;
-
-//ecrease the Depth of the current Scope (called for each END)
-function ScopeEndBlock(CodeBlock: TCodeBlock): TCodeBlock;
-var ILIndex: Integer; //Current IL Position (ie first item in new scope)
-begin
-  Assert(CodeBlock = GetCurrentScope.BlockScope);
-  Assert(not CodeBlock.IsEnded);
-  ILIndex := GetCurrentScope.ILList.Count-1;
-  if CodeBlock.Owner is TCodeBlock then
-    GetCurrentScope.BlockScope := TCodeBlock(CodeBlock.Owner)
-  else
-    GetCurrentScope.BlockScope := GetCurrentScope.FunctionScope;
-  Result := CodeBlock.EndCodeBlock(ILIndex);
-(*  GetCurrentScope.BlockScope := GetCurrentScope.BlockScope.EndCodeBlock(ILIndex);
-  Assert(Assigned(GetCurrentScope.BlockScope));
-*)end;
-
-procedure ScopeRollbackBlock(CodeBlock: TCodeBlock);
-var ILIndex: Integer; //Current IL Position (ie first item in new scope)
-begin
-  Assert(CodeBlock = GetCurrentScope.BlockScope);
-  Assert(CodeBlock.IsEnded);
-  ILRollback(CodeBlock.ILIndexBegin);
-  Assert(Assigned(CodeBlock.Owner));
-(*  CodeBlock.Parent.DeleteChild(CodeBlock);*)
-
-  Assert(False, 'TODO');
-end;
-
-//---------------GUI
-procedure ScopesToStrings(S: TStrings);
-var Scope: PScope;
-begin
-  S.Clear;
-  for Scope in ScopeList do
-    S.Add(Scope.Name);
-end;
-
-function ScopeSelectByName(Name: String): Boolean;
-var Scope: PScope;
-begin
-  for Scope in ScopeList do
-    if CompareText(Scope.Name, Name) = 0 then
-    begin
-      SetCurrentScope(Scope);
-      EXIT(True);
-    end;
-
-  Result := False;
+  inherited Create;
+  FName := AName;
+  FOwner := AOwner;
 end;
 
 { TScope }
 
-function TScopeOLD.GetLocalAddrMode: TAddrMode;
+procedure TScope.Add(AItem: TScopedItem);
 begin
-  if Func = nil then
-    Result := optDefaultAddrMode
-  else
-    Result := Func.GetLocalAddrMode;
+  if AItem.Name <> '' then
+    Assert(FindIdentifierUpLocal(AItem.Name) = nil);
+  FItems.Add(AItem);
 end;
 
-function ScopeToScopeHandle(Scope: PScope): TScopeHandle;
+function TScope.BeginCodeBlock(AILIndex: Integer): TScope;
+var NewID: Integer;
+begin
+  NewID := GetUniqueBlockID;
+  Result := TScope.CreateCodeBlock(Name, Self, NewID, AILIndex);
+  Items.Add(Result);
+end;
+
+constructor TScope.Create(const AName: String; AOwner: TScope);
+begin
+  inherited Create(AName, AOwner);
+  FItems := TObjectList<TScopedItem>.Create(True);
+  FIsEnded := True;
+  FIsRootBlock := True;
+  FUID := 0;
+  FILIndexBegin := -1;
+  FILIndexEnd := -1;
+  FNextBlockID := 1;
+end;
+
+constructor TScope.CreateCodeBlock(const AName: String; AOwner: TScope;
+  AUID, AILIndexBegin: Integer);
+begin
+  inherited Create(AName, AOwner);
+  FItems := TObjectList<TScopedItem>.Create(True);
+  FISEnded := False;
+  FIsRootBlock := False;
+  FUID := AUID;
+  FILIndexBegin := AILIndexBegin;
+  FILIndexEnd := -1;
+  FNextBlockID := 1;
+end;
+
+destructor TScope.Destroy;
+begin
+  FItems.Free;
+  inherited;
+end;
+
+procedure TScope.EachDown<T>(Proc: TProc<T>);
+var Item: TScopedItem;
+begin
+  for Item in Items do
+    if Item is T then
+      Proc(T(Item))
+    else if Item is TScope then
+      TScope(Item).EachDown<T>(Proc);
+end;
+
+procedure TScope.EachDownCode<T>(Proc: TProc<T>);
+var Item: TScopedItem;
+begin
+  for Item in Items do
+    if Item is T then
+      Proc(T(Item))
+    else if (Item is TScope) and not (Item is TILScope) then
+      TScope(Item).EachDownCode<T>(Proc);
+end;
+
+procedure TScope.EachAllLevel<T>(Proc: TProc<T>);
+begin
+  if Self is TILScope then
+    EachDown<T>(Proc)
+  else
+  begin
+    Assert(Assigned(Owner));
+    Owner.EachAllLevel<T>(Proc);
+  end;
+end;
+
+function TScope.EndCodeBlock(AILIndex: Integer): TScope;
+begin
+  if Assigned(Owner) and (Items.Count = 0) then
+  begin //Trim block with no declarations
+    Result := nil;
+    Owner.RemoveChild(Self);
+//    Self.Free;  //Free by RemoveChild call
+  end
+  else
+  begin
+    Result := Owner;
+    FILIndexEnd := AILIndex;
+    FIsEnded := True;
+  end;
+end;
+
+function TScope.FindIdentifierUpAll(const Ident: String;
+  IgnoreFuncs: Boolean): TQuicheItem;
+begin
+  if CompareText(Ident, 'Result') = 0 then
+  begin
+    Result := TFuncs.FindResult;
+    if Assigned(Result) then
+      EXIT;
+  end;
+
+  Result := SearchUpAll<TQuicheItem>(
+    function(Item: TQuicheItem): Boolean
+    begin
+      Result := CompareText(Item.Name, Ident) = 0;
+    end);
+end;
+
+function TScope.FindIdentifierUpLocal(const Ident: String;
+  IgnoreFuncs: Boolean): TQuicheItem;
+begin
+  if CompareText(Ident, 'Result') = 0 then
+  begin
+    Result := TFuncs.FindResult;
+    if Assigned(Result) then
+      EXIT;
+  end;
+
+  Result := SearchUpLocal<TQuicheItem>(
+    function(Item: TQuicheItem): Boolean
+    begin
+      Result := CompareText(Item.Name, Ident) = 0;
+    end);
+end;
+
+function TScope.GetUniqueBlockID: Integer;
+begin
+  if IsRootBlock then
+  begin
+    Result := FNextBlockID;
+    inc(FNextBlockID);
+  end
+  else
+    Result := Owner.GetUniqueBlockID;
+end;
+
+function TScope.IdentType: TIdentType;
+begin
+  Result := itScope;
+end;
+
+function TScope.IsRootBlock: Boolean;
+begin
+  Result := FUID = 0;
+end;
+
+procedure TScope.RemoveChild(AChild: TScope);
+begin
+  Assert(Items.Count > 0);
+  Assert(Items[Items.Count-1] = AChild);
+  Items.Delete(Items.Count-1);
+end;
+
+function TScope.SearchAllLevel<T>(Func: TFunc<T, Boolean>): T;
+begin
+  Result := nil;
+  if Self is TILScope then
+    Result := SearchDown<T>(Func)
+  else
+  begin
+    Assert(Assigned(Owner));
+    Result := Owner.SearchAllLevel<T>(Func);
+  end;
+end;
+
+function TScope.SearchDown<T>(Func: TFunc<T, Boolean>): T;
+var Item: TScopedItem;
+begin
+  Result := nil;
+  for Item in Items do
+  begin
+    if Item is T then
+      if Func(T(Item)) then
+        EXIT(T(Item))
+    else if Item is TScope then
+    begin
+      Result := (TScope(Item).SearchDown<T>(Func));
+      if Assigned(Result) then
+        EXIT;
+    end;
+  end;
+
+  if (Result = nil) and (Self is TProgram) then
+    Result := TProgram(Self).SearchDownUnits<T>(Func);
+end;
+
+function TScope.SearchItems<T>(Func: TFunc<T, Boolean>): T;
+var Item: TScopedItem;
+begin
+  Result := nil;
+  for Item in Items do
+    if Item is T then
+      if Func(T(Item)) then
+        EXIT(T(Item));
+end;
+
+function TScope.SearchUpAll<T>(Func: TFunc<T, Boolean>): T;
+var Item: TScopedItem;
+begin
+  Result := SearchItems<T>(Func);
+  if Assigned(Result) then
+    EXIT;
+
+  if Assigned(Owner) then
+    Result := Owner.SearchUpAll<T>(Func);
+
+  if (Result = nil) and (Self is TProgram) then
+    Result := TProgram(Self).SearchItemsUnits<T>(Func);
+end;
+
+function TScope.SearchUpLocal<T>(Func: TFunc<T, Boolean>): T;
+var Item: TScopedItem;
+begin
+  Result := SearchItems<T>(Func);
+  if Assigned(Result) then
+    EXIT;
+
+  if Assigned(Owner) then
+    if not (Self as TScope).IsRootBlock then
+      Result := Owner.SearchUpLocal<T>(Func);
+end;
+
+function TScope.ToString: String;
+var Item: TScopedItem;
+  S: String;
+begin
+  if Items.Count > 0 then
+  begin
+    Result := #13'Scope: ' + Name;
+    if ILIndexBegin >= 0 then
+      Result := inherited + ' IL: ' + ILIndexBegin.ToString + '..' + ILIndexEnd.ToString;
+    Result := Result + #13;
+    for Item in FItems do
+    begin
+      S := Item.ToString;
+      if S <> '' then
+        Result := Result + S + #13;
+    end;
+  end;
+end;
+
+{ Utilities }
+
+function ScopeToScopeHandle(Scope: TScope): TScopeHandle;
 begin
   Result := TScopeHandle(Scope);
 end;
 
-function ScopeHandleToScope(Handle: TScopeHandle): PScope;
+function ScopeHandleToScope(Handle: TScopeHandle): TScope;
 begin
-  Result := PScope(Handle);
+  Result := TScope(Handle);
 end;
 
-procedure TScopeOLD.Initialise(const AName: String;AParent: PScope);
-begin
-  Parent := AParent;
-  Name := AName;
-  Func := nil;
-  AsmCode := TStringlist.Create;
-  AsmData := TStringList.Create;
-  ILList:= CreateILList;
-  CleverPuppy := nil;
-
-  if AParent <> nil then
-    BlockScope := TCodeBlock.Create(Name, AParent.BlockScope, 0, 0)
-  else
-    BlockScope := TCodeBlock.Create(Name, nil, 0, 0);
-  FunctionScope := BlockScope;
-
-end;
-
-function TScopeOLD.SearchUpLocal(const Ident: String; IgnoreFuncs: Boolean): TIdentData;
-begin
-  Result.Value := BlockScope.FindIdentifierUpLocal(Ident, IgnoreFuncs);
-  if Result.Value <> nil then
-  begin
-    Result.IdentType := Result.Value.IdentType;
-    EXIT;
-  end;
-(*
-  if not IgnoreFuncs then //TEMP
-    if Assigned(FuncList) then
-    begin
-      Result.F := FuncList.FindByNameInScope(Ident);
-      if Result.F <> nil then
-      begin
-        Result.IdentType := itFunction;
-        EXIT;
-      end;
-    end;
-*)
-  Result.IdentType := itUnknown;;
-end;
-
-function TScopeOLD.SearchUpAll(const Ident: String; IgnoreFuncs: Boolean): TIdentData;
-var Scope: PScope;
-begin
-  //Search current scope
-  Result.Value := BlockScope.FindIdentifierUpAll(Ident, IgnoreFuncs);
-  if Result.Value <> nil then
-  begin
-    Result.IdentType := Result.Value.IdentType;
-    EXIT;
-  end;
-
-  //Search SystemScope
-  Result.Value := SystemScope.BlockScope.FindIdentifierUpAll(Ident, IgnoreFuncs);
-  if Result.Value <> nil then
-  begin
-    Result.IdentType := Result.Value.IdentType;
-    EXIT;
-  end;
-
-  //----OLD
-  Scope := @Self;
-
-  repeat
-    //Search scope
-    Result := Scope.SearchUpLocal(Ident, IgnoreFuncs);
-    if Result.IdentType <> itUnknown then
-      EXIT;
-    Scope := Scope.Parent;
-  until Scope = nil;
-
-  //Search libraries (more TODO)
-  Scope := @SystemScope;
-  Result := Scope.SearchUpLocal(Ident, IgnoreFuncs);
-end;
-
-{ TIdentData }
-
-function TIdentData.AsEnumItem: TEnumItem;
-begin
-  Assert(IdentType = itEnumItem);
-  Assert(Value is TEnumItem);
-  Result := Value as TEnumItem;
-end;
-
-function TIdentData.AsType: TUserType;
-begin
-  Assert(IdentType = itType);
-  Assert(Value is TUserType);
-  Result := Value as TUserType;
-end;
-
-function TIdentData.GetAddrMode: TAddrMode;
-begin
-  case IdentType of
-    itVariable: Result := (Value as TVariable).AddrMode;
-    itConst: Result := amStatic;
-  else
-    raise Exception.Create('Invalid IdentVar.UserType');
-  end;
-end;
-
-function TIdentData.GetUserType: TUserType;
-begin
-  case IdentType of
-    itVariable, itConst:
-      Result := (Value as TTypedIdentifier).UserType
-  else
-    raise Exception.Create('Invalid IdentVar.UserType');
-  end;
-end;
-
-initialization
-  ScopeList := nil;
-//  InitSystemScope;
 end.

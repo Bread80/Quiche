@@ -2,7 +2,7 @@ unit Def.Variables;
 
 interface
 uses Classes, Generics.Collections, SysUtils,
-  Def.VarTypes, Def.UserTypes, Def.Consts, Def.ScopesEX;
+  Def.VarTypes, Def.UserTypes, Def.Consts, Def.Scopes;
 
 type
   TAddrMode = ( //Addressing mode for variable storage
@@ -131,8 +131,9 @@ type
     FSkipMode: Boolean;
   public
     //Creates a new, uniquely named variable. If a variable with that name already exists
-    //returns nil. Uses storage type for current Scope (and/or Func)
+    //returns nil. Uses storage type for current Scope (and/or Func).
     class function Add(const AName: String;AUserType: TUserType): TVariable;
+    //Used by unit tests
     class function AddWithAddrMode(const AName: String;AUserType: TUserType;AAddrMode: TAddrMode): TVariable;
     //Creates a variable with no name. The name *must* be assigned as soon as they
     //are known.
@@ -175,7 +176,7 @@ var Vars: TVars;
 
 implementation
 uses {IOUtils,}
-  Def.Globals, Def.Scopes, Def.IL,
+  Def.Globals, Def.IL,
   Parse.Base;
 
 { EAddrMode }
@@ -222,12 +223,8 @@ begin
 //  Result := Result + AddrModeToString + ' ';
   case AddrMode of
     amStatic, amStaticRef:
-      if Offset <> -1 then
-      begin
-        Result := Result + '@'+IntToHex(Offset, 4).Tolower;
-        if Value.UserType <> nil then
-          Result := Result + ' = ' + Value.ToString;
-      end;
+      if Value.UserType <> nil then
+        Result := Result + ' = ' + Value.ToString;
     amStack, amStackRef:
       //vsOffset
       if Offset < 0 then
@@ -251,6 +248,7 @@ end;
 
 function TVariable.GetStackBytesAsLocal: Integer;
 begin
+  Result := 0;
   if RequiresStorage then
     if Access in [vaLocal]then
       case AddrMode of
@@ -303,19 +301,19 @@ end;
 
 class function TVars.Add(const AName: String; AUserType: TUserType): TVariable;
 begin
-  Result := AddWithAddrMode(AName, AUserType, GetCurrentScope.GetLocalAddrMode);
+  Result := AddWithAddrMode(AName, AUserType, ParseData.ILScope.GetLocalAddrMode);
 end;
 
 class function TVars.AddHidden(AUserType: TUserType): TVariable;
 begin
-  Result := AddHiddenWithAddrMode(AUserType, GetCurrentScope.GetLocalAddrMode);
+  Result := AddHiddenWithAddrMode(AUserType, ParseData.ILScope.GetLocalAddrMode);
 end;
 
 class function TVars.AddHiddenWithAddrMode(AUserType: TUserType;
   AAddrMode: TAddrMode): TVariable;
 var Scope: TScope;
 begin
-  Scope := GetCurrentScope.BlockScope;
+  Scope := ParseData.ParseScope;
   Result := TVariable.CreateHidden(Scope, AUserType, AAddrMode);
   Scope.Add(Result);
 end;
@@ -323,8 +321,8 @@ end;
 class function TVars.AddUnnamed(AUserType: TUserType): TVariable;
 var Scope: TScope;
 begin
-  Scope := GetCurrentScope.BlockScope;
-  Result := TVariable.CreateUnnamed(Scope, AUserType, GetCurrentScope.GetLocalAddrMode);
+  Scope := ParseData.ParseScope;
+  Result := TVariable.CreateUnnamed(Scope, AUserType, ParseData.ILScope.GetLocalAddrMode);
   Scope.Add(Result);
 end;
 
@@ -333,11 +331,11 @@ class function TVars.AddWithAddrMode(const AName: String; AUserType: TUserType;
 var Scope: TScope;
 begin
   Assert(AName <> '');
-  if GetCurrentScope.SearchUpLocal(AName).IdentType <> itUnknown then
+  if ParseData.ParseScope.FindIdentifierUpLocal(AName) <> nil then
     Result := nil
   else
   begin
-    Scope := GetCurrentScope.BlockScope;
+    Scope := ParseData.ParseScope;
     Result := TVariable.Create(AName, Scope, AUserType, AAddrMode);
     Scope.Add(Result);
   end;
@@ -346,9 +344,8 @@ end;
 class procedure TVars.ClearAdjust;
 var Scope: TScope;
 begin
-  Scope := GetCurrentScope.BlockScope;
-  Assert(Scope is TCodeBlock);
-  (Scope as TCodeBlock).EachAllLevel<TVariable>(
+  Scope := ParseData.ParseScope;
+  Scope.EachAllLevel<TVariable>(
     procedure(V: TVariable)
     begin
     V.AdjustVersionFrom := -1;
@@ -359,9 +356,8 @@ end;
 class procedure TVars.ClearTouches;
 var Scope: TScope;
 begin
-  Scope := GetCurrentScope.BlockScope;
-  Assert(Scope is TCodeBlock);
-  (Scope as TCodeBlock).EachAllLevel<TVariable>(
+  Scope := ParseData.ParseScope;
+  Scope.EachAllLevel<TVariable>(
     procedure(V: TVariable)
     begin
       V.Touched := False;
@@ -369,13 +365,13 @@ begin
 end;
 
 class function TVars.FindByNameAllScopes(const AName: String): TVariable;
-var IdentData: TIdentData;
+var Value: TQuicheItem;
 begin
-  IdentData := GetCurrentScope.SearchUpAll(AName);
-  if IdentData.IdentType = itVariable then
-    EXIT(IdentData.Value as TVariable);
+  Value := ParseData.ParseScope.FindIdentifierUpAll(AName);
+  if (Value = nil) or not (Value is TVariable) then
+    EXIT(nil);
 
-  Result := nil;
+  Result := TVariable(Value);
 end;
 
 procedure TVars.SkipModeEnd(PrevSkipMode: Boolean);

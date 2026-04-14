@@ -1,7 +1,7 @@
 unit IDE.Emulator;
 
 interface
-uses Def.ScopesEX;
+uses Def.Scopes;
 
 procedure Initialise(const ConfigFile: String;AInteractive: Boolean;
   const AConsoleInput: String);
@@ -13,7 +13,7 @@ function TryReadWord(const Symbol: String;out Data: Word): Boolean;
 
 //IXOffsetHack: Bytes to subtract from IX to get the stack pointer address.
 //Required when running with a stack frame at root level.
-procedure GetVarData(Scope: TCodeBlock;IXOffsetHack: Integer);
+procedure GetVarData(Scope: TScope;IXOffsetHack: Integer);
 
 //Text (etc) written to the console during the last emulation
 var ConsoleLog: String;
@@ -235,7 +235,7 @@ begin
   if not TryReadByte(Symbol, B) then
     raise Exception.Create('Global symbol not found: ' + Symbol);
   if B >= $80 then
-    Result := (-1 xor $ff) or B
+    Result := (-1 xor Integer($ff)) or B
   else
     Result := B;
 end;
@@ -246,7 +246,7 @@ begin
   if not TryReadWord(Symbol, W) then
     raise Exception.Create('Global symbol not found: ' + Symbol);
   if W >= $8000 then
-    Result := (-1 xor $ffff) or W
+    Result := (-1 xor Integer(iCPUWordMask)) or W
   else
     Result := W;
 end;
@@ -271,7 +271,7 @@ var B: Byte;
 begin
   B := Hardware.ReadMemoryByte(Addr);
   if B >= $80 then
-    Result := (-1 xor $ff) or B
+    Result := (-1 xor Integer($ff)) or B
   else
     Result := B;
 end;
@@ -281,7 +281,7 @@ var W: Word;
 begin
   W := Hardware.ReadMemoryWord(Addr);
   if W >= $8000 then
-    Result := (-1 xor $ffff) or W
+    Result := (-1 xor Integer(iCPUWordMask)) or W
   else
     Result := W;
 end;
@@ -349,7 +349,10 @@ begin
         else
           Assert(False);
         end;
-(*      amStack:
+    amStaticRef:
+      Result := TImmValue.CreateTyped(TTypes.SearchScopesForAnonTypedPointer(UserType), ReadWord(AsmName));
+    amStack, amStackRef: ;  //Can't access these
+(*
       begin
         Addr := (IX + V.Offset) and $ffff;
         case V.VarType of
@@ -365,18 +368,17 @@ begin
         end;
       end;
 *)
-    amStaticRef: Result := TImmValue.CreateTyped(TTypes.SearchScopesForAnonTypedPointer(UserType), ReadWord(AsmName));
   else
       Assert(False);
   end;
 end;
 
-procedure GetVarData(Scope: TCodeBlock;IXOffsetHack: Integer);
+procedure GetVarData(Scope: TScope;IXOffsetHack: Integer);
 //  IX: Word;
 begin
 //  IX := (Hardware.Z80.Z80.IX - IXOffsetHack) and $ffff;
 
-  Scope.EachAllLevel<TVariable>(
+  Scope.EachDown<TVariable>(
     procedure(V: TVariable)
     begin
       V.Value := ValueToString(V.GetAsmName, V.AddrMode, V.UserType);

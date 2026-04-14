@@ -5,7 +5,7 @@ unit CodeGen;
 
 interface
 uses Classes,
-  Def.Globals, Def.Scopes, Def.ScopesEX, Def.IL;
+  Def.Compiler, Def.Globals, Def.Scopes, Def.IL;
 
 //------------- UTILITIES
 
@@ -15,7 +15,7 @@ procedure InitialiseCodeGen(PlatformFile, QuicheLibrary: String);
 //BlockType can be used to specify whether the root/global block should
 //use stack vars or static vars.
 //For functions (Scope.Func <> nil) BlockType MUST be btDefault
-function CodeGenSection(Scope: PScope;BlockType: TBlockType): Boolean;
+function CodeGenSection(Scope: TILScope;BlockType: TBlockType): Boolean;
 
 //Returns the ID of the Block we're currently generating
 function GetCGBlockID: Integer;
@@ -134,11 +134,9 @@ end;
 
 
 //Generates any constant data for pointered types in current scope
-procedure GenPointeredLiterals;
-var Scope: TScope;
-  Item: TScopedItem;
+procedure GenPointeredLiterals(Scope: TILScope);
+var Item: TScopedItem;
 begin
-  Scope := GetCurrentScope.BlockScope;
   for Item in Scope.Items do
     if Item is TConst then
       if IsPointeredType((Item as TConst).UserType) then
@@ -148,9 +146,9 @@ end;
 //For the current scope:
 //Allocates global memory for static vars.
 //Generates constants for offsets for stack vars
-procedure DataGen(Scope: TCodeBlock);
+procedure DataGen(Scope: TScope);
 begin
-  Scope.EachAllLevel<TVariable>(
+  Scope.EachDownCode<TVariable>(
     procedure(V: TVariable)
     var S: String;
       Bytes: Integer;
@@ -417,7 +415,7 @@ begin
     AsmLine(';'+CPUStateToString);
 end;
 
-function CodeGenSection(Scope: PScope;BlockType: TBlockType): Boolean;
+function CodeGenSection(Scope: TILScope;BlockType: TBlockType): Boolean;
 var I: Integer;
 begin
   RegStateInitialise;
@@ -429,17 +427,17 @@ begin
     CreateVarMap;
 
     //Calc variables size/offsets
-    TFuncs.SetVariableOffsets;
+    TFuncs.SetVariableOffsets(Scope);
 
-    GenPointeredLiterals;
+    GenPointeredLiterals(Scope);
 //    LiteralsGen;
 
     //Generate any global data
-    DataGen(Scope.FunctionScope as TCodeBlock);
+    DataGen(Scope);
 
     AsmLine(';=========='+Scope.Name);
-    if Assigned(Scope.Func) then
-      AsmLine(';'+Scope.Func.ToString);
+    if Scope is TFunction then
+      AsmLine(';'+TFunction(Scope).ToString);
     AsmLine('');
 
     CurrCGBlockID := -1;
@@ -447,7 +445,10 @@ begin
 
     AsmLabel(GetCurrProcName);
 
-    GenFunctionPreamble(Scope, BlockType);
+    if Scope is TFunction then
+      GenFunctionPreamble(TFunction(Scope))
+    else
+      GenProgramPreamble(BlockType);
 
     //Codegen for each item
     I := 0;
@@ -460,10 +461,12 @@ begin
       inc(I);
     end;
 
-
     AsmLabel(GetCurrProcName+IntToStr(CurrCGBlockID+1));
 
-    GenFunctionPostamble(Scope, BlockType);
+    if Scope is TFunction then
+      GenFunctionPostamble(TFunction(Scope))
+    else
+      GenProgramPostamble(BlockType);
     if IDE.Compiler.GetConfig.CodeGen.VarMap then
     begin
       AsmLine('');

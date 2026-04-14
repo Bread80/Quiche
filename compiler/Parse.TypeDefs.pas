@@ -31,8 +31,8 @@ function DoTYPE(const Ident: String): TQuicheError;
 
 implementation
 uses SysUtils,
-  Def.Consts, Def.VarTypes, Def.Scopes, Def.ScopesEX, Def.Variables, Def.Functions, Def.Globals,
-  Parse.Base, Parse.Source, Parse.Expr, Parse.FuncDef, Parse.VarDefs;
+  Def.Compiler, Def.Consts, Def.VarTypes, Def.Scopes, Def.Variables, Def.Functions, Def.Globals,
+  Parse, Parse.Base, Parse.Source, Parse.Expr, Parse.FuncDef, Parse.VarDefs;
 
 //Where ValueLow and ValueHigh are ordinal values, finds the optimal common type
 //based on their type and value (for numeric types)
@@ -62,13 +62,14 @@ begin
   if ValueLow.ToInteger >= ValueHigh.ToInteger then
     //Left value must be < Right value
     EXIT(ErrSub2(qeRangeValuesMisordered, ValueLow.ToString, ValueHigh.ToString));
+
+  Result := qeNone;
 end;
 
 function ParseSubRangeDefinition(out TheType: TUserType): TQuicheError;
 var ValueLow: TImmValue;
   ValueHigh: TImmValue;
   CommonType: TUserType;  //Common type of upper and lower bounds
-  Found: Boolean;
 begin
   Result := Parser.SkipWhite;
   if Result <> qeNone then
@@ -366,7 +367,7 @@ begin
     LengthOrCapacity, FromType.OfType);
 end;
 
-function ParseRecordFields(Scope: PScope): TQuicheError;
+function ParseRecordFields(Scope: TRecord): TQuicheError;
 var Ident: String;
   Keyword: TKeyword;
   V: TVariable;
@@ -419,25 +420,26 @@ end;
 //             end
 //<field> :== <variable-declaration> (??)
 function ParseRecordDefinition(out TheType: TUserType): TQuicheError;
-var PrevScope: PScope;
-  Scope: PScope;
+var Scope: TRecord;
 begin
   Result := Parser.SkipWhiteNL;
   if Result <> qeNone then
     EXIT;
 
   //Create scope
-  PrevScope := GetCurrentScope;
-  Scope := CreateRecordScope('<record>');
+//  PrevScope := GetCurrentScope;
+  Scope := TRecord.Create('<record>', ParseData.ILScope);
+  ParseData.OpenILScope(Scope);
 
   Result := ParseRecordFields(Scope);
   if Result <> qeNone then
    EXIT;
 
-  SetCurrentScope(PrevScope);
+  ParseData.CloseILScope(Scope);
+//  SetCurrentScope(PrevScope);
 
   //Create the type
-  TheType := TTypes.CreateRecordType(ScopeToScopeHandle(Scope));
+  TheType := TTypes.CreateRecordType(Scope);
 end;
 
 //If IsProc True we're parsing a PROCEDURE, otherwise we're parsing a FUNCTION
@@ -457,7 +459,7 @@ var Ch: Char;
   IsPointed: Boolean;
   Ident: String;
   Keyword: TKeyword;
-  IdentData: TIdentData;
+  Value: TQuicheItem;
   Cursor: TParseCursor;
   ArraySize: TArraySize;
 begin
@@ -526,24 +528,24 @@ begin
         keySET: Result := ParseSetDefinition(TheType);
         keyUNKNOWN:
         begin //Not a keyword
-          IdentData := GetCurrentScope.SearchUpAll(Ident, True);
-          case IdentData.IdentType of
-            itType:
-            begin
-              Assert(IdentData.Value <> nil);
-              //If identifier is the name of a type we'll assume it's a type synonym
-              //(or pointer)...
-              if IsPointed then
-                TheType := TTypes.SearchScopesForAnonTypedPointer(IdentData.AsType)
-              else if (Parser.TestChar = '[') and
-                (IdentData.AsType.VarType = vtArrayType) and
-                ((IdentData.AsType as TArrayType).ArrayKind in [atVector, atList]) then
-                Result := BakeArrayType(IdentData.AsType as TArrayType, TheType)
-              else
-                TheType := IdentData.AsType;
-            end
+          Value := ParseData.ParseScope.FindIdentifierUpAll(Ident, True);
+
+          if Assigned(Value) and (Value is TUserType) then
+          begin
+            //If identifier is the name of a type we'll assume it's a type synonym
+            //(or pointer)...
+            if IsPointed then
+              TheType := TTypes.SearchScopesForAnonTypedPointer(TUserType(Value))
+            else if (Parser.TestChar = '[') and
+              (TUserType(Value).VarType = vtArrayType) and
+              (TArrayType(Value).ArrayKind in [atVector, atList]) then
+              Result := BakeArrayType(TArrayType(Value), TheType)
+            else
+              TheType := TUserType(Value);
+          end
           else
-            if IsPointed and (IdentData.IdentType <> itType) then
+          begin
+            if IsPointed (*and (IdentData.IdentType <> itType) *)then
               EXIT(Err(qePointedTypeNameExpected))
             else  //...otherwise we'll assume it's a range declaration
             begin

@@ -110,16 +110,15 @@ base. Key areas of relevance would be the Parser, the Operators, Types, and the
 code generator.
 *)
 
-
 unit Def.IL;
 
 interface
 uses Generics.Collections, Classes, SysUtils,
-  Def.Functions, Def.Operators, Def.VarTypes, Def.Consts, Def.Variables, Def.UserTypes,
+  {Def.Functions, }Def.Operators, Def.VarTypes, Def.Consts, Def.Variables, Def.UserTypes,
   Lib.Data,
   Z80.Hardware, Z80.Algos;
 
-//Locations where an operation will find and store it's data
+//Specifies what needs to be loaded by, or stored by the param.
 type TILParamKind = (
     pkNone,         //No parameter
     pkImmediate,    //Immediate data (literal or result of a constant expression)
@@ -127,12 +126,11 @@ type TILParamKind = (
                     //The immediate data is the /address/ of the data in the data area
     pkPhiVarSource, //Parameter for a phi function for a variable
     pkPhiVarDest,   // "
-    pkVarSource,    //Read from variable
-    pkVarDest,      //Write to variable
-    pkVarAddr,      //Address of a variable - only valid where Op is OpAddrOf
+    pkVarSource,    //Read variable value
+    pkVarDest,      //Write variable value
     pkVarPtr,       //Reference to data pointed /to/ by the value (a pointer dereference)
-                    //ONLY for not pointered types
-    pkVarRef,       //Address of the data - ONLY for pointered types.
+                    //ONLY for not pointered types. ONLY use by opPtrLoad
+    pkVarRef,       //Address of the data
     pkRangeList,    //The parameter is a RangeList - an array or set literal. This
                     //must be baked down to an actual kind when more is known about
                     //the expression.
@@ -230,7 +228,6 @@ type
     procedure SetVarSourceAndVersion(AVariable: TVariable; AVersion: Integer);
     //Obtains Version from AVariable
     procedure SetVarSource(AVariable: TVariable);
-    procedure SetVarAddr(AVariable: TVariable);
     procedure SetVarPtr(AVariable: TVariable);
     procedure SetVarRef(AVAriable: TVariable);
     procedure SetVarDestAndVersion(AVariable: TVariable; AVersion: Integer);
@@ -261,7 +258,7 @@ type
       pkPhiVarDest: (
         PhiVar: TVariable;
         PhiDestVersion: Integer; );
-      pkVarSource, pkVarDest, pkVarAddr, pkVarPtr, pkVarRef: (
+      pkVarSource, pkVarDest, pkVarPtr, pkVarRef: (
         Variable: TVariable;    //The variable
         VarVersion: Integer; ); //Current version of the variable
       pkPop: ();                //Currently invalid for input params
@@ -294,7 +291,7 @@ type
     ResultType: TUserType;  //CURRENT: The type which will be output by the Operation
                             //OLD: If overflow checking is on, specifies the output type
                             //May also be used by typecasts to change/reduce value size
-    Func: TFunction;        //If OpIndex is OpFuncCall this contains details of the function
+    Func: TFunctionHandle;  //If OpIndex is OpFuncCall this contains details of the function
                             //to call
     Flags: TILDataFlagSet;
     Prim: PPrimitive;       //Assigned by Clever Puppy, otherwise nil
@@ -393,7 +390,7 @@ function ILAppendFuncData(var ILItem: PILItem): PILParam;
 //understand the internal rules for such calls.
 //As above, ILItem can be set to nil of a previously returned value. The return
 //value may or may not be the same as that passed in
-procedure ILAppendFuncCall(var ILItem: PILItem;Func: TFunction);
+procedure ILAppendFuncCall(var ILItem: PILItem;Func: TFunctionHandle);
 //As ILAppendDataMove, but for function result. Function result is assigned by the
 //expression parser /after/ the ILCode for the function call itself has been generated.
 //For that reason the Result parameter must be in Dest (Param3).
@@ -420,7 +417,7 @@ function ILIndexToParam(ILIndex, ParamIndex: Integer): PILParam;
 
 
 //Utilities for the UI displays
-procedure ILToStrings(S: TStrings);
+function ILListToString(ILList: TILList): String;
 
 var NewSourceLine: Boolean;
 
@@ -429,7 +426,7 @@ type EParamKind = class(Exception)
   end;
 
 implementation
-uses Def.Globals,
+uses Def.Functions, Def.Globals,
   Parse.Base, Parse.Source,
   Z80.AlgoData;
 
@@ -625,7 +622,7 @@ begin
   Result := ILAppendExtendable(ILItem, opFuncCall, opFuncCallExtended);
 end;
 
-procedure ILAppendFuncCall(var ILItem: PILItem;Func: TFunction);
+procedure ILAppendFuncCall(var ILItem: PILItem;Func: TFunctionHandle);
 begin
   if ILItem = nil then
     ILItem := ILAppend(opFuncCall)
@@ -731,13 +728,6 @@ begin
   PhiSourceVersion := AVarVersion;
 end;
 
-procedure TILParam.SetVarAddr(AVariable: TVariable);
-begin
-  Kind := pkVarAddr;
-  Variable := AVariable;
-  VarVersion := AVariable.Version;
-end;
-
 procedure TILParam.SetVarDestAndVersion(AVariable: TVariable;
   AVersion: Integer);
 begin
@@ -782,11 +772,6 @@ begin
       Result := Imm.UserType;
     pkVarSource, pkVarDest:
       Result := Variable.UserType;
-    pkVarAddr: //TODO: Make this a typed pointer
-      if IsPointeredVarType(Variable.VarType) then
-        Result := Variable.UserType
-      else
-        Result := TTypes.SearchScopesForAnonTypedPointer(Variable.UserType);
     pkVarPtr:
     begin
       case Variable.VarType of
@@ -853,7 +838,7 @@ begin
     pkNone: EXIT(True);
     pkImmediate: EXIT(False);   //This is a cop out. Fill out if required
     pkPhiVarSource, pkPhiVarDest: EXIT(False);  //Always False(??)
-    pkVarSource, pkVarDest, pkVarAddr, pkVarPtr:
+    pkVarSource, pkVarDest, pkVarPtr:
       EXIT((Variable = AParam.Variable) and (VarVersion = AParam.VarVersion));
     pkPop, pkPopByte: EXIT(False);
     pkPush, pkPushByte: EXIT(PushType = AParam.PushType);
@@ -880,12 +865,11 @@ begin
       Assert(Assigned(PhiVar));
       Result := '%' + PhiVar.Name + '_' + IntToStr(PhiDestVersion);
     end;
-    pkVarSource, pkVarAddr, pkVarPtr, pkVarRef:
+    pkVarSource, pkVarPtr, pkVarRef:
     begin
       Assert(Assigned(Variable));
       Result := '%' + Variable.Name + '_' + IntToStr(VarVersion);
       case Kind of
-        pkVarAddr: Result := '@' + Result;
         pkVarPtr: Result := Result + '^';
         pkVarRef: Result := Result + '!';
       end;
@@ -949,7 +933,7 @@ end;
 function TILParam.ToVariable: TVariable;
 begin
   case Kind of
-    pkVarSource, pkVarDest, pkVarAddr, pkVarPtr, pkVarRef:
+    pkVarSource, pkVarDest, pkVarPtr, pkVarRef:
       Result := Variable;
   else
     Assert(False);
@@ -1022,8 +1006,6 @@ begin
       Result := #13';VarSource    ' + CPURegStrings[Param.Reg] + ' := ' + Param.ToString;
     pkVarDest:
       Result := #13';VarDest    ' + Param.ToString + ' := ' + CPURegStrings[Param.Reg];
-    pkVarAddr:
-      Result := #13';VarAddr    ' + CPURegStrings[Param.Reg] + ' := @' + Param.ToString;
     pkVarPtr:
       Result := #13';VarPtr     ' + CPURegStrings[Param.Reg] + ' := ' + Param.ToString + '^';
     pkVarRef:
@@ -1043,7 +1025,7 @@ begin
 end;
 
 function TILItem.ToString: String;
-var FuncToDo: TFunction;
+var FuncToDo: TFunctionHandle;
 begin
   Result := '';
 
@@ -1053,32 +1035,32 @@ begin
     opRegStore, opRegStoreExtended,
     opFuncCall, opFuncCallExtended:
     begin
-      Assert(Param1.Kind in [pkNone, pkImmediate, pkVarSource, pkVarDest, pkVarAddr, pkVarRef]);
-      Assert(Param2.Kind in [pkNone, pkImmediate, pkVarSource, pkVarDest, pkVarAddr, pkVarRef]);
-      Assert(Param3.Kind in [pkNone, pkImmediate, pkVarSource, pkVarDest, pkVarAddr, pkVarRef, pkCondBranch]);
+      Assert(Param1.Kind in [pkNone, pkImmediate, pkVarSource, pkVarDest, pkVarRef]);
+      Assert(Param2.Kind in [pkNone, pkImmediate, pkVarSource, pkVarDest, pkVarRef]);
+      Assert(Param3.Kind in [pkNone, pkImmediate, pkVarSource, pkVarDest, pkVarRef, pkCondBranch]);
       Result := Result + OpStrings[Op];
 
       FuncToDo := Func;
       if Assigned(FuncToDo) and (Param1.Kind in [pkVarDest]) then
       begin
-        Result := Result + #13';    CALL: ' + Func.ToString;
+        Result := Result + #13';    CALL: ' + FunctionHandleToFunction(Func).ToString;
         FuncToDo := nil;
       end;
       Result := Result + DataMoveToString(Param1);
       if Assigned(FuncToDo) and (Param2.Kind in [pkVarDest]) then
       begin
-        Result := Result + #13';    CALL: ' + Func.ToString;
+        Result := Result + #13';    CALL: ' + FunctionHandleToFunction(Func).ToString;
         FuncToDo := nil;
       end;
       Result := Result + DataMoveToString(Param2);
       if Assigned(FuncToDo) and (Param3.Kind in [pkVarDest]) then
       begin
-        Result := Result + #13';    CALL: ' + Func.ToString;
+        Result := Result + #13';    CALL: ' + FunctionHandleToFunction(Func).ToString;
         FuncToDo := nil;
       end;
       Result := Result + DataMoveToString(Param3);
       if Assigned(FuncToDo) then
-        Result := Result + #13';    CALL: ' + Func.ToString;
+        Result := Result + #13';    CALL: ' + FunctionHandleToFunction(Func).ToString;
     end;
   else //General operation types
 //    Assert(Param1.Kind in [pkNone, pkImmediate, pkVarSource, pkVarAddr, pkVarPtr, pkVarRef, pkPhiVarSource]);
@@ -1100,17 +1082,17 @@ begin
   end;
 end;
 
-procedure ILToStrings(S: TStrings);
+function ILListToString(ILList: TILList): String;
 var Item: PILItem;
   I: Integer;
 begin
-  S.Clear;
-  for I := 0 to ILGetCount-1 do
+  Result := '';
+  for I := 0 to ILList.Count-1 do
   begin
-    Item := ILIndexToData(I);
+    Item := ILList[I];
     if Item.BlockID <> -1 then
-      S.Add('   ' + IntToStr(Item.BlockID)+':  ' + Item.Comments);
-    S.Add(IntToStr(I)+'- ' + Item.ToString);
+      Result := Result + '   ' + IntToStr(Item.BlockID)+':  ' + Item.Comments + #13;
+    Result := Result + IntToStr(I)+'- ' + Item.ToString + #13;
   end;
 end;
 

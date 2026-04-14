@@ -20,13 +20,9 @@ word(1000) + $42 results in an unsigned expression
 }
 
 interface
-uses Def.Variables,
+uses
+  Def.Compiler, Def.Scopes, Def.Variables,
   Parse.Errors, Parse.Expr;
-
-//IL will be converted to assembler by calling OnScopeDone. This is called at the
-//end of a function declaration, or  the end of the program for root level code.
-type TAssembleCallback = function: Boolean;
-var OnScopeDone: TAssembleCallback;
 
 type TParseMode = (
   pmRootUnknown,  //At root level. Will change to pmProgram or pmRootCode as we encouter code
@@ -52,7 +48,7 @@ function ParseQuiche(ParseMode: TParseMode;AddrMode: TAddrMode): TQuicheError;
 
 implementation
 uses SysUtils, Classes,
-  Def.Functions, Def.Globals, Def.IL, Def.Operators, Def.VarTypes, Def.Scopes, Def.ScopesEX,
+  Def.Functions, Def.Globals, Def.IL, Def.Operators, Def.VarTypes,
   Def.Consts, Def.UserTypes,
   Parse.Base, Parse.Fixups, Parse.FuncCall, Parse.FuncDef, Parse.Source, Parse.TypeDefs,
   Parse.VarDefs, Parse.Literals;
@@ -185,21 +181,22 @@ type TBlockState = (bsSingle, bsBeginRead);
 //=================================== LOOPS
 
 //Parse a code block.
-//Returns the data for the block
-function ParseBlock(ParseMode: TParseMode;AddrMode: TAddrMode;out CodeBlock: TCodeBlock): TQuicheError;overload;
+//Returns the data for the block. If the block was trimmed (deleted due to not
+//containing any declarations), returns nil.
+function ParseBlock(ParseMode: TParseMode;AddrMode: TAddrMode;out CodeBlock: TScope): TQuicheError;overload;
 begin
   Assert(ParseMode in [pmStatement, pmBlock, pmREPEAT]);
-  CodeBlock := ScopeBeginBlock;
+  CodeBlock := ParseData.OpenParseScope;
 
   Result := ParseQuiche(ParseMode, AddrMode);
   if Result <> qeNone then
     EXIT;
 
-  CodeBlock := ScopeEndBlock(CodeBlock);
+  CodeBlock := ParseData.CloseParseScope(CodeBlock);
 end;
 
 function ParseBlock(ParseMode: TParseMode;AddrMode: TAddrMode): TQuicheError;overload;
-var Dummy: TCodeBlock;
+var Dummy: TScope;
 begin
   Result := ParseBlock(ParseMode, AddrMode, Dummy);
 end;
@@ -224,7 +221,7 @@ end;
 //Block 5- Exit Section (code after the loop)
 //  Generate fixups (ie. extra phi functions for block 2)
 function DoFOR(AddrMode: TAddrMode): TQuicheError;
-var CodeBlock: TCodeBlock;
+var CodeBlock: TScope;
   VarStatus: TVarStatus;
   LoopVarName: String;
   LoopVar: TVariable;
@@ -242,7 +239,7 @@ var CodeBlock: TCodeBlock;
   ILItem: PILItem; //Used for various Items
   PhiInsertCount: Integer;
 begin
-  CodeBlock := ScopeBeginBlock;  //If loop counter is declared here, ensure it goes out of scope
+  CodeBlock := ParseData.OpenParseScope;  //If loop counter is declared here, ensure it goes out of scope
                   //after the loop
 
   Result := Parser.SkipWhiteNL;
@@ -414,7 +411,7 @@ begin
   //Insert Phis after loop
   NewBlock := True;
 
-  CodeBlock := ScopeEndBlock(CodeBlock);  //If loop counter was declared take it out of scope
+  ParseData.CloseParseScope(CodeBlock);  //If loop counter was declared take it out of scope
 end; //----------------------------------------------------------- /FOR
 
 
@@ -428,7 +425,7 @@ var
   ConstExprValue: Boolean;  //If branch condition is a constant
   PrevSkipMode: Boolean;  //If we're skipping the loop code (WHILE FALSE DO)
   PhiInsertCount: Integer;  //Number of Phis inserted at start of loop
-  CodeBlock: TCodeBlock;
+  CodeBlock: TScope;
 begin
   NewBlock := True;
   NewBlockComment := 'While header';
@@ -495,7 +492,7 @@ begin
   //(If CodeBlock is nil then the block was empty (ie no definitions) and has
   //already been trimmed by ParseBlock
   if Assigned(CodeBlock) and (Conditional = nil) and not ConstExprValue then
-    ScopeRollbackBlock(CodeBlock);
+    ParseData.RollbackParseScope(CodeBlock);
   Vars.SkipModeEnd(PrevSkipMode);
 end;
 
@@ -503,7 +500,7 @@ end;
 //                          <statements>
 //                        UNTIL <boolean-expression>
 function DoREPEAT(AddrMode: TAddrMode): TQuicheError;
-var CodeBlock: TCodeBlock;
+var CodeBlock: TScope;
   REPEATID: Integer;    //Block ID of the REPEAT - so we can generate the loop code
   REPEATIndex: Integer; //Index of the first ILItem (the REPEAT)
   Conditional: PILItem; //Loop conditional. Nil if expression is a constant
@@ -511,7 +508,7 @@ var CodeBlock: TCodeBlock;
   PhiInsertCount: Integer;  //Number of Phi nodes inserted at start of loop
 begin
   //Start a new scope
-  CodeBlock := ScopeBeginBlock;
+  CodeBlock := ParseData.OpenParseScope;
 
   NewBlock := True;
   NewBlockComment := 'REPEAT';
@@ -564,7 +561,7 @@ begin
   NewBlockComment := 'REPEAT completed';
 
   //End the scope
-  CodeBlock := ScopeEndBlock(CodeBlock);
+  ParseData.CloseParseScope(CodeBlock);
 end;
 
 //==============================CONDITIONALS
@@ -588,7 +585,7 @@ var
   ThenLastIndex: Integer; //Last item in the THEN path
   ElseLastIndex: Integer; //Last item in the ELSE path. -1 if no ELSE path
   Cursor: TParseCursor; //Parsing save point
-  CodeBlock: TCodeBlock;
+  CodeBlock: TScope;
 begin
   ElseLastIndex := -1;
   ThenLastIndex := -1;
@@ -643,7 +640,7 @@ begin
   //(If CodeBlock is nil then the block was empty (ie no definitions) and has
   //already been trimmed by ParseBlock
   if Assigned(CodeBlock) and (Branch = nil) and not ConstExprValue then
-    ScopeRollbackBlock(CodeBlock);
+    ParseData.RollBackParseScope(CodeBlock);
   CodeBlock := nil;
   Vars.SkipModeEnd(PrevSkipMode);
 
@@ -678,7 +675,7 @@ begin
     //(If CodeBlock is nil then the block was empty (ie no definitions) and has
     //already been trimmed by ParseBlock
     if Assigned(CodeBlock) and (Branch = nil) and ConstExprValue then
-      ScopeRollbackBlock(CodeBlock);
+      ParseData.RollBackParseScope(CodeBlock);
     CodeBlock := nil;
     Vars.SkipModeEnd(PrevSkipMode);
 
@@ -768,7 +765,7 @@ begin
       if ParseMode = pmProgram then
       begin
         //Check for unsatisfied forward declared functions
-        Result := AreAnyForwardsUnsatisfied;
+        Result := AreAnyForwardsUnsatisfied(ParseData.ILScope);
         if Result <> qeNone then
           EXIT;
       end;
@@ -793,10 +790,16 @@ end;
 // * Variable assignments
 // * Function calls
 function DoNonKeyword(const Ident: String;AddrMode: TAddrMode): TQuicheError;
-var IdentData: TIdentData;
+var Value: TQuicheItem;
+  IdentType: TIdentType;
 begin
-  IdentData := GetCurrentScope.SearchUpAll(Ident);
-  case IdentData.IdentType of
+  Value := ParseData.ParseScope.FindIdentifierUpAll(Ident);
+  if Assigned(Value) then
+    IdentType := Value.IdentType
+  else
+    IdentType := itUnknown;
+
+  case IdentType of
     itUnknown:
     begin //Identifier not found
       //If followed by := raise variable not found
@@ -818,17 +821,11 @@ begin
       EXIT(ErrSub(qeUndefinedIdentifier, Ident));
     end;
     itVariable:
-    begin
-      Result := ParseAssignment(IdentData.Value as TVariable);
-      if Result <> qeNone then
-        EXIT;
-    end;
+      Result := ParseAssignment(TVariable(Value));
     itFunction:
-    begin
-      Result := DoParseProcedureCall(IdentData.Value as TFunction);
-      if Result <> qeNone then
-        EXIT;
-    end;
+      Result := DoParseProcedureCall(TFunction(Value));
+    itIntrinsic:
+      Result := DoParseIntrinsicProcCall(TIntrinsic(Value));
     itConst: EXIT(ErrSub(qeConstNameNotValidHere, Ident));
     itType: EXIT(ErrSub(qeTypeNameNotValidHere, Ident));
     itEnumItem: EXIT(ErrSub(qeEnumItemNotValidHere, Ident));
@@ -990,6 +987,4 @@ begin
   end;
 end;
 
-initialization
-  OnScopeDone := nil;
 end.

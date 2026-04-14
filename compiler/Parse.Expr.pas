@@ -55,9 +55,9 @@ procedure SlugToTypeDef(var Slug: TExprSlug);
 
 implementation
 uses SysUtils,
-  Def.Functions, Def.Globals, Def.Scopes, Def.ScopesEX,
+  Def.Functions, Def.Globals, Def.Scopes,
   Lib.Primitives,
-  Parse.Base, Parse.Eval, Parse.FuncCall, Parse.Source, Parse.Pointers,
+  Parse, Parse.Base, Parse.Eval, Parse.FuncCall, Parse.Source, Parse.Pointers,
   Parse.RangeLists, Parse.TypeChecker;
 
 
@@ -200,66 +200,71 @@ function ParseOperand(var Slug: TExprSlug;UnaryOp: TUnaryOperator): TQuicheError
 //Parses operands where the operand is an identifier.
 //Identifiers can be constants, variables, functions, types or enumeration items.
 function ParseOperandIdentifier(var Slug: TExprSlug;Ident: String): TQuicheError;
-var IdentData: TIdentData;
+var Item: TQuicheItem;
 begin
   //Search everything we can see
-  IdentData := GetCurrentScope.SearchUpAll(Ident);
-  case IdentData.IdentType of
-    itUnknown:
-      EXIT(ErrSub(qeUndefinedIdentifier, Ident));
+  Item := ParseData.ParseScope.FindIdentifierUpAll(Ident);
+  if (Item = nil) then
+    EXIT(ErrSub(qeUndefinedIdentifier, Ident));
+
+//  Identifier := TTypedIdentifier(Item);
+  case Item.IdentType of
     itConst:
     begin
       if TestForPtrSuffix then
-        EXIT(ParsePtrSuffixLoad(Slug, IdentData));
+        EXIT(ParsePtrSuffixLoad(Slug, TTypedIdentifier(Item)));
 
-      Slug.SetImmediate((IdentData.Value as TConst).UserType, (IdentData.Value as TConst).Value);
+      Slug.SetImmediate(TConst(Item).UserType, TConst(Item).Value);
       Slug.ParamOrigin := poExplicit;
       EXIT(qeNone);
      end;
     itVariable:
     begin
       if TestForPtrSuffix then
-        EXIT(ParsePtrSuffixLoad(Slug, IdentData));
+        EXIT(ParsePtrSuffixLoad(Slug, TTypedIdentifier(Item)));
 
-      Slug.Operand.SetVarSource(IdentData.Value as TVariable);
+      Slug.Operand.SetVarSource(TVariable(Item));
       Slug.ParamOrigin := poExplicit;
-      Slug.ResultType := IdentData.GetUserType;
-      Slug.ImplicitType := IdentData.GetUserType;
+      Slug.ResultType := TVariable(Item).UserType;
+      Slug.ImplicitType := TVariable(Item).UserType;
       EXIT(qeNone);
     end;
     itType:
     begin
-      Assert(IdentData.Value <> nil);
-
       //If it is a typecast it will be followed by open bracket.
       if Parser.TestChar = '(' then
       begin
-        Result := ParseTypecast(IdentData.AsType, Slug);
+        Result := ParseTypecast(TUserType(Item), Slug);
         if Result <> qeNone then
           EXIT;
       end
       else
       begin //Not a typecast - return a TypeDef
-        Slug.SetImmediate(GetSystemType(vtTypeDef), TImmValue.CreateTypeDef(IdentData.AsType));
+        Slug.SetImmediate(GetSystemType(vtTypeDef), TImmValue.CreateTypeDef(TUserType(Item)));
         Slug.ParamOrigin := poExplicit;
         EXIT(qeNone);
       end;
     end;
     itEnumItem:
     begin
-      Assert(IdentData.Value <> nil);
-      Slug.SetImmediate(IdentData.AsEnumItem.UserType,
-        TImmValue.CreateTyped(IdentData.AsEnumItem.UserType, IdentData.AsEnumItem.Index));
+      Slug.SetImmediate(TEnumItem(Item).UserType,
+        TImmValue.CreateTyped(TEnumItem(Item).UserType, TEnumItem(Item).Index));
       Slug.ParamOrigin := poExplicit;
       EXIT(qeNone);
     end;
     itFunction:
     begin
-      Result := DoParseFunctionCall(IdentData.Value as TFunction, Slug);
+      Result := DoParseFunctionCall(TFunction(Item), Slug);
       if Result <> qeNone then
         EXIT;
     end;
-  else
+    itIntrinsic:
+    begin
+      Result := DoParseIntrinsicCall(TIntrinsic(Item), Slug);
+      if Result <> qeNone then
+        EXIT;
+    end;
+    else
     EXIT(ErrBUG('Invalid/unknown IdentType in ParseOperandIentifier'));
   end;
 end;
@@ -329,13 +334,13 @@ begin //Sub-expressions
   if Slug.IsImmediate and IsPointeredType(Slug.ResultType) then
     TConsts.Add('', Slug.ResultType, Slug.Operand.Imm);
 
-  Slug.ILItem := ILAppend(OpAddrOf);
+  Slug.ILItem := ILAppend(OpMove);  //(This was an opAddrOf, but OpMove works just as well(?))
   Slug.ILItem.Param1 := Slug.Operand;
   if (Slug.Operand.Kind = pkImmediate) and IsPointeredType(Slug.ResultType) then
     //Leave as literal
   else
   begin
-    Slug.ILItem.Param1.Kind := pkVarAddr;
+    Slug.ILItem.Param1.Kind := pkVarRef;
     Slug.Operand.Kind := pkNone;
   end;
 
@@ -867,9 +872,6 @@ end;
 
 function ParseConstantExprAsType(out Value: TImmValue;AsType: TUSerType): TQuicheError;
 var Slug: TExprSlug;
-  AsArrayDef: PArrayDef;
-  ValueArrayDef: PArrayDef;
-  ValueLength: Integer;
   NewType: TArrayType;
 begin
   Result := ParseExprToSlugWithTypeCheck(Slug, AsType);

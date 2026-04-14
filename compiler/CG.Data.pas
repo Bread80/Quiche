@@ -1,7 +1,7 @@
 unit CG.Data;
 
 interface
-uses Def.Scopes;
+uses Def.Compiler, Def.Scopes;
 
 //===============Constants to hex strings
 
@@ -45,7 +45,7 @@ procedure AsmError(const Msg: String);
 
 
 
-function GetCodeGenScope: PScope;
+function GetCodeGenScope: TILScope;
 
 //Returns a guaranteed unique label
 function GetUniqueLabel: String;
@@ -54,7 +54,7 @@ procedure InsertPreamble(PlatformFile, QuicheLibrary: String);
 
 //Init for the current code block
 //Sets CodeGenScope to Scope
-procedure CGDataBlockInit(Scope: PScope);
+procedure CGDataBlockInit(Scope: TILScope);
 
 //Init for a compile
 procedure CGDataCompileInit;
@@ -176,9 +176,9 @@ begin
 end;
 
 var
-  CodeGenScope: PScope;
+  CodeGenScope: TILScope;
 
-function GetCodeGenScope: PScope;
+function GetCodeGenScope: TILScope;
 begin
   Result := CodeGenScope;
 end;
@@ -199,7 +199,7 @@ begin
   AsmCodeFull.Add('quiche:');
 end;
 
-procedure CGDataBlockInit(Scope: PScope);
+procedure CGDataBlockInit(Scope: TILScope);
 begin
   CodeGenScope := Scope;
 

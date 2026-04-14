@@ -13,7 +13,7 @@ __quiche_start:
 				;TODO: Preserve system stack and initialise quiche stack
 	ld ix,$8000	;TEMP: Initial starting point for stack variables
 	ld sp,ix
-	call __global					;Jump to generated code
+	call __main		;Jump to generated code
 	halt
   
 ;Error codes etc.

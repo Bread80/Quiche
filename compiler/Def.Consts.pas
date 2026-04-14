@@ -8,7 +8,7 @@ unit Def.Consts;
 interface
 uses
   Generics.Collections, Classes,
-  Def.ScopesEX, Def.VarTypes, Def.UserTypes;
+  Def.Scopes, Def.VarTypes, Def.UserTypes;
 
 type
   //Used to store binary data (for complex types)
@@ -152,12 +152,13 @@ type
   end;
 
 //Add global/system consts to the /current/ const list (Ie current scope should be global scope)
-procedure CreateSystemConsts(Scope: TScope);
+procedure CreateSystemConsts(SysUnit: TScope);
 
 implementation
 uses
   SysUtils,
-  Def.Globals, Def.Scopes,
+  Parse.Base,
+  Def.Compiler, Def.Globals,
   CG.Data;
 
 //----------------------TImmValue
@@ -244,7 +245,6 @@ begin
 end;
 
 constructor TImmValue.CreateReal(AValue: TRealBinary);
-var RB: TRealBinary;
 begin
   FVarType := vtReal;
   FUserType := GetSystemType(FVarType);
@@ -494,7 +494,7 @@ begin
         if IsSignedType(AUserType.OfType) then
           //SignExtend
           if Value and $80 <> 0 then
-            Value := Value or (-1 xor $ff);
+            Value := Value or (-1 xor Integer($ff));
       end;
       2:
       begin
@@ -502,7 +502,7 @@ begin
         if IsSignedType(AUserType.OfType) then
           //SignExtend
           if Value and $8000 <> 0 then
-            Value := Value or (-1 xor $ffff);
+            Value := Value or (-1 xor Integer(iCPUWordMask));
       end;
     else
       Assert(False);
@@ -642,10 +642,6 @@ end;
 function TConst.ToLabel: String;
 var
   Prefix: String;
-  NamePrefix: String;
-
-  ScopeName: String;
-  LName: String;
 begin
   case VarType of
     vtReal:
@@ -686,7 +682,7 @@ end;
 class function TConsts.Add(const AName: String; UType: TUserType;const AValue: TImmValue): TConst;
 var Scope: TScope;
 begin
-  Scope := GetCurrentScope.BlockScope;
+  Scope := ParseData.ParseScope;
 
   //Expression parser will return a TImmValue with an unnamed TConst. Handle the
   //case where that value is being assigned to a CONST
@@ -728,7 +724,7 @@ class function TConsts.AddBlob(const AName: String; UType: TUserType;
   const AValue: TImmValue; const ABlobValue: TBlob): TConst;
 var Scope: TScope;
 begin
-  Scope := GetCurrentScope.BlockScope;
+  Scope := ParseData.ParseScope;
   Result := TConst.CreateBlob(AName, Scope, UType, AValue, ABlobValue);
   Scope.Add(Result);
 end;
@@ -737,19 +733,23 @@ class function TConsts.AddString(const AName: String; UType: TUserType;
   const AValue: TImmValue; const AStringValue: String): TConst;
 var Scope: TScope;
 begin
-  Scope := GetCurrentScope.BlockScope;
+  Scope := ParseData.ParseScope;
   Result := TConst.CreateString(AName, Scope, UType, AValue, AStringValue);
   Scope.Add(Result);
 end;
 
-procedure CreateSystemConsts(Scope: TScope);
+procedure CreateSystemConsts(SysUnit: TScope);
 begin
+  Assert(SysUnit is TUnit);
+  Assert(ParseData.ILScope = SysUnit);
+  ParseData.OpenILScope(TUnit(SysUnit));
   //These are now created as EnumItems by the type system
 (*  TConsts.Add('False', GetSystemType(vtBoolean), TImmValue.CreateBoolean(False));
   TConsts.Add('True', GetSystemType(vtBoolean), TImmValue.CreateBoolean(True));
 *)  TConsts.Add('Maxint', GetSystemType(vtInteger), TImmValue.CreateTyped(vtInteger, GetMaxValue(vtInteger)));
   TConsts.Add('Minint', GetSystemType(vtInteger), TImmValue.CreateTyped(vtInteger, GetMinValue(vtInteger)));
   TConsts.Add('nil', GetSystemType(vtPointer), TImmValue.CreateTyped(vtPointer, $0000));
+  ParseData.CloseILScope(TUnit(SysUnit));
 end;
 
 initialization

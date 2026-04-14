@@ -105,29 +105,24 @@ function Deploy(Filename: String;Interactive: Boolean): Boolean;
 //====Query compiler data
 
 //Return the IL data in text form
-procedure GetILText(S: TStrings);
+procedure GetILText(const ScopeName: String;S: TStrings);
 
 procedure GetScopeList(S: TStrings);
 
-//Select a scope and make it the current scope
-//(For use *only* when browsing compiled code)
-//Returns True if the scope was found
-function SelectScope(Name: String): Boolean;
-
 //Dump the variables data to text form
-procedure GetVarsText(S: TStrings;TypeSummary: Boolean);
+procedure GetVarsText(const ScopeName: String;S: TStrings;TypeSummary: Boolean);
 
-procedure GetFunctionsText(S: TStrings);
+procedure GetFunctionsText(const ScopeName: String;S: TStrings);
 
-procedure GetTypesText(S: TStrings);
+procedure GetTypesText(const ScopeName: String;S: TStrings);
 
-procedure GetObjectCode(S: TStrings);
+procedure GetObjectCode(const ScopeName: String;S: TStrings);
 
 procedure SaveObjectCode(Filename: String);
 
 implementation
 uses SysUtils, {$ifdef fpc}FileUtil,{$else}IOUtils,{$endif}
-  Def.Functions, Def.IL, Def.Intrinsics, Def.Operators, Def.Scopes, Def.ScopesEX,
+  Def.Compiler, Def.Functions, Def.IL, Def.Intrinsics, Def.Operators, Def.Scopes,
   Def.Variables, Def.Consts, Def.VarTypes, Def.UserTypes,
   Parse.Base,
   Lib.Data, Lib.Primitives,
@@ -136,7 +131,16 @@ uses SysUtils, {$ifdef fpc}FileUtil,{$else}IOUtils,{$endif}
   {$IFDEF EMULATOR}IDE.Emulator, {$endif}
   IDE.ILExec, IDE.Shell;
 
-var TheProgram: TProgram;
+
+function FindScope(const ScopeName: String): TILScope;
+begin
+  if ScopeName <> '' then
+    Result := TheProgram.FindByName(ScopeName)
+  else
+    Result := TheProgram;
+  if Result = nil then
+    raise Exception.Create('Scope not found: ' + ScopeName);
+end;
 
 //====Errors and return values
 
@@ -400,34 +404,38 @@ begin
   Result := LastError = qeNone;
 end;
 
-function DoCodeGen(BlockType: TBlockType): Boolean;
-var Scope: PScope;
+function DoCodeGen(Scope: TILScope;BlockType: TBlockType): Boolean;
 begin
-  Scope := GetCurrentScope;
   if optCleverPuppy then
-  begin
-    Scope.CleverPuppy := TCleverPuppy.Create;
-    Scope.CleverPuppy.ProcessSection;
-  end;
+    Scope.RunCleverPuppy;
 
   Result := CodeGenSection(Scope, BlockType);
 end;
 
-function CodeGenCallback: Boolean;
+function CodeGenCallback(Scope: TILScope): Boolean;
 begin
-  Result := DoCodeGen(btDefault);
+  Result := DoCodeGen(Scope, btDefault);
 end;
 
-procedure GetObjectCode(S: TStrings);
-var Scope: PScope;
+procedure GetObjectCode(const ScopeName: String;S: TStrings);
+var Scope: TILScope;
 begin
-  Scope := GetCurrentScope;
+  Scope := FindScope(ScopeName);
+
+  S.Clear;
+  Scope.EachDown<TILScope>(
+    procedure(Scope: TILScope)
+    begin
+      S.Append(Scope.AsmCode.Text);
+      S.Append(Scope.AsmData.Text);
+    end);
+(*
   if Assigned(Scope.AsmCode) then
   begin
     S.Assign(Scope.AsmCode);
     S.Append(Scope.AsmData.Text);
   end;
-end;
+*)end;
 
 procedure SaveObjectCode(Filename: String);
 begin
@@ -454,11 +462,13 @@ var Start: Double;
 begin
   CompileTime := 0;
   Start := Now;
+  ParseData.OpenILScope(TheProgram);
   Result := IDE.Compiler.DoParse(BlockType, ParseMode);
   if not Result then
     EXIT;
+  ParseData.CloseILScope(TheProgram);
 
-  Result := DoCodeGen(BlockType);
+  Result := DoCodeGen(TheProgram, BlockType);
 {$ifdef fpc}
   SaveObjectCode(ConcatPaths([OutputFolder, 'quicheoutput.asm']));
 {$else}
@@ -529,7 +539,9 @@ begin
     IDE.Emulator.RunToHalt;
     IDE.Emulator.TryReadByte('LAST_ERROR_CODE', RunTimeError);
     IDE.Emulator.TryReadWord('LAST_ERROR_ADDR', RunTimeErrorAddress);
-    IDE.Emulator.GetVarData(GetCurrentScope.BlockScope, TFuncs.GetStackParamsByteSize + StackFrameSize);
+    ParseData.OpenILScope(TheProgram);
+    IDE.Emulator.GetVarData(ParseData.ParseScope, TFuncs.GetStackParamsByteSize + StackFrameSize);
+    ParseData.CloseILScope(TheProgram);
     ConsoleLog := IDE.Emulator.ConsoleLog;
     {$ifdef fpc}
     writeln;
@@ -553,11 +565,11 @@ end;
 
 //====Query data (after compiling)
 
-procedure GetILText(S: TStrings);
-var Scope: PScope;
+procedure GetILText(const ScopeName: String;S: TStrings);
+var Scope: TILScope;
 begin
-  ILToStrings(S);
-  Scope := GetCurrentScope;
+  Scope := FindScope(ScopeName);
+  S.Text := ILListToString(Scope.ILList);
   if Assigned(Scope.CleverPuppy) then
   begin
     S.Add(Scope.CleverPuppy.ToString);
@@ -567,17 +579,15 @@ end;
 
 procedure GetScopeList(S: TStrings);
 begin
-  ScopesToStrings(S);
+  TheProgram.ListILScopes(S);
 end;
 
-function SelectScope(Name: String): Boolean;
+procedure GetVarsText(const ScopeName: String;S: TStrings;TypeSummary: Boolean);
+var Scope: TILScope;
 begin
-  Result := ScopeSelectByName(Name);
-end;
-
-procedure GetVarsText(S: TStrings;TypeSummary: Boolean);
-begin
-  S.Text := GetCurrentScope.FunctionScope.ToString;
+  Scope := FindScope(ScopeName);
+  S.Clear;
+  S.Append(Scope.ToString);
   if RunTimeError = 0 then
     S.Insert(0, 'Runtime error 0')
   else
@@ -587,14 +597,18 @@ begin
   end;
 end;
 
-procedure GetFunctionsText(S: TStrings);
+procedure GetFunctionsText(const ScopeName: String;S: TStrings);
+var Scope: TILScope;
 begin
-  S.Text := GetCurrentScope.FunctionScope.ToString;
+  Scope := FindScope(ScopeName);
+  S.Text := Scope.ToString;
 end;
 
-procedure GetTypesText(S: TStrings);
+procedure GetTypesText(const ScopeName: String;S: TStrings);
+var Scope: TILScope;
 begin
-  S.Add(GetCurrentScope.FunctionScope.ToString);
+  Scope := FindScope(ScopeName);
+  S.Add(Scope.ToString);
 end;
 
 //====Initialisation
@@ -617,15 +631,22 @@ begin
   optCleverPuppy := False;
 end;
 
-function InitLibraries: Boolean;
+//Creates System types, Consts and (Intrinsics?) which can't be parsed from System.Quiche
+procedure InitSystemUnit(SysUnit: TUnit);
+begin
+  ParseData.OpenILScope(SysUnit);
+  CreateSystemTypes(SysUnit);
+  CreateSystemConsts(SysUnit);
+  ParseData.CloseILScope(SysUnit);
+end;
+
+function CompileSystemUnit(SysUnit: TUnit): Boolean;
 var Filename: String;
   SL: TStringList;
-  PrevScope: PScope;
 begin
-  PrevScope := GetCurrentScope;
   SL := TStringList.Create;
   try
-    SetCurrentScope(@SystemScope);
+    ParseData.OpenILScope(SysUnit);
 
     //System file common to all platforms
 {$ifdef fpc}
@@ -651,31 +672,34 @@ begin
     if not Result then
       EXIT;
 
-    SetCurrentScope(PrevScope);
+    ParseData.CloseILScope(SysUnit);
   finally
     SL.Free;
   end;
 end;
 
 procedure Initialise(InitDirectives, WarmInit: Boolean);
+var SysUnit: TUnit;
 begin
-  if WarmInit then
-    //Clear out TheProgram code but not units
-  else
-  begin
-    if Assigned(TheProgram) then
-      TheProgram.Free;
-    TheProgram := TProgram.Create;
-  end;
+  WarmInit := False;  //==================================TEMP
+  WarmInit := InitProgram(WarmInit);
 
   ParseErrorNo := 0;
   LastError := qeNone;
-  Parse.OnScopeDone := CodeGenCallback;
   if InitDirectives then
     DoInitDirectives;
 
   InitialiseVars;
-  InitialiseScopes;
+  InitParseData;
+  ParseData.OnScopeDone := CodeGenCallback;
+  if WarmInit then
+    SysUnit := nil
+  else
+  begin
+    SysUnit := TUnit.Create('System', TheProgram);
+    TheProgram.Units.Add(SysUnit);
+    InitSystemUnit(SysUnit);
+  end;
 
   if not WarmInit then
   begin
@@ -705,14 +729,16 @@ begin
 
     Z80.GenProcs.Initialise;
   end;
+
   //Intrinsics are owned by the root Scope which is always cleared, so we must
   //reload for every run
   InitialiseIntrinsics;
 {$ifdef fpc}
-  LoadIntrinsicsFile(ConcatPaths([BinFolder, IntrinsicsFilename]), SystemScope.FunctionScope);
+  LoadIntrinsicsFile(ConcatPaths([BinFolder, IntrinsicsFilename]), SysUnit);
 {$else}
-  LoadIntrinsicsFile(TPath.Combine(BinFolder, IntrinsicsFilename), SystemScope.FunctionScope);
+  LoadIntrinsicsFile(TPath.Combine(BinFolder, IntrinsicsFilename), SysUnit);
 {$endif}
+(*  end;*)
 
 {$ifdef fpc}
   InitialiseCodeGen(ConcatPaths([GetPlatformFolder, Config.PlatformName + '.asm']),
@@ -728,15 +754,13 @@ begin
 {$endif}
   if not WarmInit then
   begin
-    if not InitLibraries then
+    if not CompileSystemUnit(SysUnit) then
       raise Exception.Create('Unable to parse system library files: '#10#13 +
         ParseErrorString);
   end;
 end;
 
 initialization
-  TheProgram := nil;
-
   //Default values for compiler options
   Config.AllowAutoCreation := False;
   Config.OverflowChecks := True;

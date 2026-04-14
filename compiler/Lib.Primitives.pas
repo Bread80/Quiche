@@ -119,7 +119,7 @@ begin
     plStaticVar: Result := AddrMode = amStatic;
     plStackVar:  Result := AddrMode = amStack;
     plStaticPtrVar:  Result := AddrMode = amStaticRef;
-    plStackPtrVar:  Assert(False);//Result := AddrMode = amStackPtr;
+//    plStackPtrVar:  Assert(False);//Result := AddrMode = amStackPtr;
 
     plRegister:  Result := (AvailableRegs * [rA..rE,rH..rL, rHL..rBC]) <> [];
   else
@@ -703,7 +703,7 @@ begin
   Search.VarType := ILParam.GetVarType;
 //  Search.IsRange := False;
   Search.Kind := ILParam.Kind;
-  if Search.Kind in [pkVarSource, pkVarAddr] then
+  if Search.Kind in [pkVarSource] then
   begin
     V := ILParam.ToVariable;
     Search.AddrMode := V.AddrMode;

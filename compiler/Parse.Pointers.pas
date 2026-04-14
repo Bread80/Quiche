@@ -189,7 +189,7 @@ unit Parse.Pointers;
 
 interface
 uses Parse.Literals, Parse.Errors,
-  Def.Consts, Def.Scopes, Def.ScopesEX, Def.Variables, Def.UserTypes, Def.IL;
+  Def.Consts, Def.Scopes, Def.Variables, Def.UserTypes, Def.IL;
 
 const PtrSuffix = ['^','[','.'];
 
@@ -212,7 +212,7 @@ function TestForPtrSuffix: Boolean;
 //pkVarRef for Pointered types
 //pkVarPtr for non Pointered types
 //opPtrLoad is used to assign the value to the slug's variable
-function ParsePtrSuffixLoad(var Slug: TExprSlug;const Deref: TIdentData): TQuicheError;
+function ParsePtrSuffixLoad(var Slug: TExprSlug;const Deref: TTypedIdentifier): TQuicheError;
 
 //Parses a dereference on the assignment side of an expression.
 //Uses ParsePointedSuffix to parse the code to dereference the item, then
@@ -220,7 +220,6 @@ function ParsePtrSuffixLoad(var Slug: TExprSlug;const Deref: TIdentData): TQuich
 //to the dereferenced item.
 //AddrVar is the variable being dereferenced.
 //opPtrStore is used to store the expression's result to the parsed address
-//TODO: Update to use a TIdentData so we can also dereference functions
 function ParseAssignPtrSuffixStore(AddrVar: TVariable): TQuicheError;
 
 implementation
@@ -257,7 +256,7 @@ end;
 //  If the expression is not a constant one it's value will be validated against the
 //  type of Deref
 //AddrVar returns tha variable to which the data pointer is assigned.
-function ParseArrayIndexEX(const Deref: TIdentData;out AddrVar: TVariable): TQuicheError;
+function ParseArrayIndexEX(const Deref: TTypedIdentifier;out AddrVar: TVariable): TQuicheError;
 var IndexSlug: TExprSlug; //Slug for the index expresssion
   ArrayType: TArrayType;
   ILItem: PILItem;
@@ -267,10 +266,10 @@ begin
   Assert(CharInSet(Parser.TestChar, ['[',',']));
   Parser.SkipChar;
 
-  if Deref.GetUserType is TTypedPointer then
-    ArrayType := (Deref.GetUserType as TTypedPointer).OfType as TArrayType
+  if Deref.UserType is TTypedPointer then
+    ArrayType := (Deref.UserType as TTypedPointer).OfType as TArrayType
   else
-    ArrayType := Deref.GetUserType as TArrayType;
+    ArrayType := Deref.UserType as TArrayType;
   Assert(ArrayType <> nil);
   Assert(ArrayType.VarType = vtArrayType);
 
@@ -316,8 +315,8 @@ begin
   ILItem := ILAppend(opAddrElement);
   //First parameter is the address of the array
   case Deref.IdentType of
-    itVariable: ILItem.Param1.SetVarRef(Deref.Value as TVariable);
-    itConst: ILItem.Param1.SetImmediate((Deref.Value as TConst).Value);
+    itVariable: ILItem.Param1.SetVarRef(Deref as TVariable);
+    itConst: ILItem.Param1.SetImmediate((Deref as TConst).Value);
   else
     raise Exception.Create('Unknown IdentType');
   end;
@@ -346,25 +345,35 @@ end;
 //Parses ^ suffix (pointer dereference)
 //Deref is the item being derefenced (variable, constant or (function result))
 //AddrVar returns the variable holding the data pointer
-function ParsePtrSuffix(const Deref: TIdentData;out AddrVar: TVariable): TQuicheError;
+function ParsePtrSuffix(const Deref: TTypedIdentifier;out AddrVar: TVariable): TQuicheError;
 var ILItem: PILItem;
   DerefType: TUserType;
   AddrMode: TAddrMode;
 begin
   Assert(Parser.TestChar = '^');
   Parser.SkipChar;
-  DerefType := Deref.GetUserType;
+  DerefType := Deref.UserType;
 
   if not (DerefType.VarType in [vtTypedPointer, vtPointer]) then
     EXIT(ErrSub(qePointerDerefError, DerefType.Description));
-  Assert(Deref.GetAddrMode in [amStatic, amStack], 'TODO');
+  case Deref.IdentType of
+    itVariable:
+    begin
+      AddrMode := TVariable(Deref).AddrMode;
+      Assert(AddrMode in [amStatic, amStack], 'TODO');
+    end;
+    itConst:
+      AddrMode := amStatic;
+  else
+    raise EAddrMode.Create;
+  end;
 
   //Gen IL code to assign var to a temp var with addressing mode StaticPtr/StackPtr
   //and Type which is the OfType of V
   ILItem := ILAppend(opMove);    //A Sugar op - no data actually changes...
   begin
     case Deref.IdentType of
-      itVariable: ILItem.Param1.SetVarSource(Deref.Value as TVariable);
+      itVariable: ILItem.Param1.SetVarSource(Deref as TVariable);
     else
       raise exception.Create('TODO: IdentType');
     end;
@@ -375,7 +384,7 @@ begin
       ILItem.ResultType := DerefType;
   end;
 
-  case Deref.GetAddrMode of              //...but we need to update the addressing mode
+  case AddrMode of              //...but we need to update the addressing mode
     amStatic, amStaticRef: AddrMode := amStatic;//Ptr;
     amStack{, amStackPtr}: AddrMode := amStack;//Ptr;
     //?? What if already StackPtr.StaticPtr?
@@ -398,9 +407,9 @@ end;
 //  .<field>    to access a record field
 //Deref is the item to be dereferenced (a variable, constant or function (result))
 //AddrVar returns a variable holding the address of the data (ie a pointer)
-function ParsePointedSuffix(const Deref: TIdentData;out AddrVar: TVariable): TQuicheError;
+function ParsePointedSuffix(const Deref: TTypedIdentifier;out AddrVar: TVariable): TQuicheError;
 var Ch: Char;
-  CurrIdent: TIdentData;
+  CurrIdent: TTypedIdentifier;
 begin
   Assert(CharInSet(Parser.TestChar, PtrSuffix));
   CurrIdent := Deref;
@@ -419,14 +428,13 @@ begin
     if Result <> qeNone then
       EXIT;
 
-    CurrIdent.IdentType := itVariable;
-    CurrIdent.Value := AddrVar;
+    CurrIdent := AddrVar;
   end;
 end;
 
 //As ParsePointedSuffix but also generates IL to load the value being dereferenced.
 //Returns a Slug with the code.
-function ParsePtrSuffixLoad(var Slug: TExprSlug;const Deref: TIdentData): TQuicheError;
+function ParsePtrSuffixLoad(var Slug: TExprSlug;const Deref: TTypedIdentifier): TQuicheError;
 var ILItem: PILItem;
   AddrVar: TVariable;
   DestVar: TVariable;
@@ -507,11 +515,10 @@ end;
 
 function ParseAssignPtrSuffixStore(AddrVar: TVariable): TQuicheError;
 var WriteType: TUserType;
-  Deref: TIdentData;
+  Deref: TTypedIdentifier;
   DestVar: TVariable;
 begin
-  Deref.IdentType := itVariable;
-  Deref.Value := AddrVar;
+  Deref := AddrVar;
   Result := ParsePointedSuffix(Deref, DestVar);
   if Result <> qeNone then
     EXIT;

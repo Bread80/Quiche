@@ -11,7 +11,7 @@ bdos_console_status		equ 11
 org $8000
   ld ix,$0000		;Initial stack frame
   ld sp,ix			;Initial stack pointer - playing it safe here as using stack for locals in compiler at the moment
-  call __global		;Jump to generated code
+  call __main		;Jump to generated code
   halt
   
 ;Error codes etc.

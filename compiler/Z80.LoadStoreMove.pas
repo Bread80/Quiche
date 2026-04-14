@@ -361,11 +361,11 @@ procedure SetFuncDataInMoveState(Func: TFunction;Loading: Boolean);
 var Param: TParameter;
   I: Integer;
 begin
-  for I := 0 to MaxFunctionParams-1 do
+  for I := 0 to Func.ParamsCount-1 do
     //Parameter is passed or returned in a register
-    if Func.Params[I].Reg <> rNone then
+    if Func.Paramss[I].Reg <> rNone then
     begin
-      Param := Func.Params[I];
+      Param := Func.Paramss[I];
       if (Loading and Param.PassDataIn) or
         (not Loading and Param.ReturnsData) then
          MoveState[Param.Reg].CheckType := Param.UserType;
@@ -430,7 +430,6 @@ begin
     case Param.Kind of
       pkNone: ;
       pkPhiVarSource,pkPhiVarDest: ;
-      pkVarAddr: ;  //Handled by the primitive
 
       //Loading
       pkImmediate:
@@ -513,7 +512,7 @@ var Param: TParameter;
 begin
   InitMoveState;
 
-  for Param in Func.Params do
+  for Param in Func.Paramss do
     if (Entry and Param.PassDataIn) or
       (not Entry and Param.ReturnsData) then
         SetParam(Param, Entry);
@@ -813,7 +812,7 @@ begin
     Assert(ILItem.Op in [opFuncCall, opFuncCallExtended]);
     if Assigned(ILItem.Func) then
     begin
-      Code := ILItem.Func.GetCallInstruction;
+      Code := FunctionHandleToFunction(ILItem.Func).GetCallInstruction;
       AsmInstr(Code);
 
       //TEMP: Clear register state. Update to depend on functions Corrupt's data

@@ -182,6 +182,7 @@ type TTestable = class
 
     //Utilities
     function DequoteString(const S: String): String;
+    function FindVariable(const AName: String): TVariable;
 
     //Test for errors
     //Set error status with given message
@@ -314,8 +315,8 @@ procedure LoadSelfTests;
 
 implementation
 uses Classes, IOUtils,
-  Def.Consts, Def.UserTypes,
-  Parse.Errors, Parse.Expr;
+  Def.Compiler, Def.Consts, Def.UserTypes,
+  Parse.Base, Parse.Errors, Parse.Expr;
 
 const TestActionStrings: array[low(TTestAction)..high(TTestAction)] of String = (
   'VarType', 'Compile', 'UsesPrimitive', 'VarValue', 'VarValueString', 'OutBuffer', 'Runtime');
@@ -558,6 +559,15 @@ begin
   end;
 end;
 
+function TTest.FindVariable(const AName: String): TVariable;
+begin
+  Result := TheProgram.SearchDown<TVariable>(
+    function(V: TVariable): Boolean
+    begin
+      Result := CompareText(AName, V.Name) = 0;
+    end);
+end;
+
 function TTest.GetDetails: String;
 var I: Integer;
   Step: PTestStep;
@@ -762,7 +772,7 @@ end;
 procedure TTest.TestVarType(Step: PTestStep);
 var V: TVariable;
 begin
-  V := TVars.FindByNameAllScopes(Step.Name);
+  V := FindVariable(Step.Name);
   if not Assigned(V) then
     Error(Step, 'ERROR: No such variable: ''' + Step.Name + ''''#13)
   else if V.UserType = nil then
@@ -786,11 +796,13 @@ procedure TTest.TestVarValue(Step: PTestStep);
 var V: TVariable;
   Value: TImmValue;
 begin
-  V := TVars.FindByNameAllScopes(Step.Name);
+  V := FindVariable(Step.Name);
   if not Assigned(V) then
     Error(Step, 'ERROR: No such variable: ''' + Step.Name + ''''#13)
   else
   begin
+    ParseData.OpenILScope(TheProgram);
+
     IDE.Compiler.LoadSourceString(Step.Value);
     if ParseConstantExprAsType(Value, V.UserType) <> qeNone then
       raise Exception.Create('Invalid test expression: ' + Step.Value + #13 +
@@ -802,6 +814,8 @@ begin
     else
       Check(V.Value.ToString = Value.ToString, Step, 'VarValue mismatch on ' + V.Name +
           ', wanted ' + Value.ToString + ' got ' + V.Value.ToString + #13);
+
+    ParseData.CloseILScope(TheProgram);
   end;
 end;
 
@@ -809,7 +823,7 @@ procedure TTest.TestVarValueString(Step: PTestStep);
 var V: TVariable;
   Value: String;
 begin
-  V := TVars.FindByNameAllScopes(Step.Name);
+  V := FindVariable(Step.Name);
   if not Assigned(V) then
     Error(Step, 'ERROR: No such variable: ''' + Step.Name + ''''#13)
   else
@@ -1139,7 +1153,6 @@ var S: String;
   PrevQuote: Boolean;
 begin
   InString := False;
-  PrevQuote := False;
   SetLength(Result, 0);
   S := '';
   for Ch in Line do
@@ -1281,13 +1294,13 @@ begin
     begin
       Result := Value and iCPUWordMask;
       if Result and iIntegerMin <> 0 then
-        Result := Result or (-1 xor iCPUWordMask);
+        Result := Result or (-1 xor Integer(iCPUWordMask));
     end;
     vtInt8:
     begin
       Result := Value and $ff;
       if Result and $80 <> 0 then
-        Result := Result or (-1 xor $ff);
+        Result := Result or (-1 xor Integer($ff));
     end;
     vtByte: Result := Value and $ff;
     vtWord, vtPointer: Result := Value and iCPUWordMask;
